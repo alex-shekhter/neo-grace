@@ -1,0 +1,147 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-PAYMENT-RECORD</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    The maintainer ruled that payments are
+    recorded as historical rows written
+    directly into registry.xml. Archived
+    specs are never edited. That ruling
+    is implemented, not reopened.
+
+    kind=&quot;historical&quot; is the honest
+    member. The derivation currently
+    sees only kind=&quot;chartered&quot;
+    (scripts/validate-record-retirement.ts:731).
+    Reusing chartered would make the
+    rows visible with no code change,
+    and would say these bundles were
+    chartered in advance in this
+    registry. They were not. A closed
+    union that lies about its members
+    turns eligibility — D28.1's
+    enforcement — into a formality, which
+    is the defect this bundle exists to
+    refuse in the payment itself.
+    kind=&quot;sweep-remainder&quot; is the
+    leftover-name table with empty Pays;
+    stuffing tokens there would be a
+    second lie and would stay invisible.
+    Widening the union and the filter,
+    and erroring on any other kind
+    value, is the product change that
+    makes the new member real.
+
+    The brief asked what StatusText must
+    say because collectPaidBy allegedly
+    requires /delivered|superseded/i.
+    That predicate is not in the shipped
+    function. It is staged F180's
+    description of collectPaidBy at
+    67bc55c (:372-410), before
+    C-RETIRE-AND-CODIFY widened the
+    derivation to Closed with and the
+    archived-spec payer phrase. A
+    finding is never evidence of present
+    state. Historical StatusText still
+    has to be true — **Delivered**,
+    because the four bundles are
+    archived applied — but it is not a
+    gate on the payer map. The
+    AC-KIND-VISIBLE fixture uses a
+    StatusText that does not match that
+    regex so the probe cannot pass by
+    accidentally depending on it.
+
+    F90+F90.1+F35 wrap 249, which
+    cleared the brief's 494-line staged
+    wrap by 7 under a 252+Delta window.
+    The buffer is untracked and has
+    grown: 17 findings wrap 609 under
+    the F181 / parseFrozenMarkdown
+    bodyRaw-plus-3 rule. 249 no longer
+    clears it. F27 and F38 are required
+    fuel, not margin. F27.1 and F27.2
+    ride the same C-DECLARED-WRITES row,
+    already required for F27, and were
+    verified against the same witnesses;
+    they restore margin without a fifth
+    row and without a ceiling question.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Reuse kind=&quot;chartered&quot;. No union
+      change; the filter already sees
+      the row. Rejected: semantically
+      false, and it teaches the next
+      author that kind is decorative.
+    </Alternative>
+    <Alternative>
+      Add kind=&quot;historical&quot; without
+      widening the filter. The rows
+      exist and remain invisible.
+      Rejected: inert, which is the
+      current defect in a new costume.
+    </Alternative>
+    <Alternative>
+      Write the rows directly into
+      registry-retired.xml. Live
+      occupancy never moves; ceiling
+      cannot breach. Rejected: the
+      maintainer ruled the rows are
+      written into registry.xml; AC-
+      CEILING-ORDER's before-retire
+      observation exists to keep that
+      ruling testable.
+    </Alternative>
+    <Alternative>
+      Edit the four archived specs to
+      carry the payer phrase. No new
+      kind. Rejected: archived bundles
+      are never edited.
+    </Alternative>
+    <Alternative>
+      Pay only F90, F90.1, and F35, as
+      the brief's minimum. Rejected at
+      this HEAD: 249 &lt; 357, so the
+      flush stays blocked. Not a
+      deferral of F27 / F38 — those
+      witnesses were already verified.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      None. D11: F90.1 residuals, F35.1,
+      and F36 are out because they lack
+      a verified present-tree witness
+      for this payment set, not because
+      they were filed for later.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Executor widens the union and the
+      filter, adds the four rows to live
+      registry.xml, runs --retire, then
+      commits. validate:ci sees live
+      occupancy 11, four historical rows
+      in the retired sibling, seven
+      tokens retired with stamped
+      PaidBy, exit 0.
+    </Scenario>
+    <Scenario>
+      Executor commits the four live
+      rows without --retire. validate:ci
+      fails on registry-eligible-still-
+      live and finding-eligible-still-
+      live. That commit is not a
+      deliverable of this bundle.
+    </Scenario>
+    <Scenario>
+      A later author writes
+      kind=&quot;Historical&quot; or
+      kind=&quot;history&quot;. Validate errors
+      rather than dropping the row from
+      the payer map.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>

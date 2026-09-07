@@ -60,13 +60,18 @@ export type InventoryEntry = {
   bodyHash: string;
 };
 
+export const REGISTRY_KINDS = ["chartered", "sweep-remainder", "historical"] as const;
+export type RegistryKind = (typeof REGISTRY_KINDS)[number];
+const REGISTRY_KIND_SET = new Set<string>(REGISTRY_KINDS);
+const PAYER_KINDS = new Set<string>(["chartered", "historical"]);
+
 export type RegistryRow = {
   name: string;
   number: string;
   charter: string;
   pays: string;
   statusText: string;
-  kind: "chartered" | "sweep-remainder";
+  kind: RegistryKind;
   successor: string;
 };
 
@@ -728,12 +733,32 @@ function parseRecordRoot(
 
 function charteredRowsFromRoot(root: GraceXmlNode): Array<{ name: string; pays: string; statusText: string }> {
   return childNodes(root, "Row")
-    .filter((row) => (row.attributes.kind ?? "chartered") === "chartered")
+    .filter((row) => PAYER_KINDS.has(row.attributes.kind ?? "chartered"))
     .map((row) => ({
       name: row.attributes.name ?? "",
       pays: childText(row, "Pays") ?? "",
       statusText: childText(row, "StatusText") ?? "",
     }));
+}
+
+function checkRegistryKinds(
+  file: string,
+  root: GraceXmlNode | null,
+  findings: RetirementFinding[],
+): void {
+  if (!root) {
+    return;
+  }
+  for (const row of childNodes(root, "Row")) {
+    const kind = row.attributes.kind ?? "chartered";
+    if (REGISTRY_KIND_SET.has(kind)) {
+      continue;
+    }
+    findings.push({
+      code: "registry-unknown-kind",
+      message: `${file}: registry row name="${row.attributes.name ?? ""}" has kind="${kind}"; allowed kinds are ${REGISTRY_KINDS.join(", ")}`,
+    });
+  }
 }
 
 function headingLevelFromTitle(title: string): number {
@@ -1151,6 +1176,8 @@ export function validateRecordRetirement(options: RetirementOptions): Retirement
   const rulingsRoot = parseRecordRoot(paths.rulings, files.rulings!, findings);
   const registryRoot = parseRecordRoot(paths.registry, files.registry!, findings);
   const registryRetiredRoot = parseRecordRoot(paths.registryRetired, files.registryRetired!, findings);
+  checkRegistryKinds(paths.registry, registryRoot, findings);
+  checkRegistryKinds(paths.registryRetired, registryRetiredRoot, findings);
   const payers = derivePayerMap(options.repoRoot, [
     ...(registryRoot ? charteredRowsFromRoot(registryRoot) : []),
     ...(registryRetiredRoot ? charteredRowsFromRoot(registryRetiredRoot) : []),

@@ -847,6 +847,330 @@ ${inner}
       expect(after[name], name).toBe(before[name]);
     }
   });
+
+  it('AC-KIND-VISIBLE: kind="historical" pays without /delivered|superseded/i; sweep-remainder with the same Pays does not; chartered still pays', () => {
+    const historicalStatus = "witness at src/example.ts:1; not a charter";
+    expect(historicalStatus).not.toMatch(/delivered|superseded/i);
+
+    const historicalRoot = isolatedRoot();
+    mkdirSync(path.join(historicalRoot, ".ngrace/changes/archive/C-HIST"), { recursive: true });
+    const historicalParts = happyParts();
+    historicalParts.registry = `<Registry base="2" headroom="15" ceiling="17">
+  <Row name="C-LIVE-ROW" status="live" kind="chartered">
+    <Number>1</Number>
+    <Charter>charter</Charter>
+    <Pays></Pays>
+    <StatusText>Ordered</StatusText>
+  </Row>
+  <Row name="C-HIST" status="live" kind="historical">
+    <Number></Number>
+    <Charter>historical payment so the derivation can see it</Charter>
+    <Pays>F1</Pays>
+    <StatusText>${historicalStatus}</StatusText>
+  </Row>
+</Registry>
+`;
+    writeHappy(historicalRoot, historicalParts);
+    const historical = runValidator(historicalRoot);
+    expect(historical.status).not.toBe(0);
+    expect(historical.stderr).toContain("finding-eligible-still-live");
+    expect(historical.stderr).toContain('token="F1"');
+    expect(historical.stderr).toContain("C-HIST");
+
+    const sweepRoot = isolatedRoot();
+    mkdirSync(path.join(sweepRoot, ".ngrace/changes/archive/C-SWEEP"), { recursive: true });
+    const sweepParts = happyParts();
+    sweepParts.registryRetired = `<Registry>
+  <Row name="C-OLD" status="retired" kind="chartered">
+    <Number>2</Number>
+    <Charter>old</Charter>
+    <Pays></Pays>
+    <StatusText>Delivered</StatusText>
+  </Row>
+  <Row name="C-SWEEP" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays>F1</Pays>
+    <StatusText>${historicalStatus}</StatusText>
+  </Row>
+</Registry>
+`;
+    writeHappy(sweepRoot, sweepParts);
+    const sweep = runValidator(sweepRoot);
+    expect(sweep.status).toBe(0);
+    expect(sweep.stderr).not.toContain("finding-eligible-still-live");
+
+    const charteredRoot = isolatedRoot();
+    const charteredParts = happyParts();
+    charteredParts.registryRetired = `<Registry>
+  <Row name="C-OLD" status="retired" kind="chartered">
+    <Number>2</Number>
+    <Charter>old</Charter>
+    <Pays>F1</Pays>
+    <StatusText>Ordered, not a charter phrase</StatusText>
+  </Row>
+</Registry>
+`;
+    writeHappy(charteredRoot, charteredParts);
+    const chartered = runValidator(charteredRoot);
+    expect(chartered.status).not.toBe(0);
+    expect(chartered.stderr).toContain("finding-eligible-still-live");
+    expect(chartered.stderr).toContain('token="F1"');
+    expect(chartered.stderr).toContain("C-OLD");
+  });
+
+  it('AC-KIND-VISIBLE: kind="history" and kind="Historical" make the non-mutating validate run exit non-zero and name the illegal kind', () => {
+    for (const illegal of ["history", "Historical"] as const) {
+      const root = isolatedRoot();
+      const parts = happyParts();
+      parts.registry = `<Registry base="1" headroom="15" ceiling="16">
+  <Row name="C-LIVE-ROW" status="live" kind="${illegal}">
+    <Number>1</Number>
+    <Charter>charter</Charter>
+    <Pays></Pays>
+    <StatusText>Ordered</StatusText>
+  </Row>
+</Registry>
+`;
+      writeHappy(root, parts);
+      const result = runValidator(root);
+      expect(result.status, illegal).not.toBe(0);
+      expect(result.stderr, illegal).toContain(illegal);
+      expect(result.stderr, illegal).not.toContain("finding-eligible-still-live");
+    }
+
+    const retiredRoot = isolatedRoot();
+    const retiredParts = happyParts();
+    retiredParts.registryRetired = `<Registry>
+  <Row name="C-OLD" status="retired" kind="history">
+    <Number>2</Number>
+    <Charter>old</Charter>
+    <Pays></Pays>
+    <StatusText>Delivered</StatusText>
+  </Row>
+</Registry>
+`;
+    writeHappy(retiredRoot, retiredParts);
+    const retired = runValidator(retiredRoot);
+    expect(retired.status).not.toBe(0);
+    expect(retired.stderr).toContain("history");
+  });
+
+  it("AC-CEILING-ORDER: four historical archive-named rows sit in live registry before --retire; ceiling persists; occupancy returns; plant-in-retired fails the live observation", () => {
+    const names = ["C-H1", "C-H2", "C-H3", "C-H4"] as const;
+    const liveChartered = ["C-LIVE-ROW", "C-LIVE-2", "C-LIVE-3"] as const;
+    const charteredXml = liveChartered
+      .map(
+        (name, i) =>
+          `  <Row name="${name}" status="live" kind="chartered">\n    <Number>${i + 1}</Number>\n    <Charter>charter</Charter>\n    <Pays></Pays>\n    <StatusText>Ordered</StatusText>\n  </Row>`,
+      )
+      .join("\n");
+    const historicalXml = names
+      .map(
+        (name) =>
+          `  <Row name="${name}" status="live" kind="historical">\n    <Number></Number>\n    <Charter>historical payment so the derivation can see it</Charter>\n    <Pays></Pays>\n    <StatusText>witness at src/example.ts:1; not a charter</StatusText>\n  </Row>`,
+      )
+      .join("\n");
+
+    const insertRoot = isolatedRoot();
+    for (const name of names) {
+      mkdirSync(path.join(insertRoot, ".ngrace/changes/archive", name), { recursive: true });
+    }
+    const insertParts = happyParts();
+    const preInsert = liveChartered.length;
+    const headroom = 15;
+    const ceiling = preInsert + headroom;
+    expect(preInsert + names.length).toBeLessThanOrEqual(ceiling);
+    insertParts.registry = `<Registry base="${preInsert}" headroom="${headroom}" ceiling="${ceiling}">
+${charteredXml}
+${historicalXml}
+</Registry>
+`;
+    insertParts.registryRetired = `<Registry>
+</Registry>
+`;
+    writeHappy(insertRoot, insertParts);
+    const liveBefore = readFileSync(path.join(insertRoot, RECORD_REL, "registry.xml"), "utf8");
+    expect(liveRowNames(liveBefore).sort()).toEqual([...liveChartered, ...names].sort());
+    expect(liveRowCount(liveBefore)).toBe(preInsert + names.length);
+    const persistedBefore = rootAttrs(liveBefore);
+    expect(persistedBefore.ceiling).toBe(ceiling);
+
+    const retired = runValidator(insertRoot, ["--retire", RECORD_REL]);
+    expect(retired.status).toBe(0);
+    const liveAfter = readFileSync(path.join(insertRoot, RECORD_REL, "registry.xml"), "utf8");
+    const retiredAfter = readFileSync(path.join(insertRoot, RECORD_REL, "registry-retired.xml"), "utf8");
+    expect(liveRowNames(liveAfter).sort()).toEqual([...liveChartered].sort());
+    expect(liveRowCount(liveAfter)).toBe(preInsert);
+    expect(rootAttrs(liveAfter).ceiling).toBe(ceiling);
+    expect(rootAttrs(liveAfter).headroom).toBe(ceiling - preInsert);
+    for (const name of names) {
+      expect(liveAfter).not.toContain(`name="${name}"`);
+      expect(retiredAfter).toContain(`name="${name}"`);
+      expect(retiredAfter).toContain(`kind="historical"`);
+    }
+
+    const plantRoot = isolatedRoot();
+    for (const name of names) {
+      mkdirSync(path.join(plantRoot, ".ngrace/changes/archive", name), { recursive: true });
+    }
+    const plantParts = happyParts();
+    plantParts.registry = `<Registry base="${preInsert}" headroom="${headroom}" ceiling="${ceiling}">
+${charteredXml}
+</Registry>
+`;
+    plantParts.registryRetired = `<Registry>
+${names
+  .map(
+    (name) =>
+      `  <Row name="${name}" status="retired" kind="historical">\n    <Number></Number>\n    <Charter>historical payment so the derivation can see it</Charter>\n    <Pays></Pays>\n    <StatusText>witness at src/example.ts:1; not a charter</StatusText>\n  </Row>`,
+  )
+  .join("\n")}
+</Registry>
+`;
+    writeHappy(plantRoot, plantParts);
+    const plantedLive = readFileSync(path.join(plantRoot, RECORD_REL, "registry.xml"), "utf8");
+    for (const name of names) {
+      expect(plantedLive).not.toContain(`name="${name}"`);
+    }
+    expect(liveRowCount(plantedLive)).toBe(preInsert);
+  });
+
+  it("AC-WINDOW-FUEL: --retire of findings paid by historical archive-named rows opens H + Delta_retired and keeps the previous ceiling", () => {
+    const root = isolatedRoot();
+    mkdirSync(path.join(root, ".ngrace/changes/archive/C-H1"), { recursive: true });
+    mkdirSync(path.join(root, ".ngrace/changes/archive/C-H2"), { recursive: true });
+    const grown = ["grow", "grow", "grow", "grow", "grow", "grow", "grow"];
+    const f = (id: string, token: string) =>
+      `  <Finding id="${id}" token="${token}" status="live">\n` +
+      `    <Title>### ${token} — live</Title>\n` +
+      `    <Body>body\n${grown.join("\n")}</Body>\n` +
+      `  </Finding>`;
+    const inner = `${f("f1", "F1")}\n${f("f2", "F2")}\n${f("f3", "F3")}\n${f("f4", "F4")}\n${f("f5", "F5")}`;
+    const noAttrs = `<Findings>\n${inner}\n</Findings>\n`;
+    const baseLive = newlineCount(noAttrs);
+    const H = 7 * median(findingLineCounts(noAttrs));
+    const parts = happyParts();
+    parts.findings = `<Findings base="${baseLive}" headroom="${H}" ceiling="${baseLive + H}">\n${inner}\n</Findings>\n`;
+    parts.index = `<RecordIndex base="10" headroom="40" ceiling="1000">
+  <Entry id="f1" token="F1" genre="finding" layer="live" />
+  <Entry id="f2" token="F2" genre="finding" layer="live" />
+  <Entry id="f3" token="F3" genre="finding" layer="live" />
+  <Entry id="f4" token="F4" genre="finding" layer="live" />
+  <Entry id="f5" token="F5" genre="finding" layer="live" />
+  <Entry id="d1" token="D1" genre="decision" layer="live" />
+</RecordIndex>
+`;
+    parts.registryRetired = `<Registry>
+  <Row name="C-H1" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>historical payment so the derivation can see it</Charter>
+    <Pays>F1</Pays>
+    <StatusText>witness at src/example.ts:1; not a charter</StatusText>
+  </Row>
+  <Row name="C-H2" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>historical payment so the derivation can see it</Charter>
+    <Pays>F2</Pays>
+    <StatusText>witness at src/example.ts:1; not a charter</StatusText>
+  </Row>
+</Registry>
+`;
+    writeHappy(root, parts);
+    const asRead = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const before = rootAttrs(asRead);
+    expect(before.ceiling).toBe(baseLive + H);
+    const result = runValidator(root, ["--retire", RECORD_REL]);
+    expect(result.status).toBe(0);
+    const afterXml = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const after = rootAttrs(afterXml);
+    const delta = before.base - after.base;
+    expect(delta).toBeGreaterThan(0);
+    expect(after.ceiling).toBe(before.ceiling);
+    expect(after.headroom).toBe(before.headroom + delta);
+    expect(after.headroom).toBe(after.ceiling - after.base);
+    expect(afterXml).not.toContain('token="F1"');
+    expect(afterXml).not.toContain('token="F2"');
+    const retiredFindings = readFileSync(path.join(root, RECORD_REL, "findings-retired.xml"), "utf8");
+    expect(retiredFindings).toContain('token="F1"');
+    expect(retiredFindings).toContain('token="F2"');
+    expect(retiredFindings).toContain("<PaidBy>C-H1</PaidBy>");
+    expect(retiredFindings).toContain("<PaidBy>C-H2</PaidBy>");
+  });
+
+  it(
+    "AC-PAYMENT-SET: production retired registry holds the four historical names; payment-set tokens are retired with stamped PaidBy; both F27.1 elements moved; a second --retire writes no byte",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const historicalNames = [
+        "C-CURSOR-TASK-RESOLVER",
+        "C-SUBSTANCE-OVER-NAME",
+        "C-DECLARED-WRITES",
+        "C-GRAMMAR-SEAM",
+      ] as const;
+      const paid = [
+        { token: "F90", payer: "C-CURSOR-TASK-RESOLVER" },
+        { token: "F90.1", payer: "C-CURSOR-TASK-RESOLVER" },
+        { token: "F35", payer: "C-SUBSTANCE-OVER-NAME" },
+        { token: "F27", payer: "C-DECLARED-WRITES" },
+        { token: "F27.1", payer: "C-DECLARED-WRITES" },
+        { token: "F27.2", payer: "C-DECLARED-WRITES" },
+        { token: "F38", payer: "C-GRAMMAR-SEAM" },
+      ] as const;
+
+      const liveRegistry = readFileSync(path.join(recordDir, "registry.xml"), "utf8");
+      const retiredRegistry = readFileSync(path.join(recordDir, "registry-retired.xml"), "utf8");
+      const liveFindings = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+      const retiredFindings = readFileSync(path.join(recordDir, "findings-retired.xml"), "utf8");
+
+      expect(liveRowCount(liveRegistry)).toBe(11);
+      for (const name of historicalNames) {
+        expect(liveRegistry).not.toContain(`name="${name}"`);
+        expect(retiredRegistry).toContain(`name="${name}"`);
+        expect(retiredRegistry).toMatch(
+          new RegExp(`<Row name="${name}" status="retired" kind="historical">`),
+        );
+      }
+
+      const liveFindingHits = findingRecords(liveFindings);
+      const retiredFindingHits = findingRecords(retiredFindings);
+      const f271Retired = retiredFindingHits.filter((f) => f.token === "F27.1");
+      expect(f271Retired.map((f) => f.id).sort()).toEqual(["f27.1", "f27.1-amendment"]);
+      for (const { token, payer } of paid) {
+        expect(liveFindingHits.filter((f) => f.token === token)).toEqual([]);
+        const retired = retiredFindingHits.filter((f) => f.token === token);
+        expect(retired.length).toBeGreaterThan(0);
+        for (const row of retired) {
+          expect(row.status).toBe("retired");
+          expect(row.paidBy).toBe(payer);
+        }
+      }
+
+      const f21Live = liveFindingHits.filter((f) => f.token === "F21");
+      expect(f21Live.map((f) => f.id).sort()).toEqual(["f21", "f21-correction"]);
+
+      const productionFiles = [
+        "findings.xml",
+        "findings-retired.xml",
+        "rulings.xml",
+        "rulings-retired.xml",
+        "registry.xml",
+        "registry-retired.xml",
+        "decisions.xml",
+      ].map((name) => path.join(recordDir, name));
+      const before = productionFiles.map((file) => readFileSync(file, "utf8"));
+      const second = runValidator(REPO_ROOT, ["--retire"]);
+      expect(second.status).toBe(0);
+      for (let i = 0; i < productionFiles.length; i++) {
+        expect(readFileSync(productionFiles[i]!, "utf8")).toBe(before[i]);
+      }
+
+      const validate = runValidator(REPO_ROOT);
+      expect(validate.status).toBe(0);
+      expect(validate.stdout).toContain("record-retirement: ok");
+    },
+    60_000,
+  );
 });
 
 function rootAttrs(xml: string): { base: number; headroom: number; ceiling: number } {
@@ -870,6 +1194,34 @@ function h2LineCounts(xml: string): number[] {
     out.push(newlineCount(block) + 1);
   }
   return out;
+}
+
+function liveRowNames(xml: string): string[] {
+  const blocks = xml.match(/<Row\b[\s\S]*?<\/Row>/g) ?? [];
+  const names: string[] = [];
+  for (const block of blocks) {
+    if (!/status="live"/.test(block)) continue;
+    const m = block.match(/\bname="([^"]+)"/);
+    if (m?.[1]) names.push(m[1]);
+  }
+  return names;
+}
+
+function liveRowCount(xml: string): number {
+  return liveRowNames(xml).length;
+}
+
+function findingRecords(
+  xml: string,
+): Array<{ id: string; token: string; status: string; paidBy: string | undefined }> {
+  const blocks = xml.match(/<Finding\b[\s\S]*?<\/Finding>/g) ?? [];
+  return blocks.map((block) => {
+    const id = block.match(/\bid="([^"]+)"/)?.[1] ?? "";
+    const token = block.match(/\btoken="([^"]+)"/)?.[1] ?? "";
+    const status = block.match(/\bstatus="([^"]+)"/)?.[1] ?? "";
+    const paidBy = block.match(/<PaidBy>([\s\S]*?)<\/PaidBy>/)?.[1];
+    return { id, token, status, paidBy };
+  });
 }
 
 function findingLineCounts(xml: string): number[] {

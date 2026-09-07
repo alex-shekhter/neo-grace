@@ -1,0 +1,357 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-PAYMENT-RECORD>
+    <IntentSummary>
+      Record already-discharged payments as historical registry
+      rows the derivation can read, then --retire in the same
+      wave. DurableScope is &lt;None /&gt;: no graph module is
+      written. Do not mint a synthetic module. ObservedWriteScope
+      is the two script files
+      scripts/validate-record-retirement.ts and
+      scripts/validate-record-retirement.test.ts, plus the seven
+      RM-GOVERNED-PATH files a successful --retire writeFileSyncs:
+      findings.xml, findings-retired.xml, rulings.xml,
+      rulings-retired.xml, registry.xml, registry-retired.xml,
+      and decisions.xml, plus the spec-time sibling
+      .ngrace/changes/active/C-PAYMENT-RECORD/design-context.xml
+      (already changed against the recorded base; T-001 and
+      T-002 do not edit it). Do not add spec.xml, plan.xml,
+      decisions.md, src/, CLAUDE.md, docs/plans/README.md,
+      skills/ngrace/*, package.json, or anything under
+      docs/plans/archive/ or .ngrace/changes/archive/.
+      Sequence: T-001 widens the kind union and the payer-row
+      filter, with isolated fixture tests, and does not write
+      production registry.xml. T-002 inserts four historical
+      rows into live production registry.xml and invokes one
+      production --retire in the same task; those two steps
+      cannot be separate commits or separate task boundaries.
+      No task writes production rows while the union is still
+      un-widened. After insert and before --retire, live
+      occupancy is the pre-insert live row count plus four;
+      measured at c7e54c086a8a60d68eae603384d1813a257a54d0 that
+      is 11+4=15, which is less than or equal to the persisted
+      registry ceiling 26, so no intermediate committed state
+      exceeds the ceiling. That intermediate is still not
+      green: name-equals-archive makes the rows immediately
+      registry-eligible, and a widened filter makes the paid
+      findings immediately finding-eligible, so validate:ci
+      would report registry-eligible-still-live and
+      finding-eligible-still-live until --retire runs. One
+      --retire pass, not two: retireRecord stamps &lt;PaidBy&gt;
+      and moves eligible findings and archive-named rows in
+      one invocation. Eligibility is by token, so both live
+      Finding elements whose token is F27.1 (id f27.1 and id
+      f27.1-amendment) move together. Current-mode lint of this
+      project root is not a task Verification command and is
+      not a TargetAssertions MustPassCommand. MustPassCommand
+      holds the leaf test and the validate-only validators.
+      Selected --assertions target --run-commands is T-002
+      post-write evidence and is not judged at plan time.
+      Do not require bun run validate:ci. Do not flush
+      .ngrace/scratch/staged-findings.md. Do not mint a
+      chartered row for C-PAYMENT-RECORD. Do not hand-edit
+      &lt;PaidBy&gt;. The later execution emits its own cursor
+      events (open-epoch, progress, attempt, terminal, fold).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>scripts/validate-record-retirement.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>.ngrace/changes/active/C-PAYMENT-RECORD/design-context.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Widen kind union and payer filter; isolated kind, ceiling, and window fixtures
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Amend scripts/validate-record-retirement.ts and
+            scripts/validate-record-retirement.test.ts. Do not
+            write production registry.xml or invoke production
+            --retire. RegistryRow.kind at
+            scripts/validate-record-retirement.ts:69 becomes
+            &quot;chartered&quot; | &quot;sweep-remainder&quot; |
+            &quot;historical&quot;. The XML payer-row collector
+            currently named charteredRowsFromRoot (:731) includes
+            kind=&quot;historical&quot; alongside
+            kind=&quot;chartered&quot; (a rename of the function
+            is allowed, not required). kind=&quot;sweep-remainder&quot;
+            stays out of the payer map. A Row whose kind is not
+            in that closed union, live or retired, is a validator
+            error: the non-mutating validate run exits non-zero
+            and the message names the illegal kind value, so a
+            typo cannot go silent-invisible. derivePayerMap
+            (:444) is otherwise unchanged: it still requires
+            archive.has(row.name), still reads Pays F-tokens
+            first, still reads Closed with tokens from
+            StatusText, still reads the archived-spec payer
+            phrase. It does not grow a
+            /delivered|superseded/i filter on StatusText.
+            Tests import median from
+            scripts/validate-record-retirement.ts; do not
+            re-implement it. Do not add a ngrace lint issue
+            code. Do not edit src/, skills/ngrace/*, or the
+            packaged mirror.
+          </Criterion>
+          <Criterion>
+            Isolated fixtures, argv naming a fixture directory
+            so they do not read or write the repository record
+            files. (1) kind=&quot;historical&quot;: a fixture
+            registry row with kind=&quot;historical&quot;, name
+            equal to an archive directory, Pays naming a live
+            finding token, and StatusText that does not match
+            /delivered|superseded/i, appears in the payer map
+            and makes that finding eligible. The same fixture
+            with kind=&quot;sweep-remainder&quot; and the same
+            Pays does not. A kind=&quot;chartered&quot; row
+            still pays as today. A Row whose kind is not in the
+            closed union (for example kind=&quot;history&quot;
+            or kind=&quot;Historical&quot;) makes the
+            non-mutating validate run exit non-zero.
+            (2) ceiling-order: an isolated fixture whose live
+            registry snapshot matches the production ceiling
+            formula, with the pre-insert live row count plus
+            four historical archive-named rows still less than
+            or equal to the persisted ceiling, observes the
+            live registry file after insert and before
+            --retire so the order is not vacuous, then
+            --retire persists that ceiling, returns live
+            occupancy to the pre-insert count, and places the
+            four rows in the retired sibling. A write that
+            planted the rows directly in the retired sibling
+            fails this probe. (3) window-fuel: an isolated
+            fixture --retire that moves finding elements paid
+            by historical archive-named rows opens a findings
+            window of H + Delta_retired under the shipped
+            C-RETIREMENT-WINDOW formula (ceiling stays the
+            previously persisted value when Base_live + H
+            meets or exceeds it; base drops by the moved
+            lines; headroom = ceiling - base). After this
+            task, bun ./scripts/validate-record-retirement.ts
+            on the production record still exits 0 and live
+            registry occupancy is still the pre-insert count.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands and the plan's
+            TargetAssertions contain no current-mode lint of
+            this project root, checked by the rule in the spec
+            Constraints, by hand (F171). Failure: a Command
+            whose text contains --assertions current, or that
+            invokes ngrace lint of this root and omits
+            --assertions, including bun ./src/grace.ts lint
+            --path . --fail-on warnings. Selected --assertions
+            baseline is the pre-write evidence command run by
+            the later executor, not a recorded Verification
+            command (staged F184: --assertions baseline
+            without --run-commands never resolves). Do not
+            require bun run validate:ci.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>
+          Insert four historical rows and --retire in the same wave
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Insert four historical rows into live production
+            registry.xml, then invoke one
+            bun ./scripts/validate-record-retirement.ts --retire
+            against the production record (no fixture argv) in
+            this same task, before any commit validate:ci can
+            see. Do not separate the insert and the --retire
+            into two tasks or two commits: after insert the
+            four names equal archive directories, so they are
+            immediately registry-eligible, and T-001's widened
+            filter makes the paid findings immediately
+            finding-eligible; a commit or a task boundary
+            holding that tree fails
+            registry-eligible-still-live and
+            finding-eligible-still-live. The intermediate
+            occupancy 11+4=15 does not exceed ceiling 26
+            (live-row units, checkCeilingValue at
+            scripts/validate-record-retirement.ts:1233); that
+            is why the ceiling is not the reason they cannot
+            be separated — eligibility is. One --retire pass,
+            not two: retireRecord stamps &lt;PaidBy&gt; onto
+            eligible live findings and moves those findings
+            and the archive-named rows in one invocation
+            (findings move by derived payer token; rows move
+            because name equals an archive directory,
+            independent of kind). A second production --retire
+            after the move writes no byte. Do not hand-edit
+            &lt;PaidBy&gt;. Do not write the rows directly into
+            registry-retired.xml. Do not raise the persisted
+            ceiling. Do not flush
+            .ngrace/scratch/staged-findings.md. Do not mint a
+            chartered row for C-PAYMENT-RECORD.
+          </Criterion>
+          <Criterion>
+            Row contents, four rows, kind=&quot;historical&quot;,
+            status=&quot;live&quot; on insert (--retire rewrites
+            status to &quot;retired&quot;). Pays is the
+            load-bearing field. Number may be empty. StatusText
+            begins with **Delivered**, says the row is a
+            historical payment record written by
+            C-PAYMENT-RECORD because the archived spec never
+            used the payer phrase and no registry row existed
+            at close, then names the present-tree witness; it
+            does not claim F90.1's range-hole or regenerate
+            residuals. Charter describes what that archived
+            bundle delivered and that the row exists so the
+            derivation can see the payment.
+            C-CURSOR-TASK-RESOLVER Pays F90 and F90.1.
+            C-SUBSTANCE-OVER-NAME Pays F35.
+            C-DECLARED-WRITES Pays F27, F27.1, and F27.2.
+            C-GRAMMAR-SEAM Pays F38. After --retire: those
+            four names exist as kind=&quot;historical&quot;
+            rows in registry-retired.xml and not in live
+            registry.xml; live findings.xml has no Finding
+            whose token is F90, F90.1, F35, F27, F27.1,
+            F27.2, or F38; those tokens exist as
+            status=&quot;retired&quot; with a &lt;PaidBy&gt;
+            child naming the corresponding archive event;
+            bun ./scripts/validate-record-retirement.ts exits
+            0. Eligibility is by token, so both live Finding
+            elements whose token is F27.1 (id=&quot;f27.1&quot;
+            and id=&quot;f27.1-amendment&quot;) move in that
+            same pass. A production test that reads the real
+            record carries an explicit generous timeout, not
+            Bun's 5000 ms default (staged F185). Tests import
+            median from
+            scripts/validate-record-retirement.ts; do not
+            re-implement it.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands and the plan's
+            TargetAssertions contain no current-mode lint of
+            this project root, checked by the rule in the spec
+            Constraints, by hand (F171). Selected --assertions
+            target --run-commands is the post-write evidence
+            command and is meant to run during execution with
+            an open cursor on a declared task; it is not
+            judged at plan time (staged F184). Do not put
+            bun ./src/grace.ts lint --path . --fail-on
+            warnings here (AC-CLOSE-LINT is post-archive).
+            Do not require bun run validate:ci. Path-scoped
+            git diffs are probed as written; the archive
+            pathspec excludes this bundle's own directory
+            (staged F188).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-PAYMENT-RECORD --assertions target --run-commands</Command>
+          <Command>git diff --exit-code e629c06d4232630f7f70b30c4c14ac2e2375ffc2 -- src/</Command>
+          <Command>git diff --exit-code e629c06d4232630f7f70b30c4c14ac2e2375ffc2 -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+          <Command>git diff --exit-code e629c06d4232630f7f70b30c4c14ac2e2375ffc2 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-PAYMENT-RECORD'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-002>
+    </ImplementationPlan>
+  </C-PAYMENT-RECORD>
+</NgraceChangePlan>
