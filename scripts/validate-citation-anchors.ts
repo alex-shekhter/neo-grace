@@ -11,6 +11,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { XMLValidator } from "fast-xml-parser";
+import { childNodes, childText, parseGraceXmlArtifact, walkNodes } from "../src/artifact/xml.ts";
 
 export const DEFAULT_TARGET = "docs/plans/active/RM-GOVERNED-PATH/decisions.md";
 export const INDEX_REL = "./decisions.xml";
@@ -40,16 +41,6 @@ type IndexEntry = {
   token: string;
   line: number;
 };
-
-function parseAttrs(raw: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  const re = /([A-Za-z][\w:-]*)="([^"]*)"/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(raw)) !== null) {
-    out[m[1]!] = m[2]!;
-  }
-  return out;
-}
 
 function xmlDecode(text: string): string {
   return text
@@ -107,15 +98,25 @@ export function validateStubAndIndex(stubPath: string): CitationAnchorFinding[] 
     return findings;
   }
 
+  const parsedIndex = parseGraceXmlArtifact(indexPath, indexXml);
+  if (!parsedIndex.root) {
+    findings.push({
+      code: "malformed-index",
+      line: 0,
+      message: `${indexPath}: index is not well-formed RecordIndex (${parsedIndex.issues[0]?.message ?? "parse failed"})`,
+    });
+    return findings;
+  }
   const entries: IndexEntry[] = [];
   const seen = new Map<string, number>();
-  const entryRe = /<Entry\b([^>]*)\/?>/g;
-  let em: RegExpExecArray | null;
-  while ((em = entryRe.exec(indexXml)) !== null) {
-    const attrs = parseAttrs(em[1] ?? "");
-    const line = indexXml.slice(0, em.index).split("\n").length;
-    const id = attrs.id ?? "";
-    const token = attrs.token ?? "";
+  for (const node of walkNodes(parsedIndex.root)) {
+    if (node.tag !== "Entry") {
+      continue;
+    }
+    const id = node.attributes.id ?? "";
+    const token = node.attributes.token ?? "";
+    const marker = `id="${id}"`;
+    const line = indexXml.split("\n").findIndex((row) => row.includes(marker)) + 1;
     if (seen.has(id)) {
       findings.push({
         code: "duplicate-id",
@@ -174,11 +175,17 @@ export function validateStubAndIndex(stubPath: string): CitationAnchorFinding[] 
       continue;
     }
     const xml = readFileSync(genrePath, "utf8");
-    const bodyRe = /<Body>([\s\S]*?)<\/Body>/g;
-    let bm: RegExpExecArray | null;
-    while ((bm = bodyRe.exec(xml)) !== null) {
-      const decoded = xmlDecode(bm[1] ?? "");
-      const lineBase = xml.slice(0, bm.index).split("\n").length;
+    const parsed = parseGraceXmlArtifact(genrePath, xml);
+    if (!parsed.root) {
+      continue;
+    }
+    for (const parent of [
+      ...childNodes(parsed.root, "Finding"),
+      ...childNodes(parsed.root, "Decision"),
+    ]) {
+      const decoded = xmlDecode(childText(parent, "Body") ?? "");
+      const id = parent.attributes.id ?? "";
+      const lineBase = xml.split("\n").findIndex((row) => row.includes(`id="${id}"`)) + 1;
       FRAG_RE.lastIndex = 0;
       let fm: RegExpExecArray | null;
       while ((fm = FRAG_RE.exec(decoded)) !== null) {

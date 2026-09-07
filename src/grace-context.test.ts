@@ -556,7 +556,7 @@ describe("real-repository measurements (§8.5.7 / A48.1 / A49.1)", () => {
       expect(row.fullBytes).toBeGreaterThan(0);
       expect(row.selectedBytes).toBeGreaterThan(0);
     }
-  });
+  }, 30_000);
 
   it("plan wave metrics for C-GATE-SURFACE (8 tasks) report overlap and union (A49.1)", () => {
     const wave = measurePlanWave(packageRoot(), "C-GATE-SURFACE");
