@@ -501,18 +501,13 @@ export function collectPaidBy(repoRoot: string, chartered: RegistryRow[]): Map<s
   );
 }
 
-export function isFirstRulingsRewrite(input: {
-  persistedBase: number;
-  persistedHeadroom: number;
-  persistedCeiling: number;
-  liveH2DecisionLineCounts: number[];
-}): boolean {
-  const m = median(input.liveH2DecisionLineCounts);
-  return (
-    input.persistedHeadroom === 2 * m &&
-    input.persistedCeiling < input.persistedBase + 7 * m
-  );
-}
+/**
+ * The rulings live ceiling C-RETIRE-AND-CODIFY persisted at its move, commit
+ * 1896592 ("feat(record): retire on evidence and let the rulings ceiling
+ * correct once (#75)"). No shipped operation raises the rulings ceiling, so a
+ * persisted value above this is constructively a hand edit.
+ */
+export const RULINGS_PROVENANCE_CEILING = 1883;
 
 function recordPaths(recordDir: string) {
   return {
@@ -860,10 +855,11 @@ function persistSnapshot(
   base: number,
   computedHeadroom: number,
   clamp: boolean,
+  ceilingBase = base,
 ): { base: number; headroom: number; ceiling: number } {
-  const formulaCeiling = base + computedHeadroom;
+  const formulaCeiling = ceilingBase + computedHeadroom;
   const ceiling = clamp ? Math.min(previous.ceiling, formulaCeiling) : formulaCeiling;
-  const headroom = ceiling === formulaCeiling ? computedHeadroom : ceiling - base;
+  const headroom = ceiling - base;
   return { base, headroom, ceiling };
 }
 
@@ -944,12 +940,6 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   const archive = listArchiveNames(options.repoRoot);
   const payers = payerMapFromRecord(options.repoRoot, files.registry, files.registryRetired);
   const rulingsAsRead = readRootSnapshot(files.rulings);
-  const discriminator = isFirstRulingsRewrite({
-    persistedBase: rulingsAsRead.base,
-    persistedHeadroom: rulingsAsRead.headroom,
-    persistedCeiling: rulingsAsRead.ceiling,
-    liveH2DecisionLineCounts: liveH2DecisionLineCounts(files.rulings),
-  });
 
   const findingsParse = parseGraceXmlArtifact(paths.findings, files.findings);
   const rulingsParse = parseGraceXmlArtifact(paths.rulings, files.rulings);
@@ -1058,6 +1048,7 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   }
 
   const findingsPrev = readRootSnapshot(files.findings);
+  const findingsBaseRead = newlineCount(files.findings);
   const rulingsPrev = rulingsAsRead;
   const registryPrev = readRootSnapshot(files.registry);
   const indexPrev = readRootSnapshot(files.index);
@@ -1066,11 +1057,17 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   const rulingsHeadroom = 7 * median(liveH2DecisionLineCounts(rulingsLive));
   findingsLive = withRootSnapshot(
     findingsLive,
-    persistSnapshot(findingsPrev, newlineCount(findingsLive), findingsHeadroom, true),
+    persistSnapshot(
+      findingsPrev,
+      newlineCount(findingsLive),
+      findingsHeadroom,
+      true,
+      findingsBaseRead,
+    ),
   );
   rulingsLive = withRootSnapshot(
     rulingsLive,
-    persistSnapshot(rulingsPrev, newlineCount(rulingsLive), rulingsHeadroom, !discriminator),
+    persistSnapshot(rulingsPrev, newlineCount(rulingsLive), rulingsHeadroom, true),
   );
   registryLive = withRootSnapshot(
     registryLive,
@@ -1228,6 +1225,7 @@ export function validateRecordRetirement(options: RetirementOptions): Retirement
 
   checkCeiling("findings", paths.findings, files.findings!, "line", findings);
   checkCeiling("rulings", paths.rulings, files.rulings!, "line", findings);
+  checkRulingsProvenance(paths.rulings, files.rulings!, findings);
   checkCeiling("index", paths.index, files.index!, "line", findings);
   const registryLiveRows = registryRoot
     ? childNodes(registryRoot, "Row").filter((row) => row.attributes.status !== "retired").length
@@ -1235,6 +1233,28 @@ export function validateRecordRetirement(options: RetirementOptions): Retirement
   checkCeilingValue("registry", paths.registry, files.registry!, registryLiveRows, "live-row", findings);
 
   return findings;
+}
+
+function checkRulingsProvenance(
+  file: string,
+  xml: string,
+  findings: RetirementFinding[],
+): void {
+  const rootMatch = xml.match(/<Rulings\b([^>]*)>/);
+  if (!rootMatch) {
+    return;
+  }
+  const attrs = parseAttrs(rootMatch[1] ?? "");
+  if (attrs.ceiling === undefined || attrs.ceiling === "") {
+    return;
+  }
+  const ceiling = Number(attrs.ceiling);
+  if (ceiling > RULINGS_PROVENANCE_CEILING) {
+    findings.push({
+      code: "rulings-ceiling-above-provenance",
+      message: `${file}: the persisted rulings ceiling ${ceiling} exceeds the provenance ceiling ${RULINGS_PROVENANCE_CEILING} that C-RETIRE-AND-CODIFY's one-time correction persisted; no shipped operation raises it; restore from git; raising the persisted ceiling is not the remedy`,
+    });
+  }
 }
 
 function checkStatusFile(

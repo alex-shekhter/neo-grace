@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import {
-  isFirstRulingsRewrite,
+  RULINGS_PROVENANCE_CEILING,
   median,
   newlineCount,
 } from "./validate-record-retirement.ts";
@@ -507,39 +507,22 @@ token: F1
     expect(`${result.stdout}${result.stderr}`).toMatch(/refusing to split a stub|not the pre-split dump/);
   });
 
-  it("probe 1: split-shaped fixture predicate is true and --retire persists the 7-times formula ceiling even when larger", () => {
+  it("T-002 removal: a split-shaped ruling file keeps its previous ceiling when the 7-times term exceeds it", () => {
     const root = isolatedRoot();
     const parts = splitShapedParts();
     writeHappy(root, parts);
-    const counts = h2LineCounts(parts.rulings);
-    const persisted = rootAttrs(parts.rulings);
-    expect(
-      isFirstRulingsRewrite({
-        persistedBase: persisted.base,
-        persistedHeadroom: persisted.headroom,
-        persistedCeiling: persisted.ceiling,
-        liveH2DecisionLineCounts: counts,
-      }),
-    ).toBe(true);
+    const before = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    const persisted = rootAttrs(before);
+    const H = 7 * median(h2LineCounts(before));
+    // the split-shaped fixture carries the uncorrected 2x headroom, so the 7-times term exceeds the persisted ceiling
+    expect(newlineCount(before) + H).toBeGreaterThan(persisted.ceiling);
     const result = runValidator(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
     const written = rootAttrs(after);
-    const afterCounts = h2LineCounts(after);
-    const newBase = newlineCount(after);
-    const newHeadroom = 7 * median(afterCounts);
-    expect(written.headroom).toBe(newHeadroom);
-    expect(written.base).toBe(newBase);
-    expect(written.ceiling).toBe(newBase + newHeadroom);
-    expect(written.ceiling).toBeGreaterThan(persisted.ceiling);
-    expect(
-      isFirstRulingsRewrite({
-        persistedBase: written.base,
-        persistedHeadroom: written.headroom,
-        persistedCeiling: written.ceiling,
-        liveH2DecisionLineCounts: afterCounts,
-      }),
-    ).toBe(false);
+    // the deleted engine raised on this shape; the removal keeps the previous ceiling
+    expect(written.ceiling).toBe(persisted.ceiling);
+    expect(written.headroom).toBe(written.ceiling - written.base);
   });
 
   it("probe 2: on the written split-shaped fixture a second --retire that moves again does not persist a larger ceiling", () => {
@@ -600,14 +583,6 @@ ${inner}
 </RecordIndex>
 `;
     writeHappy(root, parts);
-    expect(
-      isFirstRulingsRewrite({
-        persistedBase: base,
-        persistedHeadroom: headroom,
-        persistedCeiling: ceiling,
-        liveH2DecisionLineCounts: counts,
-      }),
-    ).toBe(false);
     const result = runValidator(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
@@ -617,33 +592,36 @@ ${inner}
     expect(written.headroom).toBe(written.ceiling - written.base);
   });
 
-  it("probe 4: no-op --retire on a split-shaped fixture leaves attributes unchanged so the predicate stays true", () => {
+  it("T-002 removal: a split-shaped ruling file never raises its ceiling across two --retire moves", () => {
     const root = isolatedRoot();
     const parts = splitShapedParts();
-    parts.registryRetired = happyParts().registryRetired;
     writeHappy(root, parts);
-    const before = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
-    const persisted = rootAttrs(before);
-    expect(
-      isFirstRulingsRewrite({
-        persistedBase: persisted.base,
-        persistedHeadroom: persisted.headroom,
-        persistedCeiling: persisted.ceiling,
-        liveH2DecisionLineCounts: h2LineCounts(before),
-      }),
-    ).toBe(true);
-    const result = runValidator(root, ["--retire"]);
-    expect(result.status).toBe(0);
-    const after = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
-    expect(after).toBe(before);
-    expect(
-      isFirstRulingsRewrite({
-        persistedBase: persisted.base,
-        persistedHeadroom: persisted.headroom,
-        persistedCeiling: persisted.ceiling,
-        liveH2DecisionLineCounts: h2LineCounts(after),
-      }),
-    ).toBe(true);
+    const begin = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    const persisted = rootAttrs(begin);
+    const first = runValidator(root, ["--retire"]);
+    expect(first.status).toBe(0);
+    const afterFirst = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    expect(rootAttrs(afterFirst).ceiling).toBe(persisted.ceiling);
+    // re-arm a second eligible finding against a fresh archive dir, then --retire again
+    mkdirSync(path.join(root, ".ngrace/changes/archive/C-LATE"), { recursive: true });
+    const live = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const grown = live.replace(
+      "</Findings>",
+      `  <Finding id="f9" token="F9" status="live">\n    <Title>### F9 — paid</Title>\n    <Body>late body</Body>\n  </Finding>\n</Findings>`,
+    );
+    plant(root, `${RECORD_REL}/findings.xml`, grown);
+    const registryRetired = readFileSync(path.join(root, RECORD_REL, "registry-retired.xml"), "utf8");
+    const reg = registryRetired.replace(
+      "</Registry>",
+      `  <Row name="C-LATE" status="retired" kind="chartered">\n    <Number>3</Number>\n    <Charter>late</Charter>\n    <Pays>F9</Pays>\n    <StatusText>Delivered</StatusText>\n  </Row>\n</Registry>`,
+    );
+    plant(root, `${RECORD_REL}/registry-retired.xml`, reg);
+    const second = runValidator(root, ["--retire"]);
+    expect(second.status).toBe(0);
+    const afterSecond = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    expect(rootAttrs(afterSecond).ceiling).toBe(persisted.ceiling);
+    const retired = readFileSync(path.join(root, RECORD_REL, "findings-retired.xml"), "utf8");
+    expect(retired).toContain('token="F9"');
   });
 
   it("ceiling-exceeded names --retire / move and does not name a multiplier", () => {
@@ -665,6 +643,210 @@ ${inner}
     expect(result.stderr.toLowerCase()).not.toContain("config key");
     expect(result.stderr).not.toContain("multiplier");
   });
+
+  it("T-001 window: persisting the findings snapshot after a move uses the pre-move base + H", () => {
+    const root = isolatedRoot();
+    const parts = happyParts();
+    parts.registryRetired = `<Registry>
+  <Row name="C-OLD" status="retired" kind="chartered">
+    <Number>2</Number>
+    <Charter>old</Charter>
+    <Pays>F1</Pays>
+    <StatusText>Delivered</StatusText>
+  </Row>
+</Registry>
+`;
+    const grown = ["grow", "grow", "grow", "grow", "grow"];
+    const f = (id: string, token: string) =>
+      `  <Finding id="${id}" token="${token}" status="live">\n` +
+      `    <Title>### ${token} — live</Title>\n` +
+      `    <Body>body\n${grown.join("\n")}</Body>\n` +
+      `  </Finding>`;
+    parts.findings =
+      `<Findings base="20" headroom="70" ceiling="1000">\n${f("f1", "F1")}\n${f("f2", "F2")}\n</Findings>\n`;
+    writeHappy(root, parts);
+    const asRead = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const baseLive = newlineCount(asRead);
+    const result = runValidator(root, ["--retire"]);
+    expect(result.status).toBe(0);
+    const after = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const written = rootAttrs(after);
+    const H = 7 * median(findingLineCounts(after));
+    expect(written.ceiling).toBe(baseLive + H);
+    expect(written.base).toBe(newlineCount(after));
+    expect(written.headroom).toBe(written.ceiling - written.base);
+    // the moved element left findings, so the shipped post-move term would persist a smaller ceiling
+    expect(written.ceiling).toBeGreaterThan(newlineCount(after) + H);
+    // every live root keeps base + headroom = ceiling after a successful move
+    const all = {
+      findings: after,
+      rulings: readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8"),
+      registry: readFileSync(path.join(root, RECORD_REL, "registry.xml"), "utf8"),
+      index: readFileSync(path.join(root, RECORD_REL, "decisions.xml"), "utf8"),
+    };
+    for (const xml of Object.values(all)) {
+      const r = rootAttrs(xml);
+      expect(r.headroom).toBe(r.ceiling - r.base);
+    }
+  });
+
+  it("T-001 window anti-ratchet: --retire keeps the previous ceiling when Base_live + H exceeds it", () => {
+    const root = isolatedRoot();
+    const parts = happyParts();
+    parts.registryRetired = `<Registry>
+  <Row name="C-OLD" status="retired" kind="chartered">
+    <Number>2</Number>
+    <Charter>old</Charter>
+    <Pays>F1</Pays>
+    <StatusText>Delivered</StatusText>
+  </Row>
+</Registry>
+`;
+    const grown = ["grow", "grow", "grow", "grow", "grow", "grow", "grow"];
+    const f = (id: string, token: string) =>
+      `  <Finding id="${id}" token="${token}" status="live">\n` +
+      `    <Title>### ${token} — live</Title>\n` +
+      `    <Body>body\n${grown.join("\n")}</Body>\n` +
+      `  </Finding>`;
+    const inner = `${f("f1", "F1")}\n${f("f2", "F2")}`;
+    const noAttrs = `<Findings>\n${inner}\n</Findings>\n`;
+    const baseLive = newlineCount(noAttrs);
+    const H = 7 * median(findingLineCounts(noAttrs));
+    const ceilingLow = baseLive + H - 1;
+    parts.findings = `<Findings base="${baseLive}" headroom="${H}" ceiling="${ceilingLow}">\n${inner}\n</Findings>\n`;
+    writeHappy(root, parts);
+    const result = runValidator(root, ["--retire"]);
+    expect(result.status).toBe(0);
+    const after = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const written = rootAttrs(after);
+    expect(written.ceiling).toBe(ceilingLow);
+    // a no-min recompute that raises the ceiling fails this probe
+    expect(written.ceiling).toBeLessThan(baseLive + H);
+  });
+
+  it("T-001 min not decorative: hand-shrunk findings persist ceiling = Base_live + H without a findings move", () => {
+    const root = isolatedRoot();
+    const parts = happyParts();
+    plant(root, "tests/exists.test.ts", "export {}\n");
+    parts.rulings = `<Rulings base="20" headroom="40" ceiling="1000">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — live</Title>
+    <Body>ruling body</Body>
+    <CodifiedIn kind="test-suite">tests/exists.test.ts</CodifiedIn>
+  </Decision>
+</Rulings>
+`;
+    parts.findings = `<Findings base="20" headroom="70" ceiling="1000">
+  <Finding id="f1" token="F1" status="live">
+    <Title>### F1 — live</Title>
+    <Body>body</Body>
+  </Finding>
+</Findings>
+`;
+    writeHappy(root, parts);
+    const asRead = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const baseLive = newlineCount(asRead);
+    const result = runValidator(root, ["--retire"]);
+    expect(result.status).toBe(0);
+    const after = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const written = rootAttrs(after);
+    const H = 7 * median(findingLineCounts(after));
+    expect(written.ceiling).toBe(baseLive + H);
+  });
+
+  it("T-001 Delta = 0: a decision-only --retire leaves findings at window H when the snapshot sits at base + H", () => {
+    const root = isolatedRoot();
+    const parts = happyParts();
+    plant(root, "tests/exists.test.ts", "export {}\n");
+    parts.rulings = `<Rulings base="20" headroom="40" ceiling="1000">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — live</Title>
+    <Body>ruling body</Body>
+    <CodifiedIn kind="test-suite">tests/exists.test.ts</CodifiedIn>
+  </Decision>
+</Rulings>
+`;
+    const f =
+      `  <Finding id="f1" token="F1" status="live">\n` +
+      `    <Title>### F1 — live</Title>\n` +
+      `    <Body>body one</Body>\n` +
+      `  </Finding>`;
+    const noAttrs = `<Findings>\n${f}\n</Findings>\n`;
+    const baseLive = newlineCount(noAttrs);
+    const H = 7 * median(findingLineCounts(noAttrs));
+    parts.findings = `<Findings base="${baseLive}" headroom="${H}" ceiling="${baseLive + H}">\n${f}\n</Findings>\n`;
+    writeHappy(root, parts);
+    const result = runValidator(root, ["--retire"]);
+    expect(result.status).toBe(0);
+    const after = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const written = rootAttrs(after);
+    expect(written.base).toBe(baseLive);
+    expect(written.ceiling).toBe(baseLive + H);
+    expect(written.headroom).toBe(H);
+  });
+
+  it("T-003 provenance: a rulings live ceiling at the constant validates", () => {
+    const root = isolatedRoot();
+    const parts = happyParts();
+    parts.rulings = `<Rulings base="1624" headroom="259" ceiling="${RULINGS_PROVENANCE_CEILING}">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — live</Title>
+    <Body>ruling body</Body>
+  </Decision>
+</Rulings>
+`;
+    writeHappy(root, parts);
+    const result = runValidator(root);
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+  });
+
+  it("T-003 provenance: a rulings live ceiling one above the constant errors with the provenance message", () => {
+    const root = isolatedRoot();
+    const parts = happyParts();
+    parts.rulings = `<Rulings base="1624" headroom="259" ceiling="${RULINGS_PROVENANCE_CEILING + 1}">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — live</Title>
+    <Body>ruling body</Body>
+  </Decision>
+</Rulings>
+`;
+    writeHappy(root, parts);
+    const result = runValidator(root);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("rulings-ceiling-above-provenance");
+    expect(result.stderr).toContain("C-RETIRE-AND-CODIFY");
+    expect(result.stderr).toContain("no shipped operation raises it");
+    expect(result.stderr).toContain("restore from git");
+    expect(result.stderr).toContain("raising the persisted ceiling is not the remedy");
+    expect(result.stderr.toLowerCase()).not.toContain("config key");
+    expect(result.stderr).not.toContain("multiplier");
+  });
+
+  it("T-004 no-op: a --retire with nothing eligible leaves every record byte identical", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const names = [
+      "findings.xml",
+      "findings-retired.xml",
+      "rulings.xml",
+      "rulings-retired.xml",
+      "registry.xml",
+      "registry-retired.xml",
+      "decisions.xml",
+      "decisions.md",
+      "record-inventory.json",
+    ];
+    const readAll = () =>
+      Object.fromEntries(names.map((name) => [name, readFileSync(path.join(root, RECORD_REL, name), "utf8")]));
+    const before = readAll();
+    const result = runValidator(root, ["--retire"]);
+    expect(result.status).toBe(0);
+    const after = readAll();
+    for (const name of names) {
+      expect(after[name], name).toBe(before[name]);
+    }
+  });
 });
 
 function rootAttrs(xml: string): { base: number; headroom: number; ceiling: number } {
@@ -684,6 +866,16 @@ function h2LineCounts(xml: string): number[] {
     const title = block.match(/<Title>([\s\S]*?)<\/Title>/);
     const hashes = (title?.[1] ?? "").match(/^(#+)/);
     if (!hashes || hashes[1]!.length !== 2) continue;
+    if (!/status="live"/.test(block)) continue;
+    out.push(newlineCount(block) + 1);
+  }
+  return out;
+}
+
+function findingLineCounts(xml: string): number[] {
+  const blocks = xml.match(/<Finding\b[\s\S]*?<\/Finding>/g) ?? [];
+  const out: number[] = [];
+  for (const block of blocks) {
     if (!/status="live"/.test(block)) continue;
     out.push(newlineCount(block) + 1);
   }
