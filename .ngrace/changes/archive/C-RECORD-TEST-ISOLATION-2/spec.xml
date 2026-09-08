@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-RECORD-TEST-ISOLATION-2>
     <Summary>
       Stop tests from invoking a

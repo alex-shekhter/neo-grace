@@ -1,4 +1,4 @@
-<Findings base="7729" headroom="117" ceiling="7846">
+<Findings base="7635" headroom="211" ceiling="7846">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7598,40 +7598,7 @@ bundle's product change, and touching it would have put the bundle outside its a
 Owner: a later bundle, as a normalising pass in the writer rather than a hand edit at close — a hand
 edit is what happened to the registry close tag here, and it does not scale.</Body>
   </Finding>
-    <Finding id="f195" token="F195" status="live">
-    <Title>### F195 — a test runs `--retire` against the production record and mutates it whenever anything is newly eligible. **[verified]**</Title>
-    <Body>
-
-Measured **2026-09-07**, during the close of `C-CODIFY-DECISIONS`, immediately after the archive
-`git mv`.
-
-`scripts/validate-record-retirement.test.ts` calls `runValidator(REPO_ROOT, ["--retire"])` at two
-sites and then asserts the production record is byte-identical — the "a second `--retire` writes no
-byte" probe. That assertion holds **only while nothing is eligible**. The moment something is, the
-test does not observe a no-op: it **performs the retirement**.
-
-**Observed, not theorised.** Archiving a bundle makes its own live registry row's `name` equal an
-archive directory, which is the registry eligibility trigger. Running the targeted suite straight
-after the `git mv` therefore exited 1 **and moved the row**: `registry.xml` lost
-`name="C-CODIFY-DECISIONS"` and went `base="13" headroom="13"` → `base="12" headroom="14"`, while
-`registry-retired.xml` gained it with `status="retired"`. Re-runs then passed 4/4, because the
-mutation had already happened. The working tree carried a record change that no operator performed.
-
-**The resulting state was correct, which is what makes it dangerous.** The row *should* retire once
-its bundle is archived, so nothing looked wrong afterwards and the diff was easy to mistake for
-intended close work. A test that silently performs a governed record operation is indistinguishable
-from one that observes it, until the day the operation is not the one you wanted.
-
-**It is destructive by construction at exactly the moment it runs.** Close ceremony archives a bundle
-and then re-runs the suite as post-archive evidence — so the newly-eligible-row condition is not an
-edge case, it is the routine state at every close that archives a bundle carrying a live charter row.
-
-Remedy is for a later bundle to decide: run the no-op probe against an isolated fixture rather than
-`REPO_ROOT`, or assert eligibility is empty before invoking, or drop `--retire` from the assertion and
-compare a dry run. Related to the same file's earlier defect of pinning a mutable production count,
-which was removed under `F123`'s "counts expire"; this is the mutating sibling of that mistake.</Body>
-  </Finding>
-    <Finding id="f193" token="F193" status="live">
+        <Finding id="f193" token="F193" status="live">
     <Title>### F193 — a genre that does not move has its window clamped back to `H`, so retirement's `Δ` survives only until the next `--retire`. **[verified]**</Title>
     <Body>
 
@@ -7665,65 +7632,4 @@ about the accumulated `Δ` above `H` being discarded whenever a different genre 
 Owner: a later bundle. The candidate remedies — persisting the opened window rather than re-deriving
 it, or re-deriving only the genre that moved — are a design question, not a patch.</Body>
   </Finding>
-    <Finding id="f194" token="F194" status="live">
-    <Title>### F194 — the `C-CODIFY-DECISIONS` charter row was falsified again, by the bundle it charters. **[verified]**</Title>
-    <Body>
-
-Measured **2026-09-07** on the delivered `C-CODIFY-DECISIONS` working tree, after `T-003` corrected
-the two phrases it was authorised to correct.
-
-`T-003` fixed the occupancy claim and the census that [F192](#f192) recorded. The bundle's own work
-then falsified two further sentences in the same row, which `T-003` was not authorised to touch and
-correctly left alone:
-
-- *"the rulings call site still clamps against the post-move base"* — `T-001` changed exactly that,
-  giving the rulings snapshot the pre-move `ceilingBase`.
-- *"`TaughtIn` versus `CodifiedIn` is unresolved"* — the approved spec resolved it: `TaughtIn`
-  annotates and does not retire.
-
-**The authority's error, and it is the second instance on this one row.** The standing rule is to
-**authorise the sweep, not a phrase list** — "change only X" leaves known-false text standing, so the
-authorisation must cover whatever X falsifies. The plan brief named two phrases; the bundle invalidated
-two more. [F192](#f192) recorded the same failure one dispatch earlier, when a claim written twice in
-the row was corrected once.
-
-The maintainer ruled that the remedy rides in a chartered bundle rather than a standalone correction
-commit, so that record edits keep bundle discipline. Owner: the next bundle, chartered as *correct
-every sentence in that row which a bundle has falsified* — scoped by what invalidated it, never by an
-enumerated phrase list.</Body>
-  </Finding>
-    <Finding id="f192" token="F192" status="live">
-    <Title>### F192 — the `C-CODIFY-DECISIONS` charter row contradicts itself, because a claim written twice was corrected once. **[verified]**</Title>
-    <Body>
-
-Measured **2026-09-07** at `cd8500f`, raised by the executor's `WRONG` field against the authority's
-own text and confirmed by reading the live row.
-
-The row in `registry.xml` carries two false statements, both authored by the authority, and they sit
-in adjacent paragraphs alongside their own refutation:
-
-- *"that genre is already forty lines over its window"* — **false**. Measured `&lt;Rulings base="1834"
-  headroom="49" ceiling="1883"&gt;`: the live size is **49 under** its ceiling, not forty over. The same
-  row says *"both genres fit their windows today"* three lines earlier.
-- *"59 live, zero tagged"* — **65** live. The number was written before the flush that landed
-  `D27.1` and `D32`–`D36`, and went into the record stale.
-
-**How the first one survived.** The claim appeared **twice in one row** — once in the ratification
-paragraph explaining why the position was deferred, once in the charter paragraph. When [F191](#f191)
-falsified it, the authority corrected the charter paragraph and left the ratification paragraph
-standing. This is [F136.1](#f136.1)'s pattern at a smaller scale: *a list that appears twice can be
-wrong twice, and fixing the copy you happened to look at leaves the other*. The lesson generalises
-from module lists to any claim restated within a single artifact.
-
-**A related staleness, recorded so the pattern is visible.** The authority also told the maintainer,
-across two exchanges, that *codifying decisions cannot open the rulings window* — because the rulings
-call site clamps against the post-move base. That was **true at the pre-flush equilibrium**, where
-`base + H` equalled the ceiling exactly, and **false immediately after the flush**, which moved the
-base to 1834 and put the genre into the clamped regime where the window grows by `Δ` until `Δ` reaches
-about 210. Same defect class as the row: a measurement correct when taken, restated after the state it
-described had moved.
-
-Remedy is two phrases in one live registry row. Owner: the maintainer's call on whether it rides with
-`C-CODIFY-DECISIONS`, whose own charter row it is, or goes as its own correction.</Body>
-  </Finding>
-</Findings>
+        </Findings>

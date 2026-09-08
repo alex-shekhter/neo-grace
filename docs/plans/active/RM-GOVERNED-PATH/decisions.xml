@@ -324,8 +324,8 @@
   <Entry id="f189" token="F189" genre="finding" layer="live" />
   <Entry id="f190" token="F190" genre="finding" layer="live" />
   <Entry id="d35" token="D35" genre="decision" layer="live" />
-  <Entry id="f195" token="F195" genre="finding" layer="live" />
+  <Entry id="f195" token="F195" genre="finding" layer="retired" />
   <Entry id="f193" token="F193" genre="finding" layer="live" />
-  <Entry id="f194" token="F194" genre="finding" layer="live" />
-  <Entry id="f192" token="F192" genre="finding" layer="live" />
+  <Entry id="f194" token="F194" genre="finding" layer="retired" />
+  <Entry id="f192" token="F192" genre="finding" layer="retired" />
 </RecordIndex>

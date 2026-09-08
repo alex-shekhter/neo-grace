@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-RECORD-TEST-ISOLATION-2>
     <IntentSummary>
       Execute the approved spec: relocate the two production --retire

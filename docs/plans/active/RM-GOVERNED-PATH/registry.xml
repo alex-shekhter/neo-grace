@@ -1,4 +1,4 @@
-<Registry base="13" headroom="13" ceiling="26">
+<Registry base="12" headroom="14" ceiling="26">
   <Row name="C-APPROVAL-SCOPE" status="live" kind="chartered">
     <Number>4</Number>
     <Charter>Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20).</Charter>
@@ -71,10 +71,4 @@
     <Pays>[F177](#f177).</Pays>
     <StatusText>**Position 4**, ratified 2026-09-06 by the maintainer. The insertion and the six positions it shifts are recorded in [D32](#d32); read the order from there, never from [D31](#d31), which this amends.</StatusText>
   </Row>
-  <Row name="C-RECORD-TEST-ISOLATION-2" status="live" kind="chartered">
-    <Number></Number>
-    <Charter>**Name.** `C-RECORD-TEST-ISOLATION-2`. **Searched before minting**, 2026-09-09 at `99b5266ed432eb5cc1930c30a408069418d5e80e`, over `.ngrace/changes/archive/` (74 directories matching `^C-[A-Z0-9-]+$`) and the record's structural `Row name=` attributes (12 live, 33 retired): **zero hits** for the exact name across the archive directories and both registry files; 2 textual mentions of it inside the superseded bundle's archived spec.xml and plan.xml (its Replacement pointer and its supersede prose — not a directory or Row name). Per-token: `ISOLATION` 1 archive directory (the superseded bundle; a different name), 0 rows; `MUTAT` 0 and 0; `RECORD` 8 archive directories and 2 rows (record-lifecycle bundles, none covering isolating tests from mutating the production record); `TEST` 1 archive directory and 1 retired row (`C-TEST`, kind sweep-remainder, not this territory); `RETIRE` 4 archive directories and 3 rows. No colliding or better-fitting prior name. **Charter.** Isolate this repository's record tests from the production record: no test invokes a mutating record operation against the real tree; the nothing-eligible and second-`--retire` probes run on isolated fixtures with the production observation staying read-only; the shipped live-pair assertion is reshaped to the move-invariant pair form; and the bundle flushes its pinned staged findings while correcting the retired row the current code falsifies.</Charter>
-    <Pays>[F192](#f192), [F194](#f194), [F195](#f195).</Pays>
-    <StatusText>**Ratified 2026-09-09** — the maintainer approved this bundle's plan; the row mints its payment only at this bundle's close, when its name equals an archive directory.</StatusText>
-  </Row>
-        </Registry>
+          </Registry>
