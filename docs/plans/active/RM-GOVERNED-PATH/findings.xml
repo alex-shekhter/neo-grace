@@ -1,4 +1,4 @@
-<Findings base="7601" headroom="245" ceiling="7846">
+<Findings base="7635" headroom="211" ceiling="7846">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7598,4 +7598,38 @@ bundle's product change, and touching it would have put the bundle outside its a
 Owner: a later bundle, as a normalising pass in the writer rather than a hand edit at close — a hand
 edit is what happened to the registry close tag here, and it does not scale.</Body>
   </Finding>
-</Findings>
+        <Finding id="f193" token="F193" status="live">
+    <Title>### F193 — a genre that does not move has its window clamped back to `H`, so retirement's `Δ` survives only until the next `--retire`. **[verified]**</Title>
+    <Body>
+
+Measured **2026-09-07** on the `C-CODIFY-DECISIONS` working tree, before and after a decisions-only
+production move.
+
+`--retire` rewrites **all seven** genre roots on any successful move, not only the genre that moved.
+For a genre where nothing moved, `ceilingBase` equals `base`, so the persisted ceiling becomes
+`min(previousCeiling, base + H)` and the window becomes **`min(previous_window, H)`** — monotonically
+non-increasing toward `H`.
+
+Measured on `findings.xml`, where **no Finding moved**:
+
+| | base | headroom | ceiling | window |
+|---|---|---|---|---|
+| before | 7601 | 370 | 7971 | **370** |
+| after a decisions-only `--retire` | 7601 | 245 | 7846 | **245** |
+
+The 370 was the window that the preceding flush's retirement had opened. A move in an unrelated genre
+erased it and left `H = 7 × median = 245`.
+
+**This weakens `C-RETIREMENT-WINDOW` considerably.** That bundle's premise is that retirement creates
+room for a flush. It does — but the room survives only until the next successful `--retire` in **any**
+genre. Retire findings to make space, retire a decision before flushing, and the space is gone. To use
+a window you must flush immediately after the move that opened it, with no intervening retirement
+anywhere, and nothing in the product or the record says so.
+
+**Not the same as [F189](#f189)**, which is about `H` itself shrinking as the median moves. This is
+about the accumulated `Δ` above `H` being discarded whenever a different genre moves.
+
+Owner: a later bundle. The candidate remedies — persisting the opened window rather than re-deriving
+it, or re-deriving only the genre that moved — are a design question, not a patch.</Body>
+  </Finding>
+        </Findings>

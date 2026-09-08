@@ -1,0 +1,580 @@
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-RECORD-TEST-ISOLATION><Replacement>C-RECORD-TEST-ISOLATION-2</Replacement>
+    <IntentSummary>
+      Execute the approved spec: relocate the two production
+      --retire byte-identity probes onto isolated fixtures,
+      reshape the shipped F21 live-pair assertion to the
+      move-invariant pair form, flush the pinned four staged
+      findings F192 F193 F194 F195, mint the live chartered
+      registry row that pays exactly F192 F194 F195, and sweep
+      every falsified sentence in the retired
+      C-CODIFY-DECISIONS row. DurableScope is &lt;None /&gt;: no
+      graph module is written; do not mint a synthetic module.
+      ObservedWriteScope is five files:
+      scripts/validate-record-retirement.test.ts plus the four
+      record files docs/plans/active/RM-GOVERNED-PATH/findings.xml,
+      decisions.xml, registry.xml, registry-retired.xml. Do
+      not add spec.xml, plan.xml, decisions.md,
+      record-inventory.json (a frozen migration artifact last
+      written at 67bc55c; the PR #78 flush of twenty-six
+      entries did not update it and the citation and
+      preservation validators require inventory ids to exist
+      in the index, never the reverse, so new index entries
+      keep both green), rulings.xml, rulings-retired.xml, src/,
+      CLAUDE.md, docs/plans/README.md, skills/ngrace/*,
+      package.json, or anything under docs/plans/archive/ or
+      .ngrace/changes/archive/. Sequence is strictly serial:
+      T-001 fixes the mutator before any record write so the
+      D30 record-write window never contains a suite that can
+      perform a retirement; T-002 is the single record-writing
+      window and no other task's verification runs while it is
+      in flight; T-003 adds the production-reading assertions
+      that require the flushed state. T-001 also ships the
+      spec's item-(4) regression guard in the test file,
+      keyed on the arguments of every validator spawn site
+      rather than on a source string, so it survives the
+      close and runs in CI forever. Measurements at
+      d0f4bb6818072890a2ed4720fe650d7e9e1a1007, branch
+      c-record-test-isolation, 2026-09-08: findings root
+      base=7601 headroom=245 ceiling=7846 with 206 live
+      findings and median 35; rulings 1697/186/1883 untouched;
+      registry 12/14/26 with 12 live rows; index 327/14/341
+      with 325 entries. The buffer holds seven entries and
+      this bundle flushes the pinned four (F196 F197 F198 stay
+      staged, per the spec NonGoal); the buffer separates
+      entries by their &lt;a id&gt; anchors, not by --- lines, and
+      carries no actual STAGED CHARTER heading — the phrase
+      appears in header prose only — so cut each body at the
+      anchor that starts the next entry. Projected growth
+      about 124 lines: post-flush findings base 7725,
+      headroom 121, ceiling unchanged; re-measure at
+      execution before writing. A staged charter row is not an
+      entry. No task writes production rows through --retire:
+      the row mints its payment only at this bundle's close,
+      when its name equals an archive directory. The
+      intermediate post-T-002 state is green: nothing is
+      eligible because the row is live, and no archived spec
+      sentence that matches the payer phrase names F192-F195
+      (measured: 9 phrase sentences across the 73 archived
+      specs, tokens F161 F130 F149 F150 F152 F43 F147 only).
+      The close's --retire, performed by the authority after
+      the archive git mv, is the only writer that stamps
+      PaidBy. Between the git mv and that move the
+      non-mutating validate exits 1 on eligibility findings —
+      the enforcement working, not a failure; the approved
+      spec says so and the suite is not re-run in that window.
+      Current-mode lint of this project root is not a task
+      Verification command and is not a TargetAssertions
+      MustPassCommand; the post-archive close criterion is the
+      only place it appears. The execution emits its own
+      cursor events (open-epoch, progress, attempt,
+      command-run, terminal, fold) — never omit them. Do not
+      hand-write any status. Do not perform any close act:
+      no --assertions final run, no terminal event, no fold,
+      no gate apply, no status hand-write, no gate archive,
+      no git mv, no record retirement move.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>runValidator(REPO_ROOT, [&quot;--retire&quot;])</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>runValidator(REPO_ROOT, [&quot;--stamp-paid-by&quot;])</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>runValidator(REPO_ROOT, [&quot;--split&quot;])</Text>
+      </MustNotContain>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Relocate the production --retire probes onto isolated fixtures and reshape the F21 pair assertion
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Edit only
+            scripts/validate-record-retirement.test.ts. The
+            two production byte-identity probes are gone:
+            runValidator(REPO_ROOT, [&quot;--retire&quot;]) at
+            :1466 and :1525 with their production
+            snapshots and compares — the two sites live in
+            the shipped production tests titled
+            AC-PAYMENT-SET and AC-TAG-AND-RETIRE inside
+            scripts/validate-record-retirement.test.ts
+            (test titles introduced by C-PAYMENT-RECORD's
+            implementation, not that archived spec's
+            criteria). Do not write the needle
+            back into the file, not even in a comment
+            explaining the removal — the plan's
+            TargetAssertions pin its absence.
+            C-RETIREMENT-WINDOW's T-004 (the
+            nothing-eligible no-op on isolatedRoot,
+            :1131-1154) stays untouched. The relocated probe
+            is a fixture with something eligible: the first
+            --retire moves on the fixture, the second
+            --retire writes no byte on the fixture, and the
+            repository record files stay byte-identical to
+            their pre-test snapshot, in the shape of the
+            existing argv-fixture production snapshot at
+            :479-497. Production observation stays
+            non-mutating: AC-PAYMENT-SET and AC-TAG-AND-RETIRE
+            keep their real-record reads and their
+            runValidator(REPO_ROOT) validate exit 0. Do not
+            add a validator-side refuse of production cwd;
+            scripts/validate-record-retirement.ts is not
+            edited in this bundle. Do not edit src/, any
+            record file, or the staged buffer in this task.
+          </Criterion>
+          <Criterion>
+            Reshape the F21 pair assertion (:1453-1454) from
+            the live-location claim to the move-invariant
+            pair form the approved spec's AC-DUPLICATE-PAIR
+            defines: over token F21's elements f21 and
+            f21-correction, each id occurs exactly once
+            across findings.xml and findings-retired.xml —
+            never in both files, never in neither, never
+            duplicated within one file — both ids occur in
+            the same one of the two files, and decisions.xml
+            carries exactly one Entry element per id whose
+            layer agrees with the file holding the Finding.
+            No status, layer, or PaidBy of F21 is pinned.
+            The settled retired-side assertions are not
+            rewritten: the four historical registry rows,
+            the seven paid tokens with their stamped PaidBy,
+            the F27.1 retired pair (:1441-1442), and the
+            D5.1 D7 D9 D18 D24 assertions keep their
+            settled ground. Every production-reading test
+            keeps an explicit generous timeout (60_000), not
+            Bun's 5000 ms default.
+          </Criterion>
+          <Criterion>
+            The spec's remedy Constraint item (4) ships as a
+            regression guard in the test file, keyed on the
+            arguments rather than on a source string, so it
+            survives this bundle's close and runs in CI
+            forever: a test that scans
+            scripts/validate-record-retirement.test.ts's own
+            source and fails when any call site that can
+            spawn the validator — through the runValidator
+            helper or a direct spawnSync naming the SCRIPT
+            constant — carries a production cwd with a
+            mutating argv. Production cwd: an argument whose
+            token stream contains REPO_ROOT, resolved
+            transitively through in-file const/let
+            initializers, so a cwd reached through a
+            variable is caught like a literal. Mutating
+            argv: --retire, --stamp-paid-by, or --split
+            among the argument's string elements, likewise
+            resolved, so a flag arriving through an array,
+            a variable, or a reformat is caught; a plain
+            identifier element that resolves in-file to a
+            flag-free string (the RECORD_REL pattern of the
+            argv-fixture test) is provable and allowed.
+            Refusal, not filtering: an argument shape the
+            scan cannot resolve to provable strings — a
+            spread, a call, a parameter, an import — fails
+            the guard rather than passing it; the guard
+            refuses what it cannot prove, it does not
+            filter it. The bare non-mutating
+            runValidator(REPO_ROOT) calls stay legal. The
+            guard's own predicate is demonstrated in the
+            failing direction on scratch copies before it
+            is trusted: the shipped file as it stands today
+            fails with exactly the two production sites;
+            the same file with the sites removed passes; a
+            mutating argv reaching the call through a
+            variable fails; a reformatted literal with
+            changed spacing fails; a cwd reached through a
+            variable fails; a fixture-cwd call with a
+            mutating variable argv passes; an unresolvable
+            spread element is refused. Scratch under a
+            temporary directory, never the repository
+            tree. The TargetAssertions MustNotContain
+            needles stay as belt-and-braces; they are not
+            the guard.
+          </Criterion>
+          <Criterion>
+            Discrimination is shown in the failing direction
+            on a throwaway fixture before the reshaped
+            assertion is trusted: split (one element
+            hand-moved without the other), deletion (an
+            element absent from both files), duplication (an
+            element in both files), and index contradiction
+            (a layer that contradicts the holding file) each
+            fail; the predicate passes both pre-payment and
+            post-move shapes. Scratch files go to a
+            temporary directory, never into the repository
+            working tree; the repository record files are
+            never written by a probe.
+          </Criterion>
+          <Criterion>
+            After this task alone, against the untouched
+            record, the suite exits 0 and the non-mutating
+            production validate exits 0 — the task boundary
+            is green without the flush. This task's
+            Verification commands and the plan's
+            TargetAssertions contain no current-mode lint of
+            this project root, checked by the rule in the
+            spec Constraints, by hand (F171). The later
+            execution emits its own cursor events for this
+            task (opened, progress, attempt, command-run);
+            do not omit them.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>
+          Flush F192-F195, mint the charter row, and sweep the retired C-CODIFY-DECISIONS row
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            This task is the bundle's single record-writing
+            window and the D30 freeze holds for it: no other
+            task's verification runs while it is in flight.
+            Writes exactly five surfaces: four live Finding
+            elements appended to findings.xml; four index
+            Entry elements appended to decisions.xml; one
+            live kind=&quot;chartered&quot; Row appended to
+            registry.xml; corrections inside the existing
+            C-CODIFY-DECISIONS Row in registry-retired.xml;
+            and the live-root attribute rewrites that keep
+            base / headroom consistent with the shipped
+            formulas after those appends — base becomes the
+            new live line count, headroom becomes ceiling
+            minus base, every ceiling attribute stays
+            exactly as persisted and is never raised
+            (persistSnapshot semantics:
+            ceiling = min(previous, base + computed
+            headroom); findings computed headroom is
+            7 times the median live finding line count,
+            the index uses the fixed 40, the registry the
+            fixed 15). Does not write rulings.xml,
+            rulings-retired.xml, decisions.md,
+            record-inventory.json, record-inventory
+            siblings, src/, or anything under
+            docs/plans/archive/ or
+            .ngrace/changes/archive/. Do not invoke --retire
+            in this task: the flush is a hand write; --retire
+            is the move and belongs to the close.
+          </Criterion>
+          <Criterion>
+            Flush mechanics. The buffer
+            .ngrace/scratch/staged-findings.md holds seven
+            entries; flush the pinned four F192 F193 F194
+            F195 only — F196 F197 F198 stay staged (the
+            spec's NonGoal), and the buffer is not pruned
+            (its own header prunes only after the flush PR
+            merges). Cut each body at the --- or
+            ## STAGED CHARTER boundary first, then at the
+            &lt;a id&gt; anchor that starts the next entry: the
+            current buffer separates entries by anchors, not
+            by --- lines, and carries no actual STAGED
+            CHARTER heading (the phrase appears in header
+            prose only at :27). Measured at
+            d0f4bb6818072890a2ed4720fe650d7e9e1a1007: buffer
+            245 lines, anchors at :31 f195, :63 f193, :96
+            f194, :122 f192, :156 f196, :184 f197, :211
+            f198; projected bodies 28, 29, 22, 29 lines;
+            projected Finding elements 32, 33, 26, 33 lines;
+            total growth about 124. Re-measure at execution
+            before writing (F123: counts expire). Confirm
+            the four tokens are absent from live and retired
+            findings and from decisions.xml before insert
+            (measured 0/0/0 for all four). Write
+            &lt;Finding id=&quot;…&quot; token=&quot;…&quot;
+            status=&quot;live&quot;&gt; with the
+            delimiter-preserving ids f192 f193 f194 f195,
+            Title from the ### heading line, Body from the
+            entry prose XML-escaped, in the house element
+            shape before the findings close tag; write
+            &lt;Entry id=&quot;…&quot; token=&quot;…&quot;
+            genre=&quot;finding&quot; layer=&quot;live&quot; /&gt;
+            in decisions.xml. Fragment citations inside the
+            projected bodies — f191, f189, f192 (landing in
+            this same flush), f136.1 — must resolve against
+            the index after the flush.
+          </Criterion>
+          <Criterion>
+            Occupancy arithmetic, measured at
+            d0f4bb6818072890a2ed4720fe650d7e9e1a1007, rule:
+            newline count of the file and per-entry anchor
+            to next-anchor minus trailing blanks. findings
+            base 7601 + 124 = 7725 ≤ ceiling 7846, so
+            headroom becomes 121 with the ceiling unchanged;
+            decisions base 327 + 4 = 331 ≤ 341, headroom 10;
+            registry base 12 + 1 = 13 ≤ 26, headroom 13. If
+            a re-measure at execution exceeds a persisted
+            ceiling, stop and report — do not raise the
+            ceiling.
+          </Criterion>
+          <Criterion>
+            Charter row. Append one live
+            kind=&quot;chartered&quot; Row
+            name=&quot;C-RECORD-TEST-ISOLATION&quot; to
+            registry.xml before the close tag, with
+            &lt;Number&gt;&lt;/Number&gt; empty per house form.
+            The Charter records the mint search re-measured
+            at execution in the house form — the date, the
+            commit, the archive-directory count, the live
+            and retired row counts, the per-token hits, and
+            zero hits for the exact name (spec-time
+            measurements: 73 archive directories, 12 live
+            and 33 retired rows, zero hits for
+            C-RECORD-TEST-ISOLATION; re-measure, do not
+            quote). The &lt;Pays&gt; element carries exactly
+            F192, F194, F195 in the linked-token house form
+            — the derived set, the F-tokens in Pays plus any
+            Closed-with tokens in StatusText, must be
+            exactly those three. The StatusText carries no
+            Closed-with sentence and names no F-token;
+            F193 appears nowhere in the row. After insert
+            nothing is eligible — a live row's name is not
+            an archive directory — so the payment matures
+            only at this bundle's close.
+          </Criterion>
+          <Criterion>
+            Sweep, not a phrase list. Re-read the whole
+            C-CODIFY-DECISIONS Row in registry-retired.xml
+            (6 lines, ~2.8 KB at this commit) against the
+            current validator, the current live and retired
+            record, and the archived C-CODIFY-DECISIONS
+            spec; correct every sentence a bundle has
+            falsified, in every copy. The spec's audit
+            floor: (1) &quot;the rulings call site still
+            clamps against the post-move base&quot; —
+            retireRecord captures the pre-move rulings base
+            (:974, :1083-1084, :1100-1108); (2) the
+            unresolved &quot;TaughtIn versus CodifiedIn&quot;
+            copy — the move condition is
+            allResolveAndSomeOk on CodifiedIn only
+            (:1015-1018), and the resolved sentence that a
+            resolving TaughtIn annotates and does not retire
+            stays; (3) the &quot;Codification alone may not be
+            enough&quot; and &quot;is a question&quot; sentences —
+            rewrite as delivered, not as open questions; (4)
+            the Pays claim &quot;the decisions half of
+            F187&quot; — F187 is retired with PaidBy
+            C-PAYMENT-RECORD. This floor is not a closed
+            list. Do not re-introduce sentences C-CODIFY-DECISIONS's
+            T-003
+            already removed (the &quot;forty lines over&quot;,
+            &quot;59 live&quot;, &quot;zero tagged&quot; copies).
+            Keep status=&quot;retired&quot;
+            kind=&quot;chartered&quot; and the StatusText
+            position-pending. A Pays or StatusText edit
+            mints payments: the row's name is an archive
+            directory, so every F-token the corrected
+            &lt;Pays&gt; carries becomes a derived payer — the
+            corrected Pays and StatusText name no live
+            finding's token (F187 is retired, so it is
+            safe).
+          </Criterion>
+          <Criterion>
+            Byte-level close-tag check. registry.xml's close
+            tag is hand-restored at an 8-space indent and is
+            the file's last line; after the row insert the
+            file must still end with exactly
+            &quot;        &lt;/Registry&gt;&quot; — verified by the
+            recorded command. Do not normalise the
+            indentation. After this task:
+            bun ./scripts/validate-record-retirement.ts
+            exits 0, the preservation and citation
+            validators exit 0, and the suite (T-001's shape)
+            exits 0. This task's Verification commands and
+            the plan's TargetAssertions contain no
+            current-mode lint of this project root, checked
+            by the rule, by hand (F171). The execution emits
+            its own cursor events for this task; do not
+            omit them.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>test &quot;$(tail -n 1 docs/plans/active/RM-GOVERNED-PATH/registry.xml)&quot; = &quot;        &lt;/Registry&gt;&quot;</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>
+          Add the production-reading assertions for the flush, charter, sweep, and duplicate-pair invariants
+        </Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Add to scripts/validate-record-retirement.test.ts
+            the production-reading tests the approved spec's
+            close-bound criteria require, each with an
+            explicit generous timeout (60_000). (1) The
+            F192-F195 exactly-once invariant: each token
+            exists as exactly one Finding element across
+            findings.xml and findings-retired.xml — present
+            in one of the two, never in both, never in
+            neither — with exactly one matching
+            decisions.xml Entry element genre=&quot;finding&quot;
+            whose layer agrees with the holding file; a
+            retired copy of a paid token (F192, F194, F195)
+            carries PaidBy C-RECORD-TEST-ISOLATION; F193 is
+            asserted present, not located. (2) The
+            charter-row invariant: exactly one of
+            registry.xml and registry-retired.xml holds the
+            kind=&quot;chartered&quot; Row
+            name=&quot;C-RECORD-TEST-ISOLATION&quot;, its
+            Charter records the mint search, and its derived
+            payment set is exactly F192, F194, F195 — derive
+            it with the shipped closedWithTokens and Pays
+            extraction imported from
+            scripts/validate-record-retirement.ts, do not
+            re-implement the regexes; F193 appears nowhere
+            in the row. (3) The sweep assertions scoped to
+            the C-CODIFY-DECISIONS row itself, never to
+            whole-file properties of registry-retired.xml
+            (which the close grows by one row): the
+            falsified sentences absent in every copy, the
+            resolved TaughtIn sentence present, the row
+            still status=&quot;retired&quot;
+            kind=&quot;chartered&quot;, and the C-CODIFY-DECISIONS
+            T-003 removals
+            still absent. (4) The reshaped F21 pair
+            assertion from T-001 stands as
+            AC-DUPLICATE-PAIR's test form. Every added
+            assertion is invariant under the retirement
+            move — exactly-once, index agreement, and
+            retired-layer content, never the layer — so the
+            suite stays green pre-archive and post-close;
+            the mid-close window where the non-mutating
+            validate exits 1 is the D28.1 enforcement, not a
+            defect, and no assertion is evaluated there.
+          </Criterion>
+          <Criterion>
+            Discriminating evidence, not a green suite:
+            against the pre-flush record the exactly-once
+            invariant fails for all four tokens (absent from
+            both files); a token present in both files
+            fails; a missing charter row fails the row
+            invariant; a falsified sentence restored to the
+            retired row fails the sweep assertions. Show
+            each failing direction on a throwaway fixture
+            under a temporary directory, never the
+            repository working tree. This task's Verification
+            commands and the plan's TargetAssertions contain
+            no current-mode lint of this project root,
+            checked by the rule, by hand (F171). The
+            recorded --assertions target --run-commands
+            command is the post-write evidence command, run
+            during execution with an open cursor on a
+            declared task; exiting 1 before execution
+            (pre-approval, no open cursor) is not a defect.
+            Path-scoped git diffs are probed as written; the
+            archive pathspec excludes this bundle's own
+            directory. The execution emits its own cursor
+            events for this task; do not omit them. Do not
+            perform any close act: no --assertions final
+            run, no terminal event, no fold, no gate apply,
+            no status hand-write, no gate archive, no git
+            mv, no record retirement move.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-RECORD-TEST-ISOLATION --assertions target --run-commands</Command>
+          <Command>git diff --exit-code 54e26d96001846e73399140a709f867e70e7f037 -- src/</Command>
+          <Command>git diff --exit-code 54e26d96001846e73399140a709f867e70e7f037 -- README.md examples/</Command>
+          <Command>git diff --exit-code 54e26d96001846e73399140a709f867e70e7f037 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-RECORD-TEST-ISOLATION'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-003>
+    </ImplementationPlan>
+  </C-RECORD-TEST-ISOLATION>
+</NgraceChangePlan>
