@@ -5,6 +5,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import {
   RULINGS_PROVENANCE_CEILING,
+  derivePayerMap,
   liveH2DecisionLineCounts,
   median,
   newlineCount,
@@ -1404,7 +1405,7 @@ ${names
   });
 
   it(
-    "AC-PAYMENT-SET: production retired registry holds the four historical names; payment-set tokens are retired with stamped PaidBy; both F27.1 elements moved; a second --retire writes no byte",
+    "AC-PAYMENT-SET: production retired registry holds the four historical names; payment-set tokens are retired with stamped PaidBy; both F27.1 elements moved",
     () => {
       const recordDir = path.join(REPO_ROOT, RECORD_REL);
       const historicalNames = [
@@ -1450,24 +1451,8 @@ ${names
         }
       }
 
-      const f21Live = liveFindingHits.filter((f) => f.token === "F21");
-      expect(f21Live.map((f) => f.id).sort()).toEqual(["f21", "f21-correction"]);
-
-      const productionFiles = [
-        "findings.xml",
-        "findings-retired.xml",
-        "rulings.xml",
-        "rulings-retired.xml",
-        "registry.xml",
-        "registry-retired.xml",
-        "decisions.xml",
-      ].map((name) => path.join(recordDir, name));
-      const before = productionFiles.map((file) => readFileSync(file, "utf8"));
-      const second = runValidator(REPO_ROOT, ["--retire"]);
-      expect(second.status).toBe(0);
-      for (let i = 0; i < productionFiles.length; i++) {
-        expect(readFileSync(productionFiles[i]!, "utf8")).toBe(before[i]);
-      }
+      const index = readFileSync(path.join(recordDir, "decisions.xml"), "utf8");
+      expectDuplicateTokenPair(liveFindings, retiredFindings, index, "F21", ["f21", "f21-correction"]);
 
       const validate = runValidator(REPO_ROOT);
       expect(validate.status).toBe(0);
@@ -1477,7 +1462,7 @@ ${names
   );
 
   it(
-    "AC-TAG-AND-RETIRE: production D5.1 D7 D9 D18 are retired with named CodifiedIn; D24 untouched; second --retire writes no byte",
+    "AC-TAG-AND-RETIRE: production D5.1 D7 D9 D18 are retired with named CodifiedIn; D24 untouched",
     () => {
       const recordDir = path.join(REPO_ROOT, RECORD_REL);
       const liveRulings = readFileSync(path.join(recordDir, "rulings.xml"), "utf8");
@@ -1512,6 +1497,17 @@ ${names
       expect(d24!).not.toContain("change.task-invalid-dependency");
       expect(d24!).not.toContain("review.approval-never-asked");
 
+      const validate = runValidator(REPO_ROOT);
+      expect(validate.status).toBe(0);
+      expect(validate.stdout).toContain("record-retirement: ok");
+    },
+    60_000,
+  );
+
+  it(
+    "relocated no-op probe (AC-PROBE-RELOCATED): first --retire moves on an isolated fixture, second --retire writes no byte on the fixture, and the repository record files stay byte-identical",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
       const productionFiles = [
         "findings.xml",
         "findings-retired.xml",
@@ -1522,14 +1518,182 @@ ${names
         "decisions.xml",
       ].map((name) => path.join(recordDir, name));
       const before = productionFiles.map((file) => readFileSync(file, "utf8"));
-      const second = runValidator(REPO_ROOT, ["--retire"]);
+
+      const root = isolatedRoot();
+      const parts = happyParts();
+      parts.registry = `<Registry base="2" headroom="14" ceiling="100">
+  <Row name="C-LIVE-ROW" status="live" kind="chartered">
+    <Number>1</Number>
+    <Charter>charter</Charter>
+    <Pays></Pays>
+    <StatusText>Ordered</StatusText>
+  </Row>
+  <Row name="C-PROBE-ARCHIVE" status="live" kind="chartered">
+    <Number></Number>
+    <Charter>probe fixture</Charter>
+    <Pays>F1</Pays>
+    <StatusText>Delivered</StatusText>
+  </Row>
+</Registry>
+`;
+      writeHappy(root, parts);
+      mkdirSync(path.join(root, ".ngrace", "changes", "archive", "C-PROBE-ARCHIVE"), { recursive: true });
+
+      const fixtureFiles = [
+        "findings.xml",
+        "findings-retired.xml",
+        "rulings.xml",
+        "rulings-retired.xml",
+        "registry.xml",
+        "registry-retired.xml",
+        "decisions.xml",
+        "decisions.md",
+        "record-inventory.json",
+      ].map((name) => path.join(root, RECORD_REL, name));
+      const readAll = () =>
+        Object.fromEntries(fixtureFiles.map((file) => [file, readFileSync(file, "utf8")]));
+
+      const first = runValidator(root, ["--retire"]);
+      expect(first.status).toBe(0);
+      const retiredFixture = readFileSync(path.join(root, RECORD_REL, "findings-retired.xml"), "utf8");
+      expect(retiredFixture, "the first --retire must move on the fixture").toContain(
+        "<PaidBy>C-PROBE-ARCHIVE</PaidBy>",
+      );
+
+      const beforeSecond = readAll();
+      const second = runValidator(root, ["--retire"]);
       expect(second.status).toBe(0);
-      for (let i = 0; i < productionFiles.length; i++) {
-        expect(readFileSync(productionFiles[i]!, "utf8")).toBe(before[i]);
+      const afterSecond = readAll();
+      for (const file of fixtureFiles) {
+        expect(afterSecond[file], file).toBe(beforeSecond[file]);
       }
-      const validate = runValidator(REPO_ROOT);
-      expect(validate.status).toBe(0);
-      expect(validate.stdout).toContain("record-retirement: ok");
+
+      for (let i = 0; i < productionFiles.length; i++) {
+        expect(readFileSync(productionFiles[i]!, "utf8")).toBe(before[i]!);
+      }
+    },
+    60_000,
+  );
+
+  it(
+    "regression guard (remedy item 4): no validator spawn site carries a production cwd with a mutating argv — keyed on the arguments of every call site, refusing what it cannot prove",
+    () => {
+      const self = readFileSync(
+        path.join(import.meta.dir, path.basename(new URL(import.meta.url).pathname)),
+        "utf8",
+      );
+      expect(guardFailures(self)).toEqual([]);
+    },
+  );
+
+  it(
+    "AC-FLUSH: F192-F195 each exist exactly once across the findings files with agreeing index layers; a retired paid copy carries PaidBy C-RECORD-TEST-ISOLATION-2; F193 present, not located",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const liveFindings = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+      const retiredFindings = readFileSync(path.join(recordDir, "findings-retired.xml"), "utf8");
+      const index = readFileSync(path.join(recordDir, "decisions.xml"), "utf8");
+      const live = findingRecords(liveFindings);
+      const retired = findingRecords(retiredFindings);
+      const entries = indexEntries(index);
+      for (const token of ["F192", "F193", "F194", "F195"]) {
+        const id = token.toLowerCase();
+        const inLive = live.filter((f) => f.id === id);
+        const inRetired = retired.filter((f) => f.id === id);
+        expect(
+          inLive.length + inRetired.length,
+          `${token}: exactly one Finding element across findings.xml and findings-retired.xml`,
+        ).toBe(1);
+        const holder = inLive.length === 1 ? inLive[0]! : inRetired[0]!;
+        expect(holder.token, `${id}: token matches`).toBe(token);
+        const entry = entries.filter((e) => e.id === id);
+        expect(entry.length, `${id}: exactly one matching decisions.xml Entry`).toBe(1);
+        const layer = inLive.length === 1 ? "live" : "retired";
+        expect(entry[0]!.layer, `${id}: index layer agrees with the holding file`).toBe(layer);
+        if (token !== "F193" && layer === "retired") {
+          expect(holder.paidBy, `${token}: a retired paid copy carries this bundle's PaidBy`).toBe(
+            "C-RECORD-TEST-ISOLATION-2",
+          );
+        }
+      }
+    },
+    60_000,
+  );
+
+  it(
+    "AC-CHARTER: exactly one registry file holds the chartered Row for this bundle, its Charter records the mint search, and its derived payment set is exactly F192, F194, F195",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const liveRegistry = readFileSync(path.join(recordDir, "registry.xml"), "utf8");
+      const retiredRegistry = readFileSync(path.join(recordDir, "registry-retired.xml"), "utf8");
+      const name = "C-RECORD-TEST-ISOLATION-2";
+      const rowRe = new RegExp(`<Row name="${name}"[^>]*>[\\s\\S]*?</Row>`);
+      const liveRows = liveRegistry.match(rowRe) ?? [];
+      const retiredRows = retiredRegistry.match(rowRe) ?? [];
+      expect(
+        liveRows.length + retiredRows.length,
+        "the charter row exists in exactly one of registry.xml and registry-retired.xml",
+      ).toBe(1);
+      const row = (liveRows[0] ?? retiredRows[0])!;
+      expect(row).toContain('kind="chartered"');
+      const charter = row.match(/<Charter>([\s\S]*?)<\/Charter>/)?.[1] ?? "";
+      const pays = row.match(/<Pays>([\s\S]*?)<\/Pays>/)?.[1] ?? "";
+      const statusText = row.match(/<StatusText>([\s\S]*?)<\/StatusText>/)?.[1] ?? "";
+      expect(charter, "the Charter records the mint search in the house form").toContain(
+        "Searched before minting",
+      );
+      expect(charter).toContain("zero hits");
+      // The derived payment set — the F-tokens in Pays plus any Closed-with
+      // tokens in StatusText — computed by the shipped extraction
+      // (derivePayerMap) over a synthetic repoRoot whose archive contains only
+      // this row's name, so the archived-spec prose pass scans an empty archive.
+      const synthetic = isolatedRoot();
+      mkdirSync(path.join(synthetic, ".ngrace", "changes", "archive", name), { recursive: true });
+      const derived = derivePayerMap(synthetic, [{ name, pays, statusText }]);
+      expect([...derived.keys()].sort(), "derived payment set").toEqual(["F192", "F194", "F195"]);
+      expect(
+        row.includes("F193") || row.includes("f193"),
+        "F193 appears nowhere in the row",
+      ).toBe(false);
+    },
+    60_000,
+  );
+
+  it(
+    "AC-SWEEP: the retired C-CODIFY-DECISIONS row carries no sentence current code falsifies, in any copy; the resolved TaughtIn sentence stands; the T-003 removals stay absent",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const retiredRegistry = readFileSync(path.join(recordDir, "registry-retired.xml"), "utf8");
+      const rowMatch = retiredRegistry.match(/<Row name="C-CODIFY-DECISIONS"[\s\S]*?<\/Row>/);
+      expect(rowMatch, "the C-CODIFY-DECISIONS row exists").toBeDefined();
+      const row = rowMatch![0];
+      expect(row).toContain('status="retired"');
+      expect(row).toContain('kind="chartered"');
+      // Every falsified sentence absent, in every copy (scoped to the row,
+      // never to whole-file properties of registry-retired.xml).
+      expect(row.includes("still clamps against the post-move base")).toBe(false);
+      expect(row.includes("is unresolved")).toBe(false);
+      expect(row.includes("may not be enough")).toBe(false);
+      expect(row.includes("is a question to derive from the code")).toBe(false);
+      expect(row.includes("the decisions half of")).toBe(false);
+      // The sentences C-CODIFY-DECISIONS's own T-003 removed stay removed.
+      expect(row.includes("forty lines over")).toBe(false);
+      expect(row.includes("59 live")).toBe(false);
+      expect(row.includes("zero tagged")).toBe(false);
+      // The resolved TaughtIn sentence stands.
+      expect(row.includes("annotates and does not retire")).toBe(true);
+      // The corrected Pays mints no live finding's token: its only token is the
+      // retired F187, computed by the shipped extraction over a synthetic root.
+      const pays = row.match(/<Pays>([\s\S]*?)<\/Pays>/)?.[1] ?? "";
+      const statusText = row.match(/<StatusText>([\s\S]*?)<\/StatusText>/)?.[1] ?? "";
+      const synthetic = isolatedRoot();
+      mkdirSync(path.join(synthetic, ".ngrace", "changes", "archive", "C-CODIFY-DECISIONS"), {
+        recursive: true,
+      });
+      const derived = derivePayerMap(synthetic, [
+        { name: "C-CODIFY-DECISIONS", pays, statusText },
+      ]);
+      expect([...derived.keys()].sort(), "the sweep mints no live payment").toEqual(["F187"]);
     },
     60_000,
   );
@@ -1591,6 +1755,56 @@ function findingRecords(
   });
 }
 
+function indexEntries(xml: string): Array<{ id: string; layer: string }> {
+  return (xml.match(/<Entry\b[^>]*\/>/g) ?? []).map((tag) => ({
+    id: tag.match(/\bid="([^"]+)"/)?.[1] ?? "",
+    layer: tag.match(/\blayer="([^"]+)"/)?.[1] ?? "",
+  }));
+}
+
+/**
+ * AC-DUPLICATE-PAIR's move-invariant pair form: over the token's named
+ * elements, each id occurs exactly once across findings.xml and
+ * findings-retired.xml — never in both files, never in neither, never
+ * duplicated within one file — all ids co-located in the same one of the two
+ * files, and decisions.xml carries exactly one Entry element per id whose
+ * layer agrees with the file holding the Finding. No status, layer, or PaidBy
+ * of the token is pinned: a lawful payment moves the pair together and the
+ * invariant holds in either layer.
+ */
+function expectDuplicateTokenPair(
+  liveFindings: string,
+  retiredFindings: string,
+  index: string,
+  token: string,
+  ids: readonly string[],
+): void {
+  const live = findingRecords(liveFindings).filter((f) => f.token === token);
+  const retired = findingRecords(retiredFindings).filter((f) => f.token === token);
+  const liveIds = live.map((f) => f.id);
+  const retiredIds = retired.map((f) => f.id);
+  expect(live.length + retired.length, `${token}: exactly the named pair exists`).toBe(ids.length);
+  for (const id of ids) {
+    const inLive = liveIds.filter((x) => x === id).length;
+    const inRetired = retiredIds.filter((x) => x === id).length;
+    expect(
+      inLive + inRetired,
+      `${token}/${id}: must occur exactly once across the two files (never in both, never in neither, never duplicated)`,
+    ).toBe(1);
+  }
+  const allLive = ids.every((id) => liveIds.includes(id));
+  const allRetired = ids.every((id) => retiredIds.includes(id));
+  expect(allLive && allRetired, `${token}: the pair is split across the two files`).toBe(false);
+  const entries = indexEntries(index);
+  for (const id of ids) {
+    const matches = entries.filter((e) => e.id === id);
+    expect(matches.length, `${token}/${id}: decisions.xml Entry count`).toBe(1);
+    const layer = matches[0]!.layer;
+    const holding = liveIds.includes(id) ? "live" : "retired";
+    expect(layer, `${token}/${id}: index layer ${layer} must agree with the holding file (${holding})`).toBe(holding);
+  }
+}
+
 function findingLineCounts(xml: string): number[] {
   const blocks = xml.match(/<Finding\b[\s\S]*?<\/Finding>/g) ?? [];
   const out: number[] = [];
@@ -1628,4 +1842,212 @@ ${decision}
 </Registry>
 `;
   return parts;
+}
+
+// =============================================================================
+// Regression guard (approved spec remedy item (4)), keyed on the arguments of
+// every validator spawn site rather than on a source string, so it survives
+// this bundle's close and runs in CI forever. Production cwd: a token stream
+// containing REPO_ROOT, resolved transitively through in-file const/let
+// initializers. Mutating argv: a flag arriving through a literal, an array, or
+// a variable. Refusal, not filtering: an argv shape the scan cannot prove
+// flag-free (a spread, a call, a parameter, an import) fails the guard. The
+// bare non-mutating runValidator(REPO_ROOT) calls stay legal. The helper's own
+// internal spawn call is excluded (it is covered by scanning runValidator call
+// sites); a direct spawn call naming the SCRIPT constant elsewhere is scanned.
+// =============================================================================
+
+type SpawnSiteVerdict = { index: number; site: string; production: boolean; mutating: boolean; unresolvable: boolean };
+
+const GUARD_FLAGS = ["--retire", "--stamp-paid-by", "--split"];
+
+function guardInitializerOf(source: string, name: string): string | undefined {
+  const re = new RegExp(`(?:^|\\n)[ \\t]*(?:const|let)\\s+${name}\\s*=\\s*([^\\n]*)`);
+  const m = source.match(re);
+  return m ? m[1]!.trim() : undefined;
+}
+
+/** Token stream of an expression: identifiers, string contents; plain identifiers resolve transitively through in-file const/let initializers. */
+function guardTokenStream(source: string, expr: string, depth = 0): string[] {
+  if (depth > 8) return [];
+  const tokens: string[] = [];
+  const re = /[A-Za-z_$][A-Za-z0-9_$]*|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
+  for (const raw of expr.match(re) ?? []) {
+    if (/^["']/.test(raw)) {
+      tokens.push(raw.slice(1, -1));
+    } else {
+      tokens.push(raw);
+      const init = guardInitializerOf(source, raw);
+      if (init !== undefined && !init.includes("(")) {
+        tokens.push(...guardTokenStream(source, init.replace(/^=\s*/, "").replace(/;$/, ""), depth + 1));
+      }
+    }
+  }
+  return tokens;
+}
+
+/** Resolve an expression to provable string values; undefined = the shape cannot be proven (refusal). */
+function guardResolveStrings(source: string, expr: string, depth = 0): string[] | undefined {
+  if (depth > 8) return undefined;
+  const t = expr.trim().replace(/;$/, "");
+  if (/^["']/.test(t) && t.length >= 2 && t.endsWith(t[0]!)) {
+    return [t.slice(1, -1)];
+  }
+  if (t.startsWith("[") && t.endsWith("]")) {
+    const inner = t.slice(1, -1);
+    const parts: string[] = [];
+    let sq = 0, br = 0, pa = 0, inStr: string | undefined;
+    let cur = "";
+    for (let i = 0; i < inner.length; i++) {
+      const ch = inner[i]!;
+      if (inStr) {
+        cur += ch;
+        if (ch === inStr && inner[i - 1] !== "\\") inStr = undefined;
+        continue;
+      }
+      if (ch === '"' || ch === "'" || ch === "`") { inStr = ch; cur += ch; continue; }
+      if (ch === "[") sq++;
+      else if (ch === "]") sq--;
+      else if (ch === "{") br++;
+      else if (ch === "}") br--;
+      else if (ch === "(") pa++;
+      else if (ch === ")") pa--;
+      if (ch === "," && sq === 0 && br === 0 && pa === 0) { parts.push(cur); cur = ""; continue; }
+      cur += ch;
+    }
+    if (cur.trim()) parts.push(cur);
+    const out: string[] = [];
+    for (const part of parts) {
+      const p = part.trim();
+      if (p === "") continue;
+      if (p.startsWith("...")) return undefined;
+      const r = guardResolveStrings(source, p, depth + 1);
+      if (r === undefined) return undefined;
+      out.push(...r);
+    }
+    return out;
+  }
+  if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(t)) {
+    const init = guardInitializerOf(source, t);
+    if (init === undefined) return undefined; // parameter, import, or unknown: refuse
+    if (init.includes("(")) return undefined; // call initializer: refuse
+    return guardResolveStrings(source, init.replace(/^=\s*/, ""), depth + 1);
+  }
+  return undefined; // call, member chain, ternary, spread: refuse
+}
+
+function guardIsMutating(values: string[] | undefined): boolean {
+  if (values === undefined) return true; // refusal: cannot prove flag-free
+  return values.some((v) => GUARD_FLAGS.some((flag) => v.includes(flag)));
+}
+
+/** Extract the balanced-paren argument text of a call starting at the "(" offset. */
+function guardCallArgs(source: string, openParen: number): string | undefined {
+  let depth = 0, inStr: string | undefined;
+  for (let i = openParen; i < source.length; i++) {
+    const ch = source[i]!;
+    if (inStr) {
+      if (ch === inStr && source[i - 1] !== "\\") inStr = undefined;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") { inStr = ch; continue; }
+    if (ch === "(") depth++;
+    else if (ch === ")") {
+      depth--;
+      if (depth === 0) return source.slice(openParen + 1, i);
+    }
+  }
+  return undefined;
+}
+
+function guardSplitTopLevel(args: string): string[] {
+  const parts: string[] = [];
+  let sq = 0, br = 0, pa = 0, inStr: string | undefined;
+  let cur = "";
+  for (let i = 0; i < args.length; i++) {
+    const ch = args[i]!;
+    if (inStr) {
+      cur += ch;
+      if (ch === inStr && args[i - 1] !== "\\") inStr = undefined;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") { inStr = ch; cur += ch; continue; }
+    if (ch === "[") sq++;
+    else if (ch === "]") sq--;
+    else if (ch === "{") br++;
+    else if (ch === "}") br--;
+    else if (ch === "(") pa++;
+    else if (ch === ")") pa--;
+    if (ch === "," && sq === 0 && br === 0 && pa === 0) { parts.push(cur); cur = ""; continue; }
+    cur += ch;
+  }
+  if (cur.trim()) parts.push(cur);
+  return parts.map((p) => p.trim());
+}
+
+/** Span of a top-level function declaration (for excluding the helper's own body). */
+function guardFunctionSpan(source: string, name: string): { start: number; end: number } | undefined {
+  const decl = source.indexOf(`function ${name}`);
+  if (decl === -1) return undefined;
+  // A top-level function body closes at a "}" in column 0 (house 2-space style);
+  // brace matching cannot be used directly because of the return-type annotation.
+  const close = source.indexOf("\n}", decl);
+  if (close === -1) return undefined;
+  return { start: decl, end: close };
+}
+
+function guardScanSites(source: string): SpawnSiteVerdict[] {
+  const verdicts: SpawnSiteVerdict[] = [];
+  const helperSpan = guardFunctionSpan(source, "runValidator");
+
+  const callRe = /\brunValidator\s*\(/g;
+  for (const m of source.matchAll(callRe)) {
+    const before = source.slice(Math.max(0, m.index! - 12), m.index!);
+    if (/function\s*$/.test(before)) continue; // the declaration itself
+    const openParen = source.indexOf("(", m.index!);
+    const argsText = guardCallArgs(source, openParen);
+    if (argsText === undefined) continue;
+    const parts = guardSplitTopLevel(argsText);
+    const cwdExpr = parts[0] ?? "";
+    const argvExpr = parts.length > 1 ? parts.slice(1).join(",") : "[]";
+    const production = guardTokenStream(source, cwdExpr).includes("REPO_ROOT");
+    const argvValues = guardResolveStrings(source, argvExpr);
+    const mutating = guardIsMutating(argvValues);
+    verdicts.push({
+      index: m.index!,
+      site: source.slice(m.index!, openParen + 1 + argsText.length + 1).replace(/\s+/g, " "),
+      production,
+      mutating,
+      unresolvable: argvValues === undefined,
+    });
+  }
+
+  const spawnRe = /\bspawnSync\s*\(/g;
+  for (const m of source.matchAll(spawnRe)) {
+    if (helperSpan && m.index! >= helperSpan.start && m.index! <= helperSpan.end) continue;
+    const openParen = source.indexOf("(", m.index!);
+    const argsText = guardCallArgs(source, openParen);
+    if (argsText === undefined) continue;
+    const parts = guardSplitTopLevel(argsText);
+    const argvExpr = parts.length > 1 ? parts[1]! : "[]";
+    if (!guardTokenStream(source, argvExpr).includes("SCRIPT")) continue;
+    const cwdExpr = parts.length > 2
+      ? (guardSplitTopLevel(parts[2]!.replace(/^\{|\}$/g, "")).map((p) => p.trim()).find((p) => p.startsWith("cwd")) ?? "").replace(/^cwd\s*:\s*/, "")
+      : "";
+    const production = cwdExpr === "" ? true : guardTokenStream(source, cwdExpr).includes("REPO_ROOT");
+    const argvValues = guardResolveStrings(source, argvExpr);
+    const mutating = guardIsMutating(argvValues === undefined ? undefined : argvValues.slice(1)); // drop the runner token
+    verdicts.push({
+      index: m.index!,
+      site: source.slice(m.index!, openParen + 1 + argsText.length + 1).replace(/\s+/g, " "),
+      production,
+      mutating,
+      unresolvable: argvValues === undefined,
+    });
+  }
+  return verdicts;
+}
+
+function guardFailures(source: string): SpawnSiteVerdict[] {
+  return guardScanSites(source).filter((v) => v.unresolvable || (v.production && v.mutating));
 }

@@ -1,0 +1,1 @@
+<NgraceRunEvent command="bun ./scripts/validate-record-retirement.ts" exitCode="0" assertionPassed="true" assertionKind="MustPassCommand" source="lint-run-commands" graceVersion="1.0" id="9" task="T-003" kind="command-run" />
