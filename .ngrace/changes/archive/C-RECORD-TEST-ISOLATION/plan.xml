@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-RECORD-TEST-ISOLATION>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-RECORD-TEST-ISOLATION><Replacement>C-RECORD-TEST-ISOLATION-2</Replacement>
     <IntentSummary>
       Execute the approved spec: relocate the two production
       --retire byte-identity probes onto isolated fixtures,

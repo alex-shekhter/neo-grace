@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-RECORD-TEST-ISOLATION>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-RECORD-TEST-ISOLATION><Replacement>C-RECORD-TEST-ISOLATION-2</Replacement>
     <Summary>
       Stop tests from invoking a
       mutating record operation
