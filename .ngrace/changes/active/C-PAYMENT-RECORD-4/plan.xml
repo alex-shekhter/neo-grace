@@ -1,0 +1,381 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-PAYMENT-RECORD-4>
+    <IntentSummary>
+      Reconcile the two test pins that C-PAYMENT-RECORD-3's performed record work left stale,
+      and add the three production invariant assertions the approved spec's suite-shaped
+      criteria lean on — nothing else. This bundle performs no record write: no row insert, no
+      retirement move against the production record, no staged-entry flush, no hand-stamped
+      PaidBy; the record under
+      docs/plans/active/RM-GOVERNED-PATH/ is read and verified, never written. The work is one
+      task, T-001, writing exactly three files — src/artifact/xml.test.ts,
+      scripts/fixtures/record-parse/baseline-probes.json, and
+      scripts/validate-record-retirement.test.ts — and ObservedWriteScope names exactly those
+      three. DurableScope is &lt;M-GRAMMAR /&gt; alone, the C-RECORD-PARSE precedent
+      (.ngrace/changes/archive/C-RECORD-PARSE/plan.xml:153-163 anchored the same class of files
+      with the same lone anchor and the gates accepted it); do not mint a synthetic module and
+      do not add a second anchor. The ordering rule (F204, ordering and instrument halves) is
+      structural here: T-001 is the only task and every suite-shaped CloseEvidence in the spec
+      is measured at close, after its writer. Every number below is already measured and lives
+      in the approved spec; this plan re-derives none of it and re-measures only where a task
+      says so at execution.
+
+      The two stale pins, reconciled to the measured post-payment state: (1)
+      src/artifact/xml.test.ts's production element-count table — findings.xml 213 → 195,
+      findings-retired.xml 58 → 77, registry-retired.xml 36 → 44, decisions.xml 337 → 338;
+      rulings.xml 61, rulings-retired.xml 5 and registry.xml 12 are unchanged and stay as
+      pinned; (2) scripts/fixtures/record-parse/baseline-probes.json's payerMapBaseline
+      sub-object, regenerated wholesale from the shipped derivation: import the shipped
+      derivePayerMap (scripts/validate-record-retirement.ts:403) and feed it the direct Row
+      children of both registry layers whose kind is chartered or historical, at the commit
+      read from git rev-parse HEAD at capture time — the F212 method: the shipped function
+      over the real record and real archive, never a re-derivation. The regenerated sub-object
+      keeps its field set with each field true of the new capture: rule text naming the
+      capture commit, command, fullTokenCount 73, rowsOnlyTokenCount 73, proseOnlyRoutes [],
+      rowRouteTokensNamedBySpec recomputed, map = the 73-token derivation (F152 and F43
+      absent, the nineteen row-derived tokens present with the payers the spec's pairing
+      assigns). The top-level baseCommit, measured and engine fields and the
+      falsePaymentProbe, equivalenceClassProbe and canFailDemonstrations branches stay
+      untouched. (3) In scripts/validate-record-retirement.test.ts the assertions that pin
+      payerMapBaseline's capture-time shape move with the fixture: proseOnlyRoutes to
+      toEqual([]) (from toEqual(["F152", "F43"]) at :1892), the F152 and F43 map entries to
+      toBeUndefined (from :1893-1894), and the stale comment at :1888-1890 updated to say 73
+      derived tokens captured post-payment — while the F152/F43 drop-out assertions in the
+      payer-derivation test (:1818-1819) stay as live assertions and keep passing, and the
+      top-level baseCommit literal and the falsePaymentProbe and equivalenceClassProbe
+      captures stay untouched.
+
+      The three production invariant assertions, appended to
+      scripts/validate-record-retirement.test.ts in the same change, each an invariant and
+      never an occupancy count — no element total, token total, base value, or base-commit SHA
+      goes into a new assertion: (a) the flush invariant, test name exactly "C-PAYMENT-RECORD-4
+      flush invariant: f204 is exactly once and live in the production record" — the shipped
+      parser and its exported walkNodes (src/artifact/xml.ts:233) walk findings.xml and
+      decisions.xml and require exactly one Finding with id="f204" status="live" and exactly
+      one Entry with id="f204" layer="live"; the walk over the whole tree is the no-duplicate
+      check, because a second id="f204" anywhere in either tree makes the walk return two.
+      (b) The roots invariants, test name exactly "C-PAYMENT-RECORD-4 roots invariant: every
+      live root satisfies base + headroom = ceiling and base equals its shipped metric read
+      back" — for all four live roots (findings.xml, registry.xml, decisions.xml, rulings.xml),
+      base + headroom = ceiling, and the base equals its shipped metric read back from the
+      file: the shipped newlineCount export (scripts/validate-record-retirement.ts:120,
+      already imported by the test file) for the three line-budgeted genres; the live Row
+      count for registry, read by the shipped liveRowCount rule (direct Row children whose
+      status is not retired — scripts/validate-record-retirement.ts:975) over the shipped
+      parser. liveRowCount is not exported; mirror its rule over the shipped parser, do not
+      export it, and do not add scripts/validate-record-retirement.ts to write scope. (c) The
+      retired-layer invariant, test name exactly "C-PAYMENT-RECORD-4 retired-layer invariant:
+      every retired Finding carries a PaidBy that matches its derived payer and names an
+      archive directory" — over every Finding in findings-retired.xml, parsed: the PaidBy
+      child is present and non-empty; whenever the shipped derivePayerMap derives a payer for
+      that token from the registry rows, the stored PaidBy equals it; and the stored PaidBy
+      names an archive directory (the shipped listArchiveNames, :136). The equality stays
+      conditional and must stay conditional: F43 and F152 carry PaidBy stamped by the removed
+      prose pass (C-APPROVE-TIME-REVIEW, a real archive directory) for tokens the rows-only
+      derivation no longer derives — 75 of 77 equal, 2 with no derived payer, measured; do not
+      hard-code F43 or F152, and do not write an unconditional equality, which is false on the
+      delivered record.
+
+      Why no suite command appears in any task Verification: the spec's evidence-hygiene
+      Constraint (F184) requires every task Verification command to exit 0 as written at
+      recording time, and the suite is red at recording time with exactly the two stale pins
+      this bundle reconciles — measured at e0a3e6c, bun test
+      src/artifact/xml.test.ts scripts/validate-record-retirement.test.ts exits 1. T-001's
+      Criteria therefore instruct the executor to run the suite as part of the work — before
+      any write, observe exactly the two named tests failing; after the writes, observe it
+      green with the three new assertions among the passing — and the recorded Verification
+      carries only commands that exit 0 at recording time and stay green. The suite-shaped
+      formal evidence lives in TargetAssertions (evaluated at the target gate, after the
+      writes) and in the spec's CloseEvidence criteria (evaluated at close, after the
+      archive): the approve gate evaluates only unresolved IC-*/INV-* clarifications
+      (src/gates/core.ts:290-322), so post-work Target facts are first evaluated at the target
+      gate. F211's red window is declared and by design here too: the baseline MustContains
+      pinning the stale pre-work state go false when T-001's writes land, so root lint
+      mid-bundle reports assertion errors naming this plan until the archive; archived plans
+      are evaluated syntax-only, so post-archive lint stays green, and the window is the
+      assertion set working as designed — do not keep the stale pins to quiet it.
+
+      No record write, no record-freeze engagement: D30's freeze holds for record-writing
+      tasks, and this bundle has none, so the freeze never engages and no brief promises a
+      frozen base. Nothing in this plan writes or prunes
+      .ngrace/scratch/staged-findings.md; nothing runs --retire against the production record
+      — the no-op property is probed on a throwaway copy only, by the recorded command. The
+      ceiling-vs-base-commit comparison stays out of the suite: it is already wired as
+      AC-ROOTS-CONSISTENT's second CloseEvidence Command and is recorded here only as a task
+      Verification command that exits 0 at recording time and after the writes. The executor
+      emits its own execution-time cursor events for its task (opened, progress, attempt,
+      command-run) and does not omit them; the terminal event and the cursor fold are close
+      acts owned by the authority, together with the --assertions final --run-commands gate,
+      both gate verdicts, gate apply, the status="applied" write, gate archive, the git mv to
+      .ngrace/changes/archive/, and the close's own record retirement move — a byte-level
+      no-op here, because this bundle mints no charter row, so its name has no row for the
+      close to move; no task performs any of them and no sentence in this plan implies
+      execution does. Do not hand-write any status. Escape markup as character data
+      (&lt;, &gt;, &amp;) in every artifact this bundle writes; never paraphrase brackets
+      away.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/artifact/xml.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/fixtures/record-parse/baseline-probes.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-PAYMENT-RECORD-4/spec.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/artifact/xml.test.ts</File>
+        <Text>["findings.xml", "Finding", 213]</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/fixtures/record-parse/baseline-probes.json</File>
+        <Text>"fullTokenCount": 56,</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>toEqual(["F152", "F43"])</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>src/artifact/xml.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/fixtures/record-parse/baseline-probes.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/artifact/xml.test.ts</File>
+        <Text>["findings.xml", "Finding", 195]</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/fixtures/record-parse/baseline-probes.json</File>
+        <Text>"fullTokenCount": 73,</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/fixtures/record-parse/baseline-probes.json</File>
+        <Text>"proseOnlyRoutes": [],</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>C-PAYMENT-RECORD-4 flush invariant</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>C-PAYMENT-RECORD-4 roots invariant</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>C-PAYMENT-RECORD-4 retired-layer invariant</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>id="f204"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>listArchiveNames</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/artifact/xml.test.ts</File>
+        <Text>["findings.xml", "Finding", 213]</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/fixtures/record-parse/baseline-probes.json</File>
+        <Text>"fullTokenCount": 56,</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun test src/artifact/xml.test.ts scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+      </GraphAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/xml.test.ts</File>
+      <File>scripts/fixtures/record-parse/baseline-probes.json</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Reconcile the two stale pins to the measured post-payment state and add the three
+          production invariant assertions
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            This task is the reconciliation and it is atomic: before any write, run bun test
+            src/artifact/xml.test.ts scripts/validate-record-retirement.test.ts and observe
+            exactly two failing tests — "C-RECORD-PARSE payer derivation: F152 and F43 drop
+            out and every other token's payer is unchanged from the baseline map" and "pairs
+            every element of the real record files at their committed bytes" — recording the
+            tail in the run-ledger. If anything else is red, or if either stale pin is not
+            stale in the way the spec's Goal 4 describes, stop and report; never edit a test
+            pin to fit a record state the pins do not describe (D27). The suite transitions
+            red to green inside this task; no recorded Verification command runs the suite,
+            because the suite exits 1 as written at recording time (F184) and the spec's
+            evidence-hygiene Constraint allows only the --assertions target --run-commands
+            exception; the suite-shaped formal evidence is TargetAssertions (target gate,
+            after the writes) and the spec's CloseEvidence criteria (close, after the
+            archive). The write set is exactly three files — src/artifact/xml.test.ts,
+            scripts/fixtures/record-parse/baseline-probes.json, and
+            scripts/validate-record-retirement.test.ts — nothing else under src/ or scripts/,
+            no record file, no engine file (do not export liveRowCount; mirror its rule over
+            the shipped parser), no .ngrace-lint.json, no staged buffer, and nothing under
+            .ngrace/changes/archive/ or docs/plans/archive/. The ceiling-vs-base-commit
+            comparison stays out of the suite: it is AC-ROOTS-CONSISTENT's second
+            CloseEvidence Command and is not re-implemented as a test.
+          </Criterion>
+          <Criterion>
+            src/artifact/xml.test.ts: in the production element-count table, change exactly
+            four entries — findings.xml 213 to 195, findings-retired.xml 58 to 77,
+            registry-retired.xml 36 to 44, decisions.xml 337 to 338 — and touch nothing else
+            in the file: rulings.xml 61, rulings-retired.xml 5 and registry.xml 12 stay as
+            pinned, and no other test, helper or import in the file changes.
+          </Criterion>
+          <Criterion>
+            scripts/fixtures/record-parse/baseline-probes.json: regenerate only the
+            payerMapBaseline sub-object, by importing the shipped derivePayerMap over the
+            production registry layers at the commit git rev-parse HEAD reports at capture
+            time (read it at execution; never copy a commit from this plan into the fixture),
+            feeding it the direct Row children of both registry layers whose kind is
+            chartered or historical. The regenerated sub-object keeps its field set with each
+            field true of the new capture: rule text naming the capture commit and saying the
+            shipped function ran over the real record and real archive; command;
+            fullTokenCount 73; rowsOnlyTokenCount 73; proseOnlyRoutes empty; the nineteen
+            row-derived tokens present in map with the payers the spec's pairing assigns and
+            F152 and F43 absent; rowRouteTokensNamedBySpec recomputed true of the capture.
+            The top-level baseCommit, measured and engine fields and the falsePaymentProbe,
+            equivalenceClassProbe and canFailDemonstrations branches stay byte-untouched.
+            Preserve the file's formatting conventions; a projection is never written — the
+            map is the derivation's output, read from the shipped function's return.
+          </Criterion>
+          <Criterion>
+            scripts/validate-record-retirement.test.ts: move the payerMapBaseline-shape
+            assertions to match the regenerated fixture — proseOnlyRoutes to toEqual([])
+            (from toEqual(["F152", "F43"]) at :1892), the F152 and F43 map entries to
+            toBeUndefined (from toBe("C-APPROVE-TIME-REVIEW") at :1893-1894), and the stale
+            comment at :1888-1890 updated to say 73 derived tokens captured post-payment —
+            and leave the F152/F43 drop-out assertions at :1818-1819, the
+            fullTokenCount self-consistency at :1891, the five named map entries, the
+            falsePaymentProbe and equivalenceClassProbe assertions, and the top-level
+            baseCommit literal untouched. Then append three production invariant assertions,
+            each an invariant and never an occupancy count — no element total, token total,
+            base value, or base-commit SHA in any of them: (a) test name exactly
+            "C-PAYMENT-RECORD-4 flush invariant: f204 is exactly once and live in the
+            production record" — parse findings.xml and decisions.xml with the shipped
+            parseGraceXmlArtifact, walk every node with the exported walkNodes
+            (src/artifact/xml.ts:233), and require exactly one Finding with id="f204" whose
+            status is live and exactly one Entry with id="f204" whose layer is live; the walk
+            over the whole tree is the no-duplicate check; (b) test name exactly
+            "C-PAYMENT-RECORD-4 roots invariant: every live root satisfies base + headroom =
+            ceiling and base equals its shipped metric read back" — for findings.xml,
+            registry.xml, decisions.xml and rulings.xml, parse the root, require
+            base + headroom = ceiling, and require the base to equal the shipped metric read
+            back from the file: the exported newlineCount (already imported by the test file)
+            for the three line-budgeted genres, and for registry the live Row count read by
+            the shipped liveRowCount rule (direct Row children whose status is not retired —
+            scripts/validate-record-retirement.ts:975) over the shipped parser, because
+            liveRowCount is not exported and must not be; (c) test name exactly
+            "C-PAYMENT-RECORD-4 retired-layer invariant: every retired Finding carries a
+            PaidBy that matches its derived payer and names an archive directory" — over
+            every Finding element in findings-retired.xml, parsed: the PaidBy child is
+            present and non-empty; whenever the shipped derivePayerMap derives a payer for
+            that token from the registry rows (both layers, kind chartered or historical,
+            gated on archive membership — the same collection the payer-derivation test
+            builds), the stored PaidBy equals it; and the stored PaidBy names an archive
+            directory via the shipped listArchiveNames (:136). The equality stays
+            conditional and must stay conditional: F43 and F152 carry
+            PaidBy=C-APPROVE-TIME-REVIEW, a real archive directory, for tokens the rows-only
+            derivation does not derive — do not hard-code either token, do not special-case
+            them by name, and do not write an unconditional equality. Give all three tests an
+            explicit generous timeout (F185) as the production-reading tests in this file
+            already carry.
+          </Criterion>
+          <Criterion>
+            The F211 red window is declared, not fixed: this plan's BaselineAssertions pin
+            the stale pre-work state (the 213 count, the 56 baseline, the
+            toEqual(["F152", "F43"]) shape), and when this task's writes land those facts go
+            false, so root lint mid-bundle reports assertion errors naming this plan.xml
+            until the archive — the window F211 documents, the assertion set working as
+            designed. Do not quiet it by keeping a stale pin; the archived plan is evaluated
+            syntax-only and post-archive lint is green. This task's Verification commands and
+            the TargetAssertions contain no current-mode lint of this project root, checked
+            by the rule in the spec's evidence-hygiene Constraint, by hand (F171): no command
+            text contains --assertions current, and none invokes ngrace lint or
+            bun ./src/grace.ts lint of this root while omitting --assertions. The executor
+            emits its own execution-time cursor events for this task (opened, progress,
+            attempt, command-run) and does not omit them; the terminal event and cursor fold
+            are close acts owned by the authority, together with the --assertions final
+            --run-commands gate, both gate verdicts, gate apply, the status="applied" write,
+            gate archive, the git mv, and the close's own record retirement move (a
+            byte-level no-op — this bundle mints no charter row); no sentence here implies
+            execution performs any of them.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>git diff --exit-code 23ef6dfd0b4ba3eabc2ee0ea94791990496a9380 -- src/ scripts/ ':(exclude)src/artifact/xml.test.ts' ':(exclude)scripts/fixtures/record-parse/baseline-probes.json' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code 23ef6dfd0b4ba3eabc2ee0ea94791990496a9380 -- docs/plans/active/RM-GOVERNED-PATH/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml'</Command>
+          <Command>git diff --exit-code 23ef6dfd0b4ba3eabc2ee0ea94791990496a9380 -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+          <Command>git diff --exit-code 23ef6dfd0b4ba3eabc2ee0ea94791990496a9380 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-PAYMENT-RECORD-3' ':(exclude).ngrace/changes/archive/C-PAYMENT-RECORD-4'</Command>
+          <Command>bash -c 'T=$(mktemp -d); B=23ef6dfd0b4ba3eabc2ee0ea94791990496a9380; for n in findings registry decisions rulings; do p=docs/plans/active/RM-GOVERNED-PATH/$n.xml; git show "$B:$p" | head -1 | sed -n "s/.*ceiling=\"\([0-9]*\)\".*/\1/p" &gt;&gt; "$T/base.txt"; head -1 "$p" | sed -n "s/.*ceiling=\"\([0-9]*\)\".*/\1/p" &gt;&gt; "$T/work.txt"; done; git diff --exit-code --no-index "$T/base.txt" "$T/work.txt" &gt;/dev/null; s=$?; rm -rf "$T"; exit $s'</Command>
+          <Command>bash -c 'T=$(mktemp -d) &amp;&amp; cp -R docs/plans/active/RM-GOVERNED-PATH "$T/R" &amp;&amp; bun ./scripts/validate-record-retirement.ts --retire "$T/R" &amp;&amp; rm -rf "$T"'</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-PAYMENT-RECORD-4 --assertions target --run-commands</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-001>
+    </ImplementationPlan>
+  </C-PAYMENT-RECORD-4>
+</NgraceChangePlan>
