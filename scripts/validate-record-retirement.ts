@@ -20,9 +20,11 @@ import { XMLValidator } from "fast-xml-parser";
 import {
   childNodes,
   childText,
+  computeElementSpans,
   parseGraceXmlArtifact,
   walkNodes,
   type GraceXmlNode,
+  type XmlElementSpan,
 } from "../src/artifact/xml.ts";
 import { isEmittableIssueCode } from "../src/lint/catalog.ts";
 
@@ -37,7 +39,6 @@ const FENCE_RE = /```/;
 const C_NAME_RE = /`(C-[A-Z0-9-]+)`/;
 const C_NAME_GLOBAL_RE = /`(C-[A-Z0-9-]+)`/g;
 const F_TOKEN_RE = /\bF[0-9]+(?:\.[0-9]+)*\b/g;
-const PAID_FINDING_RE = /\bthe paid findings?\b/i;
 
 export type RetirementFinding = {
   code: string;
@@ -144,49 +145,6 @@ export function listArchiveNames(repoRoot: string): Set<string> {
     }
   }
   return names;
-}
-
-function parseAttrs(raw: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  const re = /([A-Za-z][\w:-]*)="([^"]*)"/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(raw)) !== null) {
-    out[m[1]!] = m[2]!;
-  }
-  return out;
-}
-
-function extractElements(
-  xml: string,
-  tag: string,
-): Array<{ attrs: Record<string, string>; inner: string; selfClosing: boolean }> {
-  const out: Array<{ attrs: Record<string, string>; inner: string; selfClosing: boolean }> = [];
-  const self = new RegExp(`<${tag}\\b([^>]*)/>`, "g");
-  let m: RegExpExecArray | null;
-  while ((m = self.exec(xml)) !== null) {
-    out.push({ attrs: parseAttrs(m[1] ?? ""), inner: "", selfClosing: true });
-  }
-  const open = new RegExp(`<${tag}\\b([^>]*)>([\\s\\S]*?)</${tag}>`, "g");
-  while ((m = open.exec(xml)) !== null) {
-    out.push({ attrs: parseAttrs(m[1] ?? ""), inner: m[2] ?? "", selfClosing: false });
-  }
-  return out;
-}
-
-function childInner(inner: string, tag: string): string | undefined {
-  const m = inner.match(new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)</${tag}>`));
-  return m ? m[1] : undefined;
-}
-
-function childOpenAttrs(
-  inner: string,
-  tag: string,
-): { attrs: Record<string, string>; text: string } | undefined {
-  const m = inner.match(new RegExp(`<${tag}\\b([^>]*)>([\\s\\S]*?)</${tag}>`));
-  if (!m) {
-    return undefined;
-  }
-  return { attrs: parseAttrs(m[1] ?? ""), text: m[2] ?? "" };
 }
 
 export function parseFrozenMarkdown(markdown: string): {
@@ -377,10 +335,6 @@ function extractSuccessor(statusText: string, self: string): string {
   return "";
 }
 
-function sentenceSplit(text: string): string[] {
-  return text.split(/(?<=[.!?])\s+/);
-}
-
 export function closedWithTokens(statusText: string): string[] {
   const flat = whitespaceNormalize(xmlDecode(statusText));
   const reduced = flat.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
@@ -470,29 +424,6 @@ export function derivePayerMap(
     for (const token of closedWithTokens(row.statusText)) {
       if (!paid.has(token)) {
         paid.set(token, row.name);
-      }
-    }
-  }
-  const archiveDir = path.join(repoRoot, ".ngrace", "changes", "archive");
-  if (!existsSync(archiveDir)) {
-    return paid;
-  }
-  for (const name of archive) {
-    const specPath = path.join(archiveDir, name, "spec.xml");
-    if (!existsSync(specPath)) {
-      continue;
-    }
-    const spec = readFileSync(specPath, "utf8");
-    const flat = spec.replace(/\s+/g, " ");
-    for (const sentence of sentenceSplit(flat)) {
-      if (!PAID_FINDING_RE.test(sentence)) {
-        continue;
-      }
-      const tokens = sentence.match(F_TOKEN_RE) ?? [];
-      for (const token of tokens) {
-        if (!paid.has(token)) {
-          paid.set(token, name);
-        }
       }
     }
   }
@@ -732,6 +663,75 @@ function parseRecordRoot(
   return parsed.root;
 }
 
+/** The expected root element per record file, keyed by file basename. */
+const RECORD_GENRE_ROOTS: Record<string, string> = {
+  "findings.xml": "Findings",
+  "findings-retired.xml": "Findings",
+  "rulings.xml": "Rulings",
+  "rulings-retired.xml": "Rulings",
+  "registry.xml": "Registry",
+  "registry-retired.xml": "Registry",
+  "decisions.xml": "RecordIndex",
+};
+
+/** The genre elements whose placement the minimal shape check governs. */
+const RECORD_GENRE_TAGS = new Set(["Finding", "Decision", "Row", "Entry"]);
+
+function hasSameTagDescendant(node: GraceXmlNode): boolean {
+  for (const child of node.children) {
+    for (const descendant of walkNodes(child)) {
+      if (descendant.tag === node.tag) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * The minimal shape check that makes span pairing well defined (C-RECORD-PARSE
+ * T-003): the expected genre root, genre elements only as direct children of
+ * the root, and no same-tag nesting among genre elements. This is the
+ * load-bearing minimum, not the full record schema.
+ */
+function checkRecordShape(
+  file: string,
+  root: GraceXmlNode | null,
+  findings: RetirementFinding[],
+): void {
+  if (!root) {
+    return;
+  }
+  const expectedRoot = RECORD_GENRE_ROOTS[path.basename(file)];
+  if (expectedRoot && root.tag !== expectedRoot) {
+    findings.push({
+      code: "record-shape-wrong-root",
+      message: `${file}: root element is <${root.tag}>; expected <${expectedRoot}>`,
+    });
+  }
+  const stack: Array<{ node: GraceXmlNode; parent: GraceXmlNode | null }> = [{ node: root, parent: null }];
+  while (stack.length > 0) {
+    const { node, parent } = stack.pop()!;
+    if (node !== root && RECORD_GENRE_TAGS.has(node.tag)) {
+      if (parent !== root) {
+        findings.push({
+          code: "record-shape-genre-not-direct-child",
+          message: `${file}: <${node.tag}> appears nested inside <${parent?.tag ?? "?"}>; genre elements must be direct children of the root`,
+        });
+      }
+      if (hasSameTagDescendant(node)) {
+        findings.push({
+          code: "record-shape-same-tag-nested",
+          message: `${file}: <${node.tag}> carries a same-tag descendant; genre elements do not nest`,
+        });
+      }
+    }
+    for (const child of node.children) {
+      stack.push({ node: child, parent: node });
+    }
+  }
+}
+
 function charteredRowsFromRoot(root: GraceXmlNode): Array<{ name: string; pays: string; statusText: string }> {
   return childNodes(root, "Row")
     .filter((row) => PAYER_KINDS.has(row.attributes.kind ?? "chartered"))
@@ -768,97 +768,155 @@ function headingLevelFromTitle(title: string): number {
 }
 
 export function liveH2DecisionLineCounts(rulingsXml: string): number[] {
-  const blocks = elementSpans(rulingsXml, "Decision");
   const parsed = parseGraceXmlArtifact("rulings.xml", rulingsXml);
   if (!parsed.root) {
     return [];
   }
-  const nodes = childNodes(parsed.root, "Decision");
+  const spans = computeElementSpans(rulingsXml, parsed);
   const counts: number[] = [];
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i]!;
+  for (const node of childNodes(parsed.root, "Decision")) {
     if (node.attributes.status !== "live") {
       continue;
     }
     if (headingLevelFromTitle(childText(node, "Title") ?? "") !== 2) {
       continue;
     }
-    const block = blocks[i];
-    if (!block) {
+    const span = spans.get(node);
+    if (!span || span.closeStart === null || span.closeEnd === null) {
       continue;
     }
-    counts.push(newlineCount(block.text) + 1);
+    counts.push(newlineCount(rulingsXml.slice(span.openStart, span.closeEnd)) + 1);
   }
   return counts;
 }
 
-function elementSpans(xml: string, tag: string): Array<{ start: number; end: number; text: string }> {
-  const out: Array<{ start: number; end: number; text: string }> = [];
-  const re = new RegExp(`<${tag}\\b[\\s\\S]*?</${tag}>`, "g");
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(xml)) !== null) {
-    out.push({ start: m.index, end: m.index + m[0].length, text: m[0] });
+/**
+ * Locates one attribute's value bytes inside an open tag, walking the tag
+ * char-by-char and tracking quoted attribute values, so a value that merely
+ * contains the attribute name can never be mistaken for the attribute itself.
+ * Returns the range of the value's inner bytes (between the quotes).
+ */
+function attributeValueRange(openTag: string, name: string): { valueStart: number; valueEnd: number } | undefined {
+  const n = openTag.length - 1; // the final > sits at n
+  let i = 1; // past "<"
+  while (i < n) {
+    while (i < n && /\s/.test(openTag[i]!)) i++;
+    if (i >= n) {
+      break;
+    }
+    if (openTag[i] === "/" || openTag[i] === ">") {
+      break;
+    }
+    const nameStart = i;
+    while (i < n && !/[\s=/>]/.test(openTag[i]!)) i++;
+    const nameText = openTag.slice(nameStart, i);
+    while (i < n && /\s/.test(openTag[i]!)) i++;
+    if (openTag[i] !== "=") {
+      continue;
+    }
+    i++;
+    while (i < n && /\s/.test(openTag[i]!)) i++;
+    const quote = openTag[i];
+    if (quote !== '"' && quote !== "'") {
+      continue;
+    }
+    i++;
+    const valueStart = i;
+    while (i < n && openTag[i] !== quote) i++;
+    if (i >= n) {
+      break;
+    }
+    const valueEnd = i;
+    i++;
+    if (nameText === name) {
+      return { valueStart, valueEnd };
+    }
   }
-  return out;
+  return undefined;
 }
 
-function attrOf(elementXml: string, name: string): string {
-  const m = elementXml.match(new RegExp(`\\b${name}="([^"]*)"`));
-  return m?.[1] ?? "";
-}
-
-function withStatusRetired(elementXml: string): string {
-  return elementXml.replace(/\bstatus="live"/, 'status="retired"');
-}
-
-function withPaidBy(findingXml: string, payer: string): string {
-  if (/<PaidBy>/.test(findingXml)) {
-    return findingXml;
+/**
+ * Rewrites the status attribute's value inside the open-tag bytes the span
+ * map located. The open tag occupies [0, openEnd) of the element text; every
+ * byte outside that range is passed through untouched.
+ */
+function withStatusRetired(elementText: string, openEnd: number): string {
+  const openTag = elementText.slice(0, openEnd);
+  const range = attributeValueRange(openTag, "status");
+  if (!range) {
+    throw new Error(
+      `record engine: the open tag carries no readable status attribute; cannot splice the retired status into: ${openTag}`,
+    );
   }
-  return findingXml.replace(
-    /(<Finding\b[^>]*>)/,
-    `$1\n    <PaidBy>${xmlEscape(payer)}</PaidBy>`,
-  );
+  const spliced = `${openTag.slice(0, range.valueStart)}retired${openTag.slice(range.valueEnd)}`;
+  return `${spliced}${elementText.slice(openEnd)}`;
 }
 
-function removeSpans(xml: string, spans: Array<{ start: number; end: number }>): string {
-  const ordered = [...spans].sort((a, b) => b.start - a.start);
+/**
+ * Inserts the PaidBy line immediately after the open tag's closing angle
+ * bracket. The caller has already verified the element carries no PaidBy
+ * child (a parser read), so no regex guard is needed here.
+ */
+function withPaidBy(elementText: string, openEnd: number, payer: string): string {
+  const insertion = `\n    <PaidBy>${xmlEscape(payer)}</PaidBy>`;
+  return `${elementText.slice(0, openEnd)}${insertion}${elementText.slice(openEnd)}`;
+}
+
+/**
+ * Removes exactly the parser-derived element spans, in reverse document
+ * order, eating each span's trailing newline exactly as before.
+ */
+function removeSpans(xml: string, spans: XmlElementSpan[]): string {
+  const ordered = [...spans].sort((a, b) => b.openStart - a.openStart);
   let next = xml;
   for (const span of ordered) {
-    let end = span.end;
+    let end = span.closeEnd ?? span.openEnd;
     if (next[end] === "\n") {
       end += 1;
     }
-    next = `${next.slice(0, span.start)}${next.slice(end)}`;
+    next = `${next.slice(0, span.openStart)}${next.slice(end)}`;
   }
   return next;
 }
 
-function appendElements(retiredXml: string, closeTag: string, elements: string[]): string {
+/**
+ * Inserts elements immediately before the retired file's root close-tag
+ * offset, located by the span map rather than a lastIndexOf search.
+ */
+function appendElements(retiredXml: string, rootCloseStart: number, elements: string[]): string {
   if (elements.length === 0) {
     return retiredXml;
   }
-  const idx = retiredXml.lastIndexOf(closeTag);
-  if (idx < 0) {
-    return retiredXml;
-  }
-  let before = retiredXml.slice(0, idx);
+  let before = retiredXml.slice(0, rootCloseStart);
   if (!before.endsWith("\n")) {
     before += "\n";
   }
   const chunk = elements.map((el) => (el.endsWith("\n") ? el : `${el}\n`)).join("");
-  return `${before}${chunk}${retiredXml.slice(idx)}`;
+  return `${before}${chunk}${retiredXml.slice(rootCloseStart)}`;
 }
 
-function setEntryLayer(indexXml: string, id: string, layer: "retired"): string {
-  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp(`<Entry\\b[^>]*\\bid="${escaped}"[^>]*/>`);
-  return indexXml.replace(re, (tag) => tag.replace(/layer="[^"]*"/, `layer="${layer}"`));
+/**
+ * Rewrites the layer attribute of the Entry element the parser located by id,
+ * inside that element's own open-tag range.
+ */
+function setEntryLayer(
+  indexXml: string,
+  span: XmlElementSpan,
+  layer: "retired",
+): string {
+  const openTag = indexXml.slice(span.openStart, span.openEnd);
+  const range = attributeValueRange(openTag, "layer");
+  if (!range) {
+    throw new Error(
+      `record engine: the Entry open tag carries no readable layer attribute; cannot splice the retired layer into: ${openTag}`,
+    );
+  }
+  const spliced = `${openTag.slice(0, range.valueStart)}${layer}${openTag.slice(range.valueEnd)}`;
+  return `${indexXml.slice(0, span.openStart)}${spliced}${indexXml.slice(span.openEnd)}`;
 }
 
-function readRootSnapshot(xml: string): { base: number; headroom: number; ceiling: number } {
-  const m = xml.match(/<(Findings|Rulings|Registry|RecordIndex)\b([^>]*)>/);
-  const attrs = parseAttrs(m?.[2] ?? "");
+function readRootSnapshot(root: GraceXmlNode | null): { base: number; headroom: number; ceiling: number } {
+  const attrs = root?.attributes ?? {};
   return {
     base: Number(attrs.base),
     headroom: Number(attrs.headroom),
@@ -866,14 +924,19 @@ function readRootSnapshot(xml: string): { base: number; headroom: number; ceilin
   };
 }
 
+/**
+ * Rewrites the root element's attributes within the root open-tag range the
+ * span map located. The root open tag sits at byte 0 and is never disturbed
+ * by the interior splices, so its span stays valid after removals.
+ */
 function withRootSnapshot(
   xml: string,
+  root: GraceXmlNode,
+  span: XmlElementSpan,
   snap: { base: number; headroom: number; ceiling: number },
 ): string {
-  return xml.replace(
-    /^<(Findings|Rulings|Registry|RecordIndex)\b[^>]*>/,
-    `<$1 base="${snap.base}" headroom="${snap.headroom}" ceiling="${snap.ceiling}">`,
-  );
+  const nextOpenTag = `<${root.tag} base="${snap.base}" headroom="${snap.headroom}" ceiling="${snap.ceiling}">`;
+  return `${nextOpenTag}${xml.slice(span.openEnd)}`;
 }
 
 function persistSnapshot(
@@ -890,7 +953,23 @@ function persistSnapshot(
 }
 
 function findingLineCounts(xml: string): number[] {
-  return elementSpans(xml, "Finding").map((el) => newlineCount(el.text) + 1);
+  const parsed = parseGraceXmlArtifact("findings.xml", xml);
+  if (!parsed.root) {
+    return [];
+  }
+  const spans = computeElementSpans(xml, parsed);
+  const counts: number[] = [];
+  for (const node of walkNodes(parsed.root)) {
+    if (node.tag !== "Finding") {
+      continue;
+    }
+    const span = spans.get(node)!;
+    if (span.closeStart === null || span.closeEnd === null) {
+      continue;
+    }
+    counts.push(newlineCount(xml.slice(span.openStart, span.closeEnd)) + 1);
+  }
+  return counts;
 }
 
 function liveRowCount(xml: string): number {
@@ -941,19 +1020,28 @@ export function stampPaidBy(options: RetirementOptions): void {
   const registryRetiredXml = readFileSync(paths.registryRetired, "utf8");
   const payers = payerMapFromRecord(options.repoRoot, registryXml, registryRetiredXml);
   const archive = listArchiveNames(options.repoRoot);
-  const spans = elementSpans(findingsXml, "Finding");
+  const findingsParse = parseGraceXmlArtifact(paths.findings, findingsXml);
+  if (!findingsParse.root) {
+    return;
+  }
+  const spans = computeElementSpans(findingsXml, findingsParse);
+  const nodes = [...walkNodes(findingsParse.root)].filter((node) => node.tag === "Finding");
   let next = findingsXml;
-  for (const span of [...spans].reverse()) {
-    if (attrOf(span.text, "status") !== "live") {
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const node = nodes[i]!;
+    const span = spans.get(node)!;
+    if (node.attributes.status !== "live") {
       continue;
     }
-    const token = attrOf(span.text, "token");
+    const token = node.attributes.token ?? "";
     const payer = payers.get(token);
-    if (!payer || !archive.has(payer) || /<PaidBy>/.test(span.text)) {
+    if (!payer || !archive.has(payer) || childText(node, "PaidBy") !== undefined) {
       continue;
     }
-    const stamped = withPaidBy(span.text, payer);
-    next = `${next.slice(0, span.start)}${stamped}${next.slice(span.end)}`;
+    const elementText = findingsXml.slice(span.openStart, span.closeEnd!);
+    const openEnd = span.openEnd - span.openStart;
+    const stamped = withPaidBy(elementText, openEnd, payer);
+    next = `${next.slice(0, span.openStart)}${stamped}${next.slice(span.closeEnd!)}`;
   }
   writeFileSync(paths.findings, next);
 }
@@ -971,45 +1059,46 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   };
   const archive = listArchiveNames(options.repoRoot);
   const payers = payerMapFromRecord(options.repoRoot, files.registry, files.registryRetired);
-  const rulingsAsRead = readRootSnapshot(files.rulings);
 
   const findingsParse = parseGraceXmlArtifact(paths.findings, files.findings);
   const rulingsParse = parseGraceXmlArtifact(paths.rulings, files.rulings);
   const registryParse = parseGraceXmlArtifact(paths.registry, files.registry);
-  const findingNodes = findingsParse.root ? childNodes(findingsParse.root, "Finding") : [];
+  const indexParse = parseGraceXmlArtifact(paths.index, files.index);
+  const rulingsAsRead = readRootSnapshot(rulingsParse.root);
+  const findingNodes = findingsParse.root ? [...walkNodes(findingsParse.root)].filter((node) => node.tag === "Finding") : [];
   const decisionNodes = rulingsParse.root ? childNodes(rulingsParse.root, "Decision") : [];
   const rowNodes = registryParse.root ? childNodes(registryParse.root, "Row") : [];
 
-  const findingSpans = elementSpans(files.findings, "Finding");
-  const decisionSpans = elementSpans(files.rulings, "Decision");
-  const rowSpans = elementSpans(files.registry, "Row");
+  const findingSpans = findingsParse.root ? computeElementSpans(files.findings, findingsParse) : new Map();
+  const decisionSpans = rulingsParse.root ? computeElementSpans(files.rulings, rulingsParse) : new Map();
+  const rowSpans = registryParse.root ? computeElementSpans(files.registry, registryParse) : new Map();
 
-  const moveFindings: Array<{ span: (typeof findingSpans)[0]; next: string; id: string }> = [];
-  for (let i = 0; i < findingSpans.length; i++) {
-    const span = findingSpans[i]!;
-    const node = findingNodes[i];
-    if (attrOf(span.text, "status") !== "live") {
+  const moveFindings: Array<{ span: XmlElementSpan; next: string; id: string }> = [];
+  for (const node of findingNodes) {
+    const span = findingSpans.get(node)!;
+    const elementText = files.findings.slice(span.openStart, span.closeEnd!);
+    if (node.attributes.status !== "live") {
       continue;
     }
-    const token = attrOf(span.text, "token");
+    const token = node.attributes.token ?? "";
     const derived = payers.get(token);
-    const stored = node ? childText(node, "PaidBy")?.trim() : undefined;
+    const stored = childText(node, "PaidBy")?.trim();
     const payer = derived && archive.has(derived) ? derived : stored && archive.has(stored) ? stored : undefined;
     if (!payer) {
       continue;
     }
     moveFindings.push({
       span,
-      next: withStatusRetired(withPaidBy(span.text, payer)),
-      id: attrOf(span.text, "id"),
+      next: withStatusRetired(withPaidBy(elementText, span.openEnd - span.openStart, payer), span.openEnd - span.openStart),
+      id: node.attributes.id ?? "",
     });
   }
 
-  const moveDecisions: Array<{ span: (typeof decisionSpans)[0]; next: string; id: string }> = [];
-  for (let i = 0; i < decisionSpans.length; i++) {
-    const span = decisionSpans[i]!;
-    const node = decisionNodes[i];
-    if (!node || node.attributes.status !== "live") {
+  const moveDecisions: Array<{ span: XmlElementSpan; next: string; id: string }> = [];
+  for (const node of decisionNodes) {
+    const span = decisionSpans.get(node)!;
+    const elementText = files.rulings.slice(span.openStart, span.closeEnd!);
+    if (node.attributes.status !== "live") {
       continue;
     }
     const coded = resolveCodifiedChildren(node, options.repoRoot);
@@ -1018,17 +1107,17 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
     }
     moveDecisions.push({
       span,
-      next: withStatusRetired(span.text),
-      id: node.attributes.id ?? attrOf(span.text, "id"),
+      next: withStatusRetired(elementText, span.openEnd - span.openStart),
+      id: node.attributes.id ?? "",
     });
   }
 
-  const moveRows: Array<{ span: (typeof rowSpans)[0]; next: string; id: string }> = [];
-  for (let i = 0; i < rowSpans.length; i++) {
-    const span = rowSpans[i]!;
-    const node = rowNodes[i];
-    const name = node?.attributes.name ?? attrOf(span.text, "name");
-    if ((node?.attributes.status ?? attrOf(span.text, "status")) === "retired") {
+  const moveRows: Array<{ span: XmlElementSpan; next: string; id: string }> = [];
+  for (const node of rowNodes) {
+    const span = rowSpans.get(node)!;
+    const elementText = files.registry.slice(span.openStart, span.closeEnd!);
+    const name = node.attributes.name ?? "";
+    if (node.attributes.status === "retired") {
       continue;
     }
     if (!archive.has(name)) {
@@ -1036,7 +1125,7 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
     }
     moveRows.push({
       span,
-      next: withStatusRetired(span.text),
+      next: withStatusRetired(elementText, span.openEnd - span.openStart),
       id: name,
     });
   }
@@ -1046,13 +1135,26 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
     return { moved: 0 };
   }
 
+  const retiredSpans = (xmlKey: string, file: string): number => {
+    const parsed = parseGraceXmlArtifact(file, xmlKey);
+    if (!parsed.root) {
+      throw new Error(`record engine: the retired sibling ${file} has no parsed root; cannot locate its root close-tag offset`);
+    }
+    const spans = computeElementSpans(xmlKey, parsed);
+    const rootSpan = spans.get(parsed.root)!;
+    if (rootSpan.closeStart === null) {
+      throw new Error(`record engine: the retired sibling ${file} has a self-closing root; cannot locate its root close-tag offset`);
+    }
+    return rootSpan.closeStart;
+  };
+
   let findingsLive = removeSpans(
     files.findings,
     moveFindings.map((m) => m.span),
   );
   let findingsRetired = appendElements(
     files.findingsRetired,
-    "</Findings>",
+    retiredSpans(files.findingsRetired, paths.findingsRetired),
     moveFindings.map((m) => m.next),
   );
   let rulingsLive = removeSpans(
@@ -1061,7 +1163,7 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   );
   let rulingsRetired = appendElements(
     files.rulingsRetired,
-    "</Rulings>",
+    retiredSpans(files.rulingsRetired, paths.rulingsRetired),
     moveDecisions.map((m) => m.next),
   );
   let registryLive = removeSpans(
@@ -1070,25 +1172,45 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   );
   let registryRetired = appendElements(
     files.registryRetired,
-    "</Registry>",
+    retiredSpans(files.registryRetired, paths.registryRetired),
     moveRows.map((m) => m.next),
   );
   let indexXml = files.index;
-  for (const item of [...moveFindings, ...moveDecisions]) {
-    indexXml = setEntryLayer(indexXml, item.id, "retired");
+  const indexSpans = indexParse.root
+    ? computeElementSpans(files.index, indexParse)
+    : new Map<GraceXmlNode, XmlElementSpan>();
+  if (indexParse.root) {
+    const layerEdits: XmlElementSpan[] = [];
+    for (const item of [...moveFindings, ...moveDecisions]) {
+      const entry = [...walkNodes(indexParse.root)].find(
+        (node) => node.tag === "Entry" && node.attributes.id === item.id,
+      );
+      if (!entry) {
+        continue;
+      }
+      layerEdits.push(indexSpans.get(entry)!);
+    }
+    // distinct Entries, non-overlapping open tags: splice back-to-front so
+    // earlier spans stay valid
+    layerEdits.sort((a, b) => b.openStart - a.openStart);
+    for (const span of layerEdits) {
+      indexXml = setEntryLayer(indexXml, span, "retired");
+    }
   }
 
-  const findingsPrev = readRootSnapshot(files.findings);
+  const findingsPrev = readRootSnapshot(findingsParse.root);
   const findingsBaseRead = newlineCount(files.findings);
   const rulingsPrev = rulingsAsRead;
   const rulingsBaseRead = newlineCount(files.rulings);
-  const registryPrev = readRootSnapshot(files.registry);
-  const indexPrev = readRootSnapshot(files.index);
+  const registryPrev = readRootSnapshot(registryParse.root);
+  const indexPrev = readRootSnapshot(indexParse.root);
 
   const findingsHeadroom = 7 * median(findingLineCounts(findingsLive));
   const rulingsHeadroom = 7 * median(liveH2DecisionLineCounts(rulingsLive));
   findingsLive = withRootSnapshot(
     findingsLive,
+    findingsParse.root!,
+    findingSpans.get(findingsParse.root!)!,
     persistSnapshot(
       findingsPrev,
       newlineCount(findingsLive),
@@ -1099,6 +1221,8 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   );
   rulingsLive = withRootSnapshot(
     rulingsLive,
+    rulingsParse.root!,
+    decisionSpans.get(rulingsParse.root!)!,
     persistSnapshot(
       rulingsPrev,
       newlineCount(rulingsLive),
@@ -1109,10 +1233,14 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   );
   registryLive = withRootSnapshot(
     registryLive,
+    registryParse.root!,
+    rowSpans.get(registryParse.root!)!,
     persistSnapshot(registryPrev, liveRowCount(registryLive), 15, true),
   );
   indexXml = withRootSnapshot(
     indexXml,
+    indexParse.root!,
+    indexSpans.get(indexParse.root!)!,
     persistSnapshot(indexPrev, newlineCount(indexXml), 40, true),
   );
 
@@ -1169,8 +1297,29 @@ export function validateRecordRetirement(options: RetirementOptions): Retirement
   for (const [label, xml] of Object.entries(files) as Array<[string, string]>) {
     const file = (paths as Record<string, string>)[label] ?? label;
     wellFormed(xml, file, findings);
-    const outsideBody = xml.replace(/<Body>[\s\S]*?<\/Body>/g, "<Body/>");
-    if (FENCE_RE.test(outsideBody)) {
+  }
+
+  const findingsRoot = parseRecordRoot(paths.findings, files.findings!, findings);
+  const rulingsRoot = parseRecordRoot(paths.rulings, files.rulings!, findings);
+  const registryRoot = parseRecordRoot(paths.registry, files.registry!, findings);
+  const registryRetiredRoot = parseRecordRoot(paths.registryRetired, files.registryRetired!, findings);
+  const findingsRetiredRoot = parseGraceXmlArtifact(paths.findingsRetired, files.findingsRetired!).root;
+  const rulingsRetiredRoot = parseGraceXmlArtifact(paths.rulingsRetired, files.rulingsRetired!).root;
+  const indexRoot = parseGraceXmlArtifact(paths.index, files.index!).root;
+
+  // A fenced metadata block is refused anywhere outside a Body element: the
+  // parser walk exempts Body subtrees and checks every other text node.
+  const parsedRoots: Array<[file: string, root: GraceXmlNode | null]> = [
+    [paths.findings, findingsRoot],
+    [paths.findingsRetired, findingsRetiredRoot],
+    [paths.rulings, rulingsRoot],
+    [paths.rulingsRetired, rulingsRetiredRoot],
+    [paths.registry, registryRoot],
+    [paths.registryRetired, registryRetiredRoot],
+    [paths.index, indexRoot],
+  ];
+  for (const [file, root] of parsedRoots) {
+    if (root && fencedOutsideBody(root, false)) {
       findings.push({
         code: "fenced-metadata",
         message: `${file}: fenced metadata block is not allowed; machine-read fields are XML attributes or elements`,
@@ -1178,17 +1327,19 @@ export function validateRecordRetirement(options: RetirementOptions): Retirement
     }
   }
 
+  checkRecordShape(paths.findings, findingsRoot, findings);
+  checkRecordShape(paths.findingsRetired, findingsRetiredRoot, findings);
+  checkRecordShape(paths.rulings, rulingsRoot, findings);
+  checkRecordShape(paths.rulingsRetired, rulingsRetiredRoot, findings);
+  checkRecordShape(paths.registry, registryRoot, findings);
+  checkRecordShape(paths.registryRetired, registryRetiredRoot, findings);
+  checkRecordShape(paths.index, indexRoot, findings);
   checkStatusFile(paths.findings, files.findings!, "Finding", "live", findings);
   checkStatusFile(paths.findingsRetired, files.findingsRetired!, "Finding", "retired", findings);
   checkStatusFile(paths.rulings, files.rulings!, "Decision", "live", findings);
   checkStatusFile(paths.rulingsRetired, files.rulingsRetired!, "Decision", "retired", findings);
   checkStatusFile(paths.registry, files.registry!, "Row", "live", findings);
   checkStatusFile(paths.registryRetired, files.registryRetired!, "Row", "retired", findings);
-
-  const findingsRoot = parseRecordRoot(paths.findings, files.findings!, findings);
-  const rulingsRoot = parseRecordRoot(paths.rulings, files.rulings!, findings);
-  const registryRoot = parseRecordRoot(paths.registry, files.registry!, findings);
-  const registryRetiredRoot = parseRecordRoot(paths.registryRetired, files.registryRetired!, findings);
   checkRegistryKinds(paths.registry, registryRoot, findings);
   checkRegistryKinds(paths.registryRetired, registryRetiredRoot, findings);
   const payers = derivePayerMap(options.repoRoot, [
@@ -1266,32 +1417,28 @@ export function validateRecordRetirement(options: RetirementOptions): Retirement
     }
   }
 
-  checkCeiling("findings", paths.findings, files.findings!, "line", findings);
-  checkCeiling("rulings", paths.rulings, files.rulings!, "line", findings);
-  checkRulingsProvenance(paths.rulings, files.rulings!, findings);
-  checkCeiling("index", paths.index, files.index!, "line", findings);
+  checkCeiling("findings", paths.findings, files.findings!, findingsRoot, "line", findings);
+  checkCeiling("rulings", paths.rulings, files.rulings!, rulingsRoot, "line", findings);
+  checkRulingsProvenance(paths.rulings, rulingsRoot, findings);
+  checkCeiling("index", paths.index, files.index!, indexRoot, "line", findings);
   const registryLiveRows = registryRoot
     ? childNodes(registryRoot, "Row").filter((row) => row.attributes.status !== "retired").length
     : 0;
-  checkCeilingValue("registry", paths.registry, files.registry!, registryLiveRows, "live-row", findings);
+  checkCeilingValue("registry", paths.registry, registryRoot, registryLiveRows, "live-row", findings);
 
   return findings;
 }
 
 function checkRulingsProvenance(
   file: string,
-  xml: string,
+  root: GraceXmlNode | null,
   findings: RetirementFinding[],
 ): void {
-  const rootMatch = xml.match(/<Rulings\b([^>]*)>/);
-  if (!rootMatch) {
+  const ceilingText = root?.attributes.ceiling;
+  if (ceilingText === undefined || ceilingText === "") {
     return;
   }
-  const attrs = parseAttrs(rootMatch[1] ?? "");
-  if (attrs.ceiling === undefined || attrs.ceiling === "") {
-    return;
-  }
-  const ceiling = Number(attrs.ceiling);
+  const ceiling = Number(ceilingText);
   if (ceiling > RULINGS_PROVENANCE_CEILING) {
     findings.push({
       code: "rulings-ceiling-above-provenance",
@@ -1307,43 +1454,63 @@ function checkStatusFile(
   expected: "live" | "retired",
   findings: RetirementFinding[],
 ): void {
-  for (const el of extractElements(xml, tag)) {
-    if (el.attrs.status !== expected) {
+  const parsed = parseGraceXmlArtifact(file, xml);
+  if (!parsed.root) {
+    return;
+  }
+  for (const node of walkNodes(parsed.root)) {
+    if (node.tag !== tag) {
+      continue;
+    }
+    if (node.attributes.status !== expected) {
       findings.push({
         code: "status-file-mismatch",
-        message: `${file}: ${tag} id="${el.attrs.id ?? el.attrs.name ?? "?"}" has status="${el.attrs.status}" but the file is the ${expected} sibling`,
+        message: `${file}: ${tag} id="${node.attributes.id ?? node.attributes.name ?? "?"}" has status="${node.attributes.status}" but the file is the ${expected} sibling`,
       });
     }
   }
+}
+
+function fencedOutsideBody(node: GraceXmlNode, insideBody: boolean): boolean {
+  const inBody = insideBody || node.tag === "Body";
+  if (!inBody && FENCE_RE.test(node.text)) {
+    return true;
+  }
+  for (const child of node.children) {
+    if (fencedOutsideBody(child, inBody)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function checkCeiling(
   part: string,
   file: string,
   xml: string,
+  root: GraceXmlNode | null,
   unit: string,
   findings: RetirementFinding[],
 ): void {
-  checkCeilingValue(part, file, xml, newlineCount(xml), unit, findings);
+  checkCeilingValue(part, file, root, newlineCount(xml), unit, findings);
 }
 
 function checkCeilingValue(
   part: string,
   file: string,
-  xml: string,
+  root: GraceXmlNode | null,
   liveSize: number,
   unit: string,
   findings: RetirementFinding[],
 ): void {
-  const rootMatch = xml.match(/<(Findings|Rulings|Registry|RecordIndex)\b([^>]*)>/);
-  if (!rootMatch) {
+  if (!root) {
     findings.push({
       code: "missing-root",
       message: `${file}: missing expected root for ${part}`,
     });
     return;
   }
-  const attrs = parseAttrs(rootMatch[2] ?? "");
+  const attrs = root.attributes;
   if (attrs.ceiling === undefined || attrs.ceiling === "") {
     findings.push({
       code: "missing-ceiling",

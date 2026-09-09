@@ -1,0 +1,74 @@
+<Registry base="12" headroom="14" ceiling="26">
+  <Row name="C-APPROVAL-SCOPE" status="live" kind="chartered">
+    <Number>4</Number>
+    <Charter>Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20).</Charter>
+    <Pays>D19, D20 (and so F84's skill-versus-practice follow-up).</Pays>
+    <StatusText>**Ordered, not deferred.**</StatusText>
+  </Row>
+  <Row name="C-CO-DRAFT" status="live" kind="chartered">
+    <Number>5</Number>
+    <Charter>`plan new` may write beside a draft spec; two approval phrases remain two decisions. Already named under [F4](#f4).</Charter>
+    <Pays>The authoring-versus-approval revision of `change.plan-requires-approved-spec`. **Not** [F95](#f95).</Pays>
+    <StatusText>**Ordered, not deferred** — after position 2, whose writer mints the fingerprint it depends on, and only if ratified after the re-measure. Unratified.</StatusText>
+  </Row>
+  <Row name="C-CI-CLAIM-PIN" status="live" kind="chartered">
+    <Number>6</Number>
+    <Charter>Correct `CONTRIBUTING.md`'s claim that `validate:ci` does not run `validate:packed`, and derive the guidance table's script claims from `package.json` instead of restating them. Named here 2026-08-31. No existing name: the doc surface is unguarded — `CONTRIBUTING.md` is not a governed file (`ngrace file show` returns `not-found`) and `scripts/check-teaching-surface.ts` covers only `README.md` and `examples/`.</Charter>
+    <Pays>[F117](#f117).</Pays>
+    <StatusText>**Position 6 of nine** — ratified 2026-09-04 at position 3, renumbered 2026-09-05 by [D28](#d28), [D29](#d29) and [D31](#d31); earlier still, &quot;after position 3&quot;. Re-measured 2026-09-04 and still live: `CONTRIBUTING.md:46` says `validate:release` adds `validate:packed` *&quot;which `validate:ci` does not run&quot;*, and `package.json`'s `validate:ci` **does** run it; `CONTRIBUTING.md:45` credits five members where the chain has eleven. Doc-side fix, settled by history: the table was written in `36f8fa3` (PR #5) when it was true, and `validate:packed` entered `validate:ci` later in `0a4b1b3` (PR #32), a change that was *strengthening* CI. Nothing is removed from `validate:ci`.</StatusText>
+  </Row>
+  <Row name="C-ARCHIVE-CURSOR" status="live" kind="chartered">
+    <Number></Number>
+    <Charter>Archive gate requires a cursor lint accepts. Named by [F93](#f93).</Charter>
+    <Pays>F93. Binding on P3.1 / `lifecycle finish`.</Pays>
+    <StatusText>Named; not in the order.</StatusText>
+  </Row>
+  <Row name="C-PLAN-SCOPE-PATHS" status="live" kind="chartered">
+    <Number></Number>
+    <Charter>Structured spec path bound compared to `ObservedWriteScope`, at error. Named by [F94](#f94).</Charter>
+    <Pays>F94, and [F52](#f52)'s load-bearing weakness.</Pays>
+    <StatusText>Named; not in the order.</StatusText>
+  </Row>
+  <Row name="C-GOVERNANCE-ORDER" status="live" kind="chartered">
+    <Number></Number>
+    <Charter>Refuse a module-contract / graph write with no approved change that owns it. Named by the slip register.</Charter>
+    <Pays>[F88.1](#f88.1), [F88.1.1](#f88.1.1).</Pays>
+    <StatusText>Named; not in the order.</StatusText>
+  </Row>
+  <Row name="C-CONSTRAINT-DURABILITY" status="live" kind="chartered">
+    <Number></Number>
+    <Charter>A rule in `skills/ngrace/ngrace-spec/SKILL.md` and its packaged mirror: `Constraints` holds durable scope facts; authoring-pass sequencing (*&quot;spec only in this pass&quot;*, *&quot;status remains draft&quot;*, *&quot;do not author plan.xml until approved&quot;*) belongs to the brief and the gate, never to the artifact that outlives the pass. Named here 2026-09-04 by [F156](#f156). Searched before minting: `C-EXECUTION-CONTRACT` governs the executor's contract, `C-APPROVAL-SCOPE` the phrase and close acts, `C-PLAN-QUALITY` plan-side richness; none says what `Constraints` may contain.</Charter>
+    <Pays>[F156](#f156).</Pays>
+    <StatusText>**Position 5 of nine** — ratified 2026-09-04 at position 2, renumbered 2026-09-05 by [D28](#d28), [D29](#d29) and [D31](#d31). Zero tool findings today by measurement — 24 of 63 archived specs affected, all inside a `&lt;Constraint&gt;`. The archived 24 are **not** rewritten. Prose detection is out of scope (`review.regex-over-structure` is a defect code here); the enforceable half is skill text.</StatusText>
+  </Row>
+  <Row name="C-APPROVE-TARGET-DISCOVERY" status="live" kind="chartered">
+    <Number></Number>
+    <Charter>A bare `ngrace gate approve` targets whatever **lacks an attestation** rather than falling through to `plan`. The fallthrough is `src/gates/ledger.ts:1505-1514` (cited as `:1256-1267` in [F129.1](#f129.1), before the file moved), so on a bundle whose spec and plan are both `approved` a bare approve re-stamps `plan`, reports success, and a user who does not know `--artifact` can never attest the spec. Named here 2026-09-04; F129.1 asked for the slot and minted no name. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` owns the phrase and the close acts, `C-APPROVE-TIME-REVIEW` owns *when review runs*; none changes what a bare approve targets.</Charter>
+    <Pays>[F129.1](#f129.1).</Pays>
+    <StatusText>**Position 7 of nine** — ratified 2026-09-04 at position 4, renumbered 2026-09-05 by [D28](#d28), [D29](#d29) and [D31](#d31). Product behaviour change with its own reds.</StatusText>
+  </Row>
+  <Row name="C-EFFORT-DEPTH" status="live" kind="chartered">
+    <Number></Number>
+    <Charter>Expose rework depth per bundle and across the archive, reading the durable ledger through `listAccountingEvents` (`src/grace-cursor.ts:1908`) and `computeTaskFileChurn` (`:2634`) — no new record. Bytes and lines stay out: they are not derivable from a digest ([F141](#f141)). Named here 2026-09-04. Searched before minting: `C-AMENDMENT-COUNT` set the precedent of reporting from data already held, `C-REWORK-CIRCUIT` computes churn but emits it only inside an escalation message (`:2716-2721`); neither reports per bundle or retroactively.</Charter>
+    <Pays>[F141](#f141), [F141.1](#f141.1).</Pays>
+    <StatusText>**Position 8 of nine** — ratified 2026-09-04 at position 5, renumbered 2026-09-05 by [D28](#d28), [D29](#d29) and [D31](#d31), re-scoped to a reporting surface by [F141.1](#f141.1). Coverage measured 2026-09-04: 46 of 63 archived bundles hold attempts, all 46 carry `WriteEvidence`, 39 show depth &gt; 0. Must apply `isProductChurnPath` and re-measure — the probe's figures are a superset.</StatusText>
+  </Row>
+  <Row name="C-MODULE-CONTRACT-GATE" status="live" kind="chartered">
+    <Number></Number>
+    <Charter>Convert this repository's 65/65 module-markup baseline from a hand-maintained convention into a gate: a lint rule (`require-module-contract`, id namespaced to the catalog's `markup.*` family) whose predicate is that every `src/**/*.ts` outside `.test.ts`, fixtures and explicitly ignored shims begins with a valid `START_MODULE_CONTRACT` header. Closes the conditional-validator hole in [F162](#f162) — `markup.unknown-link` validates a `LINKS:` that already exists and `graph.module-without-linked-files` fires graph-to-file, so a new source file carrying no markup silently leaves the governed set while the repository stays green. **Zero remediation diff today**: the tree already satisfies the predicate, and the rule locks the baseline permanently. Named here 2026-09-05 by [D29](#d29). Searched before minting: `C-GRAPH-COVERAGE` covered graph module/Path coverage from the graph side, `C-ADOPTION-SURFACE` the lifecycle doc surface, `C-ABSENCE-VALUE` recorded the `START_MODULE_CONTRACT` NonGoal this overturns in part, and `C-CONTRACT-DEBT` / `C-EXECUTION-CONTRACT` are API-error and execution-protocol contracts; none gates markup presence.</Charter>
+    <Pays>[F162](#f162).</Pays>
+    <StatusText>**Position 4 of nine** — ratified 2026-09-05 at position 3, renumbered by [D31](#d31). Narrow leaf-level verification fix, and it ships before any function contract is written.</StatusText>
+  </Row>
+  <Row name="C-FUNCTION-CONTRACT-SURFACE" status="live" kind="chartered">
+    <Number></Number>
+    <Charter>Adopt `START_CONTRACT:` on this repository's governed surface — declarations exported from the command surface and public engine facade, plus every function that writes, transitions or validates audit state, ledger records or git operations — excluding internal leaf helpers, utility transformers and purely file-scoped helpers. Block markers stay reserved for complex control flow (multi-step validations, rollback ladders, transaction scopes) and are disallowed in flat sequential logic. **The validator rule ships simultaneously with the initial target annotations**, never annotations first and enforcement later ([D28](#d28), [D29](#d29)). The command surface is `src/grace.ts`, eleven `src/grace-*.ts` modules and `src/gates/command.ts`, `src/review/command.ts`, `src/query/command.ts` — the directory `src/commands/` **does not exist** and the ruling's path is corrected in [F162](#f162). Named here 2026-09-05 by [D29](#d29). Searched before minting: as for `C-MODULE-CONTRACT-GATE`, plus `C-EXPLAIN-COVERAGE`, which covers explainer coverage rather than source annotation.</Charter>
+    <Pays>[F162](#f162).</Pays>
+    <StatusText>**Position 9 of nine** — ratified 2026-09-05 at position 8, renumbered by [D31](#d31). Downstream of the gate. The load-bearing subset is the spec's to define and defend; roughly 433 exported declarations exist across the 65 files and the in-scope subset is much smaller — measure it, never assume it.</StatusText>
+  </Row>
+  <Row name="C-ROADMAP-XML" status="live" kind="chartered">
+    <Number></Number>
+    <Charter>**Name.** `C-ROADMAP-XML`. **Searched before minting**, 2026-09-06 at `408f2ae`, over `.ngrace/changes/archive/` and the whole record for any `C-*` containing `ROADMAP`, `XML`, `PLANS`, `CONVERT`, `MARKDOWN` or `DOC`: **zero hits**. No prior name covers this ground. **Charter.** Convert the remaining governed markdown under `docs/plans/` to XML, once `C-RECORD-RETIREMENT-2` has moved the record. Ships with the check that makes it safe. **Scope, measured 2026-09-06 at `408f2ae` — 15 files.** Rule: `find docs/plans/active -name '*.md'` excluding `decisions.md`, plus the index. | group | count | files | |---|---|---| | roadmap `review.md` | 6 | `RM-DESIGN-EVIDENCE`, `RM-GITLESS-INTEGRITY`, `RM-GOVERNED-PATH`, `RM-LANGUAGE-EXTENSIBILITY`, `RM-PILOT-APPROVAL`, `RM-VERIFIED-APPROVAL` | | roadmap `plan.md` | 1 | `RM-GOVERNED-PATH` | | `p0-*` derivations | 4 | under `RM-GOVERNED-PATH` | | `brownfield-*` findings | 2 | under `RM-GOVERNED-PATH` | | merged source | 1 | `sources/RM-GOVERNED-PATH-merged.md` | | plan index | 1 | `docs/plans/README.md` | **Permanently out of scope, and why — these are not omissions.** - `docs/plans/archive/` — **13** markdown files, immutable ([CLAUDE.md](../../../../CLAUDE.md)). The repository stays mixed-format there **forever**; &quot;no markdown at all&quot; is unreachable for archives and the charter must say so rather than imply otherwise. - `skills/ngrace/*/SKILL.md` and the packaged mirror — **16 + 16** files. `SKILL.md` is an external format contract of the Claude skill/plugin packaging, not a house choice. - `CLAUDE.md` and `README.md` — the harness instruction file and the marketplace-facing overview, both fixed filenames read by other systems. `CLAUDE.md:22` documents the roadmap layout and must be **updated**, not converted. - `docs/plans/active/RM-GOVERNED-PATH/decisions.md` — owned by `C-RECORD-RETIREMENT-2`. **Enforcement ships with the structure, never after it** ([D28](#d28)). [F177](#f177)'s dangling-citation check is this bundle's **first** deliverable, not a follow-on: a validator that resolves outbound `docs/plans/**` paths written inside archived artifacts and reports the ones that no longer exist. Without it the conversion repeats, at 15 files, the silent breakage that already left **15** archived bundles citing a `plan.md` path that does not exist. **Why the position matters, measured.** **40 of 68** archived bundles cite some `docs/plans/active/&lt;RM&gt;/` path (rule: `grep -rl` over archived `spec.xml` and `plan.xml`, counted by bundle directory). Exposure to silent citation decay therefore accrues with nearly every bundle that archives, which is an argument for scheduling the check early rather than at the tail. **Position 4**, ratified 2026-09-06 by the maintainer. The insertion and the six positions it shifts are recorded in [D32](#d32); read the order from there, never from [D31](#d31), which this amends.</Charter>
+    <Pays>[F177](#f177).</Pays>
+    <StatusText>**Position 4**, ratified 2026-09-06 by the maintainer. The insertion and the six positions it shifts are recorded in [D32](#d32); read the order from there, never from [D31](#d31), which this amends.</StatusText>
+  </Row>
+                </Registry>

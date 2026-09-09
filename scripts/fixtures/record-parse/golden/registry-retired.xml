@@ -1,0 +1,227 @@
+<Registry>
+  <Row name="C-CRITERION-CLOSE-EVIDENCE" status="retired" kind="chartered">
+    <Number>1</Number>
+    <Charter>A close/verdict-bound acceptance-criterion state, so post-archive lint 0/0 is authorable rather than reinvented as an unsatisfiable `AC-*`. Named here 2026-08-15. No existing name covers it: no `C-CRITERION*` / `C-CLOSE-EVIDENCE` in this directory; [`C-DRIFT-HONESTY`](../../../../.ngrace/changes/archive/C-DRIFT-HONESTY/) archived the workaround, not a third `AC-*` state.</Charter>
+    <Pays>[F82](#f82), [F83](#f83), [F83.1](#f83.1). F82 is already discharged as *practice* by `C-DRIFT-HONESTY`; this bundle is the product state that would make that practice authorable. F83's P2.6 / P2.4 halves were paid by the same archive; the live remainder is F83.1.</Pays>
+    <StatusText>**Delivered** 2026-08-30, archived as [`C-CRITERION-CLOSE-EVIDENCE`](../../../../.ngrace/changes/archive/C-CRITERION-CLOSE-EVIDENCE/). Closed with [F100](#f100)–[F105](#f105). The residual hole is unpaid by design: after the archive move no gate is required to run, so the close-evidence verdict is skippable — `review` detects a skip, nothing refuses one. `C-ARCHIVE-CURSOR` / P3.1 own the mandatory post-archive act.</StatusText>
+  </Row>
+  <Row name="C-APPROVAL-FINGERPRINT" status="retired" kind="chartered">
+    <Number>2</Number>
+    <Charter>[D18](#d18) entire: `gate approve` becomes the sanctioned `draft` to `approved` writer, records a per-`Decision` fingerprint of the bytes it wrote plus the artifact it targeted, ships the forced-permit escape hatch, **and** `review` reports an `approved` spec or plan whose newest per-artifact fingerprint is absent or no longer matches. Briefly split into a writer half and a detector half on 2026-08-30 and re-merged the same day; see [F108](#f108) and [F108.1](#f108.1).</Charter>
+    <Pays>[F95](#f95) / [F95.1](#f95.1), [F81](#f81), [F109](#f109), and retires [F19](#f19)'s accepted transient by removing its premise — F19 ruled its subject **not** a defect, so this is a premise change, not a defect fix ([F109.3](#f109.3)).</Pays>
+    <StatusText>**Delivered** 2026-08-31, archived as [`C-APPROVAL-FINGERPRINT`](../../../../.ngrace/changes/archive/C-APPROVAL-FINGERPRINT/). Closed with [F112](#f112) and [F113](#f113), both defects in its own approved spec found at execution. Detection uses the three-way trigger of [F108.2](#f108.2), so no bootstrap stamp was needed: the bundle carries exactly one unfingerprinted approve `Decision` and its own artifacts sit in the silent third row. It re-sources `approved-contract-drift` through one shared classifier with the git reading demoted to a fallback ([F109.1](#f109.1)), and retires [F19](#f19)'s accepted transient. **First bundle to author a `CloseEvidence` criterion and have it evaluated at close** — `AC-CLOSE-LINT` recorded `Exit 0 / Result pass` on the applied archive. Residual limits recorded, not closed: row three is permanent, the git fallback misses committed edits, and this bundle is never itself stamped. Prerequisite of position 5.</StatusText>
+  </Row>
+  <Row name="C-SUPERSEDE-VERB" status="retired" kind="chartered">
+    <Number>3</Number>
+    <Charter>A verb that performs the four writes plus the move that superseding currently is, atomically with the replacement. Named here 2026-08-15. No existing name.</Charter>
+    <Pays>[F86.1](#f86.1), [F86.2](#f86.2).</Pays>
+    <StatusText>**Superseded** 2026-08-31, archived as [`C-SUPERSEDE-VERB`](../../../../.ngrace/changes/archive/C-SUPERSEDE-VERB/), replaced by `C-SUPERSEDE-COMMAND` (row 3a). Executed to completion, then rejected at the scope audit: its approved plan's `ObservedWriteScope` omitted `scripts/release-check.ts`, and its spec carried a false completeness claim about the pins the deliverable moves ([F120](#f120), [F122](#f122)). Production reverted; nothing durable was folded, so the archived ledger holds two approve Decisions and no execution record.</StatusText>
+    <Successor>C-SUPERSEDE-COMMAND</Successor>
+  </Row>
+  <Row name="C-SUPERSEDE-COMMAND" status="retired" kind="chartered">
+    <Number>3a</Number>
+    <Charter>The `ngrace supersede` verb, carrying forward `C-SUPERSEDE-VERB`'s deliverable and both maintainer rulings, with the `package.json#files` → `PACK_ALLOWED_EXACT` coupling declared rather than discovered.</Charter>
+    <Pays>[F86.1](#f86.1), [F86.2](#f86.2), [F120](#f120), [F122](#f122); closes [F121](#f121)'s second half.</Pays>
+    <StatusText>**Delivered** 2026-08-31, archived as [`C-SUPERSEDE-COMMAND`](../../../../.ngrace/changes/archive/C-SUPERSEDE-COMMAND/). Six tasks, reds 2/3/1/3/3/0, no write outside `ObservedWriteScope`. Closed with [F125](#f125): three defects a green 1562-test suite did not surface, found by exercising the CLI and running the validators the report omitted. `AC-CLOSE-LINT` CloseEvidence evaluated to `Exit 0 / Result pass`; post-archive lint 0/0.</StatusText>
+  </Row>
+  <Row name="C-PHASE-RULE-PIN" status="retired" kind="chartered">
+    <Number>7</Number>
+    <Charter>Reconcile the plan skill's `MustPassCommand` restriction with the contract the linter actually enforces, and close the detector's implicit-`current` gap. Prose: `skills/ngrace/ngrace-plan/SKILL.md:102` forbids what 22 archived plans do and what lint never checks. Code: `src/artifact/assertions.ts:262` matches only an explicit `--assertions current`, though current is the default (`src/grace-lint.ts:88`). Both sides plus the packaged mirror. Named here 2026-09-01.</Charter>
+    <Pays>[F130](#f130).</Pays>
+    <StatusText>**Ordered, not deferred** — after `C-BOUND-VERDICT`. The skill file and its mirror are outside that bundle's `ObservedWriteScope`, so grafting the fix would require amending an approved spec; that conflict is the [D11](#d11) condition. Safe by measurement: archived plans are exempt (`src/lint/core.ts:535-536`) and no active plan in either tree carries a lifecycle command in `TargetAssertions`. Must **not** resolve package scripts transitively — that is the rejected reading B.</StatusText>
+  </Row>
+  <Row name="C-EVIDENCE-DISCRIMINATION" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>A lint rule refusing a `CloseEvidence` command with no failing path: allowlist by command **shape** (not a denylist of binaries), configurable in `.ngrace-lint.json`, polyglot defaults, warning severity with a documented escape. Named here 2026-09-02 by [D26](#d26). Searched before minting: `C-CRITERION-CLOSE-EVIDENCE` created the state, `C-CALIBRATION-COMMAND-EVIDENCE` / `C-COMMAND-EVIDENCE-RECORDED` / `C-FOLD-USES-RECORDED-COMMAND-EVIDENCE` / `C-VERDICT-EVIDENCE` are adjacent; none asks whether a recorded command can fail.</Charter>
+    <Pays>[F147](#f147). `change.close-evidence-incomplete` checks a `Command` exists and `change.close-evidence-and-satisfied` checks task mapping; neither checks power.</Pays>
+    <StatusText>**Named 2026-09-02; not in the order.** Must judge command text only ([`C-PHASE-RULE-PIN`](#named-bundle-registry)'s rejected reading B forbids resolving package scripts transitively). Its `--explain` must say the rule catches only the cheap class: `pytest --collect-only`, `cargo test --no-run` and `git diff --exit-code` over the wrong paths all exit 0.</StatusText>
+  </Row>
+  <Row name="C-APPROVE-TIME-REVIEW" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>Teach `ngrace review --change` as a step **before** `ngrace gate approve`, at both the spec and the plan stage: `ngrace-spec` approve step, `ngrace-plan` rule 15, and `ngrace-reviewer` broadened from one moment (&quot;before judgment&quot;) to three. **Must ship the partial-review caveat, corrected by [F150.1](#f150.1)**: at **spec** approve the scope and WriteEvidence audits report `not-run` (no plan on disk) while the attempt-pair audit *runs* and reports `ran over 0 fail→pass pair(s)` — a clean line over an empty denominator, which is a **weaker** signal than `not-run` and reads as substantiation. Quote each audit's actual status string per stage; a grouping phrase is how [F147](#f147)'s manufactured-pass shape gets taught. Named here 2026-09-03 by [F149](#f149), **amended by [F150](#f150)**: the bundle must also ship what a clean approve-time review looks like, because at **plan** approve the scope audit reports the bundle's own `spec.xml` and `plan.xml` as out-of-scope writes on every bundle (`decisions.md` only when it changed *after* the recorded base — [F150.2](#f150.2)), and the `WriteEvidence` audit reports a third status there, `unable-to-determine`, distinct from its spec-stage `not-run` (at **spec** approve it does not run at all, and naming those findings as expected there teaches a not-run audit as if it had spoken — [F150.1](#f150.1)) — an instruction that produces unexplained errors on first use is a trap, not guidance. **Also carries [F152](#f152)**: show the closed approval lexicon whenever approval is requested, one approval request per message naming one artifact, and record the ratifying phrase verbatim — three concerns in this bundle now (approve-time review, F150's expected-findings guidance, F152's lexicon rules), plus the carried XML-escaping item, and its Intent must say so rather than let scope accrete. Searched before minting: `C-APPROVAL-FINGERPRINT` made the gate the status writer, `C-APPROVAL-SCOPE` covers the phrase and the close acts ([D19](#d19)/[D20](#d20)), `C-REVIEW-SURFACE` created the detector surface; **none says when review runs.**</Charter>
+    <Pays>[F149](#f149), and retroactively [F136](#f136) and [F148](#f148) — both were catchable by a review the artifact was still editable for.</Pays>
+    <StatusText>**Next after `C-EVIDENCE-DISCRIMINATION`.** Candidate to carry the carried item *&quot;the XML-escaping rule's skill homes&quot;* — same two skill files, same rule shape; the spec author decides, and says which. Collides with `C-EVIDENCE-DISCRIMINATION` on `skills/ngrace/ngrace-spec/SKILL.md` and the `skillTextLines` pins, so **sequential, never concurrent**.</StatusText>
+  </Row>
+  <Row name="C-REVIEW-ARCHIVE-SCOPE" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>Restrict `detectZeroOrMoreSwallow` to plans under `changes/active/`, and rule on `detectSelfReferential`'s plan loop, which carries the same missing guard and fires on nothing today. `detectConfidentlyWrong` **keeps** its archive scan — its `MustExist` targets assert present-tree state — so the change must state why the two differ rather than applying one rule to all three. Named here 2026-09-03 by [F149.1](#f149.1). Searched before minting: `C-REVIEW-LANGUAGE-SCOPE` is the closest precedent (it fixed three review false positives) but by marker-scan scoping, not archive scoping; not a synonym.</Charter>
+    <Pays>[F149.1](#f149.1).</Pays>
+    <StatusText>**After `C-APPROVE-TIME-REVIEW`.** Ordered, not deferred: the cost is one ack per close, recurring forever, and the fix is measured at one line with the ratchet intact.</StatusText>
+  </Row>
+  <Row name="C-SCOPE-AUDIT-ATTRIBUTION" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>Stop `auditScopeOutsideWriteScope` attributing the approve gate's own writes to the executor: exempt the bundle's `spec.xml` and `plan.xml` in the **changed-files** audit (`src/review/core.ts:1033-1060`) through a **sibling predicate keyed on the reviewed change id, never an extension of `isCliLifecyclePath`** — that helper is shared with the WriteEvidence audit (`:1045` and `:1108`), so widening it would silence the breach signal ([F155.1](#f155.1)), and scope the base-diffing audits to bundles under `changes/active/` so a closed or superseded bundle is not re-reported present-tense. **`auditWriteEvidenceOutsideScope` (`:1093-…`) keeps raising on `spec.xml`/`plan.xml`** — there the writer is the executor's own ledger and the claim is a real breach signal. **Overturns a shipped criterion**: `AC-SCOPE-LIFECYCLE-EXCLUSION` (`.ngrace/changes/archive/C-REPORT-HONESTY/plan.xml:469,481`, red at `src/review/core.test.ts:1273-1289`) asserts the current behaviour, recorded as intentional in `brownfield-run4-findings.md:300` for approved-artifact immutability; the spec must say so and answer it with `auditApprovedArtifact` (`:1736-1773`), which enforces immutability byte-exactly via `review.approved-fingerprint-mismatch`. Named here 2026-09-04. Searched before minting: `C-REVIEW-ARCHIVE-SCOPE` scoped the plan-walking detectors and not these audits, `C-PLAN-SCOPE-PATHS` compares the spec bound to `ObservedWriteScope` (a different comparison), `C-DECLARED-WRITES` created the declared-write surface; none touches attribution. `AC-SCOPE-LIFECYCLE-EXCLUSION` is an acceptance criterion, not a bundle name.</Charter>
+    <Pays>[F137](#f137), [F150](#f150), [F155](#f155).</Pays>
+    <StatusText>**Delivered** 2026-09-05 as `C-SCOPE-AUDIT-ATTRIBUTION-2` and merged in PR #71; the original was superseded ([D27](#d27), [F157](#f157)) after its approved plan proved unsatisfiable, and both are archived under `.ngrace/changes/archive/`. Ratified at **position 1 of five** 2026-09-04. [F137](#f137)'s pair at every close and again at plan-approve is paid and no longer recurs. Archive-residue counts are **conditional on tree state and expire** — see [F155.1](#f155.1) rather than quoting a number from this row.</StatusText>
+    <Successor>C-SCOPE-AUDIT-ATTRIBUTION-2</Successor>
+  </Row>
+  <Row name="C-CITATION-ANCHOR-REPAIR" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>Inject explicit `a id`/`name` anchors and resolve ambiguous strip-dot citations while `decisions.md` is still one document. Nothing moves. Carries the delimiter-preserving slug grammar (`F9.1 → f9.1`). Named here 2026-09-05 by [D31](#d31). Searched before minting: no prior name covered citation identity on this file; `C-RECORD-RETIREMENT` is the engine that follows.</Charter>
+    <Pays>[F164](#f164); identity half of [D31](#d31).</Pays>
+    <StatusText>**Delivered** 2026-09-05 as `C-CITATION-ANCHOR-REPAIR-2` and merged in PR #72; the original was superseded after its approved plan put current-mode lint of this root in task Verification. Both archived under `.ngrace/changes/archive/`. The board is defined for names that do not exist on disk; this row stays so the D31 insertion at **position 2 of nine** is not silently dropped. The identity work is done.</StatusText>
+    <Successor>C-CITATION-ANCHOR-REPAIR-2</Successor>
+  </Row>
+  <Row name="C-RECORD-RETIREMENT" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>Retire `decisions.md` into three genres — findings, decisions, registry — each with an observable retirement trigger and a line ratchet that refuses growth. `decisions.md` itself **survives as the citation index**: 45 archived immutable artifacts cite its path and 528 internal anchors depend on its headings, so bodies move and anchors stay. The registry becomes machine-readable and its rule is the enforcement core: a live row naming an archived bundle is an error. Content preservation is a verified criterion, not a claim. The four `scripts/skill-contracts.test.ts` teaching sites move with it, canonical plus packaged mirror. `docs/plans/archive/RM-AGENT-RELIABILITY/decisions.md` is out of scope permanently. Named here 2026-09-05 by [D28](#d28). Searched before minting: `C-RECORDED-DEBT` records debt inside a bundle, `C-RECORD-FALSE` is about a false record, `C-TEACHING-SURFACE` covers the docs surface, `C-DRIFT-HONESTY` covered a lint workaround; none addresses record lifecycle.</Charter>
+    <Pays>[F161](#f161), and it pays the cost measured in [F155.1](#f155.1) / [F157](#f157) / [F160](#f160), where expired counts and stale citations in a 9940-line file produced three corrections in two sessions.</Pays>
+    <StatusText>**Position 3 of nine** — ratified 2026-09-05 at position 2, renumbered by [D31](#d31). Enforcement ships with the structure, never after.</StatusText>
+  </Row>
+  <Row name="C-AUDIT-001" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Brownfield run 1 bundle in another repository ([F88](#f88)).</StatusText>
+  </Row>
+  <Row name="C-IDENT-COVERAGE" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Brownfield run 4 bundle in another repository ([F86.1](#f86.1)).</StatusText>
+  </Row>
+  <Row name="C-ESTABLISH-MODULE-GRAPH-4" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Prior-attempt backup cited in the brownfield notes, not a charter here.</StatusText>
+  </Row>
+  <Row name="C-001" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Brownfield / generator example id (`spec new C-001`).</StatusText>
+  </Row>
+  <Row name="C-P0-CALIBRATION" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Rejected name; `C-CALIBRATION-COMMAND-EVIDENCE` shipped (`p0-calibration-derivation.md:394–396`).</StatusText>
+  </Row>
+  <Row name="C-LEDGER-MEMBERSHIP" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Rejected split; `C-REPORT-HONESTY` absorbed F14+F15 (`p0-report-honesty-derivation.md:511–512`).</StatusText>
+  </Row>
+  <Row name="C-BASE" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Temp-fixture id in the P0 derivation.</StatusText>
+  </Row>
+  <Row name="C-TEST" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Temp-fixture id in the cursor derivation.</StatusText>
+  </Row>
+  <Row name="C-PROBE" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Example change id in a command line ([F25](#f25)).</StatusText>
+  </Row>
+  <Row name="C-ID" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Placeholder in skill / command prose.</StatusText>
+  </Row>
+  <Row name="C-SLUG" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Placeholder in [plan.md](./plan.md).</StatusText>
+  </Row>
+  <Row name="C-X" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Example id in [review.md](./review.md).</StatusText>
+  </Row>
+  <Row name="C-CURSOR" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Abbreviation of `C-CURSOR-INTEGRITY` in the cursor derivation.</StatusText>
+  </Row>
+  <Row name="C-TOKEN" status="retired" kind="sweep-remainder">
+    <Number></Number>
+    <Charter></Charter>
+    <Pays></Pays>
+    <StatusText>Abbreviation of `C-TOKEN-INTEGRITY` in the cursor derivation.</StatusText>
+  </Row>
+<Row name="C-CURSOR-TASK-RESOLVER" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Stop guessed task identity on a run event: inherit a plan-declared in-scope task for command-run, or refuse before write; never invent T-000. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F90, F90.1</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: resolveDeclaredCommandRunTask at src/grace-cursor.ts:3401 (&quot;Never invent T-000&quot;) and the invalid-arguments refusal at :3422-3427; tests &quot;C-CURSOR-TASK-RESOLVER T-001: command-run inherits a declared in-scope task&quot; (src/grace-cursor.test.ts:3846) and &quot;C-CURSOR-TASK-RESOLVER T-001: command-run refuses when no declared task is in scope&quot; (:3894). Does not claim the range-hole residual or regenerate re-derivation of an undeclared last event.</StatusText>
+  </Row>
+<Row name="C-SUBSTANCE-OVER-NAME" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>One structural-clone definition in src/, verified by body rather than identifier: cloneXmlNode is the single home. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F35</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: export function cloneXmlNode at src/artifact/xml.ts:239; src/gates/ledger.ts:65 imports it and :252 calls it; no function cloneNode in src/.</StatusText>
+  </Row>
+<Row name="C-DECLARED-WRITES" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Compare each change's durable WriteEvidence paths to its plan ObservedWriteScope at review time; teach ngrace-plan that ObservedWriteScope covers what the deliverable forces. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F27, F27.1, F27.2</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: auditWriteEvidenceOutsideScope (src/review/core.ts:1112, C-DECLARED-WRITES / F27 comment at :1104-1111) raises review.write-evidence-outside-scope when a WriteEvidence path is outside ObservedWriteScope; ngrace-plan SKILL.md rule 6 (skills/ngrace/ngrace-plan/SKILL.md:61) teaches that ObservedWriteScope covers what the deliverable forces.</StatusText>
+  </Row>
+<Row name="C-GRAMMAR-SEAM" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Make Clarification authorable by moving its target to a self-closing IC-*, INV-*, or AC-* child, never a target attribute. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F38</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: Clarification takes exactly one self-closing IC-*, INV-*, or AC-* child (src/artifact/grammar.ts:1730-1731); a target attribute is rejected (:1768-1769). The element is authorable.</StatusText>
+  </Row>
+<Row name="C-PAYMENT-RECORD" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Charter.** Make already-discharged findings retirable by recording their payments in a form the derivation can read. A finding retires when its `PaidBy` names an archived bundle, and `PaidBy` is derived from registry rows and a phrase in archived specs — so a payment nobody recorded is a payment that never happened, as far as the ratchet is concerned. - **Direct historical rows in `registry.xml`**, ruled by the maintainer. Archived specs are never edited, so the row is the only route. - **The row must be visible to the derivation.** `kind` is a closed union (`scripts/validate-record-retirement.ts:69`) and the payer derivation filters to `chartered` (`:731`); `collectPaidBy` additionally requires `StatusText` matching `/delivered|superseded/i`. A new `kind` is inert unless the union and filter widen. - **Every payment is verified, never asserted.** Each row carries the symbol, test name, or `file:line` that discharges the finding. Recording a payment that did not happen would convert eligibility — the enforcement itself — into a formality, which is [D28.1](#d28.1)'s defect in a worse form than a config key. - **Scope for margin, not the minimum.** The window after a move is `252 + Δ_retired` against a staged wrap that grows every session.</Charter>
+    <Pays>[F187](#f187) in part, and whichever live findings the audit verifies as discharged.</Pays>
+    <StatusText>**Position 6**, [D36](#d36). Charter rulings: [D28](#d28), [D28.1](#d28.1), [D30](#d30), [D36](#d36).</StatusText>
+  </Row>
+<Row name="C-RETIREMENT-WINDOW" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Charter.** Make retirement create room instead of erasing its own. The ceiling is re-derived as `base + headroom` at every move, so retiring content removes an equal amount of ceiling and the staged entries can never be flushed ([F183](#f183)). - **The window formula.** `Base_k = Base_live − Δ_retired` and `Ceiling_k = min(Ceiling_(k−1), Base_live + H)` at one `--retire` event, where `Base_live` is the **pre-move** footprint. Retirement then opens a window of `Δ_retired + H` that the next pass closes. The `min` is required, not optional: without it the ceiling rises whenever growth outpaced the previous retirement. - **Findings genre only.** Rulings, registry and index keep their current timing, each with a stated reason. The rulings `CodifiedIn` tagging pass is a separate bundle. - **`H` stays a constant derived in tracked repository space** — never a function of the staged buffer or any untracked state. A ceiling read from `.ngrace/scratch/` would be unreproducible from a fresh clone and greenable by appending to a `.gitignore`d file, which is [D28.1](#d28.1)'s rejected shape in a worse form than a config key. - **Remove the spent one-time exception**, whose clearing premise was false ([F186](#f186)), and move the provenance of the 1883 ceiling to a constant a validator asserts rather than a comment that drifts from the number.</Charter>
+    <Pays>[F183](#f183), [F186](#f186).</Pays>
+    <StatusText>**Position 5**, [D35](#d35). Charter rulings: [D28](#d28), [D28.1](#d28.1), [D30](#d30), [D35](#d35).</StatusText>
+  </Row>
+<Row name="C-RETIRE-AND-CODIFY" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Charter.** Ship the **ongoing** retirement operation and the first codification tagging, so the record can retire as fast as it grows. - **A `PaidBy` feed.** Something must write `&amp;lt;PaidBy&amp;gt;` onto a live finding when the bundle that paid it archives. Today `collectPaidBy` (`scripts/validate-record-retirement.ts:372-410`) derives the map correctly but runs **only** in the one-shot `--split` path. - **Detection that reads the derivation, not just the stored element**, *and* a derivation wide enough to fire. The validator exits 0, and so would a re-derivation: the shipped `collectPaidBy` returns **0** live-eligible ([F180](#f180)). Widening it is a spec decision to argue against `D28.1`, not a refinement to assume. - **A retirement move.** A command that moves an eligible entry to its retired sibling and re-derives the live root's `base` / `ceiling`. There is no such command; `--split` refuses once `decisions.md` is a stub. - **First `CodifiedIn` / `TaughtIn` tagging**, with both resolution checks already shipped. [D27.1](#d27.1) is the first candidate by its own text. [D24](#d24) against `C-REWORK-CIRCUIT` remains *a candidate to verify, not a fact to restate* ([D28.1](#d28.1), [F123](#f123)). - **Headroom sizing is an open question, not a given.** [F181](#f181) measured headroom derived from median **entry size** while the pressure comes from **arrival rate**. Re-deriving a ceiling after legitimate retirement is not the same act as raising a number to pass, but the spec must say which it is doing and answer [D28.1](#d28.1)'s *&quot;a budget that can be raised to pass is not a budget&quot;*.</Charter>
+    <Pays>[F180](#f180), [F181](#f181).</Pays>
+    <StatusText>**Position 4**, [D34](#d34). Charter rulings: [D28](#d28), [D28.1](#d28.1), [D30](#d30), [D34](#d34).</StatusText>
+  </Row>
+<Row name="C-CODIFY-DECISIONS" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Chartered 2026-09-07 by the maintainer**, verbatim: *&quot;option C&quot;*, on four itemized variants. The position is deferred **deliberately, and the deferral is the point**: a position decision costs the decisions genre roughly forty lines, while a charter row costs it nothing — staged charter rows are not `[FD]\d` entries and so are not counted in the decisions wrap at all. Ratify a position once this bundle has made room. Priority needs no stating in the meantime: this is the only chartered work that can open the rulings window, so nothing else can sensibly precede it. **Charter.** Give the decisions genre a working retirement trigger. **It is not, as this row first read, the thing blocking the flush** — that claim was a measurement artifact, corrected the same day in [F191](#f191): both genres fit their windows today. What remains true is that **a live resolving `CodifiedIn` is `decision-eligible-still-live`**. That is the validator invariant, not a census of the live set. A resolving `TaughtIn` annotates and does not retire. The retired sibling is the precedent that a move is possible; it is not a population figure. - **Codification alone was never the whole delivery, and the spec proved which.** [`C-RETIREMENT-WINDOW`](#named-bundle-registry) applied its window formula to the **findings genre only**; the rulings call site clamps against the **pre-move** base — `retireRecord` captures `rulingsBaseRead` before the move and passes it to `persistSnapshot` as the ceiling base, so a decisions-genre retirement leaves the rulings ceiling unchanged and the freed lines become headroom. That behaviour was derived from the code and confirmed on a fixture, not assumed from the findings behaviour. - **The evidence standard is the load-bearing question.** [D28.1](#d28.1) retires a decision when its prose invariant is *permanently replaced by an automated machine check* that enforces it *unconditionally*. A tag on a decision merely **related** to a shipped test retires live governance text on a false premise, and retirement is one-way in practice. [D24](#d24)'s tag was gated on two **named tests passing at execution**, which is the pattern. - **`TaughtIn` versus `CodifiedIn` is settled.** The move condition is `allResolveAndSomeOk` on `CodifiedIn` children only; a resolving `TaughtIn` annotates and does not retire, and teaching a rule in skill prose is not enforcement. - **The bundle must pay for itself.** Whatever chartering and closing costs the decisions genre, the scope must retire more, with margin — every staged figure on this work has aged in the same direction.</Charter>
+    <Pays>the verified tags and the working decisions-genre retirement trigger this bundle delivered; [F187](#f187) is retired with PaidBy `C-PAYMENT-RECORD` and is not live to pay.</Pays>
+    <StatusText>**Position pending the maintainer's word.** Charter rulings: [D28](#d28), [D28.1](#d28.1), [D30](#d30), [D36](#d36).</StatusText>
+  </Row>
+<Row name="C-RECORD-TEST-ISOLATION-2" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Name.** `C-RECORD-TEST-ISOLATION-2`. **Searched before minting**, 2026-09-09 at `99b5266ed432eb5cc1930c30a408069418d5e80e`, over `.ngrace/changes/archive/` (74 directories matching `^C-[A-Z0-9-]+$`) and the record's structural `Row name=` attributes (12 live, 33 retired): **zero hits** for the exact name across the archive directories and both registry files; 2 textual mentions of it inside the superseded bundle's archived spec.xml and plan.xml (its Replacement pointer and its supersede prose — not a directory or Row name). Per-token: `ISOLATION` 1 archive directory (the superseded bundle; a different name), 0 rows; `MUTAT` 0 and 0; `RECORD` 8 archive directories and 2 rows (record-lifecycle bundles, none covering isolating tests from mutating the production record); `TEST` 1 archive directory and 1 retired row (`C-TEST`, kind sweep-remainder, not this territory); `RETIRE` 4 archive directories and 3 rows. No colliding or better-fitting prior name. **Charter.** Isolate this repository's record tests from the production record: no test invokes a mutating record operation against the real tree; the nothing-eligible and second-`--retire` probes run on isolated fixtures with the production observation staying read-only; the shipped live-pair assertion is reshaped to the move-invariant pair form; and the bundle flushes its pinned staged findings while correcting the retired row the current code falsifies.</Charter>
+    <Pays>[F192](#f192), [F194](#f194), [F195](#f195).</Pays>
+    <StatusText>**Ratified 2026-09-09** — the maintainer approved this bundle's plan; the row mints its payment only at this bundle's close, when its name equals an archive directory.</StatusText>
+  </Row>
+<Row name="C-RECORD-RETIREMENT-2" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Remove the citation validator's qualifier-suffix slug grammar — the mechanism [F172](#f172) describes — removed by this bundle's own merged work, commit `67bc55c` (PR #74). This row exists so the derivation can see the payment.</Charter>
+    <Pays>F172</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-2 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: `expectedSlugFor` and `duplicateCount` are absent from `src/` and `scripts/` (0 hits at this commit); the citation validator's only duplicate rule is `duplicate-id` over index ids at `scripts/validate-citation-anchors.ts:122`; the file carries 0 occurrences of `slug`; the removal commit is `67bc55c` (PR #74).</StatusText>
+  </Row>
+<Row name="C-ARTIFACT-VALIDITY" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Artifact parsing and well-formedness validation: every artifact the lint reads is parsed, and a malformed active artifact refuses. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F39</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-2 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: `xml.comment-not-well-formed` at `src/lint/catalog.ts:529` with its named test at `src/lint/catalog.test.ts:903`; `readGraceXmlArtifact` at `src/artifact/xml.ts:201`; a malformed active artifact refuses with `xml.parse` and exit 1; the archived plans the original count measured sit outside the scan set.</StatusText>
+  </Row>
+<Row name="C-SELECTION" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>Baseline fixture row for the C-RECORD-PARSE golden capture.</Charter>
+    <Pays>F21.</Pays>
+    <StatusText>Named; not in the order.</StatusText>
+  </Row>
+</Registry>

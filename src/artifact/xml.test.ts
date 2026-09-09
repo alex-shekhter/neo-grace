@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 import ts from "typescript";
 
-import { childText, cloneXmlNode, COMMENT_WELL_FORMED_PATH_ALLOWLIST, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
+import { childText, cloneXmlNode, COMMENT_WELL_FORMED_PATH_ALLOWLIST, computeElementSpans, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
 describe("neo-grace XML parser adapter", () => {
   it("returns xml.parse diagnostics for malformed XML instead of throwing", () => {
@@ -480,4 +480,150 @@ describe("structural-clone single definition (body-shaped)", () => {
     expect(hits[0]!.exported).toBe(true);
     expect(hits[0]!.binder).toBe("cloneXmlNode");
   });
+});
+
+// ---------------------------------------------------------------------------
+// C-RECORD-PARSE T-002: the parser-derived source-span capability.
+// ---------------------------------------------------------------------------
+
+function spanOf(
+  spans: ReturnType<typeof computeElementSpans>,
+  node: GraceXmlNode | undefined,
+): { openStart: number; openEnd: number; closeStart: number | null; closeEnd: number | null } {
+  if (!node) {
+    throw new Error("test bug: expected node is missing from the parsed tree");
+  }
+  const span = spans.get(node);
+  if (!span) {
+    throw new Error("test bug: computeElementSpans returned no span for a parsed element");
+  }
+  return span;
+}
+
+describe("computeElementSpans", () => {
+  it("returns hand-computed open and close byte ranges on a synthetic document", () => {
+    const text = `<Root a="b"><Kid>text</Kid><!-- note --><Kid x="1">more</Kid></Root>`;
+    const parsed = parseGraceXmlArtifact("synthetic.xml", text);
+    expect(parsed.root).not.toBeNull();
+    const spans = computeElementSpans(text, parsed);
+
+    const root = spanOf(spans, parsed.root!);
+    expect(text.slice(root.openStart, root.openEnd)).toBe(`<Root a="b">`);
+    expect(text.slice(root.closeStart!, root.closeEnd!)).toBe(`</Root>`);
+
+    const kids = parsed.root!.children.filter((child) => child.tag === "Kid");
+    expect(kids).toHaveLength(2);
+    const first = spanOf(spans, kids[0]);
+    expect(first.openStart).toBe(text.indexOf("<Kid>"));
+    expect(text.slice(first.openStart, first.openEnd)).toBe("<Kid>");
+    expect(text.slice(first.closeStart!, first.closeEnd!)).toBe("</Kid>");
+
+    const second = spanOf(spans, kids[1]);
+    expect(text.slice(second.openStart, second.openEnd)).toBe("<Kid x=\"1\">");
+    expect(second.openStart).toBe(text.indexOf("<Kid x=\"1\">"));
+  });
+
+  it("carries open ranges only for self-closing elements", () => {
+    const text = `<Root><Entry id="e1" /><Entry id="e2"/><Pair></Pair></Root>`;
+    const parsed = parseGraceXmlArtifact("synthetic.xml", text);
+    const spans = computeElementSpans(text, parsed);
+    const entries = parsed.root!.children.filter((child) => child.tag === "Entry");
+    for (const entry of entries) {
+      const span = spanOf(spans, entry);
+      expect(span.closeStart).toBeNull();
+      expect(span.closeEnd).toBeNull();
+      expect(text.slice(span.openStart, span.openEnd)).toMatch(/^\u003cEntry id="e\d" ?\/>$/);
+    }
+    const pair = spanOf(spans, parsed.root!.children.find((c) => c.tag === "Pair"));
+    expect(text.slice(pair.openStart, pair.openEnd)).toBe("<Pair>");
+    expect(text.slice(pair.closeStart!, pair.closeEnd!)).toBe("</Pair>");
+  });
+
+  it("locates parsed attributes inside their element's open-tag bytes", () => {
+    const text = `<Root><Finding id="f1" token="F1" status="live"><Body>id="f1" appears here as prose</Body></Finding></Root>`;
+    const parsed = parseGraceXmlArtifact("synthetic.xml", text);
+    const spans = computeElementSpans(text, parsed);
+    const finding = parsed.root!.children[0]!;
+    const span = spanOf(spans, finding);
+    const openTag = text.slice(span.openStart, span.openEnd);
+    for (const name of Object.keys(finding.attributes)) {
+      expect(openTag, name).toMatch(new RegExp(`[\\s]${name}[\\s]*=`));
+    }
+    // the prose occurrence sits outside the open tag: the open tag ends before it
+    expect(text.indexOf(`id="f1" appears`)).toBeGreaterThan(span.openEnd);
+  });
+
+  it("survives angle brackets inside quoted attribute values (quote-aware open-tag scan)", () => {
+    const text = `<Root><Entry note="a /> b" /><Entry ok="1" /></Root>`;
+    const parsed = parseGraceXmlArtifact("synthetic.xml", text);
+    const spans = computeElementSpans(text, parsed);
+    const first = spanOf(spans, parsed.root!.children[0]);
+    expect(text.slice(first.openStart, first.openEnd)).toBe("<Entry note=\"a /> b\" />");
+    expect(first.closeStart).toBeNull();
+  });
+
+  it("raises the loud error when the source scan and the parser disagree on element counts", () => {
+    // a comment carries a fake open tag the parser never yields
+    const text = `<Root><!-- <Ghost> --><Ghost a="b" /></Root>`;
+    const parsed = parseGraceXmlArtifact("synthetic.xml", text);
+    expect(parsed.root).not.toBeNull();
+    expect(() => computeElementSpans(text, parsed)).toThrow(/pairing disagreement for tag Ghost/);
+  });
+
+  it("raises the loud error when a parsed attribute is not inside its open-tag bytes", () => {
+    // same tag, same count, different attributes: the parsed tree is verified
+    // against the exact source bytes it claims to describe
+    const parsed = parseGraceXmlArtifact("synthetic.xml", `<Root><Ghost a="b" /></Root>`);
+    const otherText = `<Root><Ghost c="d" /></Root>`;
+    expect(() => computeElementSpans(otherText, parsed)).toThrow(
+      /parsed attribute "a" is not found inside the element's open-tag bytes/,
+    );
+  });
+
+  it("raises the loud error when a self-closing open tag carries parser children", () => {
+    const parsed = parseGraceXmlArtifact("synthetic.xml", `<Root><Ghost><Inner /></Ghost></Root>`);
+    // tag counts agree in both documents; the pairing walk is what refuses
+    const flatText = `<Root><Ghost /><Inner /></Root>`;
+    expect(() => computeElementSpans(flatText, parsed)).toThrow(
+      /the source scan reads a self-closing open tag but the parser has 1 child element/,
+    );
+  });
+
+  it("raises the loud error when a non-self-closing element has no close tag in the source", () => {
+    const parsed = parseGraceXmlArtifact("synthetic.xml", `<Root><Ghost>body</Ghost></Root>`);
+    const openOnlyText = `<Root><Ghost>body</Ghos></Root>`;
+    expect(() => computeElementSpans(openOnlyText, parsed)).toThrow(
+      /no <\/Ghost> close tag after byte/,
+    );
+  });
+
+  it("pairs every element of the real record files at their committed bytes", () => {
+    const recordDir = path.resolve(import.meta.dir, "..", "..", "docs", "plans", "active", "RM-GOVERNED-PATH");
+    const cases: Array<[file: string, tag: string, expected: number]> = [
+      ["findings.xml", "Finding", 213],
+      ["findings-retired.xml", "Finding", 58],
+      ["rulings.xml", "Decision", 61],
+      ["rulings-retired.xml", "Decision", 5],
+      ["registry.xml", "Row", 12],
+      ["registry-retired.xml", "Row", 36],
+      ["decisions.xml", "Entry", 337],
+    ];
+    for (const [file, tag, expected] of cases) {
+      const text = readFileSync(path.join(recordDir, file), "utf8");
+      const parsed = parseGraceXmlArtifact(file, text);
+      expect(parsed.root, file).not.toBeNull();
+      const spans = computeElementSpans(text, parsed);
+      const nodes = parsed.root!.children.filter((child) => child.tag === tag);
+      expect(nodes.length, file).toBe(expected);
+      for (const node of nodes) {
+        expect(spans.get(node), `${file}:${tag}`).toBeDefined();
+      }
+      if (file === "decisions.xml") {
+        for (const node of nodes) {
+          const span = spans.get(node)!;
+          expect(span.closeStart, "index Entries are self-closing: open range only").toBeNull();
+        }
+      }
+    }
+  }, 60_000);
 });

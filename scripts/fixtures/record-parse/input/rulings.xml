@@ -1,0 +1,1697 @@
+<Rulings base="1697" headroom="186" ceiling="1883">
+  <Decision id="d1" token="D1" status="live">
+    <Title>## D1 — The tool is the only sanctioned writer of `approved → applied`</Title>
+    <Body>
+**Decision.** `approved → applied` is **structural state explicitly given**, not authored content,
+and `ngrace lifecycle finish` may write it. Further: it becomes the **only sanctioned** writer of
+that transition. A hand-written `applied` is a reportable defect, not an equivalent alternative.
+
+`draft → approved` is **unchanged and stays authored.** A human writes it, no command does.
+
+**What separates the two.** Apply has a machine-evaluable precondition and approve has none. The
+apply gate already reads the ledger, checks recorded verdicts and must-pass commands, and decides —
+so the binary genuinely *derives* the fact &quot;this change's evidence passed.&quot; What it cannot derive is
+a human saying go, and that is supplied by the operator invoking the command. Approve has no
+equivalent: there is nothing for a machine to check, so nothing is derived and nothing is given.
+
+**This asymmetry is deliberate and must stay recorded.** Without the reason above written down, a
+later reader sees an inconsistency — one transition tool-written, one hand-written — and &quot;fixes&quot; it
+in whichever direction is convenient. The line is the machine-evaluable precondition, not
+convenience.
+</Body>
+  </Decision>
+  <Decision id="d1.1" token="D1.1" status="live">
+    <Title>### D1.1 — Relationship to A29.2 and F1 of the reliability track</Title>
+    <Body>
+A29.2 (`../../archive/RM-AGENT-RELIABILITY/plan.md`, Correction 49) states that the transitions are
+authored acts and that **the gate** does not set `status` or move the bundle. That holds unchanged.
+A29.2 was adjudicating a step that proposed turning gates *into* transition commands; its finding
+was that no such commands existed and that gates must not become them. Its worked example is
+`draft → approved`, which D1 leaves alone.
+
+A29.2 constrains **the gate**. D1 covers a **separate verb**, which A29.2 is silent on. `ngrace
+lifecycle finish` inherits the three properties of the `graph split --apply` precedent that
+invariant 8 / F1 was restated from:
+
+- dry-run by default; writes only behind an explicit apply
+- writes structural facts only, never authored content
+- fail-closed: refuses when the gate does not permit
+
+**This is a widening of F1's reach, ratified here, not an overturning of A29.2.** Recorded as its
+own decision precisely so the change is visible rather than assumed inside a phase — which is what
+both source plans did.
+</Body>
+  </Decision>
+  <Decision id="d1.2" token="D1.2" status="live">
+    <Title>### D1.2 — Why &quot;only the tool&quot;, and what it actually buys</Title>
+    <Body>
+The value of a tool-written status is not that it is harder to forge. It is that it leaves a ledger
+record, which creates a durable difference between *&quot;a gate permitted this&quot;* and *&quot;this word
+appeared in a file.&quot;* If hand-writing remains equally sanctioned, that difference is decorative and
+D1 changes nothing observable.
+
+Making the tool the only sanctioned writer is what makes the record load-bearing. It converts an
+unenforceable convention into a **detectable** one. Note what this does and does not improve: it
+does not stop a dishonest apply — that was never available — it makes one visible afterwards.
+</Body>
+  </Decision>
+  <Decision id="d1.3" token="D1.3" status="live">
+    <Title>### D1.3 — Consequence: a new review finding</Title>
+    <Body>
+Review gains a finding for an `applied` status with no corresponding ledger record.
+
+**This does not exist in any phase today.** If it does not ship, D1 is inert: nothing anywhere would
+observe the difference the decision exists to create.
+</Body>
+  </Decision>
+  <Decision id="d1.4" token="D1.4" status="live">
+    <Title>### D1.4 — Consequence: the finding is not retroactive</Title>
+    <Body>
+Per F1, the finding fires **only** where the ledger contains an approve event from the gate surface.
+Absent that event the change predates the mechanism, and the correct report is silence — not a
+violation, and not a claim that the bundle is suspect.
+
+**Classified under D5.2 as the track's one real compatibility break** — a hand-written `applied` was
+not a silent failure, it was the only sanctioned method, so those bundles were correct when written.
+The non-retroactive trigger is the migration path that break requires. A check that is correct going
+forward and retroactively false is not a check, it is sixteen false positives.
+</Body>
+  </Decision>
+  <Decision id="d1.5" token="D1.5" status="live">
+    <Title>### D1.5 — Consequence: a recorded override is required</Title>
+    <Body>
+`lifecycle finish` gains a forced apply that writes a ledger event naming the apply as forced, with
+an operator-supplied reason.
+
+**Not a convenience — a condition of D1 being safe.** If the tool is the only sanctioned writer and
+the gate refuses for a bad reason (a host lacking a capability, a wrong check, a bug), the change
+cannot be completed at all. Today the agent hand-writes and moves on. Without a sanctioned exit,
+people hand-write anyway, and the record is then *worse* than before D1: the same write, no longer
+distinguishable from a genuine tooling gap.
+
+The standing posture of this product is **make dishonesty visible, not impossible** — the same
+reasoning that rejected sandboxed enforcement (R3) and lifecycle-bypass bundles (R4). A hard &quot;only
+the tool&quot; with no recorded override drifts back toward a posture already refused.
+
+---
+</Body>
+  </Decision>
+  <Decision id="d2" token="D2" status="live">
+    <Title>## D2 — The adoption boundary is a declaration plus an inventory; the commit ref is a compression of it</Title>
+    <Body>
+**Decision.** Yes, the boundary supports non-git projects. The primitive is designed as **a
+declaration plus a path inventory**. Where git exists, a commit ref expresses the same thing more
+cheaply and more strongly, and is used.
+
+**The design order is the decision.** Building the ref as the primary shape with the inventory as a
+fallback means rebuilding at the first non-git project — the exact rebuild Q2 was asked to prevent.
+Declaration first, ref as an optimization over it.
+
+**Why an inventory suffices.** The boundary serves four symptoms: the permanent unexplained-drift
+nag, review noise from pre-existing files, the first change's unsatisfiable clean baseline, and the
+freestyle-land dead end. Every one needs to know *which paths* predate adoption. None needs their
+*contents* at that moment. Content hashes would buy only tamper detection, which is deferred
+(`plan.md` §4 D4) — so paying for them here buys nothing this track uses.
+</Body>
+  </Decision>
+  <Decision id="d2.1" token="D2.1" status="live">
+    <Title>### D2.1 — An unresolvable ref is a named absence</Title>
+    <Body>
+A commit ref can stop resolving: rebase, squash-merge, force-push, shallow clone. The adoption
+boundary is a permanent, once-ever record, so over a few years this is ordinary rather than exotic.
+
+When the ref does not resolve, the boundary reports a **named absence** in the vocabulary the
+product already ships (`unable-to-determine` and its siblings). It must **never** fall back silently
+to treating everything as unattributable drift — that resurrects precisely the permanent nag the
+boundary exists to remove, and does so in the least visible way.
+
+**Cheap insurance, adopted:** record the inventory alongside the ref even where git is present.
+
+---
+</Body>
+  </Decision>
+  <Decision id="d3" token="D3" status="live">
+    <Title>## D3 — The base commit lives in the change's run-ledger</Title>
+    <Body>
+**Decision.** `gate approve` records the base commit into that change's `run-ledger.xml`, as part of
+the approve event.
+
+**Why the tension in the question dissolves.** Q3 worried that the ledger is bundle-scoped while
+attribution is repository-scoped. Those are two different questions wearing one name:
+
+| Question | Scope | Home |
+|---|---|---|
+| What changed since **this change** started? | per change | the change's run-ledger (D3) |
+| What predates **governance entirely**? | per repository | the adoption boundary (D2) |
+
+The base commit answers the first, which is per-change by construction — every change has its own.
+The second already has an owner in this plan. Nothing is left over.
+
+**Secondary properties.** The ledger archives with the bundle, so `review` still resolves the base
+of an archived change. It is a fact the CLI observed rather than a claim the author made, which is
+what the ledger is for and what keeps this consistent with gate purity (`plan.md` §3.3).
+
+**Rejected alternative.** A sidecar file beside `plan.xml` buys nothing and costs a new artifact
+with its own lifecycle, sitting among authored files while being CLI-written — the exact confusion
+the model works to avoid.
+
+---
+</Body>
+  </Decision>
+  <Decision id="d4" token="D4" status="live">
+    <Title>## D4 — Guide collapse is a change bundle in this repository, measured by the bootstrap benchmark</Title>
+    <Body>
+**Decision.** The work is a `C-*` bundle here. The skill text and the one canonical document both
+live in this repository, and skill text is a product change per `CLAUDE.md`.
+
+**The acceptance criterion moves.** It is the bootstrap benchmark already in the plan's verification
+strategy — one fresh agent session, a fixture repo, a full brownfield land with no companion
+document, counting mistakes, bundles, and manual post-gate steps. It is **not** the external guide
+count.
+
+**Why the swap is required, not cosmetic.** Ten brownfield guides are files in another directory,
+owned by other people, which shrink or do not on their own schedule regardless of what ships here. A
+bundle whose acceptance assertion is about them carries a claim it can never honestly verify — which
+is the *documented-but-not-executed* failure this entire plan exists to fix, committed by the plan
+itself. Guide count is demoted to an observation recorded afterwards.
+
+The benchmark is also the better test of the same claim: guides shrinking is a lagging indicator of
+an adopter not needing one.
+
+---
+</Body>
+  </Decision>
+  <Decision id="d5" token="D5" status="live">
+    <Title>## D5 — Separators are `,` `;` and whitespace; and a standing rule for what counts as a break</Title>
+    <Body>
+Two halves. The separator set is the immediate answer; the standing rule is what Q5 was actually
+asking for, and it settles the rest of the track.
+</Body>
+  </Decision>
+    <Decision id="d5.2" token="D5.2" status="live">
+    <Title>### D5.2 — Standing rule: what is and is not a compatibility break</Title>
+    <Body>
+Applies to the whole track, not to P0 alone.
+
+&gt; **Turning a silent failure into a loud one is not a compatibility break.** Nothing that worked
+&gt; stops working; a failure moves from late and mute to early and explicit.
+&gt;
+&gt; **Turning a legitimate working state into an error is** a break, and requires an
+&gt; `NGRACE_ARTIFACT_VERSION` bump plus a migration path.
+
+The reliability track's invariant — *existing valid `.ngrace` trees must keep validating* — is
+satisfied by the first clause, because a tree whose module reports zero implementation and sits
+`blocked` was never valid in the sense the invariant protects. It was failing quietly.
+</Body>
+  </Decision>
+  <Decision id="d5.3" token="D5.3" status="live">
+    <Title>### D5.3 — Every planned conversion, classified</Title>
+    <Body>
+| Change | Today | Class | Needs |
+|---|---|---|---|
+| P0.2 separator widening | green, links nothing | **repair** — green before, green after, and now means what the author wrote | nothing |
+| P0.2 unrecognized token → error | green; token dropped, module `IMPL=0`, health `blocked` | silent failure made loud | nothing |
+| P0.3 multi-value `DependsOn` | already an error, with a misleading message | strictly more permissive after | nothing |
+| P0.4 non-numeric epoch bound | silently writes `NaN`, corrupts the ledger | silent failure made loud | nothing |
+| P3.3 must-pass coverage | green; the command never executes | silent failure made loud — **the closest call**, since a project may have deliberately deferred | `&lt;EvidenceWaived&gt;`, already in the plan, **is** the migration path |
+| D1.4 hand-written `applied` | green, and was the **only** sanctioned method | **a real break** — those bundles were correct when written | the non-retroactive trigger, already required by D1.4 |
+
+**Consequence: no artifact grammar version bump, and P0 remains a minor release.** The rule
+separates the five that need nothing from the one that already carries its own guard.
+</Body>
+  </Decision>
+  <Decision id="d5.4" token="D5.4" status="live">
+    <Title>### D5.4 — Not a break is still not invisible (continues below)</Title>
+    <Body>
+A project with a typo'd `LINKS` has green lint today and red lint after. Philosophically that is a
+pre-existing defect surfacing; operationally it is somebody's CI going red on a Tuesday.
+
+Required with P0, therefore: a CHANGELOG entry listing every newly-erroring code, and
+`lint --remediate` coverage wherever the fix is mechanical. Visible, but not a version bump.
+</Body>
+  </Decision>
+  <Decision id="d5.5" token="D5.5" status="live">
+    <Title>### D5.5 — The CHANGELOG entry is written in the commit message, not in the file</Title>
+    <Body>
+**[verified] 2026-08-09.** `CHANGELOG.md` in this repository is **generated**, not authored:
+`scripts/release-bump.ts:345` runs `conventional-changelog -p conventionalcommits -r 1`, and `:279`
+/ `:336` abort the release if the file already contains a block for the target version.
+
+So D5.4's requirement is satisfied by naming every newly-erroring code in the **conventional-commit
+body** of the change that introduces it. A hand-written `CHANGELOG.md` edit would be overwritten at
+the next bump and can collide with the duplicate-block guard — it is not a smaller version of the
+right thing, it is a defect.
+
+**Consequence for every P0 bundle:** `CHANGELOG.md` must **not** appear in `ObservedWriteScope`. The
+newly-erroring codes are listed in the commit body instead, and each bundle carries its own codes
+rather than accumulating them for a phase-end entry.
+
+---
+</Body>
+  </Decision>
+    <Decision id="d6" token="D6" status="live">
+    <Title>## D6 — P0.8 re-derives from recorded evidence, never from the current tree</Title>
+    <Body>
+**Raised by the P0 derivation pass**, open question 1. **Ratified 2026-08-09.**
+</Body>
+  </Decision>
+  <Decision id="d6.1" token="D6.1" status="live">
+    <Title>### D6.1 — The conflict</Title>
+    <Body>
+P0.8 says: *&quot;re-derive adjudication from the ledger instead of snapshotting it.&quot;* Read literally,
+that breaks a ratified correction from the previous track.
+
+**A59.2 Correction 156** (`../../archive/RM-AGENT-RELIABILITY/plan.md:8906`) is explicit and is
+enforced in code at three places (`src/calibration/report.ts:29–30`, `:169–172`, `:205`):
+
+&gt; Labels and context class are **stored** at fold and never recomputed at report time.
+
+Its argument is load-bearing and survives this plan intact:
+
+&gt; **A corpus whose labels move is not a corpus** — it is a query over present state wearing a
+&gt; corpus's vocabulary. The claim is durable; its label is not.
+</Body>
+  </Decision>
+  <Decision id="d6.2" token="D6.2" status="live">
+    <Title>### D6.2 — The conflict is verbal, and resolves</Title>
+    <Body>
+Correction 156 forbids recomputing a label from the **current tree** — `evaluateTargetComplete`
+running `lintGraceProject` against present state at report time. P0.8 asks to derive from **the
+ledger**, which is recorded, immutable evidence. Those are different operations, and only the first
+is forbidden.
+
+**The real defect P0.8 names is upstream of both.** At fold, `evaluateTargetComplete`
+(`src/grace-cursor.ts:1087`) hardcodes `runCommands: false` per A5.2, so any change carrying a
+`MustPassCommand` adjudicates to `complete: undefined` → `pending`, permanently — even after a
+final `--assertions final --run-commands` succeeded. The command evidence exists; nothing ever
+consults it, and the frozen label cannot be revisited.
+</Body>
+  </Decision>
+  <Decision id="d6.3" token="D6.3" status="live">
+    <Title>### D6.3 — The permitted shapes</Title>
+    <Body>
+Of the four options the derivation pass offered, **(a) is forbidden and (c) is the answer**, with an
+existing mechanism covering the timing gap:
+
+| Option | Verdict |
+|---|---|
+| (a) report-time re-eval, possibly with `runCommands` | **Forbidden.** Exactly what corr 156 exists to stop |
+| (b) fold-time `runCommands` when claims exist | **Permitted but not required.** Changes what fold costs and re-opens A5.2; do not adopt without its own decision |
+| (c) record command-run evidence as durable events; adjudicate from those records | **This is the answer.** Fold consults recorded evidence, not a live query. Labels stay stored and immutable |
+| (d) treat pre-fix pending snapshots as backfilled/excluded | **Already the ratified mechanism** for the timing gap — see D6.4 |
+</Body>
+  </Decision>
+  <Decision id="d6.4" token="D6.4" status="live">
+    <Title>### D6.4 — When evidence lands after fold, restate; do not recompute</Title>
+    <Body>
+If the final `--run-commands` runs after the epoch folded, fold cannot have consulted it. The
+sanctioned path already ships and must be used rather than reinvented:
+
+- **`CalibrationRestatement`** (A61) — a recorded provenance override applied at report time
+  **without mutating archives** (`src/calibration/report.ts:177–179`, `:229–231`).
+- **Correction 161** — restated/backfilled adjudications land in the `backfilled` bucket, which is
+  *visible and never pooled into `included`* (`src/calibration/report.ts:106–109`).
+
+That is the honest shape: the original label stays exactly as recorded, the correction is a separate
+recorded fact, and the corpus never silently absorbs a late-arriving pass as though it had been
+adjudicated on time.
+</Body>
+  </Decision>
+  <Decision id="d6.5" token="D6.5" status="live">
+    <Title>### D6.5 — Binding constraint on P0.8</Title>
+    <Body>
+**P0.8 must not remove or weaken fold-time storage of `CalibrationAdjudication`, and must not
+introduce any report-time call to `evaluateTargetComplete`.** The step's phrase *&quot;instead of
+snapshotting it&quot;* is imprecise and is **corrected here rather than rewritten in place**, per this
+repository's supersede-don't-rewrite discipline: read it as *&quot;the snapshot must be derived from
+recorded command evidence rather than from a `runCommands: false` lint.&quot;*
+
+If the bundle's design cannot satisfy P0.8 without touching corr 156's guarantee, **stop and report**
+— that is a wall (`plan.md` §3), not a tradeoff to make during execution.
+
+---
+</Body>
+  </Decision>
+  <Decision id="d8" token="D8" status="live">
+    <Title>## D8 — The cursor derivation is accepted, and its eight open questions are resolved</Title>
+    <Body>
+**Decision.** `p0-cursor-derivation.md` (2026-08-10, measured at `60c752f`) is accepted as the
+derivation gate for P0.4, P0.6, P0.8 and P0.10. It found six plan-vs-code contradictions, two of
+which are authority errors now corrected in F8.2. Every step is *correct but under-specified* — none
+is contradicted at the level of intent, which is why the phase proceeds rather than being re-planned.
+</Body>
+  </Decision>
+  <Decision id="d8.1" token="D8.1" status="live">
+    <Title>### D8.1 — Two bundles, not one</Title>
+    <Body>
+`C-CURSOR-INTEGRITY` takes **P0.4, P0.6, P0.10**; a separate bundle takes **P0.8**. The split is by
+surface and by wall: the first three are cursor and ledger honesty (`grace-cursor.ts`,
+`review/core.ts`) and sit on the critical path for `C-TOKEN-INTEGRITY`'s archive; P0.8 is calibration
+reporting under Correction 156 and is on nobody's critical path. Coupling them would let a schema
+question in the calibration corpus block a repair that an unarchivable bundle is waiting on.
+</Body>
+  </Decision>
+  <Decision id="d8.2" token="D8.2" status="live">
+    <Title>### D8.2 — The auto-open worker condition is unimplementable as written, and is corrected</Title>
+    <Body>
+P0.6 says auto-open requires that **no `--worker` was ever recorded** for the change. It cannot be
+checked: `advanceCursor:549` writes `options.worker ?? &quot;w0&quot;`, so every opened event records a worker
+whether or not the operator passed one. Absence is unobservable.
+
+**Corrected condition: refuse when more than one distinct worker value appears in the ledger.**
+
+The derivation proposed *refuse if worker ≠ w0*, which is over-strict — a run that only ever used
+`w3` is still single-controller, and auto-open across one worker's events fabricates nothing. The
+property that matters is *one controller*, not *the default name*.
+
+**Residual risk, stated rather than papered over:** a genuinely multi-worker run whose second worker
+has not yet emitted looks single-worker, and auto-open would synthesize an allocation that the second
+worker later violates. That failure is loud — the out-of-range event is caught by
+`validateEventsAgainstAllocations` — so the risk is a late error, not a silent fabrication. Acceptable.
+</Body>
+  </Decision>
+  <Decision id="d8.3" token="D8.3" status="live">
+    <Title>### D8.3 — The `NaN` orphan stays on disk after the fix, and stays diagnosed</Title>
+    <Body>
+It cannot be honestly repaired: the event has no recoverable id, so nothing can extend an allocation
+to cover it. `recover` diagnoses it as an unrecoverable orphan, writes a covering allocation for the
+valid ids around it, and leaves the file alone. Deleting it would be `rm -r run/` wearing a better
+name — the antipattern this step exists to retire.
+</Body>
+  </Decision>
+  <Decision id="d8.4" token="D8.4" status="live">
+    <Title>### D8.4 — Historical pending calibration pairs are forward-fixed only</Title>
+    <Body>
+Three folded epochs (`C-ADOPTION-SURFACE`, `C-PLAN-QUALITY`, `C-REVIEW-LANGUAGE-SCOPE`) are pending
+because `MustPassCommand` was never opted into at fold. They stay pending, permanently, and P0.8
+documents that rather than repairing it. Relabelling them is precisely what corr 156 forbids: *a
+corpus whose labels move is not a corpus.* The fix applies to future folds.
+</Body>
+  </Decision>
+  <Decision id="d8.5" token="D8.5" status="live">
+    <Title>### D8.5 — P0.8 takes shape (c). Shape (b) is not a cost-based fallback</Title>
+    <Body>
+D6.3 already ratified **(c)** — record command-run evidence as durable events and adjudicate from
+those records. The derivation's *&quot;(b) is D6-legal if schema cost is high&quot;* misreads it: (b) is
+*permitted but not required*, and D6.3 says explicitly **do not adopt without its own decision**,
+because it changes what fold costs and re-opens A5.2. Cost is not that decision. If (c) proves
+expensive, **stop and report** — the answer may be to accept the cost, and that is the authority's
+call.
+</Body>
+  </Decision>
+  <Decision id="d8.6" token="D8.6" status="live">
+    <Title>### D8.6 — P0.10's clearance is a recorded reason, not a cleared flag</Title>
+    <Body>
+Attaching the finding to the gate verdict note keyed by `findingId`, at **warning** severity, is
+accepted. The binding part is that **the reviewer's reason is recorded, not merely their clearance**
+— a boolean &quot;reviewed&quot; would recreate the hand-written `applied` problem of F1 in a new place. If no
+finding-level record can hold a reason, report that before building; inventing ledger schema is the
+authority's call.
+</Body>
+  </Decision>
+  <Decision id="d8.7" token="D8.7" status="live">
+    <Title>### D8.7 — Orphan discovery is a parallel reader; `listLooseEvents` keeps its contract</Title>
+    <Body>
+`listLooseEvents` is depended on for *ordered, valid* events. Widening it to return orphans would
+push the discrimination into every caller. A separate orphan inventory reads the same directory and
+reports what the ordered reader necessarily drops.
+</Body>
+  </Decision>
+  <Decision id="d8.8" token="D8.8" status="live">
+    <Title>### D8.8 — `status`'s epoch count is in scope now, against the derivation's recommendation</Title>
+    <Body>
+The derivation recommends deferring it to a P3 note. **Overruled.** `countLedgerEpochs`
+(`grace-status.ts:211`) counts folded `Epoch-N` wrappers only, so a field labelled `epochs` reports
+`0` throughout every in-progress run — the misreport that made F8 hard to see. The bundle already
+opens this surface, the fix is small, and deferring a known-misleading report to a later phase is the
+cascade the standing rule exists to prevent. It ships with P0.4.
+
+---
+</Body>
+  </Decision>
+    <Decision id="d9.1" token="D9.1" status="live">
+    <Title>### D9.1 — `extend-allocation` keeps its name, and becomes true</Title>
+    <Body>
+The flag claims an operation the code does not perform (it always writes a new covering opened, never
+extends). The executor recommended making it genuinely extend, which under D9 cannot mean in-place
+mutation. **It can mean the honest thing: extend the *effective* allocation by appending a superseding
+record.** The logical range extends; the record set only grows.
+
+So the resolution is neither a rename nor a rewrite: **keep `extend-allocation`, and make the
+effective covering range actually extend.** `AC-FIX-FLAG-HONESTY` is satisfied by the name and the
+behaviour agreeing, which this does.
+
+**What the plan still chooses.** How supersession is expressed and how fold derives the effective
+allocation set — a superseding `opened`, an explicit supersedes reference, or a validation rule that
+reads the newest covering allocation as authoritative. **One constraint on that choice:** a design
+that makes fold ignore unterminated ranges generally would delete a real check. The older range must
+stop mattering because it was *superseded*, not because termination stopped being required.
+</Body>
+  </Decision>
+  <Decision id="d6.6" token="D6.6" status="live">
+    <Title>### D6.6 — D6.4's restatement path cannot lift a `pending` label, and that forces D8.4 rather than choosing it</Title>
+    <Body>
+Found by the P0.8 derivation, confirmed against the types. **D6.4 names `CalibrationRestatement` as
+the sanctioned path for evidence arriving after fold.** But the type carries no outcome:
+
+```ts
+export type CalibrationRestatement = {
+  changeId; epoch; adjudicatedAt: &quot;backfill&quot;; reason?; authoringChangeId;
+};
+```
+
+A restatement overrides **`adjudicatedAt`**, nothing else, and `report.ts` keeps a pending pair
+pending *&quot;regardless of `adjudicatedAt` (A7.2)&quot;*. So a restatement can move a pair whose stored
+adjudication already holds a boolean into the `backfilled` bucket — which is what happened to
+`C-CALIBRATION` — but it **cannot turn `pending` into `pass`.**
+
+**This does not change D8.4; it explains it.** The three historical pendings are forward-fixed only
+because **no sanctioned mechanism exists to do otherwise**, not merely because relabelling would be
+distasteful. Correction 156's guarantee is enforced by the type, not just by the rule.
+
+**Recorded because D6.4 reads as an available remedy and is not one for this case.** A later author
+reaching for it on a pending pair will find it does nothing, and should find this note first.
+
+**Consequence for P0.8's design, and it is the decisive one:** the fix must ensure evidence exists
+**before** fold adjudicates, because after fold there is no honest path to a boolean. That closes the
+derivation's Q2 by itself — an outcome-carrying restatement would be a new mechanism for moving a
+stored label after the fact, which is precisely what corr 156 forbids.
+
+---
+</Body>
+  </Decision>
+  <Decision id="d10" token="D10" status="live">
+    <Title>## D10 — Calibration claims are never added after the outcome is known</Title>
+    <Body>
+**Decision.** `claimedConfidence` is recorded during execution, before the outcome is known, or it is
+not recorded at all. **A claim may never be added to an epoch after its work is complete**, including
+to make a new adjudication path exercisable on real data.
+
+**Raised concretely.** `C-CALIBRATION-COMMAND-EVIDENCE` built the fold join that adjudicates from
+recorded command evidence, and its own epoch carries no `claimedConfidence` — so `doctor` still reads
+**2 included, 0 excluded, 3 pending, 1 backfilled**, unchanged, and the new path is exercised only by
+tests. The executor asked whether to add a claim so this epoch would become the first joined
+adjudication.
+
+**Why not.** A calibration corpus is worth exactly what its claims cost to make. A claim written
+after the work is finished and green costs nothing and predicts nothing — it is a record of certainty
+dressed as a forecast. That is Correction 156's harm moved one step earlier: *a corpus whose labels
+move is not a corpus*, and neither is one whose **claims** are backfilled.
+
+The unchanged `2 / 0 / 3 / 1` is the **correct** number. The first real entry arrives when a bundle
+genuinely records confidence before knowing how it turns out, and that is worth waiting for.
+
+**Corollary for future demos:** a new adjudication path is proven by tests over fixtures, never by
+manufacturing corpus entries. If a path cannot be demonstrated without a fabricated claim, it is
+demonstrated by the fixtures and reported as such.
+</Body>
+  </Decision>
+  <Decision id="d11" token="D11" status="live">
+    <Title>## D11 — F12 and F9.8 are not deferred; the P1 assignment was filing, not justification</Title>
+    <Body>
+**Decision.** The two execution-contract documentation gaps get their own small bundle **now**,
+file-disjoint from `C-REPORT-HONESTY`. They are not held for P1.
+
+**The deferral was challenged and did not survive.** The authority assigned F12 (a `terminal` event
+is required to fold and `ngrace-execute/SKILL.md` mentions it zero times) and F9.8 (honest red-first
+requires the `cursor attempt` written in its own round trip, before the edit that follows) to P1
+because P1's heading reads *&quot;the authoring surface: diagnostics, generators, skills.&quot;* **That is
+topical filing.** The standing rule is that nothing is deferred without strong justification, and
+adjacency to a phase title is not a justification.
+
+**The one argument that could have justified it fails on reading.** P1.10 says *&quot;skills stop
+restating formats… and spend their words on workflow.&quot;* F12 and F9.8 **are** workflow content — P1.10
+is the step that would *add* them, not one that would rewrite them away. There is no rework to avoid.
+
+**Two facts against waiting:**
+
+1. **The gaps are expensive now.** Every executor prompt since their discovery has hand-carried both
+   rules, because the contract the executor is handed does not contain them. That recurring cost is
+   the measurement.
+2. **They are upstream of this phase, not beside it.** F9.8's gap *produces* the unsubstantiated
+   attempt pairs P0.10 was built to detect; F12's gap blocked a live close and cost a round trip.
+   Documenting them removes a defect source. Deferring them keeps generating findings — five
+   disclosed instances of F9.8's gap so far.
+
+**And &quot;P1 will handle it&quot; currently means unscheduled**: P1 has no derivation and no bundle. A
+deferral to an unplanned phase is a deferral to nowhere, which is the shape the standing rule exists
+to refuse.
+
+**No supersede is required.** `C-REPORT-HONESTY`'s approved spec lists them as NonGoals, and that
+stays true — they are out of *that* bundle, in their own. `M-SKILLS` is disjoint from its six
+modules, so both proceed without overlap. The new bundle must also update the packaged mirror under
+`plugins/ngrace/skills/ngrace/`, which `validate-marketplace.ts` checks for drift.
+
+**Recorded as a rule, not just a reversal:** when a finding is assigned to a later phase, the
+justification must be a *dependency or a conflict*, never a topic match. If the later phase would
+have to write the same words anyway, the assignment is a delay with no benefit.
+</Body>
+  </Decision>
+  <Decision id="d12" token="D12" status="live">
+    <Title>### D12 — The shared membership definition gets its own file, and the lint window is accepted</Title>
+    <Body>
+The draft plan hosts `listLooseEvents` / `listRunOrphans` in `src/artifact/paths.ts`. The stated
+reason was mechanical, and it is a real constraint — measured, not assumed: adding a not-yet-created
+path to `ObservedWriteScope` raises `change.graph-anchors-miss-write-scope`
+(`lint/core.ts:496–530`), because `linksByPath` is built from files that exist. Tested by
+substituting `src/artifact/run-membership.ts` into the draft's scope: **1 error**, restored to 0/0.
+
+**The constraint is real; the conclusion drawn from it is wrong.** `paths.ts` declares
+`SCOPE: Root tags, companions, anchor patterns, ARTIFACT_DIR` and `DEPENDS: none`, and imports only
+`node:fs` and `node:path`. `listLooseEvents` (`grace-cursor.ts:476`) reads and parses XML through
+`readGraceXmlArtifact`, clones nodes, and parses `Allocation` children into `RangeAllocation`.
+Hosting it there falsifies both the SCOPE line and `DEPENDS`, and the repair is to rewrite the module
+contract so it describes whatever landed. **That is the defect this bundle exists to fix, committed
+in its own first task.**
+
+**Decision: a new `src/artifact/run-membership.ts`, `LINKS M-ARTIFACT-TYPES`,** created as T-001's
+first act. No seventh module, no rewritten contract, and the file's own contract is true from birth.
+
+**The lint window is authorized and must be recorded, not avoided.** Between the plan declaring the
+path and T-001 creating the file, `ngrace lint` reports exactly one
+`change.graph-anchors-miss-write-scope`. `gate approve` does not evaluate lint
+(`evaluateApproveGate`, `gates/core.ts:196–236`), so approval is unaffected. The error is predicted
+by the plan, lives inside a single task, and `AC-SUITE-AND-LINT` requires 0/0 at close, not
+throughout. **An expected error that the plan named in advance is not the same object as a
+surprise**, which is the distinction P0.9 exists to make legible.
+
+**One under-scoped detail the plan must settle before approval.** Membership is not filename-only:
+`listLooseEvents` prefers the XML `id` attribute over the filename and drops non-positive-integer
+ids — which is exactly the class the `NaN` orphan belongs to. A filename-only predicate would
+therefore be a *second, disagreeing* definition, reintroducing F15 under a new name. The extraction
+must move the XML-reading body, and `RangeAllocation` / `parseAllocationNode` travel with it; the
+draft names only `LooseEvent`, `RunOrphan`, `OrphanSkipClass`.
+</Body>
+  </Decision>
+  <Decision id="d13" token="D13" status="live">
+    <Title>### D13 — P0.9's count is core-private state, not an undeclared field on a versioned surface</Title>
+    <Body>
+The draft's mechanism (D3) attaches the count by cast:
+`(result as LintResult &amp; { baselineExpectationCount?: number }).baselineExpectationCount = N`.
+
+**Rejected.** `grace-lint.ts:53` and `:191` emit `JSON.stringify(result, null, 2)` wholesale, so the
+property lands in a `schemaVersion`-bearing machine-readable surface **while being absent from
+`LintResult`**. A report that emits a field its contract does not declare is this bundle's own thesis
+failing on itself, and it would be the second time the count was chosen for convenience rather than
+truth.
+
+The call-site binding is right and survives: N counted at the `BaselineAssertions` `evaluateSection`
+call with `evaluateSemantically === true` is correct by construction, and the prefix heuristic the
+executor rejected would indeed over-count `TargetAssertions` extraction issues (`lint/core.ts:299`).
+
+**Decision: a module-private `WeakMap&lt;LintResult, number&gt;` in `src/lint/core.ts`.** It typechecks,
+stays inside `M-LINT-CORE`, is keyed per result so concurrent in-process lint runs cannot cross-talk,
+and — the point — **cannot leak into JSON output**. It is presentation state for
+`formatTextReport`, and modelling it as such is the honest shape, not a workaround.
+
+**Counterweight, required in T-006:** a test asserting the `--format json` output shape gains **no**
+new key. That test fails under the cast approach and passes under the WeakMap, which is what makes
+this a criterion rather than a preference.
+
+`M-LINT-TYPES` stays out of `AffectedAreas`. Declaring the field on `LintResult` would be the better
+design in a world where the spec allowed it; it does not, and superseding an approved spec to add one
+optional number is not a trade worth making.
+</Body>
+  </Decision>
+  <Decision id="d12.1" token="D12.1" status="live">
+    <Title>### D12.1 — Two corrections to D12, neither of which changes the decision</Title>
+    <Body>
+**`DEPENDS` was cited wrongly.** `RM-GOVERNED-PATH` D12 said hosting the membership body in `paths.ts` would falsify
+*&quot;both the SCOPE line and `DEPENDS`&quot;*. `DEPENDS` does not describe file imports: it lists **M-\***
+graph anchors (`lint/catalog.ts:113` — *&quot;LINKS accepts M-\*, DF-\*, and V-M-\*; DEPENDS accepts M-\*
+only&quot;*), and `src/gates/core.ts` declares `DEPENDS: none` while importing widely. Adding an
+`./artifact/xml` import to `paths.ts` would not have falsified it.
+
+**The SCOPE argument stands alone and is sufficient.** `paths.ts` declares
+`SCOPE: Root tags, companions, anchor patterns, ARTIFACT_DIR`; an XML-reading `run/` inventory is not
+that, and accommodating it means editing the SCOPE line to describe whatever landed. The decision is
+unchanged — `src/artifact/run-membership.ts` — on one true reason instead of one true and one
+invented.
+
+**The out-of-scope importer list was short by one.** `RM-GOVERNED-PATH` D12 and the plan name
+`src/calibration/report.ts` (M-CALIBRATION) as the consumer the re-export protects. Measured, four
+production files import from `grace-cursor`: `gates/core.ts:39`, `review/core.ts:68`,
+`calibration/report.ts:53`, and **`verification/localize.ts:73` (M-LOCALIZE)** — also outside
+`AffectedAreas`. The re-export covers both, and it must carry the **types** (`LooseEvent`,
+`RunOrphan`, `OrphanSkipClass`, `RangeAllocation`), not only the functions, or the out-of-scope
+importers break.
+</Body>
+  </Decision>
+  <Decision id="d14" token="D14" status="live">
+    <Title>### D14 — Error reporting invariant: fail fast **with** context, and preserve the cause as an object</Title>
+    <Body>
+Raised by the maintainer from [F25.1](#f25.1), which recorded the erasure the F25 repair introduced.
+F25.1 is the observation; this is the rule that binds future work. Scope: **this repository's CLI and
+internal surfaces.** It is deliberately *not* GRACE skill text — the principle is general software
+engineering rather than contract-first methodology, and shipping it as product would widen the
+methodology's remit without argument. Revisit that if the skills ever grow an observability section.
+
+**Principle.** A fallback message is not an error report. Broad execution surfaces must fail fast *with
+full diagnostic context*. Catch-all wrappers that flatten distinct error states into uniform strings
+are prohibited.
+
+#### 1. Preserve the cause as an object, not as a copied string
+
+When a boundary converts an unexpected error into a declared error type, it must **attach the original
+error** (ES2022 `cause`), not merely copy its message. A copied string loses the original's type
+identity, its custom properties, and any nested causes, and the new error's `.stack` then points at the
+conversion site rather than the throw site — a stack that is confidently wrong about where the failure
+came from.
+
+**Channel split, which is the part that keeps this compatible with a machine contract.** Stdout is the
+machine contract; stderr is the human diagnostic. The stack goes to stderr in *both* text and JSON
+mode, because a JSON surface's entire stdout must parse. Putting a stack *inside* the envelope is a
+different proposal — it is a `schemaVersion` change to `GraceCommandErrorEnvelope` and must be decided
+deliberately, never implied by this rule.
+
+Note the existing tension this rule does **not** silently override: `runQueryCommand`'s doc comment
+promises failures rendered *&quot;without stack traces.&quot;* That sentence is about **stdout**, and stays true
+under the split above. Any future reading that puts stacks on stdout contradicts it and needs its own
+decision.
+
+Deliberately **not** adopted: the maintainer's original wording said *unredacted*. Rejected as an
+absolute — error messages can carry tokens or credentials lifted from a URL or environment variable,
+and a rule that forbids ever redacting one is a hostage to fortune. The requirement is that context is
+**unsummarized**, which is what the clause is actually protecting.
+
+#### 2. Anti-flattening
+
+A catch-all handler must never map heterogeneous failures onto a static string literal (`&quot;Unable to
+complete the GRACE command.&quot;` was the live instance). Converting varied failure modes into uniform
+output sanitizes the reporting layer and manufactures an illusion of controlled execution while
+destroying observability. `ok: false` is honest, the exit code is right, and the one thing the reader
+needs is gone.
+
+**One carve-out, because the code already reaches it:** when the thrown value genuinely carries no
+information (`throw undefined`, a non-`Error` rejection), a synthesized message is permitted — and must
+be **distinguishable** from a real one, so the carve-out cannot quietly become the rule again.
+
+#### 3. Fail fast means halt the work, not bubble the exception
+
+The maintainer's original third clause required unexpected failures to *&quot;halt immediately and bubble up
+the unredacted context, rather than swallowing the state.&quot;* **Adopted in substance, rewritten in
+mechanism, because as literally worded it re-opens F25.** `runGraceCommand` deliberately catches,
+renders, and sets `process.exitCode` instead of letting the exception escape; that is exactly what
+produces the parsable envelope and the error-supplied exit code. Bubbling instead means citty prints a
+stack and a `--format json` consumer gets nothing to parse — the defect `C-LEGIBLE-FAILURE` closed.
+
+Two things were being conflated:
+
+- **Halting the work** — no continuation, no inferred intent, no partial write. **Mandatory.**
+- **Letting the exception cross the process boundary unrendered** — **not** required, and at the
+  outermost boundary not permitted.
+
+Restated: *halt immediately; never continue, infer, or perform partial work. The outermost boundary may
+convert the exception into the declared error contract, provided it preserves the cause per clause 1.*
+An error boundary exists to turn an exception into a contract; forbidding that forbids having an error
+contract at all.
+
+#### 4. Unwinding, which is where the mechanism gets subtle
+
+- **`finally` still runs.** Catching at a boundary does not skip intermediate cleanup — the engine
+  unwinds through `finally` on the way to the catch. Arguments for propagation based on resource safety
+  do not apply.
+- **Unwinding stops at the innermost boundary, and there are now two.** Leaf commands wrap their own
+  bodies in `runGraceCommand`; `C-LEGIBLE-FAILURE` T-003 added an outer wrap around the whole run. When
+  a leaf catches internally it renders and returns *normally*, so the outer boundary sees no exception
+  and cannot distinguish success from already-reported failure. The only available signal is
+  `process.exitCode`, which the plan forbade polling for good reason. Benign today because the inner
+  boundary consumes the error and nothing double-renders; **not** benign the moment an outer boundary
+  needs to act conditionally on failure. Nested boundaries need a protocol, and there is none.
+- **Async stacks truncate.** Across `await` the captured stack frequently omits the logical caller
+  chain, so &quot;capture the stack&quot; delivers less than the phrase promises — a further reason clause 1
+  requires an object chain rather than a string.
+- **Unawaited rejections escape every boundary.** `await originalRun(context)` catches rejections of the
+  awaited promise. A promise created inside a leaf and never awaited rejects *after* the boundary has
+  returned. Verified at `cae1e61`: there is no `unhandledRejection` or `uncaughtException` handler
+  anywhere in `src/`. So the process can exit **0** with an error that was never reported — the loudest
+  form of the failure this rule exists to prevent, caught by neither the envelope nor the exit code.
+
+#### Compliance: the rule ships with its own repairs scheduled
+
+The rule is not retroactively satisfied. Two gaps are measured, not speculative, and both sit on the
+same seam (`src/query/errors.ts` plus the process entry point), so they are **one bundle**:
+
+1. `GraceCommandError`'s constructor takes `{ exitCode?, issues? }` and has **no `cause`**. Clause 1 is
+   therefore currently unsatisfiable by construction; `C-LEGIBLE-FAILURE` T-003 copies the message
+   because attaching the cause was not available to it.
+2. No `unhandledRejection` / `uncaughtException` handler exists, per clause 4.
+
+Sequenced **after** Bundle B (`C-ESCALATION-HONESTY`), which is in flight — not displacing it. Recorded
+here rather than as an aspiration so the rule arrives with its compliance already owed, which is the
+same standard [F25.1](#f25.1) applied to the repair that raised it.
+
+---
+</Body>
+  </Decision>
+  <Decision id="d16" token="D16" status="live">
+    <Title>### D16 — A criterion may only bind evidence that lives in an artifact</Title>
+    <Body>
+**Rule.** An acceptance criterion must be satisfiable by reading the change bundle. It may *cite* a
+commit, a diff, or a branch as convenience, but it must not make one the **only** place its evidence
+lives. Anything a criterion depends on is copied into the ledger, the verdict, or the decision record at
+close, in the same act that judges it.
+
+The test is one question: *after this branch is squashed, amended, rebased, or deleted, can the criterion
+still be checked?* If not, the criterion is not binding evidence — it is binding a pointer.
+
+**Consequences.**
+
+- `AC-COMMIT-BODY-PROTOCOL`-shaped criteria stay legal, and now owe a quoted excerpt in the verdict note
+  rather than a hash. A hash is a pointer; the sentence being asserted is the evidence.
+- Findings that cite commits — F29's `86583b6`, F30's three, F34's measurements — should quote the
+  measurement alongside the ref. F29 already does this, which is why its citation survived being right.
+- **Squash-merging stays.** It was considered and kept: the CHANGELOG is generated from PR subjects, and
+  the alternative — mandating merge commits for governed branches — treats git as the evidence store,
+  which is the assumption this decision rejects. Tagging a branch tip before deletion remains worthwhile
+  for forensics, but it is not the fix and must not be relied on as one.
+
+**Not promoted to skill text, and this is a decision rather than an omission.** The rule is squarely
+contract-first methodology and would belong in `ngrace-plan`. It is held back one bundle deliberately:
+D16 has exactly one worked instance (F30), and the roadmap's own history is that a rule shipped from a
+single instance gets weakened by the next one — [F9.3](#f9.3) was refuted by the very next task after it
+was written. It is recorded here as binding on this repository now, and promoted to product once a second
+bundle has authored a criterion under it. That is a dependency, not a queue: the promotion is blocked on
+evidence that does not yet exist.
+
+---
+</Body>
+  </Decision>
+  <Decision id="d17" token="D17" status="live">
+    <Title>### D17 — An acceptance-criterion id is an evidence anchor, and freezes the moment a run event cites it.</Title>
+    <Body>
+Raised by the executor after [F41](#f41)'s repair: `AC-COVERAGE-NO-BOILERPLATE` no longer describes
+its own predicate. The check stopped hunting boilerplate sentences and now binds the resolution
+path, so the id names the mechanism the criterion was **repaired away from** — F41's own defect,
+sitting in the contract's identifier. The executor was right to raise it, and right not to act.
+
+**Measured before deciding.** The id appears in `spec.xml` (4), `plan.xml` (8), `catalog.test.ts`
+(2) — all editable — **and in two immutable recorded run events**:
+`run/2-T-001-attempt.xml`, whose fail signature is `test:AC-COVERAGE-NO-BOILERPLATE`, and
+`run/4-T-001-escalation.xml`.
+
+Renaming would orphan a citation inside recorded evidence. That is [F37](#f37) exactly: the
+adjudication survives, the ability to *re-derive* it does not, because the subject it names no
+longer resolves. A rename buys an accurate label and pays with an unverifiable attempt pair — and
+the attempt pair is the thing this roadmap spent P0 making trustworthy.
+
+**Decision.** The id is frozen. The criterion **body** carries the mechanism, states plainly that
+the id names the historical one, and the failure conditions name the deleted-sentence hunt as a
+defect. A label is not a contract; the body is.
+
+**The forward rule this yields — the only part that generalizes.** Name an acceptance criterion for
+the **property** it protects, never for the mechanism that happens to implement it. Mechanisms are
+exactly what review replaces; properties are what survive. `AC-COVERAGE-SURFACE-SPECIFIC` would
+have survived this repair unchanged. This applies at authoring time, when the id is still free —
+after the first `cursor attempt`, it is not.
+
+**Promotion held.** Same reason as [D16](#d16): one worked instance. `ngrace-plan` gets it when a
+second bundle names a criterion after a mechanism and pays for it.
+
+---
+</Body>
+  </Decision>
+    <Decision id="d19" token="D19" status="live">
+    <Title>## D19 — an approval covers the current step only</Title>
+    <Body>
+**Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
+runs, which raised the ambiguity, and run 4, whose human had to state the
+per-state rule in-session because the skills do not.
+
+**The decision.** An approval covers the **current step** only. Approval of
+the spec is not approval of the plan. Approval of the plan is not approval
+of apply, archive, or `applied`. Each transition waits on its own sufficient
+phrase from the closed lexicon, matching that artifact. The skills **must
+say this explicitly**.
+
+**Why.** Run 4 asked before `draft → approved` on the spec, then asked again
+for the plan ([F88.2](#f88.2)). At close the human had to say, in session,
+that the rule is per-state and must not be extrapolated — because
+`ngrace-spec` and `ngrace-plan` each ship a lexicon for *their* artifact,
+`ngrace-execute` step 8 asks for &quot;explicit apply confirmation&quot; without a
+closed phrase, and nothing anywhere says the earlier phrase does not travel.
+The apply/archive lexicon candidate under [F92](#f92) already left that
+gap on this entry. This decision answers the scope question those lexicons
+were silent on.
+
+**What it costs.** As skill prose it is a control shipped as a request
+([F89](#f89)). Enforcement still arrives with [D18](#d18)'s fingerprint
+binding an approval to bytes: a plan `approved` under a spec-only phrase
+would be a status whose matching record, once D18 ships, either does not
+exist or fingerprints the wrong artifact. Until D18 lands, this decision
+is a sentence an agent may weigh and discard — the same class F89 named,
+now written down so the next brief cannot pretend the skills already said
+it.
+
+**What this does not do.** It does not invent an apply/archive lexicon.
+It does not make `gate approve` write status — that is D18. It does not
+claim the product can see a phrase — that is [F88.3](#f88.3) candidate (b),
+not ratified. It answers only *how far one phrase reaches*.
+
+**This decision is revisable, and here is what would revise it.** If D18
+ships and measurement shows per-step phrases are frequent enough to be
+pasted unread, the correct response is the one D18 already recorded:
+narrow what requires ratification, not a batch phrase that silently
+covers the next three states. If `RM-VERIFIED-APPROVAL` ships, the unit
+of approval (per spec, per bundle, per batch) is an open question of
+that entry and may supersede this one. And if a later reader finds a
+legitimate workflow that cannot name each step, that is evidence against
+this shape, not a reason to treat one phrase as a season ticket —
+**amend the decision instead.**
+
+**Sequencing.** Named follow-up bundle: **`C-APPROVAL-SCOPE`**. It writes
+the per-step rule into the spec, plan, and execute skills (and their
+packaged mirrors). It does not implement D18. Not created here.
+</Body>
+  </Decision>
+  <Decision id="d20" token="D20" status="live">
+    <Title>## D20 — the authority owns the close</Title>
+    <Body>
+**Decided 2026-08-15 by the maintainer.** Decision, not a deferral.
+
+**The decision.** `--assertions final`, `review`, `gate verdict`, `gate apply`,
+`gate archive`, the `applied` status writes, and the archive move are the
+**authority's** acts, not the executing agent's. [D19](#d19) said an approval
+covers the current step only; this says who performs the steps after the plan
+is approved. The two compose: the plan phrase does not travel, and the actor
+who would have carried it does not perform those acts.
+
+**Why.** Every dispatch in this phase has had to contradict the shipped
+`ngrace-execute` skill on that split, and the executor has flagged it each
+time ([F84](#f84)). The close of `C-CURSOR-TASK-RESOLVER` was performed this
+way (PR #59 commit body: terminal, fold, `--assertions final --run-commands`,
+terminal, fold, review, `gate verdict`, `gate apply`, `gate archive`, then
+the applied writes and the archive move — &quot;The authority owns the close&quot;).
+
+**The shipped skill is now wrong.** `skills/ngrace/ngrace-execute/SKILL.md:40–43`
+(steps 7–10) still assign `--assertions final`, apply confirmation, `review`,
+`gate verdict`, `gate apply`, `gate archive`, the `applied` status writes, and
+the archive move to the executing agent. Do not fix the skill here — that is
+its own bundle.
+
+**The trigger was consumed without payment.** [F84](#f84) owed the decision to
+*&quot;whichever bundle next opens `ngrace-execute`&quot;*. That bundle was
+`C-CURSOR-TASK-RESOLVER`. Its approved plan forbade deciding the split
+(`plan.xml:396–403`, `:767–768`: *&quot;Do not decide F84 standing executor versus
+operator close ownership while editing ngrace-execute&quot;*). The file was opened;
+the obligation was scoped out. Without this record the trigger expires unpaid.
+A trigger consumed by a bundle scoped to not pay it is not a discharge.
+
+`C-CURSOR-TASK-IDENTITY`'s plan-approve commit had already named the same
+trigger and deferred it to &quot;the same branch&quot;; RESOLVER then inherited the
+file and the forbid. The pattern happened twice in one chain.
+
+**What this does not do.** It does not invent an apply/archive lexicon (still
+the candidate under [F92](#f92)). It does not make the gates write `status` or
+move the bundle (still D1 / `src/gates/command.ts:15`). It does not rewrite
+the skill. It answers only *who* performs the close acts.
+
+**This decision is revisable, and here is what would revise it.** If a
+harness is built in which the executing agent cannot write `status` or move
+the bundle — a host-enforced split, not a sentence — the skill can assign
+the *request* for those acts to the agent and the *writes* stay with the
+host. Until that exists, assigning the writes to the agent is the claim D20
+refuses. If measurement shows the authority-owned close is the bottleneck
+that sends work around the governed path, amend this decision rather than
+quietly handing the writes back.
+
+**Sequencing.** Named follow-up bundle: **`C-APPROVAL-SCOPE`**, the same
+bundle [D19](#d19) already named. It already opens the spec, plan, and
+execute skills. It now also writes that the close acts listed above are the
+authority's, and removes the execute-skill sentences that assign them to
+the executor. It does not implement D18. Not created here.
+
+---
+
+</Body>
+  </Decision>
+  <Decision id="d21" token="D21" status="live">
+    <Title>## D21 — a schema that cannot represent an operation truthfully is the thing that is wrong</Title>
+    <Body>
+**Decided 2026-09-01 by the maintainer**, on the `C-SUPERSEDE-RECORD` design question. His words:
+
+&gt; If an operation cannot be represented truthfully under the current schema without breaking a
+&gt; foundational skill rule, the constraint is wrong, not the rule.
+
+**The situation.** `ngrace supersede` must fold before archiving or the discarded bundle's cost is
+never recorded ([F134](#f134), [F134.1](#f134.1)). Fold refuses without a `terminal` event inside the
+covering allocation (`src/grace-cursor.ts:2556-2559`). But `terminal` is defined as a **completion
+judgment**, and the skills explicitly forbid the binary from deriving one —
+`skills/ngrace/ngrace-execute/SKILL.md:87`: *&quot;Emitting terminal is a judgment about completion, not
+structural state the binary can derive — `recover --fix` does **not** emit terminal.&quot;*
+
+So an automated supersede had exactly three options: emit `terminal` from the binary and break the
+foundational rule; relax fold's range-close invariant; or add an event kind meaning *abandoned*.
+
+**The ruling selects the third**, and generalises: when the only ways to represent a real operation
+are to break a rule or to lie, the schema's expressive gap is the defect. **A `discarded` kind is
+therefore back in scope**, and `AC-NO-NEW-KIND` is withdrawn from the draft spec.
+
+**This does not make [F134.2](#f134.2) wrong; it makes its scope explicit.** F134.2 rejected a new
+kind as a *legibility* fix and was correct on that question: measured, no surface claims the
+abandoned work completed — `cursor show` reports `Complete: n/a`, and `superseded` dominates every
+status projection. The kind now returns on a **different and stronger justification**: not that the
+record reads ambiguously, but that the binary cannot produce the record at all without asserting a
+completion that did not happen. The authority's original argument was the weak form of a right
+conclusion, and rejecting the weak form was correct.
+
+**Measured scope of the change**, before it is briefed:
+
+- `KNOWN_KIND_STATE` (`src/grace-cursor.ts:308-319`) gains one entry; `KNOWN_EVENT_KINDS` is
+  definitionally its keys (`:327`).
+- The length-and-exact-list pin at `src/grace-cursor.test.ts:3199-3201` moves 9 → 10.
+- Fold's range-close test (`:2556-2559`) must accept the new kind as a range-closer beside
+  `terminal`, and grammar's `ledger.range-unterminated` with it.
+- A `CursorState` may be needed. **Correction, 2026-09-01:** this decision first said every non-test
+  reference to `paused-pending-approval` was &quot;7 sites … inside `grace-cursor.ts` alone&quot;. **False.**
+  The authority grepped the *quoted* string and reported the result as the count of all references;
+  measured properly there are **14 non-test hits across two files** — `src/grace-cursor.ts` and
+  `src/lint/catalog.ts:896`. Same error family as reading an exit code through a pipe ([F135](#f135)):
+  a proxy measured, the thing reported. **The conclusion survives on a different measurement:**
+  `complete` itself has only three non-test sites, all definitional in `src/grace-cursor.ts` (union
+  `:163`, `CURSOR_STATES :172`, terminal map `:317`), so adding a state beside it is cheap.
+- The `&lt;kind&gt;` list in `ngrace-execute/SKILL.md` and its packaged mirror.
+
+**The standing rule.** Before contorting an operation to fit the schema, ask whether the schema can
+express it. Reach for a rule exemption only after the representation question has been answered, and
+never resolve the conflict by having a binary assert a human judgment.
+
+</Body>
+  </Decision>
+  <Decision id="d22" token="D22" status="live">
+    <Title>## D22 — full ceremony until the counter ships, and that is what ends the collection</Title>
+    <Body>
+**Decided 2026-09-02 by the maintainer.** His words: *&quot;full ceremony for now. we are still
+collecting stats for the `pilot`&quot;*, and on the stopping rule, *&quot;I agree with your stopping rule.&quot;*
+
+**The decision has two halves.**
+
+**1. Every bundle takes the full ceremony, however small its diff.** `C-REASON-CONSTANTS` extracts a
+single named constant; the executor observed that a whole bundle — spec, plan, two approvals,
+execution, close — is heavy beside that diff, and asked whether it was worth it. It is, and not
+merely for consistency's sake: **a selective record is the defect [F134](#f134) named.** An archive
+that prices some bundles at zero is what made pilot undecidable. Skipping ceremony whenever a diff
+looks small would sample only the expensive cases and bias the very number the sampling exists to
+produce.
+
+**A small bundle is also the more informative sample.** It isolates ceremony cost from work cost.
+Every other point on the curve confounds them — `C-LINT-PHASE-HONESTY` was five tasks plus a
+supersede; `C-SUPERSEDE-RECORD-2` carried a real design question. A one-constant change is nearly
+pure overhead, which makes it the best measurement of what the ceremony itself costs.
+
+**2. The collection ends when `C-AMENDMENT-COUNT` ships.** Until then, bundles are run partly *in
+order to* generate samples, and that cost is deliberate. Once the counter lands, re-ratifications and
+supersede-chain depth are derived from data the ledger already holds, so the numbers accrue on their
+own and no bundle need be run for the sake of measurement. **That converts &quot;collecting stats&quot; from an
+activity into a property of the system** — which is what `RM-PILOT-APPROVAL:80` meant by calling the
+count &quot;the measuring instrument&quot;.
+
+**So pilot is decided on:** what the counter reports, plus the hand-recorded costs in
+[F134](#f134), [F136](#f136), [F137](#f137), and this bundle. Not on an open-ended tally.
+
+**Why a stopping rule was needed at all.** Without one, &quot;still collecting&quot; runs indefinitely and each
+bundle's ceremony is charged against a decision that never arrives. The rule was proposed because the
+stopping condition existed only in conversation; it is recorded here so a later session does not
+inherit an unbounded mandate.
+
+</Body>
+  </Decision>
+  <Decision id="d22.1" token="D22.1" status="live">
+    <Title>### D22.1 correction — the two halves are about different things, and one bundle cannot be both. **[verified]**</Title>
+    <Body>
+[D22](#d22) argues that a small bundle is *&quot;the more informative sample, because it isolates ceremony
+cost from work cost&quot;*, and separately that *&quot;the collection ends when `C-AMENDMENT-COUNT` ships&quot;*.
+**The executor showed those cannot both apply to `C-REASON-CONSTANTS`**, which is sequenced **after**
+that bundle's apply. Either the sample is this bundle and the stop comes after it, or the stop is the
+counter and this is an ordinary cleanup. As drafted, D22 asserted both.
+
+**The resolution, and the halves stay — they simply govern different things.**
+
+- **Half 1 — full ceremony for every bundle — is standing practice, not a sampling device.** It holds
+  before and after the counter, for reasons that never depended on measurement: a selective record is
+  the defect [F134](#f134) named, and ceremony skipped by size is ceremony skipped exactly where the
+  record is cheapest to falsify.
+- **Half 2 — the end of the collection — is about *deliberate* sampling only.** Before the counter,
+  ceremony is paid partly *in order to* generate a datum, and that cost is chosen. After it, the
+  numbers accrue from data the ledger already holds, so nothing need be run for measurement's sake.
+
+**Therefore `C-REASON-CONSTANTS` is an ordinary T1 cleanup that pays full ceremony under half 1**, and
+its cost is captured by the counter automatically. **It is not &quot;the informative sample&quot;** — that
+argument belonged to bundles running *before* the instrument existed, and by its own sequencing this
+one does not. The spec should carry half 1's reasoning and the stopping rule as context, not claim to
+be a measurement.
+
+**What the drafting error was.** Two true arguments were fused into one decision because they arrived
+in the same conversation turn: *why pay ceremony at all* and *when does deliberate collection stop*.
+They answer different questions and have different lifetimes. Recorded so a later reader does not
+inherit the contradiction, and so no future bundle justifies itself as a sample after the instrument
+has shipped.
+
+## Slip register — 2026-08-15
+
+Every governance slip of the last two days, and the mechanism that must
+catch it. A row ends in a shipped check, a named bundle, or a recorded
+acceptance. A row with none of those is itself the finding.
+
+| Slip | What should have refused it | Where the repair is |
+|---|---|---|
+| Writer emits a guessed task id (`T-000` / `T-001`); written close protocol walks into `cursor.unknown-task` ([F90](#f90), [F90.1](#f90.1)) | The writer, before the event exists — A13.2, never a guessed id. The checker that then fires is doing its job. | **Paid in-tree** by **`C-CURSOR-TASK-RESOLVER`** (PR #59, `49c3c94`): inherit a declared task or refuse; no `--task` flag; not a blacklist. `C-CURSOR-TASK-SENTINEL` was the first name and was superseded. Residuals: regenerate still re-derives an undeclared last event ([F90](#f90)); range hole ([F90.1](#f90.1)); operator-supplied ids unchecked at write ([F98](#f98)); published `6.2.0` still invents ([F99](#f99)). |
+| Archive gate permits a cursor lint rejects ([F93](#f93); run 4 archived this way) | Archive, when `run.xml` would fail `cursor.unknown-task` (or any cursor error). | **`C-ARCHIVE-CURSOR`**, as a binding requirement on P3's derivation / P3.1 `lifecycle finish`. Not created here. P3 stays objectives-only. |
+| A brief asserted the maintainer had ratified a spec; executor wrote `approved`; `gate approve` permitted ([F88.3](#f88.3)) | A gate that reads a phrase bound to bytes. D18's fingerprint does not hold the phrase. | **D18** / **`C-APPROVAL-FINGERPRINT`** (decided 2026-08-14, unshipped; authorized to start). Phrase attestation is [F88.3](#f88.3) candidate (b), **not ratified** — that half of the row is a candidate, not a shipped check, a named bundle, or an acceptance. |
+| A brief named `docs/plans/**` as a deliverable of a spec that forbids it ([F94](#f94)) | Nothing can refuse a brief (not an artifact). The *plan* that brief would produce should error on a path outside a machine-readable spec path bound. Today's check does not look at paths ([F52](#f52)). | **`C-PLAN-SCOPE-PATHS`** (named; not created). Brief-versus-spec itself **ends in nothing** and must: briefs are not a governed surface. |
+| Agent mutated an approved plan in place (run 4 #34; [F88.2](#f88.2)) | `approved-contract-drift` ([F7](#f7)) — shipped, and defeated because the approval was never committed as its own snapshot. Skill immutability (`ngrace-plan` `:29–33`, `ngrace-execute` `:8`) is a request ([F89](#f89)). | **`C-APPROVAL-FINGERPRINT`** ([D18](#d18): fingerprint of approved bytes) plus **`C-APPROVAL-SCOPE`** ([D19](#d19): skills say the phrase does not travel; [D20](#d20): the close acts are the authority's). The shipped check exists and did not fire. |
+| F84's trigger — whichever bundle next opens `ngrace-execute` — was consumed by `C-CURSOR-TASK-RESOLVER`, whose approved plan forbade deciding the split ([D20](#d20)) | Nothing. A trigger is a sentence. A bundle scoped to not pay it will not pay it. | **D20** (decided 2026-08-15). Skill text lands in **`C-APPROVAL-SCOPE`**. The unpaid obligation is recorded so the trigger cannot expire. |
+| Governance writes landed before the spec that would gate them ([F88.1](#f88.1), [F88.1.1](#f88.1.1)) | The lifecycle, on a module-contract / graph write with no approved change that owns it. Nothing refuses today. Lint is green. | **`C-GOVERNANCE-ORDER`** (named; not created). P4.1 owns first-module bootstrap ([F91](#f91)); this is the ordering hole beside it. No shipped check. No acceptance. |
+
+No row is an acceptance of the slip. The discard of the 2026-08-15
+self-certified `approved` is a named exception ([F65](#f65) class), not a
+repair and not a ratification.
+
+---
+</Body>
+  </Decision>
+  <Decision id="d23" token="D23" status="live">
+    <Title>## D23 — pilot is decided on `supersedeChainDepth`, not on the amendment count</Title>
+    <Body>
+**Decided 2026-09-02 by the maintainer**, on [F139](#f139), at the close of `C-AMENDMENT-COUNT` —
+the moment [D22.1](#d22.1) names as the end of the deliberate collection, when pilot becomes
+decidable.
+
+**The premise that forced the decision.** `RM-PILOT-APPROVAL:80` calls the amendment count &quot;the
+measuring instrument&quot;. The instrument now exists and works — a synthetic re-ratification reads 1, a
+revert reads 2 — and it reads **zero on every bundle in the corpus**. That zero is honest: verified
+independently of the derivation by parsing all 53 ledgers on disk, no bundle has ever had an approved
+spec or plan amended and re-approved at a changed fingerprint. This project does not correct by
+amending; when a spec is wrong it supersedes the whole bundle. The correction cost is carried
+entirely by `supersedeChainDepth`, which reads &gt; 0 on 8 of 59 change objects.
+
+**The variants put to the maintainer, and why the runners-up lose.**
+
+| | Variant | For | Against |
+|---|---|---|---|
+| **A** | **Decide pilot on `supersedeChainDepth`**; treat the amendment counter as instrumentation for a mechanism not yet used. | Uses the signal the project actually generates. Costs nothing and delays nothing. Keeps both counters meaning exactly one thing. | The pilot's own wording named amendments, so the criterion is being read against a different number than it says. |
+| **B** | Widen the instrument to report both costs under one heading. | Makes the number legible at a glance without knowing which verb the project uses. | [D21](#d21) forbids conflating two costs in a derivation that must represent the operation truthfully. Buys presentation with a schema ruling. |
+| **C** | Defer pilot until `C-LINT-PHASE-HONESTY-2` produces the first non-zero `reRatificationCount`. | Truest to the criterion as written; decides on the named number rather than a substitute. | That bundle is last in the order, so it pays a full branch of delay for a single data point — and one datum would not make the count informative anyway. |
+
+**Ruled: A.** The counter stays as built and stays honest. **Its zero must never be read as &quot;amendment
+is cheap&quot;** — it means amendment is not the correction verb here, and a future reader who forgets that
+will draw the opposite conclusion from the same number.
+
+**What this does not do.** It does not change the derivation, retitle either counter, or amend
+`RM-PILOT-APPROVAL`. `reRatificationCount` remains bundle-internal and `supersedeChainDepth`
+cross-bundle, exactly as `C-AMENDMENT-COUNT` shipped them. If this project ever starts amending
+approved artifacts in place, the instrument is already there and the reading flips back without code.
+
+**Sequencing note.** The ruling was given while the executor held the tree for the
+`C-REASON-CONSTANTS` plan and was recorded once that plan landed, so the write could not surface in
+that bundle's scope audit as a new out-of-scope file.
+</Body>
+  </Decision>
+    <Decision id="d25" token="D25" status="live">
+    <Title>## D25 — a CI-red hotfix on an unmerged branch does not require a change bundle</Title>
+    <Body>
+**Decided 2026-09-02 by the maintainer**, on the [F146](#f146) fix committed at `4004170`, when
+`.ngrace/changes/active` was empty and no bundle owned the write.
+
+**The ruling, as given: hotfix.** The write stands ungoverned, and this entry is the record that
+explains why a production edit exists with no spec, no plan, and no ledger.
+
+**Why a retro-bundle was the wrong alternative.** The choice was between leaving the write governed
+by nothing and authoring a bundle after the fact to describe a change that had already happened. The
+second is worse: a spec written to match a completed diff cannot fail, its `BaselineAssertions`
+describe a tree that no longer exists, and its ledger would record an execution that never occurred.
+That is a **fabricated** governance record, and this repository's whole product is the claim that its
+records are not fabricated. Ungoverned-and-labelled beats governed-and-false.
+
+**The boundary — this is the authority's derivation from a one-word ruling, not the maintainer's own
+words, and he should correct it if it reaches too far.** The exemption covers a change that is *all*
+of the following:
+
+- **on an unmerged branch**, never on `main`;
+- **restoring a red CI to green**, not adding capability;
+- **test-or-tooling only**, with no production behaviour change — `4004170` touched one `.test.ts`
+  file and nothing that ships;
+- **verified in both directions**, so the repaired test is shown to still discriminate rather than
+  merely to pass.
+
+It does **not** license ungoverned production edits, convenience fixes bundled alongside a hotfix, or
+skipping a bundle because one looks expensive. `C-GOVERNANCE-ORDER` — refuse a write with no approved
+change that owns it — remains named and unscheduled in the registry; when it ships, this exemption is
+the case it must be taught to allow, and this entry is the specification of that carve-out.
+
+**Precedent shape.** [D11](#d11) refuses deferral without a dependency or a conflict, and
+[F145](#f145) records that a defect found is a defect fixed before the work is handed on. A red CI on
+an unmerged branch is a conflict in D11's sense: the branch cannot proceed, and the governed path has
+no active bundle to attach the repair to. The exemption resolves that deadlock rather than widening
+the path.
+</Body>
+  </Decision>
+  <Decision id="d26" token="D26" status="live">
+    <Title>## D26 — an unfalsifiable criterion is reworded, and evidence-discrimination becomes its own bundle</Title>
+    <Body>
+**Decided 2026-09-02 by the maintainer**, on [F147](#f147), in two parts.
+
+**Part 1 — `AC-PROTOCOL-COMMIT-BODY` is reworded, variant C of three.** The criterion bound a
+commit-message claim to `git log --format=%B`, which exits 0 unconditionally, so the gate would have
+archived a pass it never tested. Rejected: **A**, replacing the command with a filtering assertion
+script — it pays a script and a wider write surface for something no other bundle has needed;
+**B**, dropping the criterion outright — it discards a real intent.
+
+Under C the criterion becomes **`AC-CHANGELOG-UNTOUCHED`**, keeping the verifiable half (D5.5:
+`CHANGELOG.md` is not edited) with `git diff --exit-code e5aced5 -- CHANGELOG.md`, **probed in both
+directions before the rewrite**: 0 unedited, 1 on a staged edit, 0 restored. The commit-body
+expectation moves to the execution brief as an instruction. **A requirement that cannot be refuted at
+close does not become a criterion just because it is important** — it becomes a brief.
+
+**Part 2 — the lint gap gets its own bundle, `C-EVIDENCE-DISCRIMINATION`.** Not grafted into
+`C-REWORK-CIRCUIT`, which already forces four modules. Name searched before minting: the territory
+holds `C-CRITERION-CLOSE-EVIDENCE` (which created the `CloseEvidence` state),
+`C-CALIBRATION-COMMAND-EVIDENCE`, `C-COMMAND-EVIDENCE-RECORDED`, `C-FOLD-USES-RECORDED-COMMAND-EVIDENCE`
+and `C-VERDICT-EVIDENCE`; **none covers whether a recorded command can fail.**
+
+**Design constraints that bundle inherits, and the maintainer's correction that produced them.** The
+authority first objected that the proposed allowlist named `vitest`, `jest` and `eslint`, none of
+which this repository uses. **That objection was parochial and was withdrawn**: neo-grace is the
+marketplace package, and the rule ships to consumer projects whose toolchains are their own — what is
+installed *here* says nothing about what the rule must accept *there*. `CLAUDE.md`'s first line says
+exactly this, and the authority grepped the local `package.json` as though this were an application.
+
+What survives, and is strengthened by that reframe:
+
+- **Allowlist by command *shape*, never a denylist of binaries.** Measured: `git diff` exits 0 on a
+  dirty tree, `git diff --exit-code` exits 1. **The flag decides, not the binary**, so banning `git`
+  would reject the discriminating form already used by `C-LINT-PHASE-HONESTY-2`'s `T-006`, and
+  banning `git log` would still miss `git show`, `head`, `printf`, `find` and `true`. A denylist fails
+  open; across arbitrary consumer projects the non-assertive space is unbounded.
+- **Config-driven and polyglot by default.** `.ngrace-lint.json` already carries `codeExtensions`,
+  `unverifiedLanguages`, `gateFailOn` and `ignoredDirs`, and six language adapters ship. A hardcoded
+  set would be wrong for most consumers.
+- **Warning severity with a documented escape.** `AC-CLOSE-LINT` runs `--fail-on warnings`, so a
+  warning still blocks any close that has not justified itself, without making a novel discriminating
+  command unauthorable.
+- **Command text only.** `C-PHASE-RULE-PIN`'s charter and [decisions.md:7525](#) both hold that the
+  restriction must not resolve package scripts transitively — the explicitly rejected reading B. The
+  rule may not open a consumer's `package.json`, `Makefile` or `justfile`, so *&quot;a script designed to
+  exit non-zero&quot;* is an intent claim the linter cannot check; only shape is checkable.
+
+**The limit, and it must be written into the rule's own `--explain` text.** Well-known runners have
+non-assertive modes — `pytest --collect-only`, `cargo test --no-run`, `go test -run` matching nothing
+all exit 0 — so an allowlist catches only the cheap class. `git diff --exit-code` over the *wrong
+paths* passes any linter and proves nothing. **The linter catches the cheap class; the authority runs
+the command against a violating tree before approving.** A green rule must not be read as evidence
+that the harder check happened.
+</Body>
+  </Decision>
+  <Decision id="d26.1" token="D26.1" status="live">
+    <Title>### D26.1 correction — five language adapters ship, not six. **[verified]**</Title>
+    <Body>
+[D26](#d26) states *&quot;six language adapters ship&quot;* as a premise for the polyglot-defaults constraint.
+**That is false at HEAD.** Reported by the executor while authoring
+`C-EVIDENCE-DISCRIMINATION`'s spec and re-measured independently by the authority on **2026-09-03**
+at `42aa4df`:
+
+```
+bun -e 'import {LANGUAGE_ADAPTERS} from &quot;./src/language-registry.ts&quot;; console.log(LANGUAGE_ADAPTERS.length)'
+→ 5   # js-ts, python, dart, go, rust
+```
+
+`README.md`'s language table lists the same five. **`dart`, `go` and `rust` carry no test-runner
+constant**, so a default shape table cannot derive `dart test`, `go test` or `cargo test` from an
+adapter export; those three come from D26's own prose instead, and the spec records that derivation
+rather than inventing adapter exports.
+
+**D26's ruling is unaffected and stands in full.** The count was decorative — the constraint is that
+defaults must be polyglot and config-driven *because the rule ships to consumer toolchains*, and
+that reasoning does not depend on whether five or six adapters ship. **This is a correction to a
+premise, not an overturning of a decision.**
+
+Recorded because the evidence standard requires it: when the executor corrects a number, the
+authority re-measures independently and **records the correction against the artifact that carried
+it**. Also noted: [F147](#f147)'s *&quot;All 19 `CloseEvidence` commands in the corpus&quot;* was true when
+written and is now stale — **25 Command children / 11 distinct across 61 specs** at this HEAD
+(23 / 9 across 60, excluding `C-EVIDENCE-DISCRIMINATION`'s own draft). [F123](#f123): a corpus count
+expires the moment a bundle archives, so it is re-measured at citation, never quoted from an earlier
+turn.
+</Body>
+  </Decision>
+  <Decision id="d27" token="D27" status="live">
+    <Title>## D27 — an approved governance artifact is repaired by supersede, not by amend-and-re-ratify, until pilot is decided</Title>
+    <Body>
+**Decided 2026-09-04 by the maintainer**, on [F157](#f157)'s remedy: *&quot;supercede. record decision so d25
+will not confuse in the future. let's wait until we reach pilot phase. we might consider hot fix relaxed
+or something else.&quot;*
+
+**The ruling.** When an approved spec or plan is found defective, the route is **`ngrace supersede`** and a
+replacement bundle. **Amend-and-re-ratify is not available.** The CLI permits it — measured in both
+directions, [F157](#f157) — and `C-AMENDMENT-COUNT` counts it, but permitted is not authorised: the
+bounded-amendment regime is [`RM-PILOT-APPROVAL`](../RM-PILOT-APPROVAL/review.md), whose plan is
+**`_not written_`** and which is **&quot;Not scheduled, deliberately&quot;** pending two to three more bundles of
+data. Until it is decided, an amendment to an approved artifact is an unratified governance mode.
+
+**What was done before this ruling, recorded rather than tidied away.** On 2026-09-04 the authority
+amended `C-SCOPE-AUDIT-ATTRIBUTION`'s approved plan and had it re-ratified, producing this
+repository's **first non-zero `reRatificationCount`** — exactly `RM-PILOT-APPROVAL`'s first constraint
+(*&quot;every amendment re-ratifies with its own phrase and fingerprint&quot;*) executed without pilot existing.
+The commits stand; they are a true record of a misstep and are **not** rewritten. This entry is what
+explains them.
+
+**D25 does not reach this case, and that is the confusion this entry exists to prevent.**
+[D25](#d25) exempts a **CI-red hotfix on an unmerged branch** where *&quot;the governed path has no active
+bundle to attach the repair to&quot;* — it was decided when `.ngrace/changes/active` was **empty**. That
+condition is load-bearing, not incidental. A bundle whose own approved plan is defective **has** an
+owner — itself — and the governed remedy exists, so no exemption is needed and none is granted. D25
+covers a red CI with **no eligible bundle**; it does not cover repairing governance, and it never
+licenses editing an artifact's approved bytes.
+
+**Why the stale test pin is not patched under an exemption either.** `src/grace-status.test.ts:1153`
+asserts `reRatificationCount` is 0 for every change in the live repository, which the re-ratification
+falsified. It is a **dated corpus measurement** — `C-AMENDMENT-COUNT`'s plan words it as *&quot;Live-repo:
+`collectProjectStatus` on this repository reports `reRatificationCount 0` on every change&quot;*, in the same
+idiom as the `expectedDepth` table beside it — not a governance tripwire. The **replacement bundle
+carries the correction in its own `ObservedWriteScope`**, fully governed. The circularity that blocked
+this inside the defective bundle does not exist for a fresh one: a first approve per artifact is
+baseline 0 ([`AC-SPEC-PLUS-PLAN`](../../../../.ngrace/changes/archive/C-AMENDMENT-COUNT/spec.xml)), the
+fix is test-only, and `*.test.ts` is not module-ownable (`isModuleOwnableWritePath`), so pulling in a
+test file from another area forces no module into `AffectedAreas` and raises no [F136](#f136) shape.
+
+**The cost, recorded as the pilot datum it is.** One wrong sentence in an approved plan, found by
+executing it, costs: a replacement bundle authored and approved at two stages, a supersede, a revert of
+correct production so the replacement's reds can genuinely fail, and a re-execution. That is precisely
+the arithmetic `RM-PILOT-APPROVAL` was written to argue about, and this instance is of its **motivating
+class** — *&quot;a defect only running the code can reveal&quot;*. **It is one datum and it is confounded**: it
+came from an authority error, not from a review miss, the same confound [F134](#f134) records for the
+pre-approval amendments. It does not decide pilot, and [D23](#d23) holds — pilot is decided on
+`supersedeChainDepth`.
+
+**Left open, explicitly.** A relaxed-hotfix or bounded-amendment carve-out may be considered **when pilot
+is reached**, not before. Nothing in this entry authorises one.
+</Body>
+  </Decision>
+  <Decision id="d28" token="D28" status="live">
+    <Title>## D28 — `decisions.md` is retired into three genres, each with a retirement rule and a size ratchet</Title>
+    <Body>
+**Decided 2026-09-05 by the maintainer**, on the rationale question he put to the authority: *&quot;we need to
+retire decisions.md. Your 3 parts suggestion looks good. One important thing is to make sure that they will
+not grow forever. We need to provide ability to make those parts manageable. Some kind of retire/decay
+routine.&quot;*
+
+**The ruling.** The single append-only document is replaced by **three genres** — findings, decisions,
+registry — and **each carries a retirement rule and a size ratchet**. Growth without retirement is the
+defect being fixed; a split alone would reproduce it three times.
+
+**Not a structure question, a lifecycle question.** The parts are the enabling change. The deliverable is
+that every entry has an **observable retirement trigger** and every live part has a **budget that refuses to
+grow**. Chartered as [`C-RECORD-RETIREMENT`](#named-bundle-registry), **position 2** of the order ratified
+2026-09-04, which shifts `C-CONSTRAINT-DURABILITY` to 3, `C-CI-CLAIM-PIN` to 4,
+`C-APPROVE-TARGET-DISCOVERY` to 5 and `C-EFFORT-DEPTH` to 6.
+
+**Enforcement ships with the structure, never after it.** If sizing forces a split, the validator lands
+first or alongside — an unenforced convention is exactly how this file reached 9940 lines.
+</Body>
+  </Decision>
+  <Decision id="d28.1" token="D28.1" status="live">
+    <Title>### D28.1 — the enforcement shape, and the decisions genre retires on codification. **[ratified]**</Title>
+    <Body>
+**Ratified 2026-09-05 by the maintainer**, in two parts, on itemized variants put to him.
+
+**Findings and the registry take the paired shape: eligibility is the enforcement, the ceiling is the
+backstop.** An entry that is **eligible for retirement and still live** is an **error**, reported per entry
+and naming the event that made it eligible; that rule carries no number, so no number can be raised to pass
+it. Each live part *also* carries a **ceiling** with headroom, whose failure message names the retirement
+operation rather than the config key. In normal operation the eligibility rule keeps every part far below
+its ceiling, so the ceiling fires only when retirement is being dodged — which is exactly when it is
+wanted. **The rejected shape was a line budget as the sole enforcement**: it bites at an arbitrary moment
+during legitimate work, names no specific entry as the remedy, and the cheapest way out of it is a config
+edit. Ceiling rather than cliff is [D24](#d24)'s vocabulary, taken deliberately.
+
+**The decisions genre retires on codification, not on being overturned.** The maintainer's ruling, recorded
+verbatim: *&quot;A decision moves from live to retired when its prose invariant is permanently replaced by an
+automated machine check. Trigger: The decision is tagged with `codifiedIn: &lt;lint-rule | test-suite&gt;` (e.g.,
+when D24 is codified into the C-REWORK-CIRCUIT gate). Rationale: The text is no longer needed in the live
+reading set because the compiler/linter now enforces the boundary unconditionally.&quot;*
+
+This replaces the *&quot;a later decision overturns it and names it&quot;* trigger proposed in [F161](#f161)'s table,
+which was rare enough to leave the genre growing monotonically. Overturning remains **a** way a decision
+leaves the live set; it is no longer the only one.
+
+**Two resolution checks make the tag evidence rather than a claim, and they ship with it, not after.**
+
+1. **The pointer must resolve.** A `codifiedIn` naming a lint rule id absent from the catalog, or a test
+   that does not exist, is an **error**. Without it a decision retires by *asserting* a check —
+   [F147](#f147)'s manufactured-pass shape moved from close evidence onto governance.
+2. **Removing the named check must fail.** Deleting or renaming a rule or test that a live `codifiedIn` tag
+   names is an **error** while the tag stands. This is what makes *&quot;permanently&quot;* mechanical rather than
+   aspirational: a retired invariant whose enforcement was quietly dropped is unenforced **and** unread,
+   which is worse than either alone.
+
+**Consequence for the spec.** This is the only one of the three triggers that requires evidence of a
+**machine** rather than an event, which makes it the strongest of the three rather than the weakest — but
+only with both checks above. The population it acts on is **measured, never assumed**: how many live
+decisions state an invariant that is already codified today is an open count, and the maintainer's own
+example — [D24](#d24) against `C-REWORK-CIRCUIT`'s ceiling — is a **candidate to verify**, not a fact to
+restate ([F123](#f123)).
+</Body>
+  </Decision>
+  <Decision id="d29" token="D29" status="live">
+    <Title>## D29 — this repository adopts function contracts on its governed surface, and the module baseline becomes a gate first</Title>
+    <Body>
+**Ruled 2026-09-05 by the maintainer** on four itemized variants ([F162](#f162)), selecting adoption of a
+load-bearing subset with enforcement, over full adoption, exemption-and-record, and a second deferral.
+
+**In scope for `START_CONTRACT:`** — the command surface and public engine facade (any declaration exported
+from a top-level command handler), and **state-machine and ledger boundaries**: any function that writes,
+transitions, or validates audit state, ledger records, or git operations — the core governance pipeline.
+
+**Excluded** — internal leaf helpers, utility transformers, and purely local file-scoped helpers.
+
+**Block markers are reserved for complex control flow** — multi-step validations, rollback ladders,
+transaction scopes. **Disallowed in flat sequential logic**, where they only duplicate the visual shape of
+the function body.
+
+**The baseline becomes a gate before any function contract is written.** The maintainer's reasoning,
+recorded: *&quot;The fact that the linter validates `LINKS:` only if a contract exists is the classic conditional
+validator defect… If someone adds `src/review/new-gate.ts` tomorrow with zero markup, the repo stays green
+while silently dropping out of governance.&quot;*
+
+- **Rule:** `require-module-contract`. **Predicate:** every file matching `src/**/*.ts`, excluding
+  `.test.ts`, fixtures, and explicitly ignored shims, must begin with a valid `START_MODULE_CONTRACT`
+  header. **Cost:** near zero — the tree is already 65/65, so turning it on needs no remediation diff
+  today and locks the baseline permanently.
+- The catalog namespaces rule ids by family (`markup.*`, `graph.*`, `change.*`); the spec picks a
+  conforming id rather than the bare name used here.
+
+**Phasing and order.** The gate is a narrow, leaf-level verification fix with **zero file remediation**, so
+it takes **position 3**, behind `C-RECORD-RETIREMENT`, patching the structural blind spot immediately and
+preventing regression while the larger retirement work proceeds. Function-contract adoption is a
+**downstream bundle** whose validator rule ships **simultaneously with its initial target annotations** —
+never annotations first and enforcement later ([D28](#d28)'s rule, applied to the product).
+
+**Renumbering.** Inserting the gate at 3 and the rollout at the tail shifts the ratified order to: **1**
+`C-SCOPE-AUDIT-ATTRIBUTION` (delivered) → **2** `C-RECORD-RETIREMENT` → **3** `C-MODULE-CONTRACT-GATE` →
+**4** `C-CONSTRAINT-DURABILITY` → **5** `C-CI-CLAIM-PIN` → **6** `C-APPROVE-TARGET-DISCOVERY` → **7**
+`C-EFFORT-DEPTH` → **8** `C-FUNCTION-CONTRACT-SURFACE`. Relative order is otherwise untouched.
+
+**Not decided here**, and left open rather than assumed: the 35 unmarked `src/*.test.ts` files, and whether
+this repository claims `rust.md:60-62`'s trace-assertion permission in place of the logging convention. Both
+want a ruling; neither is in the two bundles above.
+</Body>
+  </Decision>
+  <Decision id="d30" token="D30" status="live">
+    <Title>## D30 — the record freezes for the lifetime of a bundle that measures it, and ceilings become formulas</Title>
+    <Body>
+**Decided 2026-09-05 by the maintainer** on [F163](#f163), as the only coherent stance of three offered.
+
+**Freeze, as discipline.** `decisions.md` is frozen for the lifecycle of `C-RECORD-RETIREMENT`.
+[F161.1](#f161.1), [F163](#f163), this decision, and any finding raised while the bundle is open are held
+in an untracked buffer at `.ngrace/scratch/staged-findings.md` and flush to the live record at close or
+immediately post-archive. The buffer path is `.gitignore`d so a `git add -A` cannot sweep it into a
+public repository.
+
+**Dynamic derivation, as schema invariant.** A spec may not pin scalar counts of a file it changes into
+its hard `Constraints`. Ceilings are stated as formulas over a baseline measured **at execution time** —
+`ceiling = base + headroom` — and computed by the tool during the retirement pass, never transcribed.
+Dated measurements remain legitimate as *context*; what is forbidden is a `Constraint` whose truth
+expires the next time anyone writes the file.
+
+**The freeze lifts on the schema fix, not on the archive** — ratified 2026-09-05 when the maintainer
+agreed the early lift is right. It has an observable trigger and two phases, because it was doing two
+jobs and the schema fix retires only one of them.
+
+- **Job 1, stale constants** — a `Constraint` pinning a count that a later append falsifies. This is what
+  [F163](#f163) actually recorded, and **dynamic derivation retires it entirely.** The trigger is
+  observable: the freeze's first phase ends when the approved `spec.xml` contains no pinned scalar count
+  of `decisions.md` in its hard `Constraints`, which a reader can check against the frozen artifact.
+- **Job 2, concurrent mutation** — the retirement pass is a **read-modify-write over the whole file**: it
+  reads every heading and body, writes the genre files, and rewrites the index. An append landing inside
+  that window is not merely stale, it can be **lost or duplicated**, and no schema change prevents it.
+  So a narrow freeze re-tightens for the execution window in which the split runs, and for any dispatch
+  the authority has already promised a frozen base to.
+
+**The operative rule.** After the schema fix the authority may append **between dispatches**; it may never
+append **while a dispatch that reads or rewrites the record files is in flight**, and never after
+promising a frozen base in a brief that has already been handed over. Findings raised inside a window
+stay in this buffer until it closes.
+
+**Right now the freeze holds in full**: the send-back brief for the spec revision was handed over
+promising `decisions.md` frozen at `b0adb69`, and that promise outranks the early lift.
+</Body>
+  </Decision>
+  <Decision id="d31" token="D31" status="live">
+    <Title>## D31 — the record retirement is two bundles, and identity ships before the engine</Title>
+    <Body>
+**Decided 2026-09-05 by the maintainer**, who proposed the two-bundle cut on [D26](#d26)'s precedent
+against overloading a complex bundle, and accepted the authority's objection that the proposed **order**
+was inverted.
+
+**The cut.** Identity first, engine second.
+
+- **`C-CITATION-ANCHOR-REPAIR`** — inject explicit `&amp;lt;a id&amp;gt;` anchors and resolve the ambiguous
+  citations **while `decisions.md` is still one document**. Nothing moves. Carries the dot-preserving slug
+  grammar (`F9.1 → f9.1`) as a stated rule, not as shipped code.
+- **`C-RECORD-RETIREMENT`** — the three-layer split (index / live / retired), the retirement operation
+  with **dynamic ceiling derivation** ([D30](#d30)), and the `codifiedIn` **and `taughtIn`** forward and
+  reverse resolution checks.
+
+**Why the order was inverted, measured 2026-09-05 at `a6fefc0`, corrected by
+[F164](#f164).** **431 of 568** internal `(#f…)`/`(#d…)` occurrences sit **inside F/D bodies** — the
+text the split moves — and 137 sit elsewhere (15 preamble, 22 slip register, 100 registry). The
+authority first reported 408/160 from a region rule that misclassified non-F/D subsection headings
+inside a body as leaving it. The split is therefore the very act that converts 408 same-file anchors into
+cross-file references. Shipping the engine first leaves those 408 in an undefined state for the whole
+interval between the two bundles, which is exactly the window in which `(#f93)` resolves to the wrong
+finding ([F161.1](#f161.1)'s seventh fact). With identity settled first, the engine's rewrite is mechanical
+over a set whose every member has one unambiguous target, and a preservation criterion can assert that
+every anchor resolves both before and after.
+
+**A deliverable with an empty population, removed from the cut.** The proposal asked the anchor bundle to
+*&quot;verify inbound fragment resolution across all archived and live artifacts&quot;*. Measured: **zero** archived
+artifacts cite a fragment — `grep -rhoE 'decisions\.md#[A-Za-z0-9._-]+' .ngrace/changes/archive/
+docs/plans/` returns nothing, and all 22 literal-path and 45 filename citations are path-only. The real
+inbound surface is the 568 internal fragments. The criterion binds those.
+
+**`taughtIn`, added here.** [D28.1](#d28.1)'s `codifiedIn` trigger reaches only decisions a machine can
+enforce. Classified at `a6fefc0`, roughly six of the 22 live H2 decisions qualify — D1, D3, D5, D7, D9 and
+D24 (implemented at `src/grace-cursor.ts:196`). The other sixteen are practice rules binding people and
+agents — D19, D20, D22, D23, D25, D26, D27, D28, D29 among them — which no lint rule can hold, leaving
+the ceiling as sole enforcement for three quarters of the genre, the shape D28.1 rejected. `taughtIn:
+&amp;lt;skill path + section&amp;gt;` is the parallel trigger: for a practice rule the machine is the skill text
+that carries it, already pinned by `scripts/skill-contracts.test.ts`. **The same two resolution checks
+apply unchanged** — the pointer must resolve, and removing the pinned text must fail.
+
+**Registry rows** (stage into the Named-bundle registry at flush): `C-CITATION-ANCHOR-REPAIR` at
+**position 2**, `C-RECORD-RETIREMENT` moving to **position 3**, and every later position shifting by one
+— `C-MODULE-CONTRACT-GATE` 4, `C-CONSTRAINT-DURABILITY` 5, `C-CI-CLAIM-PIN` 6,
+`C-APPROVE-TARGET-DISCOVERY` 7, `C-EFFORT-DEPTH` 8, `C-FUNCTION-CONTRACT-SURFACE` 9.
+</Body>
+  </Decision>
+  <Decision id="d27.1" token="D27.1" status="live">
+    <Title>### D27.1 — supersede repairs a **ratified** artifact; an unratified draft is corrected in place. **[ratified]**</Title>
+    <Body>
+**Ratified 2026-09-06 by the maintainer**, verbatim: *&quot;i agree with B and C later&quot;*, on itemized
+variants put to him after [F176](#f176) showed the draft half was being cited as though [D27](#d27)
+said it.
+
+**The ruling.** [D27](#d27)'s route — `ngrace supersede` plus a replacement bundle — governs an
+artifact the **run ledger records as approved**. An artifact that has never been approved is
+**corrected in place**: there is no ratification to invalidate and nothing to supersede. This is a
+statement of `D27`'s boundary, not a new permission; `D27` is silent on drafts, and the silence was
+being read as a sentence.
+
+**The boundary is the ledger Decision and the fingerprint, never the `status` attribute.** The close
+ceremony hand-writes `status=&quot;applied&quot;`, so the attribute is hand-editable; approval is not. Measured
+2026-09-06 at `4bb299d`, both directions:
+
+| probe | result |
+|---|---|
+| hand-write `status=&quot;approved&quot;`, no `gate approve`, on a throwaway project | `review.approval-never-asked`, exit **1** — *&quot;approved spec.xml has no applying permitting approve Decision&quot;* |
+| perturb one byte of a properly approved `spec.xml` | `review.approved-fingerprint-mismatch`, exit **1** |
+| restore those bytes byte-identically | exit **0** |
+| edit a `draft` spec by any amount | no finding, exit **0** |
+| `ngrace status` on the hand-marked file | prints `spec=approved` and raises nothing — status **displays** the attribute, `review` **adjudicates** it |
+
+`ngrace supersede` is also bundle-level by construction: it requires `--change` plus `--replacement`
+naming a *different already-existing* `C-*`, and it moves the whole bundle into `archive/`. It cannot
+express an artifact-level fix to an unratified draft without abandoning the bundle and minting a
+replacement for something nobody ratified.
+
+**Born codified, and not intended to accumulate as live prose.** Both halves of the invariant are
+already enforced by shipped checks (`review.approval-never-asked`,
+`review.approved-fingerprint-mismatch`), so under [D28.1](#d28.1) this entry is a `codifiedIn`
+candidate the moment `C-RECORD-RETIREMENT` ships the tag. That bundle populates **zero** historical
+tags by its own NonGoal, so the tagging belongs to the follow-on codify bundle, not to it.
+
+**The teaching half is chartered, and no new name is minted.** The shipped skills scope the
+immutability rule to approved artifacts correctly and in every place — by explicit word in
+`ngrace-execute/SKILL.md:8` (*&quot;Run `ngrace supersede` instead of editing an **approved** conflict in
+place&quot;*) and `ngrace-explainer/references/contract-driven-dev.md:58`, and by enclosing element in
+`ngrace-plan/SKILL.md:29-31`, where *&quot;do not refresh ... in place&quot;* sits inside
+`&amp;lt;approved_plan_immutability&amp;gt;` beneath *&quot;if `plan.xml` already exists with status `approved`&quot;*.
+The defect is not a mis-scoped rule; it is that **the draft complement is stated nowhere**, so a
+reader who needs the permitted route finds only the forbidden one and reaches for `D27`. That complement belongs to
+[`C-CONSTRAINT-DURABILITY`](#named-bundle-registry) at **position 7** ([D34](#d34); 6 under
+[D32](#d32), 5 before that), whose charter row already names
+`skills/ngrace/ngrace-spec/SKILL.md` and its packaged mirror and already quotes *&quot;status remains
+draft&quot;* and *&quot;do not author `plan.xml` until approved&quot;*. Searched before proposing a new name:
+`C-TEACHING-SURFACE`, `C-APPROVE-TIME-REVIEW`, `C-APPROVAL-SCOPE`, `C-CO-DRAFT`, `C-SUPERSEDE-VERB`
+and `C-SUPERSEDE-COMMAND` are archived or cover other ground; `C-CONSTRAINT-DURABILITY` is the
+existing home. **[D31](#d31)'s ratified order is unchanged** — nothing is inserted and no position
+shifts. Once that skill text lands, this entry also gains a `taughtIn` trigger under `D31`.</Body>
+  </Decision>
+  <Decision id="d32" token="D32" status="live">
+    <Title>## D32 — `C-ROADMAP-XML` enters at position 4, and every later position shifts by one</Title>
+    <Body>
+**Ratified 2026-09-06 by the maintainer**, verbatim: *&quot;4 it is&quot;*, on itemized variants — insert at **4**
+against append at **10**.
+
+**The order, in full after this amendment.** **1** `C-SCOPE-AUDIT-ATTRIBUTION` (delivered as `-2`) →
+**2** `C-CITATION-ANCHOR-REPAIR` (delivered as `-2`, PR #72) → **3** `C-RECORD-RETIREMENT` (live as
+`-2`) → **4** **`C-ROADMAP-XML`** (new) → **5** `C-MODULE-CONTRACT-GATE` → **6**
+`C-CONSTRAINT-DURABILITY` → **7** `C-CI-CLAIM-PIN` → **8** `C-APPROVE-TARGET-DISCOVERY` → **9**
+`C-EFFORT-DEPTH` → **10** `C-FUNCTION-CONTRACT-SURFACE`. The insertion shifts six positions by one and
+**reorders nothing**; relative order is otherwise untouched, as in [D28](#d28), [D29](#d29) and
+[D31](#d31).
+
+**Why 4 rather than the tail, measured 2026-09-06 at `408f2ae`.** **40 of 68** archived bundles cite a
+`docs/plans/active/&lt;RM&gt;/` path (rule: `grep -rl` over archived `spec.xml` and `plan.xml`, counted by
+bundle directory). Exposure to silent citation decay therefore accrues with nearly every bundle that
+archives, and [F177](#f177) is what that decay already looks like — 15 archived bundles citing a
+`plan.md` path that does not exist, undetected. The runner-up, appending at **10**, renumbers nothing
+and loses on exactly that: six bundles' worth of new citations written before any check exists. The
+cost of waiting is not the conversion, it is the citations written while waiting.
+
+**What this amendment falsifies, swept with it rather than after it.** [D27.1](#d27.1) named
+`C-CONSTRAINT-DURABILITY` at **position 5**; it is **6** from here. Any text that names a position must
+be re-derived from this entry. An amendment that changes a numbering and does not name what it
+falsifies leaves known-false text standing elsewhere, which is the failure this paragraph exists to
+prevent.</Body>
+  </Decision>
+  <Decision id="d33" token="D33" status="live">
+    <Title>## D33 — the close-order clause is taught in `ngrace-execute`, and `C-APPROVAL-SCOPE` carries it</Title>
+    <Body>
+**Ratified 2026-09-06 by the maintainer**, verbatim: *&quot;B please&quot;*, on three itemized variants — document
+it in the authority's own artifacts only; teach it in the skill; or change the product so a
+`command-run` cannot reset a terminal state.
+
+**The ruling.** The clause is added to `skills/ngrace/ngrace-execute/SKILL.md` and its byte-identical
+packaged mirror, pinned by a `scripts/skill-contracts.test.ts` assertion, under the **existing**
+chartered name [`C-APPROVAL-SCOPE`](#named-bundle-registry). **Searched before minting**, 2026-09-06 at
+`401db34`, over `registry.xml` and `registry-retired.xml`: that row already owns *&quot;skill text for the
+per-step rule **and the authority-owned close&quot;*, named by [D19](#d19) and [D20](#d20). **No new name is
+minted and [D32](#d32)'s order does not shift.**
+
+**Why not the product change.** `command-run` → `in-progress` is a shipped, deliberate mapping under
+`C-CALIBRATION-COMMAND-EVIDENCE`, and correct for its ordinary use. Overturning it to prevent an
+operator ordering error would answer a one-clause teaching gap with a semantic change; [CLAUDE.md](../../../../CLAUDE.md)
+rule 9 requires answering the original argument, and nothing in [F179](#f179) does. If the fault
+recurs **after** the teaching ships, that recurrence is the evidence the product change would need.
+
+**Why not documentation alone.** [F179](#f179) measured the fault twice — `C-CITATION-ANCHOR-REPAIR-2`
+and `C-RECORD-RETIREMENT-2` — under a sequence that lives only in the authority's session prompt. Every
+other GRACE consumer runs the shipped skill, which is silent on the ordering, so a fix confined to this
+repository's private artifacts leaves the trap in the product.
+
+**Scope discipline.** `C-APPROVAL-SCOPE`'s charter is broader than this clause: [D19](#d19) requires the
+skills to say that **an approval covers the current step only**, and [D20](#d20) that **the authority
+owns the close** — `--assertions final`, `review`, `gate verdict`, `gate apply`, `gate archive`, the
+`applied` writes, and the archive move. The close-order clause belongs inside D20's half. Whether the
+bundle discharges its **whole** charter or only this clause is a scoping decision for its spec, and the
+brief must put that question rather than assume it.
+
+**Position.** The row is chartered and marked *&quot;Ordered, not deferred&quot;* yet appears in **no** position
+of [D31](#d31) or [D32](#d32)'s enumerated order — an inconsistency recorded here rather than resolved
+silently. It runs **unpositioned** unless the maintainer assigns it a slot; [D32](#d32)'s order shifted
+once already on 2026-09-06 and is not disturbed again for a one-clause skill edit.</Body>
+  </Decision>
+  <Decision id="d34" token="D34" status="live">
+    <Title>## D34 — `C-RETIRE-AND-CODIFY` enters at position 4, ahead of `C-ROADMAP-XML`</Title>
+    <Body>
+**Ratified 2026-09-06 by the maintainer**, verbatim: *&quot;B it is&quot;*, on three itemized variants — the
+retirement operation alone, the operation plus the first codification tagging, or a hand edit with no
+bundle.
+
+**The ruling.** One bundle ships **both** halves: the **ongoing retirement operation** that
+[F180](#f180) found missing, and the **first `CodifiedIn` / `TaughtIn` tagging** that [F181](#f181)
+found unreachable. It enters at **position 4**, ahead of [`C-ROADMAP-XML`](#named-bundle-registry).
+
+**The order, in full after this amendment.** **1** `C-SCOPE-AUDIT-ATTRIBUTION` (delivered as `-2`) →
+**2** `C-CITATION-ANCHOR-REPAIR` (delivered as `-2`, PR #72) → **3** `C-RECORD-RETIREMENT` (delivered as
+`-2`, PR #74) → **4** **`C-RETIRE-AND-CODIFY`** (new) → **5** `C-ROADMAP-XML` → **6**
+`C-MODULE-CONTRACT-GATE` → **7** `C-CONSTRAINT-DURABILITY` → **8** `C-CI-CLAIM-PIN` → **9**
+`C-APPROVE-TARGET-DISCOVERY` → **10** `C-EFFORT-DEPTH` → **11** `C-FUNCTION-CONTRACT-SURFACE`. Seven
+positions shift by one; **nothing is reordered**.
+
+**Why ahead of `C-ROADMAP-XML`.** The record cannot accept new entries until it can retire old ones.
+Measured at `67bc55c`: the flush of one session's work breaches both live ceilings, the retirement
+enforcement cannot fire in any direction — nothing annotates `&amp;lt;PaidBy&amp;gt;`, validation never derives,
+and the shipped derivation returns **0** live-eligible even when run ([F180](#f180), corrected) — and
+the decisions genre has no reachable trigger at all. **The ruling stands on the enforcement being
+inert; it does not rest on the retracted twelve-eligible count.**
+`C-ROADMAP-XML` converts markdown that **nothing parses** ([F177](#f177)); this unblocks the record
+itself. The runner-up — shipping only the retirement operation — leaves `rulings.xml` breached with no
+remedy, because tagging is the only trigger decisions have.
+
+**Name.** `C-RETIRE-AND-CODIFY`, naming both halves so the scope is legible from the registry row.
+**Searched before minting**, 2026-09-06 at `67bc55c`, over `registry.xml`, `registry-retired.xml` and
+every directory under `.ngrace/changes/archive/` for `retire`, `codif`, `taught`, `ratchet` and
+`ceiling`: the only matches are `C-RECORD-RETIREMENT` and `C-RECORD-RETIREMENT-2`, both archived and
+both the split rather than the operation. No existing name covers this ground.
+
+**What this amendment falsifies, swept with it.** [D27.1](#d27.1) named `C-CONSTRAINT-DURABILITY` at
+position 6; it is **7** from here. [F178](#f178) named `C-MODULE-CONTRACT-GATE` at position 5; it is
+**6**. [D32](#d32)'s enumerated order is superseded by this one and stands as the dated record of what
+was true before. Read positions from **this** entry.</Body>
+  </Decision>
+  <Decision id="d36" token="D36" status="live">
+    <Title>## D36 — `C-PAYMENT-RECORD` enters at position 6, and every later position shifts by one</Title>
+    <Body>
+**Ratified 2026-09-07 by the maintainer**, verbatim: *&quot;1 - 6 ok&quot;*, on the authority's recommendation
+of position 6 after an audit of the live findings.
+
+**The order from here.** **6** `C-PAYMENT-RECORD` → **7** `C-ROADMAP-XML` → **8**
+`C-MODULE-CONTRACT-GATE` → **9** `C-CONSTRAINT-DURABILITY` → **10** `C-CI-CLAIM-PIN` → **11**
+`C-APPROVE-TARGET-DISCOVERY` → **12** `C-EFFORT-DEPTH` → **13** `C-FUNCTION-CONTRACT-SURFACE`.
+Positions 1–5 are delivered. Read the order from **this** entry.
+
+**Why it goes ahead of `C-ROADMAP-XML`.** `C-RETIREMENT-WINDOW` shipped a window that opens by
+`Δ_retired`, and then could not open it: **zero** live findings are eligible, because **60 of 71**
+archived bundles have no registry row and their payments are invisible to the derivation
+([F187](#f187)). Recording those payments is now the only thing that unblocks the flush, and the same
+asymmetry that decided [D35](#d35) applies again — the roadmap defect waits without degrading, the
+buffer does not.
+
+**The scope, as recommended and accepted.** Record payments that already happened rather than fix
+findings. It is the more caloric option — `F90`, `F90.1` and `F35` alone are 249 lines against a
+242-line target, with `F27` and `F38` behind them — and the more deterministic one, since each payment
+is settled by a symbol or a named test in work already merged, with no governance question and no new
+behaviour.
+
+**What this amendment falsifies, swept with it.** [D35](#d35) placed `C-ROADMAP-XML` at 6,
+`C-MODULE-CONTRACT-GATE` at 7, `C-CONSTRAINT-DURABILITY` at 8, `C-CI-CLAIM-PIN` at 9,
+`C-APPROVE-TARGET-DISCOVERY` at 10, `C-EFFORT-DEPTH` at 11 and `C-FUNCTION-CONTRACT-SURFACE` at 12.
+Each is one later from here. [D35](#d35) stands as the dated record of what was true before.</Body>
+  </Decision>
+  <Decision id="d35" token="D35" status="live">
+    <Title>## D35 — `C-RETIREMENT-WINDOW` enters at position 5, and every later position shifts by one</Title>
+    <Body>
+**Ratified 2026-09-06 by the maintainer**, verbatim: *&quot;A. Executor is cold&quot;*, on three itemized
+variants put to him — position 5, position 6 behind [`C-ROADMAP-XML`](#named-bundle-registry), or
+unpositioned.
+
+**The order from here.** **5** `C-RETIREMENT-WINDOW` → **6** `C-ROADMAP-XML` → **7**
+`C-MODULE-CONTRACT-GATE` → **8** `C-CONSTRAINT-DURABILITY` → **9** `C-CI-CLAIM-PIN` → **10**
+`C-APPROVE-TARGET-DISCOVERY` → **11** `C-EFFORT-DEPTH` → **12** `C-FUNCTION-CONTRACT-SURFACE`.
+Positions 1–4 of [D34](#d34) are delivered and unchanged. Read the order from **this** entry.
+
+**Why ahead of `C-ROADMAP-XML`.** The record cannot be flushed until this bundle lands
+([F183](#f183)), and the staging buffer holds every unflushed entry in **exactly one copy** in an
+untracked, `.gitignore`d file. The asymmetry decided it: [F177](#f177), which `C-ROADMAP-XML` pays,
+is a stale-citation defect with no deadline and nothing degrades while it waits; the buffer degrades
+by every entry a session adds. Four arrived in the session that ratified this.
+
+**What this amendment falsifies, swept with it rather than after it.** [D34](#d34) placed
+`C-ROADMAP-XML` at 5, `C-MODULE-CONTRACT-GATE` at 6, `C-CONSTRAINT-DURABILITY` at 7,
+`C-CI-CLAIM-PIN` at 8, `C-APPROVE-TARGET-DISCOVERY` at 9, `C-EFFORT-DEPTH` at 10 and
+`C-FUNCTION-CONTRACT-SURFACE` at 11. Each is one later from here. [D34](#d34)'s enumerated order is
+superseded by this one and stands as the dated record of what was true before.</Body>
+  </Decision>
+</Rulings>

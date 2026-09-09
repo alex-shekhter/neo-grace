@@ -1,0 +1,664 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-RECORD-PARSE>
+    <Summary>
+      Convert the record engine from regex-over-XML to parse-and-splice.
+      scripts/validate-record-retirement.ts today reads record structure one
+      way (six parser calls) and rewrites it another (seven built regexes,
+      ten string .replace() call expressions, seven of them document
+      mutations — counts re-measured at 49b4ebb; see Assumptions), and
+      nothing keeps the two views in agreement. This bundle adds a
+      parser-derived source-span capability to the shared XML adapter
+      (src/artifact/xml.ts, M-GRAMMAR), converts every structural read in
+      the engine to the parsed tree, converts every structural write to a
+      byte-preserving splice positioned by parser-derived spans, ships the
+      minimal shape check that makes span pairing well defined, and removes
+      the archived-spec prose pass from derivePayerMap so that payment is
+      declared structurally (registry rows) rather than sniffed out of spec
+      sentences. The two discriminating probes the authority built — the
+      false-payment fixture and the XML equivalence-class variants — are
+      inherited as acceptance criteria and as tests. Name re-searched at
+      this commit (49b4ebb): 76 archive directories and 0 registry rows in
+      either layer carry the name or the tokens PARSE, PARSER, ENGINE,
+      MATCH, SHAPE.
+    </Summary>
+    <Problem>
+      The record engine matches XML with regexes instead of parsing it, and
+      the two views disagree under legal XML variation. Staged finding F209
+      (.ngrace/scratch/staged-findings.md, not yet in the record) measured
+      the engine at c920415: six parseGraceXmlArtifact calls beside seven
+      constructed regexes and string-replacement mutations, with attrOf
+      reading an attribute from anywhere inside an element's text rather
+      than its open tag, and withStatusRetired rewriting the first status
+      occurrence rather than the open tag's. Re-measured at 49b4ebb for
+      this spec: the same inventory holds, and the equivalence-class probe
+      below reproduces the disagreement against the live record.
+
+      This is one defect wearing four hats, each staged, not yet in the
+      record: F209 (regex over XML is unsound under legal variation),
+      F208 (a spec that quotes the payer phrase pays by accident — a
+      false payment), F207 (no shape check: the record's structure is
+      convention, so structural reasoning counts something undefined),
+      and F206 (volume is measured in file lines, so formatting moves the
+      budget). The engine's own regex path and its parser path were
+      observed to disagree by one live element on two of three legal
+      rewrites of a single open tag, measured for this spec at 49b4ebb
+      (Assumptions carry today's counts; the corpus has grown since the
+      staged 195/194 measurement and the delta, not the absolute, is the
+      finding).
+
+      The defect blocks live work. C-PAYMENT-RECORD-3 (parked branch
+      c-payment-record-3, untouched here) cannot archive while the prose
+      pass ships: its own spec quotes the payer phrase in the sentence
+      that explains the pattern, and the moment that spec enters
+      .ngrace/changes/archive/ the pass mints payments for every F-token
+      in that sentence that no row pays — F21 among them, the token the
+      bundle explicitly refuses. Reproduced end to end on a throwaway
+      fixture at 49b4ebb for this spec (Assumptions item 5).
+    </Problem>
+    <Goals>
+      <Goal>
+        A parser-derived source-span capability in the shared XML adapter.
+        src/artifact/xml.ts (M-GRAMMAR) gains an exported capability that,
+        given the original XML text and its parseGraceXmlArtifact tree,
+        returns each element's open-tag byte range and close-tag byte
+        range, computed by pairing the parser's document-order elements
+        with a bounded open-tag scan of the source (open-tag pattern of the
+        form &lt;Tag\b[^&gt;]*&gt;, quote-aware; self-closing elements
+        carry an open range only). The pairing is verified against the
+        parser at construction — element counts must agree per tag and
+        every parsed attribute must be found inside its element's
+        open-tag bytes — and any disagreement is a loud error, never a
+        silent fallback to matching. Feasibility was measured, not
+        assumed: a prototype pairing scan agrees with the parser on all
+        six container files of the real record (213, 58, 61, 5, 12 and 36
+        elements respectively) and on the index's 337 self-closing Entry
+        elements read through the self-closing branch. No reserialization
+        exists anywhere in this bundle: the adapter's parse output, the
+        GraceXmlNode tree, and every existing consumer are unchanged; the
+        capability is additive.
+      </Goal>
+      <Goal>
+        Reads convert to the parsed tree, before writes convert, so that
+        every write is positioned by the parser rather than by a pattern.
+        In scripts/validate-record-retirement.ts: elementSpans callers
+        take parser nodes with span-map offsets; attrOf becomes
+        node.attributes, which binds attribute reads to the open tag by
+        construction (a parser cannot read an attribute from prose); the
+        checkStatusFile extractElements/parseAttrs path reads parsed
+        attributes (killing the observed false status-file-mismatch class
+        on single-quoted legal XML); readRootSnapshot,
+        checkRulingsProvenance and checkCeilingValue read root attributes
+        from the parsed root instead of matching the root open tag; the
+        fenced-metadata scan's outsideBody text replacement becomes a
+        parser walk — any text node outside a Body element that contains
+        a fence fails; the dead childInner and childOpenAttrs helpers are
+        deleted. The eligibility scan in validateRecordRetirement is
+        already parser-based (walkNodes) and stays.
+      </Goal>
+      <Goal>
+        Writes convert to byte-preserving splices positioned by
+        parser-derived spans. All seven document mutations keep their
+        splice mechanics and change only their positioning:
+        withStatusRetired rewrites the status attribute inside the
+        open-tag range the span map located; withPaidBy inserts the
+        PaidBy line immediately after the open tag's closing angle
+        bracket; setEntryLayer locates the Entry element by parsed id and
+        rewrites the layer attribute inside that open-tag range;
+        withRootSnapshot rewrites the root's attributes within the root
+        open-tag range; removeSpans removes exactly the parser-derived
+        spans; appendElements inserts before the root close-tag offset
+        instead of a lastIndexOf search. Byte preservation is a hard
+        requirement and is tested as one: on a fixture move, every file
+        the converted engine writes must be byte-identical to the file
+        the shipped engine writes for the same fixture state — the diff
+        stability, prose bytes and entity forms that citations depend on
+        may not move.
+      </Goal>
+      <Goal>
+        The minimal shape check ships with the span capability, because
+        span pairing is well defined only under it: for each of the seven
+        record files the validator errors (code prefix record-shape-)
+        when the root element is not the expected genre root, when a
+        Finding, Decision, Row or Entry element appears anywhere except
+        as a direct child of the root, or when any of those elements has
+        a same-tag descendant. This is F207's load-bearing minimum, not
+        the full schema: required children, depth limits beyond
+        same-tag non-nesting, and allowed-children sets beyond what
+        existing checks already enforce stay F207's later scope. The
+        shape check runs on the parser tree and cannot be satisfied by
+        the regex path.
+      </Goal>
+      <Goal>
+        Payment is declared structurally, not sniffed from prose. The
+        archived-spec sentence pass in derivePayerMap — the loop that
+        flattens each archived spec.xml, splits it into sentences, and
+        pays every F-token in any sentence matching the payer-phrase
+        pattern — is removed. After this bundle, the payer map is derived
+        from exactly two declared routes, both already structural: a
+        registry row whose name is an archive directory, via its Pays
+        element; and that row's status text closing clause via the
+        existing Closed-with reader. Measured consequences at 49b4ebb
+        (Assumptions item 6): every one of the seven tokens the nine
+        minting sentences name — F161, F130, F149, F150, F152, F43, F147 —
+        is retired and carries a stored PaidBy stamp; five of the seven
+        also have a row route in registry-retired.xml; F152 and F43 are
+        prose-only routes whose stamps are stored on the retired elements
+        and are never re-derived, because the eligibility check reads
+        derived or stored and only live elements are ever re-examined.
+        Removing the pass therefore un-pays nothing and un-retires
+        nothing, and no live finding's eligibility depends on the pass
+        today (the real record validates green at 49b4ebb).
+      </Goal>
+      <Goal>
+        The two probes are inherited as permanent tests, not as this
+        bundle's one-off evidence. In scripts/validate-record-retirement.test.ts
+        (fixture-based, isolated temporary roots, driving the real script
+        by spawnSync, the shipped shape): the false-payment probe — a
+        record fixture into which an archived spec quoting the payer
+        phrase has been copied must leave the finding that spec refuses
+        to pay live and eligible by no prose route, while a fixture
+        without the copied spec stays green, so the test discriminates in
+        both directions; and the equivalence-class probe — one live
+        element's open tag rewritten three ways (single-quoted
+        attributes, spaces around the equals sign, attributes reordered),
+        each valid XML parsing identically, must give the same validate
+        verdict and the same retire move-set as the unmodified tag. Both
+        probes are reproduced failing against the shipped engine before
+        the fix, in the plan's baseline, so the tests are proven to
+        discriminate (Assumptions items 5 and 7 record the
+        reproductions).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module change): one script, one shared parser
+        module, their tests; single package. Gates still run. Roadmap
+        RM-GOVERNED-PATH. Binding live rulings: D28.1 (eligibility is the
+        enforcement, the ceiling the backstop — this bundle changes how
+        the payer map is derived and how spans are found, not the
+        enforcement shape), D11 (no deferral without dependency or
+        conflict — the deferrals below name theirs), D27 (nothing here is
+        approved unread; the spec decides the design). Staged findings
+        F206, F207, F208 and F209 are this bundle's findings and are
+        cited from .ngrace/scratch/staged-findings.md because the D30
+        window is closed to record writes; this bundle writes no record
+        file and stages nothing into it.
+      </Constraint>
+      <Constraint>
+        Explicitly overturning part of C-RECORD-RETIREMENT's
+        finding-eligibility Constraint, which established the initial
+        payer population as the registry Pays column plus archived spec
+        sentences calling an entry by the payer phrase, guarded by
+        "mere mention of an F-id in an archived spec is not payment".
+        The overturning answers the original argument: the guard was a
+        judgement the engine cannot make, because a quotation of the
+        phrase and a declaration of payment are byte-identical to a
+        sentence scanner — C-PAYMENT-RECORD-3's spec demonstrates the
+        collision, and F208 records the false payment it mints. The
+        intent behind the guard (payment must be declared, not merely
+        mentioned) is preserved and strengthened by moving declaration
+        into the structure built for it: the registry row, whose route
+        C-PAYMENT-RECORD-2 already called the only route and whose
+        NonGoal ruled that archived specs are never edited to carry the
+        phrase. The prose pass's remaining coverage is measured at zero
+        live findings (Assumptions item 6); its false-positive cost is
+        measured and reproduced (item 5).
+      </Constraint>
+      <Constraint>
+        F136 anchors — files this spec forces into write scope, each
+        with its LINKS state, listed here once and not repeated as a
+        second module list anywhere: src/artifact/xml.ts (LINKS:
+        M-GRAMMAR) and src/artifact/xml.test.ts (no contract header; test
+        surface of the same module); scripts/validate-record-retirement.ts
+        and scripts/validate-record-retirement.test.ts (no LINKS header;
+        scripts/ is in .ngrace-lint.json ignoredDirs; M-RELEASE-AUTOMATION
+        is not in .ngrace/graph and its adoption remains deferred to a
+        later C-*); this bundle's own artifacts under
+        .ngrace/changes/active/C-RECORD-PARSE/. The module enumeration
+        for this bundle is exactly: M-GRAMMAR (via src/artifact/xml.ts's
+        LINKS header). No other graph module is written; do not mint a
+        synthetic module for the scripts/ files.
+      </Constraint>
+      <Constraint>
+        Byte preservation and no ceiling arithmetic. The engine's outputs
+        on unchanged inputs are byte-identical before and after this
+        bundle: a --retire over the real record at 49b4ebb with nothing
+        eligible reports moved 0 and leaves all seven record files
+        byte-identical, and a fixture move produces byte-identical files
+        to the shipped engine's on the same fixture state. No persisted
+        ceiling, base or headroom value changes; persistSnapshot, the
+        ceiling formulas and the newlineCount inputs to them are
+        untouched (the volume metric is F206's charter, deferred below).
+        The record files themselves are read, never written, by this
+        bundle: no task edits docs/plans/active/RM-GOVERNED-PATH/*, no
+        record file is registered in CONTEXT_ARTIFACTS, and every test
+        runs on isolated temporary fixtures in the shape
+        scripts/validate-record-retirement.test.ts already uses.
+      </Constraint>
+      <Constraint>
+        Escape markup as character data in every artifact this bundle
+        writes: tags and angle-bracketed forms appear as &lt;Finding&gt;,
+        &lt;Entry /&gt; and &lt;Body&gt;-style character data, never
+        paraphrased away to keep a document well-formed (F43). Markup-byte
+        assertions belong in TypeScript tests, and this bundle's byte
+        criteria are commands and tests, not prose comparisons.
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, settled lessons. Every diff-based criterion
+        scopes to exactly the paths its prose names and names the
+        baseline it can fail against, in prose and in command alike: a
+        base-less git diff --exit-code over paths compares the working
+        tree to the index and passes unconditionally once the bundle's
+        work is committed, which the close guarantees — so a diff
+        criterion that names no commit cannot fail, and three criteria
+        in this spec's first draft had that shape; measured on a
+        scratch clone, committed drift over record paths passes the
+        base-less form and fails the base-commit form (Assumptions). A
+        byte diff answers a byte question only. It is the right
+        instrument for a criterion whose meaning is byte-level — these
+        files were not modified; the engine's output bytes are the
+        promise — and the wrong instrument for document sameness,
+        which a reformatted-but-equivalent file defeats: two bytes
+        larger, diff exit 1, parsed trees identical (measured). Where
+        a criterion means content, this spec answers it with the
+        parsed validators and the shape check, never with a diff. The
+        same base-less shape exists in one archived predecessor,
+        C-CITATION-ANCHOR-REPAIR's AC-NO-ARCHIVE-WRITE and
+        AC-DOCS-EXAMPLES, whose prose says pre-change tree and whose
+        commands name no commit; this spec does not repeat it. Any
+        pathspec covering .ngrace/changes/archive/ excludes this
+        bundle's own directory (F188) and is probed in the post-close
+        state (F196):
+        after the close, this bundle's own archived spec must not be
+        eligible to mint by any route — the prose pass is gone by then,
+        which is what the probe asserts. Every task Verification command
+        the later plan records exits 0 as written at recording time
+        (F184). Task Verification and TargetAssertions contain no
+        current-mode lint of this project root (F171); current-mode lint
+        appears only as post-archive AC-CLOSE-LINT. bun test green is a
+        precondition, never the evidence — the discriminating probes
+        above are the evidence. Test measurements of the real repository
+        carry explicit generous timeouts where the plan spawns processes
+        (F185). Counts in this spec expire (F123); each carries its rule,
+        command and commit, and the plan re-measures at its own base.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        The citation-index ratchet — the index budget counting whole-file
+        lines, retirement never removing an index line, the ceiling
+        unable to rise (staged F205). Owner: the separately chartered
+        index remedy. Nothing here touches the index budget, the
+        ceiling-never-raised rule, or setEntryLayer's semantics beyond
+        its positioning source.
+      </NonGoal>
+      <NonGoal>
+        The general structural volume metric — replacing the findings and
+        rulings line budgets with a content-based measure (staged F206).
+        Owner: its own later charter, and it depends on this bundle only
+        for the validated shape it counts (F207's shape check is the
+        prerequisite F206 itself names). Deferred here because no probe
+        in this bundle's acceptance set exercises budget arithmetic, and
+        coupling the parse conversion to budget semantics would widen the
+        blast radius without a discriminating test to hold it. D11: the
+        dependency is stated — the metric charter needs this bundle's
+        shape check and span map, and the index variant of the metric is
+        F205's separately chartered remedy.
+      </NonGoal>
+      <NonGoal>
+        The full record schema beyond the minimal shape pass — required
+        children, allowed-children sets, CodifiedIn/TaughtIn shape
+        validation beyond the existing resolution checks (the remainder
+        of staged F207). Owner: a later bundle; this bundle ships only
+        what span pairing and the false-positive class require.
+      </NonGoal>
+      <NonGoal>
+        The --split path: parseFrozenMarkdown, the markdown tokenizer and
+        anchor regexes. They parse decisions.md, which is markdown by
+        design, not XML; the stub is a pointer file and the split is a
+        historical one-time operation. Owner: unchanged; no user-visible
+        surface.
+      </NonGoal>
+      <NonGoal>
+        Editing any record file, the parked branch c-payment-record-3, or
+        C-PAYMENT-RECORD-3's artifacts. Owner: that bundle and the
+        authority's own acts. This bundle removes the trap its close
+        would spring; it does not perform, preview or simulate that
+        close.
+      </NonGoal>
+      <NonGoal>
+        Changing the token readers over prose fields: F_TOKEN_RE over
+        registry Pays cells, the Closed-with clause reader, token
+        extraction from finding bodies, and the markdown-table readers.
+        These match prose, not XML structure, and are text processing by
+        nature. Owner: unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        README.md and examples/ unchanged; no user-visible CLI token,
+        config key, ngrace command, lint rule or exit-code surface
+        changes in this bundle. Owner: unchanged; no user-visible
+        surface.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-FALSE-PAYMENT-PROBE>
+        The false-payment probe, both directions, on isolated fixtures
+        built from the real record files at the plan's base commit. With
+        the converted engine: a fixture record containing an archived
+        spec that quotes the payer phrase — the parked bundle's spec
+        read via git show, never checked out — leaves every finding that
+        spec refuses to pay live, validates with no finding-eligible
+        error attributable to a spec sentence, and the same fixture
+        without the copied spec also validates green, so the test
+        discriminates. Failure: any token becomes eligible because a
+        sentence matched a pattern.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-FALSE-PAYMENT-PROBE>
+      <AC-EQUIVALENCE-CLASS>
+        The equivalence-class probe, all three variants. For a fixture
+        where one live element is eligible via a registry row, rewriting
+        that element's open tag as single-quoted attributes, as spaces
+        around the equals signs, or with attributes reordered — each
+        valid XML parsing identically — must yield the same validate
+        findings and the same retire move-set as the unmodified tag
+        (element moved to the retired sibling, stamped, index layer
+        flipped, moved count unchanged). The shipped engine fails this
+        today on the first two variants (element left live, moved count
+        one low, status-file-mismatch on perfectly parsed XML), which is
+        the baseline reproduction.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-EQUIVALENCE-CLASS>
+      <AC-BYTE-PRESERVING>
+        Byte preservation, both directions. This criterion asks a byte
+        question and answers it with byte comparison, because byte
+        identity is the promise itself — no reserialization, no
+        re-indentation, no entity rewrite — not a proxy for document
+        sameness; it therefore also forbids repairing the formatting
+        drift the shipped engine causes as a side effect of conversion
+        (F204's three re-indented lines are pinned as shipped output),
+        so a later failure here is the criterion working, not a
+        regression to be fixed. Part one: a fixture move under the
+        converted engine writes files byte-identical to the shipped
+        engine's output on the same fixture state (golden comparison
+        captured in the plan's baseline before any conversion lands;
+        the test compares read bytes). Part two: a --retire over the
+        real record when nothing is eligible reports moved 0 and
+        leaves all seven record files byte-identical to this spec's
+        base commit 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed — a
+        baseline the command can fail against, demonstrated: the same
+        command exits 1 against committed drift under those paths,
+        while the base-less form exits 0 in that state (Assumptions).
+        Failure: any reserialization, re-indentation, entity rewrite
+        or reordered attribute in any written file.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed -- docs/plans/active/RM-GOVERNED-PATH/findings.xml docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml docs/plans/active/RM-GOVERNED-PATH/rulings.xml docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml docs/plans/active/RM-GOVERNED-PATH/registry.xml docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Command>
+        </CloseEvidence>
+      </AC-BYTE-PRESERVING>
+      <AC-SHAPE-CHECK>
+        The shape check refuses, with a record-shape- error and exit 1:
+        a fixture whose record contains a same-tag nested element, a
+        genre element that is not a direct child of its root, or a wrong
+        root element — each case on its own fixture, each valid XML that
+        today's checks accept. The clean fixture record validates green,
+        so the check discriminates. Failure: a malformed-shape fixture
+        exits 0, or a clean fixture exits non-zero.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-SHAPE-CHECK>
+      <AC-NO-PROSE-MINT>
+        derivePayerMap no longer reads archived spec files: over the real
+        archive at the plan's base commit its returned map contains no
+        entry whose only route was a spec sentence — F152 and F43 drop
+        out of the derived map, and the map for every other token is
+        unchanged (rows still mint; F161, F130, F149, F150 and F147 keep
+        their row routes). The retired elements' stored PaidBy stamps are
+        untouched by the change and the real record still validates green
+        after conversion. Failure: any archived spec.xml file is read by
+        the payer derivation, or a retired element's stamp is rewritten.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-NO-PROSE-MINT>
+      <AC-PARSER-CAPABILITY>
+        The span capability in src/artifact/xml.ts is verified against
+        its own suite: for synthetic and real-record documents, open and
+        close byte ranges are correct against known offsets, self-closing
+        elements carry open ranges only, pairing disagreements with the
+        parsed tree raise the documented loud error instead of returning
+        spans, and parsed attributes are located inside their element's
+        open-tag bytes. Failure: any span that disagrees with the source
+        bytes it names.
+        <CloseEvidence>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+        </CloseEvidence>
+      </AC-PARSER-CAPABILITY>
+      <AC-RECORD-UNTOUCHED>
+        This criterion asks a byte question — that these files were
+        not modified by this bundle, any change counting, formatting
+        included — and a byte diff against a named baseline is the
+        instrument that answers it; a reformatted-but-equivalent file
+        would still be a modification, so parsed-tree sameness is not
+        the question here and is not the test. No record file and no
+        archived bundle is modified by this bundle's execution,
+        measured against this spec's base commit
+        49b4ebb7c6627601ca77ca384f7b6e205d1f65ed. The command sees
+        tracked edits and deletions only (F174), excludes this
+        bundle's own later archive arrival (F188), is probed in the
+        post-close state (F196), and can fail: it exits 1 against
+        committed drift under those paths, where the base-less form
+        passes (Assumptions). Failure: any path under the record
+        directory or the archive differs from the base commit.
+        <CloseEvidence>
+          <Command>git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed -- docs/plans/active/RM-GOVERNED-PATH/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-RECORD-PARSE'</Command>
+        </CloseEvidence>
+      </AC-RECORD-UNTOUCHED>
+      <AC-DOCS-EXAMPLES>
+        README.md, examples/, CLAUDE.md, docs/plans/README.md,
+        skills/ngrace/, plugins/ngrace/skills/ngrace/, package.json and
+        bun.lock are byte-identical to this spec's base commit
+        49b4ebb7c6627601ca77ca384f7b6e205d1f65ed. This is a byte
+        question — these files were not modified by this bundle, any
+        change counting — so the byte diff against the named baseline
+        is the instrument, and it can fail: it exits 1 against
+        committed drift under those paths, where the base-less form
+        passes (Assumptions). Prose and command name the same pathset
+        and the same baseline commit.
+        <CloseEvidence>
+          <Command>git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint
+        of this root appears (F171).
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      M-GRAMMAR is written: src/artifact/xml.ts gains the exported
+      source-span capability and its MODULE_MAP entry, and
+      src/artifact/xml.test.ts gains its suite; both are enumerated once
+      in the F136 anchors Constraint with their LINKS state. The
+      scripts/ files this spec forces into write scope have no owning
+      module (scripts/ is ignoredDirs; M-RELEASE-AUTOMATION remains
+      deferred) and are listed in that same Constraint. No other graph
+      module is written; do not mint a synthetic module and do not
+      repeat this enumeration as a second module list (F136.1).
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/artifact/xml.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-RECORD-PARSE --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes against the delivered product, not a green
+        suite; all fixture work on isolated temporary roots, never the
+        working tree and never the production record. (1) The
+        false-payment probe, both directions, per AC-FALSE-PAYMENT-PROBE
+        — reproduced failing against the shipped engine in the plan's
+        baseline first. (2) The equivalence-class probe, all three
+        variants plus the unmodified tag, per AC-EQUIVALENCE-CLASS —
+        baseline reproduction first: the shipped engine leaves the
+        single-quoted and spaced elements live with moved counts one
+        low and reports a false status-file-mismatch. (3) Byte
+        preservation per AC-BYTE-PRESERVING — the golden fixture outputs
+        captured from the shipped engine before conversion, compared
+        byte for byte after. (4) The shape check per AC-SHAPE-CHECK —
+        each refuse case on its own fixture, both directions. (5) The
+        payer derivation per AC-NO-PROSE-MINT — the derived map over the
+        real archive compared token by token against the baseline map
+        captured before conversion, and the real-record validator green.
+        (6) The span capability per AC-PARSER-CAPABILITY. (7) Path-scoped
+        git diffs against this spec's base commit empty at close, probed
+        in the post-close state, with this bundle's archive path
+        excluded, and each command's can-fail demonstrated on a scratch
+        clone before recording (F188, F196, F174).
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        All measurements 2026-09-09 at 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed
+        (git rev-parse HEAD), branch main, tracked tree clean. Engine
+        inventory, rules stated beside each count: parseGraceXmlArtifact
+        call sites — grep -n "parseGraceXmlArtifact(" over
+        scripts/validate-record-retirement.ts gives 6 (lines 723, 772,
+        897, 976, 977, 978); constructed regexes — grep -c "new RegExp"
+        gives 7 (lines 164, 169, 177, 185, 797, 806, 855); .replace(
+        call expressions — counted by script over the file, 10 across
+        lines 100, 386, 486, 811, 818, 854, 856 (two calls), 873 and
+        1172, of which 7 mutate document content (486, 811, 818, 856
+        twice, 873, 1172) and 3 are text preparation (100
+        whitespaceNormalize, 386 markdown link reduction, 854 regex
+        escaping). Dead code: childInner and childOpenAttrs have zero
+        callers — grep across src/ and scripts/ including tests returns
+        only their definitions.
+      </Assumption>
+      <Assumption>
+        Mint search, same commit: 76 archive directories under
+        .ngrace/changes/archive/ matching the archive rule; 0 carry
+        RECORD-PARSE or the tokens PARSE, PARSER, ENGINE, MATCH, SHAPE
+        (case-insensitive); 0 Row name attributes in either registry
+        layer carry those tokens (parsed open tags, not a bare grep).
+        The name C-RECORD-PARSE is free.
+      </Assumption>
+      <Assumption>
+        Equivalence-class counts, same commit, rule stated beside each:
+        over the real docs/plans/active/RM-GOVERNED-PATH/findings.xml the
+        parser path (parseGraceXmlArtifact + childNodes, status=live)
+        and the shipped regex path (the verbatim elementSpans and attrOf
+        source applied to the same file) each count 213 live elements.
+        With f21's open tag rewritten to single-quoted attributes, and
+        separately with spaces around its attribute equals signs, the
+        parser still counts 213 and the regex path 212. Attributes
+        reordered: 213 and 213. The staged F209 numbers (195/194) were
+        taken at c920415; the corpus has grown since and the one-element
+        delta on the first two variants is the reproduced fact.
+      </Assumption>
+      <Assumption>
+        Move-path behaviour, same commit, on throwaway fixtures built
+        from the real record with a registry row paying F21 in f21's
+        name (name = C-SELECTION, an archive directory with no row in
+        either layer): the unmodified tag retires moved 3 with both F21
+        elements gone from live; the single-quoted tag retires moved 2
+        with f21 left live; the spaced tag retires moved 2 with f21 left
+        live; the reordered tag retires moved 3. After the single-quoted
+        move, validation reports both status-file-mismatch on the
+        perfectly parsed element and finding-eligible-still-live for it
+        — a state no operation can resolve: the parser path demands the
+        move, the regex path cannot perform it.
+      </Assumption>
+      <Assumption>
+        False-payment reproduction, same commit, fixture = the real
+        record files plus the full archived-spec tree in a temporary
+        root, with the parked branch's approved spec copied in via
+        git show c-payment-record-3:.ngrace/changes/active/C-PAYMENT-RECORD-3/spec.xml
+        (never checked out): without the spec the fixture validates
+        exit 0; with it, exit 1 with 15 finding-eligible-still-live
+        errors, all naming archive event C-PAYMENT-RECORD-3, including
+        f21 and f21-correction; --retire then reports moved 15 and
+        stamps PaidBy C-PAYMENT-RECORD-3 on all 15 moved elements,
+        including both F21 elements. The parked bundle's own rows would
+        cover 13 of the 14 sentence tokens after it lands, leaving F21
+        as the false payment its spec refuses.
+      </Assumption>
+      <Assumption>
+        The nine minting sentences, same commit, enumerated by the
+        shipped rule (flatten each archived spec.xml, split into
+        sentences, test each against the payer-phrase pattern): 9
+        sentences across C-APPROVE-TIME-REVIEW (naming F149, F150, F152,
+        F43), C-EVIDENCE-DISCRIMINATION (F147), C-PHASE-RULE-PIN (F130),
+        C-RECORD-RETIREMENT (F161, plus one explanatory sentence with no
+        token), C-RECORD-RETIREMENT-2 (F161, plus one explanatory
+        sentence with no token) and C-PAYMENT-RECORD (two sentences with
+        no token in the matching sentence). Token set exactly: F161,
+        F130, F149, F150, F152, F43, F147. All seven are retired; each
+        carries a stored PaidBy stamp (F161 C-RECORD-RETIREMENT, F130
+        C-PHASE-RULE-PIN, F149 and F152 and F43 C-APPROVE-TIME-REVIEW,
+        F150 C-SCOPE-AUDIT-ATTRIBUTION, F147 C-EVIDENCE-DISCRIMINATION).
+        Row routes in registry-retired.xml: F161 C-RECORD-RETIREMENT,
+        F130 C-PHASE-RULE-PIN, F149 C-APPROVE-TIME-REVIEW and also
+        C-REVIEW-ARCHIVE-SCOPE, F150 C-SCOPE-AUDIT-ATTRIBUTION, F147
+        C-EVIDENCE-DISCRIMINATION; F152 and F43 have no row route. The
+        real record validates exit 0 at this commit.
+      </Assumption>
+      <Assumption>
+        Span-pairing feasibility, same commit: a prototype that pairs the
+        parser's document-order elements with a bounded open-tag scan
+        agrees per file — findings 213, findings-retired 58, rulings 61,
+        rulings-retired 5, registry 12, registry-retired 36, decisions
+        337 Entry elements through the self-closing branch — with parsed
+        attributes located inside the scanned open-tag bytes for every
+        element. A naive cursor-stepping indexOf scan mis-paired on the
+        findings files, which is why the capability verifies pairing
+        against the parser and errors loudly on disagreement, and why
+        the shape check ships with it.
+      </Assumption>
+      <Assumption>
+        Probe fixtures for the plan's baseline are built from the real
+        record files at the base commit plus the archived-spec tree;
+        the parked branch is read only through git show of its spec and
+        is never checked out, merged or modified. The fixtures contain
+        no person, patient, secret or agent-session data — they are
+        copies of this repository's own governance artifacts.
+      </Assumption>
+      <Assumption>
+        Baseline-discrimination measurements, taken 2026-09-09 at
+        49b4ebb7c6627601ca77ca384f7b6e205d1f65ed, in a throwaway clone
+        of this repository at that commit, never in the working tree.
+        Rule stated beside each result. Over the seven record paths,
+        the base-less git diff --exit-code -- form exits 0 on the
+        clean tree and still exits 0 after a simulated committed drift
+        (a byte appended to registry.xml and one to README.md, then
+        committed) — the spurious pass, because the base-less form
+        compares the working tree to the index — while
+        git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed
+        over the same paths exits 0 before that commit and 1 after it.
+        The AC-RECORD-UNTOUCHED command and the AC-DOCS-EXAMPLES
+        command each exit 1 against the same committed drift and 0
+        against the clean tree. Parked branch, measured without
+        checkout by comparing two commit trees:
+        git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed
+        c-payment-record-3 over the seven record paths exits 1 with
+        five files changed, 832 insertions and 734 deletions.
+        Formatting-only equivalence, measured on the real registry.xml
+        at this commit: 12,983 bytes; one attribute single-quoted and
+        one equals sign spaced produce 12,985 bytes, git diff exits 1,
+        and the parsed trees are identical — same elements, same
+        attributes, same order. Population audit of archived specs at
+        this commit: 17 carry a git diff --exit-code criterion; 16
+        name a baseline commit (short or long sha); one,
+        C-CITATION-ANCHOR-REPAIR, uses the base-less form and shares
+        this defect, named in Constraints.
+      </Assumption>
+    </Assumptions>
+  </C-RECORD-PARSE>
+</NgraceChangeSpec>

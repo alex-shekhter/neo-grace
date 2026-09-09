@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { childText, parseGraceXmlArtifact } from "../src/artifact/xml.ts";
 import {
   RULINGS_PROVENANCE_CEILING,
   derivePayerMap,
@@ -1697,6 +1698,275 @@ ${names
     },
     60_000,
   );
+
+  // ---------------------------------------------------------------------------
+  // C-RECORD-PARSE baseline evidence (T-001). The golden comparison is the
+  // byte-preservation tripwire: it passes against the shipped engine at capture
+  // time and must keep passing after every later conversion task. When it
+  // fails, a write moved bytes it had no business moving.
+  // ---------------------------------------------------------------------------
+
+  const FIXTURES_DIR = path.join(import.meta.dir, "fixtures", "record-parse");
+  const GOLDEN_DIR = path.join(FIXTURES_DIR, "golden");
+  const GOLDEN_FILES = [
+    "findings.xml",
+    "findings-retired.xml",
+    "rulings.xml",
+    "rulings-retired.xml",
+    "registry.xml",
+    "registry-retired.xml",
+    "decisions.xml",
+  ] as const;
+
+  function buildFixture(root: string, flags: string[]): void {
+    const result = spawnSync(
+      "bun",
+      [path.join(FIXTURES_DIR, "build-fixture.ts"), root, ...flags],
+      { cwd: REPO_ROOT, encoding: "utf8", timeout: 300_000 },
+    );
+    if (result.status !== 0) {
+      throw new Error(`build-fixture failed: ${result.stderr ?? result.stdout}`);
+    }
+  }
+
+  it(
+    "C-RECORD-PARSE equivalence class: single-quoted, spaced and reordered f21 open tags yield the same verdict and move-set as the unmodified tag",
+    () => {
+      const control = isolatedRoot();
+      buildFixture(control, ["--c-selection-row"]);
+      const controlRetire = runValidator(control, ["--retire", RECORD_REL]);
+      expect(controlRetire.status).toBe(0);
+      expect(controlRetire.stdout).toContain("moved 3");
+      const controlPost = runValidator(control);
+      expect(controlPost.status, "the unmodified tag is the control").toBe(0);
+
+      for (const variant of ["single-quoted", "spaced", "reordered"] as const) {
+        const root = isolatedRoot();
+        buildFixture(root, ["--c-selection-row", `--f21-tag=${variant}`]);
+        const retire = runValidator(root, ["--retire", RECORD_REL]);
+        expect(retire.status, variant).toBe(0);
+        expect(retire.stdout, variant).toContain("moved 3");
+        // the element moved to the retired sibling, stamped — the open tag's
+        // byte form is preserved, only the status value is spliced
+        const expectedOpenTag: Record<(typeof variant), string> = {
+          "single-quoted": "<Finding id='f21' token='F21' status='retired'>",
+          "spaced": "<Finding id = \"f21\" token = \"F21\" status = \"retired\">",
+          "reordered": "<Finding token=\"F21\" status=\"retired\" id=\"f21\">",
+        };
+        const retired = readFileSync(path.join(root, RECORD_REL, "findings-retired.xml"), "utf8");
+        expect(retired, variant).toContain(expectedOpenTag[variant]);
+        expect(retired, variant).toContain(`<PaidBy>C-SELECTION</PaidBy>`);
+        const live = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+        expect(live, variant).not.toMatch(/<Finding[^>]*id\s*=\s*["']f21["']/);
+        // the index layer flipped
+        const index = readFileSync(path.join(root, RECORD_REL, "decisions.xml"), "utf8");
+        expect(index, variant).toMatch(/<Entry id="f21"[^>]*layer="retired" \/>/);
+        // and the moved record validates clean
+        const post = runValidator(root);
+        expect(post.status, `${variant}: post-move validate`).toBe(0);
+      }
+    },
+    300_000,
+  );
+
+  it(
+    "C-RECORD-PARSE false-payment probe: an archived spec quoting the payment phrase mints nothing by a prose route, both directions",
+    () => {
+      // with the parked spec planted as archive event C-PAYMENT-RECORD-3:
+      // no finding becomes eligible because a sentence matched a pattern
+      const withSpec = isolatedRoot();
+      buildFixture(withSpec, ["--parked-spec"]);
+      const withResult = runValidator(withSpec);
+      expect(withResult.status, "with the parked spec planted").toBe(0);
+      expect(withResult.stderr).not.toContain("finding-eligible-still-live");
+
+      // control: the same fixture without the copied spec also validates green,
+      // so the test discriminates
+      const withoutSpec = isolatedRoot();
+      buildFixture(withoutSpec, []);
+      const withoutResult = runValidator(withoutSpec);
+      expect(withoutResult.status, "without the parked spec").toBe(0);
+    },
+    300_000,
+  );
+
+  it(
+    "C-RECORD-PARSE payer derivation: F152 and F43 drop out and every other token's payer is unchanged from the baseline map",
+    () => {
+      const probes = JSON.parse(readFileSync(path.join(FIXTURES_DIR, "baseline-probes.json"), "utf8"));
+      const baseline: Record<string, string> = probes.payerMapBaseline.map;
+      const rows: Array<{ name: string; pays: string; statusText: string }> = [];
+      for (const file of ["registry.xml", "registry-retired.xml"]) {
+        const parsed = parseGraceXmlArtifact(
+          file,
+          readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
+        );
+        expect(parsed.root, file).not.toBeNull();
+        for (const row of parsed.root!.children.filter((child) => child.tag === "Row")) {
+          const kind = row.attributes.kind ?? "chartered";
+          if (kind !== "chartered" && kind !== "historical") {
+            continue;
+          }
+          rows.push({
+            name: row.attributes.name ?? "",
+            pays: childText(row, "Pays") ?? "",
+            statusText: childText(row, "StatusText") ?? "",
+          });
+        }
+      }
+      const derived = derivePayerMap(REPO_ROOT, rows);
+      expect(derived.has("F152"), "F152 was a prose-only route").toBe(false);
+      expect(derived.has("F43"), "F43 was a prose-only route").toBe(false);
+      for (const [token, payer] of Object.entries(baseline)) {
+        if (token === "F152" || token === "F43") {
+          continue;
+        }
+        expect(derived.get(token), token).toBe(payer);
+      }
+      for (const [token] of derived) {
+        expect(baseline[token], `${token} must exist in the baseline map`).toBeDefined();
+      }
+    },
+    60_000,
+  );
+
+  it(
+    "C-RECORD-PARSE golden: a fixture --retire writes byte-for-byte the files the shipped engine wrote at capture time",
+    () => {
+      const root = isolatedRoot();
+      buildFixture(root, ["--c-selection-row"]);
+      const result = runValidator(root, ["--retire", RECORD_REL]);
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain("moved 3");
+      for (const name of GOLDEN_FILES) {
+        const golden = readFileSync(path.join(GOLDEN_DIR, name));
+        const written = readFileSync(path.join(root, RECORD_REL, name));
+        expect(
+          written.equals(golden),
+          `${name}: the converted engine must write the same bytes the shipped engine wrote`,
+        ).toBe(true);
+      }
+    },
+    300_000,
+  );
+
+  it(
+    "C-RECORD-PARSE baseline evidence: baseline-probes.json records the shipped engine's failing signatures the probes discriminate against",
+    () => {
+      const probes = JSON.parse(readFileSync(path.join(FIXTURES_DIR, "baseline-probes.json"), "utf8"));
+      expect(probes.baseCommit).toBe("49b4ebb7c6627601ca77ca384f7b6e205d1f65ed");
+
+      // The false-payment probe, both directions, as recorded.
+      const fp = probes.falsePaymentProbe.withParkedSpec;
+      expect(fp.validateExitCode).toBe(1);
+      expect(fp.findingEligibleStillLiveCount).toBe(15);
+      expect(fp.allNamingArchiveEvent).toBe("C-PAYMENT-RECORD-3");
+      expect(fp.includesF21).toBe(true);
+      expect(fp.includesF21Correction).toBe(true);
+      expect(fp.retireMoved).toBe(15);
+      expect(fp.paidByStampsWritten).toBe(15);
+      expect(fp.paidByValue).toBe("C-PAYMENT-RECORD-3");
+      expect(fp.postMoveValidateExitCode).toBe(0);
+      expect(probes.falsePaymentProbe.withoutParkedSpec.validateExitCode).toBe(0);
+
+      // The equivalence-class probe: the shipped engine fails the first two
+      // variants (moved one low, element left live), passes the reordered one.
+      const eq = probes.equivalenceClassProbe;
+      expect(eq.unmodified.retireMoved).toBe(3);
+      expect(eq.unmodified.f21LeftLive).toBe(false);
+      expect(eq.unmodified.postMoveValidateExitCode).toBe(0);
+      for (const variant of ["singleQuoted", "spaced"] as const) {
+        expect(eq[variant].retireMoved, variant).toBe(2);
+        expect(eq[variant].f21LeftLive, variant).toBe(true);
+        expect(eq[variant].statusFileMismatch, variant).toBe(true);
+        expect(eq[variant].postMoveValidateExitCode, variant).toBe(1);
+      }
+      expect(eq.reordered.retireMoved).toBe(3);
+      expect(eq.reordered.f21LeftLive).toBe(false);
+      expect(eq.reordered.postMoveValidateExitCode).toBe(0);
+
+      // The payer-map baseline: 56 derived tokens over the real record and
+      // real archive; exactly F152 and F43 are prose-route only.
+      const pm = probes.payerMapBaseline;
+      expect(pm.fullTokenCount).toBe(Object.keys(pm.map).length);
+      expect(pm.proseOnlyRoutes.sort()).toEqual(["F152", "F43"]);
+      expect(pm.map.F152).toBe("C-APPROVE-TIME-REVIEW");
+      expect(pm.map.F43).toBe("C-APPROVE-TIME-REVIEW");
+      expect(pm.map.F161).toBe("C-RECORD-RETIREMENT");
+      expect(pm.map.F130).toBe("C-PHASE-RULE-PIN");
+      expect(pm.map.F149).toBe("C-APPROVE-TIME-REVIEW");
+      expect(pm.map.F150).toBe("C-SCOPE-AUDIT-ATTRIBUTION");
+      expect(pm.map.F147).toBe("C-EVIDENCE-DISCRIMINATION");
+
+      // The can-fail demonstration: the base-less diff form cannot fail.
+      const cf = probes.canFailDemonstrations;
+      expect(cf.cleanTree).toEqual({ baseLess: 0, baseNamed: 0 });
+      expect(cf.committedDrift.baseLess).toBe(0);
+      expect(cf.committedDrift.baseNamed).toBe(1);
+    },
+    60_000,
+  );
+
+  it("C-RECORD-PARSE shape check: the clean control stays green while each refuse case exits non-zero with its record-shape- code", () => {
+    // clean control: the happy fixture has genre elements as direct children
+    // of the expected roots and no same-tag nesting
+    const clean = isolatedRoot();
+    writeHappy(clean);
+    expect(runValidator(clean).status).toBe(0);
+
+    // wrong root element
+    const wrongRoot = isolatedRoot();
+    const wrongParts = happyParts();
+    wrongParts.findings = `<WrongRoot base="20" headroom="70" ceiling="1000">
+  <Finding id="f1" token="F1" status="live">
+    <Title>### F1 — live</Title>
+    <Body>body one</Body>
+  </Finding>
+</WrongRoot>
+`;
+    writeHappy(wrongRoot, wrongParts);
+    const wrongResult = runValidator(wrongRoot);
+    expect(wrongResult.status).not.toBe(0);
+    expect(wrongResult.stderr).toContain("record-shape-wrong-root");
+    expect(wrongResult.stderr).toContain("expected \u003cFindings\u003e");
+
+    // genre element nested inside a non-root parent
+    const nested = isolatedRoot();
+    const nestedParts = happyParts();
+    nestedParts.findings = `<Findings base="20" headroom="70" ceiling="1000">
+  <Wrapper>
+    <Finding id="f1" token="F1" status="live">
+      <Title>### F1 — live</Title>
+      <Body>body one</Body>
+    </Finding>
+  </Wrapper>
+</Findings>
+`;
+    writeHappy(nested, nestedParts);
+    const nestedResult = runValidator(nested);
+    expect(nestedResult.status).not.toBe(0);
+    expect(nestedResult.stderr).toContain("record-shape-genre-not-direct-child");
+    expect(nestedResult.stderr).toContain("<Wrapper>");
+
+    // same-tag descendant among genre elements
+    const sameTag = isolatedRoot();
+    const sameTagParts = happyParts();
+    sameTagParts.findings = `<Findings base="20" headroom="70" ceiling="1000">
+  <Finding id="f1" token="F1" status="live">
+    <Title>### F1 — live</Title>
+    <Body>body one</Body>
+    <Finding id="f1-nested" token="F1" status="live">
+      <Title>### F1 nested</Title>
+      <Body>body two</Body>
+    </Finding>
+  </Finding>
+</Findings>
+`;
+    writeHappy(sameTag, sameTagParts);
+    const sameTagResult = runValidator(sameTag);
+    expect(sameTagResult.status).not.toBe(0);
+    expect(sameTagResult.stderr).toContain("record-shape-same-tag-nested");
+  }, 60_000);
 });
 
 function rootAttrs(xml: string): { base: number; headroom: number; ceiling: number } {

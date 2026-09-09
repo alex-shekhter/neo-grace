@@ -1,0 +1,189 @@
+<Rulings>
+<Decision id="d24" token="D24" status="retired">
+    <Title>## D24 — the rework circuit is a ceiling on escalations, not an auto-supersede</Title>
+    <Body>
+**Decided 2026-09-02 by the maintainer**, on [F142](#f142), variant **A** of three.
+
+**What ships.** A **cross-window recurrence detector** and a **global cap**, and on trip a terminal
+escalation state that **refuses `resume`**. Governance is untouched by the machine: spec and plan keep
+their status, and a human still supersedes if the bundle is to die. What changes is that after a
+proven loop, `resume` is no longer an available exit — invalidation becomes the *only* way out
+instead of an automatic act.
+
+**This extends [C-ESCALATION-HONESTY](../../../../.ngrace/changes/archive/C-ESCALATION-HONESTY/); it
+does not overturn it.** That bundle's ruling — a state &quot;that holds until a deliberate, auditable
+replan decision is written&quot;, with the task explicitly *not* failed — survives intact for the first
+escalation and every ordinary one. The new state governs only the case that bundle never
+contemplated: the same failure recurring **across** windows, which its window-scoped counter cannot
+see by construction (`windowStart = lastResolvingResumeId`).
+
+**The variants, and why the runners-up lose.**
+
+| | Variant | For | Against |
+|---|---|---|---|
+| **A** | **Detector + global cap; terminal state refuses `resume`.** | Delivers the hard stop and the cycle detection with **no unauthored governance artifact**. Preserves the human replan ruling. Leaves B reachable later as a policy change once the detector has data. | Does not literally write `superseded`; it makes invalidation the only exit rather than performing it. |
+| **B** | On trip, the CLI **auto-supersedes** the bundle. | Literally the request: governance invalidated, code preserved, which is what `supersede` already means ([F134.1](#f134.1)). | `supersede` must **name a replacement**. An auto-generated successor is a governance artifact no human authored — self-certification in a new place, against the standing rule that ratification travels as bytes. Overturns `C-ESCALATION-HONESTY` outright. |
+| **C** | Detector **reports only**; recurrence surfaces in `review` / `status`. | Cheapest; no ruling conflict. | Stops nothing, and the maintainer's request was that the system stop trying. [F139](#f139) had just shown what an instrument nobody acts on is worth. |
+
+**Ruled: A.** B is not rejected on its idea but on the replacement-authorship hole; if it is ever
+revisited, that question must be answered first rather than discovered at execution.
+
+**Named `C-REWORK-CIRCUIT`.** Searched before minting: the territory holds `C-ESCALATION-HONESTY`
+(the breaker's honesty), `C-ATTEMPT-LOG`, `C-ATTEMPT-PAIR-FINDING`, `C-FIX-SHAPE`, and
+`C-FIX-FLAG-HONESTY`. **None covers a cross-window ceiling**, so this is a new name rather than a
+synonym for an existing charter.
+
+**The forced write surface is wider than the deliverable, and that is the trap.** The fix-budget
+thresholds are asserted in prose at three passages of `skills/ngrace/ngrace-execute/SKILL.md` **and
+its packaged mirror**, and a live test builds required substrings from the live constants
+(`fixBudgetSkillRequiredSubstrings`, `src/grace-cursor.test.ts:3203`) so prose and code cannot
+diverge. Editing that skill text moves `skillTextLines` — pinned at **817 / 58931** in
+`src/test-support/token-accounting.test.ts` — exactly as `C-SUPERSEDE-RECORD-2` moved it from
+812 / 58400 and recorded the delta in a comment. A spec that names the code and forgets the prose,
+the mirror, or the pin is the [F133](#f133) / [F136](#f136) defect again.
+</Body>
+    <CodifiedIn kind="test-suite">src/grace-cursor.test.ts</CodifiedIn>
+  </Decision>
+<Decision id="d5.1" token="D5.1" status="retired">
+    <Title>### D5.1 — The accepted separator set</Title>
+    <Body>
+`LINKS` and `DEPENDS` split on **`[,;\s]+`**. The colon is **excluded**. Any token matching no
+`ANCHOR_PATTERNS` family is an **error** naming the offending token, the accepted separators, and
+the accepted id families. Existing `[...]` stripping and `none` handling are preserved (F3).
+
+**The principle: accept separators that can mean nothing else.** A comma, semicolon or space between
+two ids is unambiguous — no author meant anything by it but *next item* — so accepting it discards
+no intent. That is the whole test.
+
+**Why the colon is excluded**, having been proposed and considered:
+
+1. **The error is better than the acceptance.** Without the colon in the set, `LINKS: M-A: M-B`
+   yields the token `M-A:`, which matches no family and produces exactly the error this phase
+   specifies — token named, separators listed, one edit to fix. With the colon in the set, the same
+   slip silently works. That is filtering wearing leniency's clothes, in the one phase whose purpose
+   is to stop filtering.
+2. **A colon there is ambiguous.** It is either a slip or an author reaching for structure the
+   grammar does not have. Ambiguous input is what *reject, don't filter* says to reject rather than
+   guess at.
+3. **Secondary:** the colon is the field delimiter itself (`LINKS:`). Spending a structural
+   character on value syntax is cheap now and awkward to walk back.
+</Body>
+    <CodifiedIn kind="lint-rule">markup.unparsed-link-token</CodifiedIn>
+  </Decision>
+<Decision id="d7" token="D7" status="retired">
+    <Title>## D7 — `&lt;DependsOn&gt;` accepts the anchor-child form; the fix reads the tag, it does not raise</Title>
+    <Body>
+**Raised by F5. Ratified 2026-08-09. Binds P0.3.**
+
+**Decision.** `readTaskDependencies` reads a child's **tag** when it matches `ANCHOR_PATTERNS.task`,
+its **text** when non-empty, and raises `change.task-invalid-dependency` only when it can resolve
+neither. All three authored forms below become valid and mean the same thing:
+
+```xml
+&lt;DependsOn&gt;&lt;T-001 /&gt;&lt;/DependsOn&gt;          &lt;!-- anchor child: today silently nothing --&gt;
+&lt;DependsOn&gt;&lt;Task&gt;T-001&lt;/Task&gt;&lt;/DependsOn&gt; &lt;!-- works today --&gt;
+&lt;DependsOn&gt;T-001, T-002&lt;/DependsOn&gt;       &lt;!-- multi-value text: P0.3 / D5.1 --&gt;
+```
+
+**Why accept rather than reject.** The anchor form is not a mistake to be corrected — it is the
+idiomatic GRACE shape, used by `Satisfies`, `DurableScope`, `AffectedAreas`, and every anchor list in
+the grammar. The defect is that `DependsOn` alone does not read it. Rejecting would tell authors that
+the shape the rest of the grammar teaches is wrong here; accepting fixes the one construct that
+disagrees.
+
+**Classified under D5.3 as a repair, not a break.** Under D5.2 a silent failure made loud is not a
+break — but this needs no loudness at all. Today `&lt;T-001 /&gt;` declares nothing; after D7 it declares
+what its author always meant. Nothing that worked stops working, and **archived
+`C-GATE-RECORD-ABSENCE` acquires the dependency it has always claimed** rather than lighting up red.
+
+That last point is why the direction matters: raising instead of reading would turn an applied,
+gated, archived bundle into a lint error, which is F1's sixteen-false-positives problem again. The
+permitted direction has no such cost.
+
+**Scope.** This is **site 11**, added to `C-TOKEN-INTEGRITY` T-002 — the same function P0.3 already
+opens. Not deferred, not a follow-up bundle. Fixing at the point of detection is the rule; the
+inventory's classification of `grammar.ts:2012` as justified is **corrected to silent discard**.
+
+---
+</Body>
+    <CodifiedIn kind="lint-rule">change.task-invalid-dependency</CodifiedIn>
+  </Decision>
+<Decision id="d9" token="D9" status="retired">
+    <Title>## D9 — Ledger repair is append-only; a recorded event is never rewritten</Title>
+    <Body>
+**Decision.** `recover --fix` may **append** records. It may **not** rewrite a recorded event file in
+place. Where a dead allocation must be superseded, the repair records a new, ledger-visible fact that
+supersedes it; it does not edit the old one.
+
+**Why, concretely rather than by taste.** Attempt events digest prior `run/` event files into their
+`&lt;WriteEvidence&gt;` — verified: `C-CURSOR-INTEGRITY` event 28 carries digests for
+`run/26-T-006-progress.xml` and `run/27-T-006-attempt.xml`. **Event files are attested artifacts.**
+A repair that rewrites one falsifies every attestation referencing it, silently, in exactly the
+evidence chain P0.10 was built to read.
+
+**Stated precisely, because the instance does not force the rule.** In `C-TOKEN-INTEGRITY`'s ledger
+today, `19-T-005-opened.xml` is referenced by nothing — the terminal at id 20 carries no
+`WriteEvidence`, and no attempt followed it. Rewriting it would falsify no existing digest *here*.
+The rule is principled, not compelled by this case: the fix must be correct for ledgers where the
+allocation *is* attested, which is the normal shape.
+
+It also sits on the right side of A29.2. Appending a superseding fact is recording; editing a prior
+record is authoring over history.
+</Body>
+    <CodifiedIn kind="test-suite">src/grace-cursor.test.ts</CodifiedIn>
+  </Decision>
+<Decision id="d18" token="D18" status="retired">
+    <Title>### D18 — `gate approve` becomes the sanctioned writer of `draft → approved`, and records what it approved</Title>
+    <Body>
+**Decided 2026-08-14 by the maintainer**, on the evidence of [F88](#f88).
+
+**The decision.** `ngrace gate approve` writes `status=&quot;approved&quot;` onto the spec and records, on the
+approve event, a **fingerprint of the artifact it approved**. A `status=&quot;approved&quot;` that carries no
+matching approval record — or whose fingerprint no longer matches the bytes — is a reportable defect,
+the shape P3.7 already proposes for a hand-written `applied`. A non-interactive escape hatch ships
+**with** the change, not after it, following [D1.5](#d1)'s precedent: it records the approval as
+forced, with an operator-supplied reason.
+
+**Why.** Two independent models adopting GRACE on a real repository each wrote `status=&quot;approved&quot;`
+onto the spec they had just authored, in the same commit, without asking anyone (F88). Neither
+hesitated. The approved state gates `ngrace plan new` and `gate apply`, so for an autonomous agent it
+was the same actor writing both the claim and its ratification — **&quot;an authored claim of doneness
+outrunning its evidence&quot;**, which is the roadmap's own phrase for the failure this product exists to
+prevent.
+
+**What this changes about [D1](#d1), precisely.** D1 said the tool is the **only sanctioned writer of
+`approved → applied`**, and left `draft → approved` authored, reasoning that *apply has a
+machine-evaluable precondition — the gate — and approve has none.* **That reasoning was correct and is
+not overturned.** What it did not anticipate is the consequence: because approve had no
+machine-evaluable precondition, the product held **no evidence about it at all**, and printed
+`approved` with identical confidence whether a human ratified it or the authoring agent typed it. D18
+does not claim to have found a machine-evaluable precondition for human judgement. It **narrows the
+unverifiable region**: the tool now records *that* an approval was performed and *what bytes* it
+covered, leaving only *whether the human actually read them* outside the record — and says so rather
+than implying otherwise.
+
+**What this deliberately does not claim.** This is **tamper-evidence, not enforcement.** A single
+actor with write access can still author the status, the record, and the fingerprint. What changes is
+that forging approval becomes a **deliberate, visible act** rather than the default one — today,
+writing `approved` is *easier* than asking. Do not let the change be reported as
+&quot;human-in-the-loop enforced&quot;; verifiable approval needs a party the agent is not, which is recorded
+separately as [`RM-VERIFIED-APPROVAL`](../RM-VERIFIED-APPROVAL/review.md).
+
+**This decision is revisable, and here is what would revise it.** If `RM-VERIFIED-APPROVAL` ships —
+an external service issuing one-time codes bound to an artifact fingerprint — the write path and the
+attestation format both change, and D18's fingerprint record becomes the local half of a two-party
+scheme rather than the whole of it. If measurement shows approvals are frequent enough to be pasted
+unread, the correct response is to **narrow what requires ratification**, not to strengthen the
+mechanism. And if a later reader finds that requiring the CLI to write status blocks a legitimate
+workflow the escape hatch does not cover, that is evidence against this shape, not a reason to
+hand-write around it — **amend the decision instead.**
+
+**Sequencing.** The repo-local floor ships first and independently of any service: it needs no new
+trust boundary, and it is the half that would have caught both measured runs, since **neither ever
+requested an approval at all**. A future service that ships without the detection half has not fixed
+F88.
+</Body>
+    <CodifiedIn kind="lint-rule">review.approval-never-asked</CodifiedIn>
+    <CodifiedIn kind="lint-rule">review.approved-fingerprint-mismatch</CodifiedIn>
+  </Decision>
+</Rulings>
