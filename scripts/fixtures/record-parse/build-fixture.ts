@@ -2,11 +2,16 @@
 /**
  * Deterministic fixture builder for the C-RECORD-PARSE baseline.
  *
- * Materializes a throwaway fixture root from the git object store at the
- * spec's base commit 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed — never from
- * the live working tree, so the fixture is identical at baseline, mid-bundle
- * and post-archive. Materialized: the whole docs/plans/active/RM-GOVERNED-PATH/
- * directory and the whole .ngrace/changes/archive/ tree at that commit.
+ * Materializes a throwaway fixture root from the committed input snapshot
+ * beside this builder — never from the live working tree, so the fixture is
+ * identical at baseline, mid-bundle and post-archive, and never from git, so
+ * it builds in a shallow clone, a tarball export, or a worktree with no
+ * objects. The snapshot was taken from the spec's base commit
+ * 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed and is regenerated deliberately,
+ * the way the golden outputs beside it are. Materialized: input/ becomes
+ * docs/plans/active/RM-GOVERNED-PATH/, and archive-names.json becomes the
+ * .ngrace/changes/archive/ directory set — names only, because nothing in the
+ * converted engine reads an archived spec's contents.
  *
  * Flags:
  *   --c-selection-row            insert one deterministic live chartered row
@@ -27,12 +32,13 @@
  * argument; it never writes inside this repository.
  */
 
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import os from "node:os";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const BASE_COMMIT = "49b4ebb7c6627601ca77ca384f7b6e205d1f65ed";
+/** Provenance of the committed input snapshot; nothing reads git at build time. */
+const INPUT_SNAPSHOT_COMMIT = "49b4ebb7c6627601ca77ca384f7b6e205d1f65ed";
+const INPUT_DIR = path.join(import.meta.dir, "input");
+const ARCHIVE_NAMES_FILE = path.join(import.meta.dir, "archive-names.json");
 const REPO_ROOT = path.resolve(import.meta.dir, "..", "..", "..");
 const RECORD_REL = "docs/plans/active/RM-GOVERNED-PATH";
 const ARCHIVE_REL = ".ngrace/changes/archive";
@@ -59,18 +65,6 @@ function fail(message: string): never {
   process.exit(1);
 }
 
-function git(args: string[]): Buffer {
-  const result = spawnSync("git", args, {
-    cwd: REPO_ROOT,
-    encoding: "buffer",
-    maxBuffer: 1024 * 1024 * 1024,
-  });
-  if (result.status !== 0) {
-    fail(`git ${args.join(" ")} failed: ${result.stderr?.toString() ?? "unknown error"}`);
-  }
-  return result.stdout;
-}
-
 function parseFlags(argv: string[]): {
   fixtureRoot: string;
   cSelectionRow: boolean;
@@ -95,16 +89,26 @@ function parseFlags(argv: string[]): {
   return { fixtureRoot, cSelectionRow, f21Tag, parkedSpec };
 }
 
-/** Extracts the record directory and the archive tree from the git object store. */
-function materializeFromGit(fixtureRoot: string): void {
-  const tarBuffer = git(["archive", "--format=tar", BASE_COMMIT, RECORD_REL, ARCHIVE_REL]);
-  const tmp = mkdtempSync(path.join(os.tmpdir(), "build-fixture-"));
-  const tarFile = path.join(tmp, "fixture.tar");
-  writeFileSync(tarFile, tarBuffer);
-  const extract = spawnSync("tar", ["-xf", tarFile, "-C", fixtureRoot], { encoding: "utf8" });
-  rmSync(tmp, { recursive: true, force: true });
-  if (extract.status !== 0) {
-    fail(`tar extraction failed: ${extract.stderr ?? "unknown error"}`);
+/**
+ * Materializes the record directory and the archive tree from the committed input
+ * snapshot. Deliberately reads no git history: the fixture must build in a shallow
+ * clone, a tarball export, or a worktree with no objects at all.
+ */
+function materializeFromInput(fixtureRoot: string): void {
+  if (!existsSync(INPUT_DIR)) {
+    fail(`input snapshot missing at ${INPUT_DIR}; it is committed beside this builder`);
+  }
+  const recordDir = path.join(fixtureRoot, RECORD_REL);
+  mkdirSync(recordDir, { recursive: true });
+  for (const entry of readdirSync(INPUT_DIR, { withFileTypes: true })) {
+    if (!entry.isFile()) {
+      continue;
+    }
+    copyFileSync(path.join(INPUT_DIR, entry.name), path.join(recordDir, entry.name));
+  }
+  const names = JSON.parse(readFileSync(ARCHIVE_NAMES_FILE, "utf8")) as string[];
+  for (const name of names) {
+    mkdirSync(path.join(fixtureRoot, ARCHIVE_REL, name), { recursive: true });
   }
 }
 
@@ -146,7 +150,7 @@ function main(): number {
   const { fixtureRoot, cSelectionRow, f21Tag, parkedSpec } = parseFlags(process.argv.slice(2));
   const absoluteRoot = path.resolve(fixtureRoot);
   mkdirSync(absoluteRoot, { recursive: true });
-  materializeFromGit(absoluteRoot);
+  materializeFromInput(absoluteRoot);
   const recordPath = path.join(absoluteRoot, RECORD_REL, "findings.xml");
   if (!existsSync(recordPath)) {
     fail(`materialization incomplete: ${recordPath} does not exist`);
