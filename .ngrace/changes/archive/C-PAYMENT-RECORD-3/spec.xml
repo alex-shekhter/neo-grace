@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-PAYMENT-RECORD-3>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-PAYMENT-RECORD-3><Replacement>C-PAYMENT-RECORD-4</Replacement>
     <Summary>
       Run the rowless-archive payment survey the predecessor deferred,
       record what it proves, and take the findings window from one

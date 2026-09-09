@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-PAYMENT-RECORD-4>
+    <Summary>Summary of C-PAYMENT-RECORD-4.</Summary>
+    <Goals>
+      <Goal>Goal for C-PAYMENT-RECORD-4.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-PAYMENT-RECORD-4.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-PAYMENT-RECORD-4.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-PAYMENT-RECORD-4.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-PAYMENT-RECORD-4.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-PAYMENT-RECORD-4>
+</NgraceChangeSpec>

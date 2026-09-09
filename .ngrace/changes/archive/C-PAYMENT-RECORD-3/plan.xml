@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-PAYMENT-RECORD-3>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-PAYMENT-RECORD-3><Replacement>C-PAYMENT-RECORD-4</Replacement>
     <IntentSummary>
       Record the eight proven historical payments and open the findings window, then
       flush the one staged entry the window cannot otherwise hold. Eight post-hoc
