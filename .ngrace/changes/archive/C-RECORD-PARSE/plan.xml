@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-RECORD-PARSE>
     <IntentSummary>
       Convert the record engine from regex-over-XML to parse-and-splice per
