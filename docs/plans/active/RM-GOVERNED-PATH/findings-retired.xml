@@ -2543,4 +2543,78 @@ described had moved.
 Remedy is two phrases in one live registry row. Owner: the maintainer's call on whether it rides with
 `C-CODIFY-DECISIONS`, whose own charter row it is, or goes as its own correction.</Body>
   </Finding>
+<Finding id="f39" token="F39" status="retired">
+    <PaidBy>C-ARTIFACT-VALIDITY</PaidBy>
+    <Title>### F39 — Lint reports 118 artifacts clean; 8 of them are not well-formed XML. **[verified]**</Title>
+    <Body>
+Found the same way as [F38](#f38): an executor doing the ordinary thing, reporting a workaround it
+did not have to mention. Authoring `C-EXPLAIN-COVERAGE`'s plan it wrote `--explain` inside the
+`DESIGN` comment block, noticed the artifact still linted clean, removed the `--` sequences anyway
+because they are not well-formed, and said so in one line of its report.
+
+**Measured across the whole artifact tree:**
+
+```
+artifacts scanned: 118        (ngrace lint: &quot;XML artifacts checked: 117, Errors: 0&quot;)
+rejected by expat: 8
+  C-FLAG-HONESTY/plan.xml       C-EXECUTION-CONTRACT/plan.xml
+  C-RECOVER-FOLDABLE/plan.xml   C-LEGIBLE-FAILURE/plan.xml
+  C-DECLARED-WRITES/plan.xml    C-REPORT-HONESTY/plan.xml
+  C-CALIBRATION-COMMAND-EVIDENCE/plan.xml
+  C-ESCALATION-HONESTY/plan.xml
+```
+
+Cause is uniform: `--` inside an XML comment. XML 1.0 §2.5 forbids it; `fast-xml-parser` accepts it
+and expat rejects it. The three sites checked are `--name`, `recover --fix`, and `--format only:` —
+CLI flags, in comments, in a repository whose entire subject is a CLI.
+
+**Why this is systemic rather than incidental.** The plan convention in this roadmap is a binding
+`DESIGN` comment block, and the thing being designed is a command-line tool. Every flag is a `--`.
+The collision is guaranteed by the two conventions meeting, and it has already happened in **eight
+of the archive's plans** without one error.
+
+**The defect is the honesty of the report, not data loss.** The product's own parser reads these
+files correctly; nothing is broken today. What is false is the line `XML artifacts checked: 117 /
+Errors: 0`, which claims a validity that was never checked. Any other consumer — `xmllint`, an
+editor, a CI validator, a parser in another language — rejects them. That is [F10](#f10)'s shape at
+the tool level: a name claiming more than the body verifies.
+
+**Open question the repair must settle, recorded because it shapes the bundle.** Adding a
+well-formedness check turns eight **archived** artifacts red, and archived bundles are immutable in
+this repository. So the check cannot simply be switched on: it must be scoped to active bundles, or
+emitted as a warning with the archive grandfathered, or the archive's immutability re-examined.
+Whichever is chosen must be argued rather than assumed — a check that quietly excludes the eight
+files that motivated it would be its own [F28](#f28).
+</Body>
+  </Finding>
+<Finding id="f172" token="F172" status="retired">
+    <PaidBy>C-RECORD-RETIREMENT-2</PaidBy>
+    <Title>### F172 — the citation validator's qualifier-suffix slug is file-local, so splitting a duplicate-token pair across live and retired makes CI red. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at `11e2d51`, on the authority's verification of the `C-RECORD-RETIREMENT`
+draft spec, by probe rather than by reading.
+
+`expectedSlugFor` (`scripts/validate-citation-anchors.ts:49-71`) applies the `-correction` /
+`-amendment` / possessive qualifier **only when `duplicateCount &gt; 1`**, and that count is computed over
+**the file being read** (`parseHeadings`, `:95-102`). The record holds exactly three duplicate heading
+tokens — `F19`, `F21`, `F27.1` — whose second member carries a qualifier id.
+
+Whole population, each entry moved alone into a genre file and validated:
+
+| id | exit | message |
+|---|---|---|
+| `f19` / `f21` / `f27.1` | **0** | ok |
+| `f19s` | **1** | `anchor id &quot;f19s&quot; does not match slug grammar (expected &quot;f19&quot;)` |
+| `f21-correction` | **1** | `expected &quot;f21&quot;` |
+| `f27.1-amendment` | **1** | `expected &quot;f27.1&quot;` |
+
+Both members kept in one file: exit **0**. So the refusal discriminates on the split, not on the copy.
+
+**Why this bites the split.** The draft spec requires genre files to repeat the heading with **a copy of
+the same anchor**, requires same-file rules to apply per genre file, and forbids rewriting the slug
+grammar. A correction typically outlives the paid original, so eligibility puts one member in
+`findings.md` and the other in `findings-retired.md` — the exact case that fails. Three of the four
+available remedies are closed by the spec's own Constraints; the spec must rule between pinning
+duplicate pairs to the same layer and authorizing a file-local single-occurrence qualifier.</Body>
+  </Finding>
 </Findings>

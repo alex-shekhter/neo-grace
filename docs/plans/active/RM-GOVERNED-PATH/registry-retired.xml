@@ -206,4 +206,16 @@
     <Pays>[F192](#f192), [F194](#f194), [F195](#f195).</Pays>
     <StatusText>**Ratified 2026-09-09** — the maintainer approved this bundle's plan; the row mints its payment only at this bundle's close, when its name equals an archive directory.</StatusText>
   </Row>
+<Row name="C-RECORD-RETIREMENT-2" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Remove the citation validator's qualifier-suffix slug grammar — the mechanism [F172](#f172) describes — removed by this bundle's own merged work, commit `67bc55c` (PR #74). This row exists so the derivation can see the payment.</Charter>
+    <Pays>F172</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-2 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: `expectedSlugFor` and `duplicateCount` are absent from `src/` and `scripts/` (0 hits at this commit); the citation validator's only duplicate rule is `duplicate-id` over index ids at `scripts/validate-citation-anchors.ts:122`; the file carries 0 occurrences of `slug`; the removal commit is `67bc55c` (PR #74).</StatusText>
+  </Row>
+<Row name="C-ARTIFACT-VALIDITY" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Artifact parsing and well-formedness validation: every artifact the lint reads is parsed, and a malformed active artifact refuses. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F39</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-2 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: `xml.comment-not-well-formed` at `src/lint/catalog.ts:529` with its named test at `src/lint/catalog.test.ts:903`; `readGraceXmlArtifact` at `src/artifact/xml.ts:201`; a malformed active artifact refuses with `xml.parse` and exit 1; the archived plans the original count measured sit outside the scan set.</StatusText>
+  </Row>
 </Registry>
