@@ -218,4 +218,52 @@
     <Pays>F39</Pays>
     <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-2 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: `xml.comment-not-well-formed` at `src/lint/catalog.ts:529` with its named test at `src/lint/catalog.test.ts:903`; `readGraceXmlArtifact` at `src/artifact/xml.ts:201`; a malformed active artifact refuses with `xml.parse` and exit 1; the archived plans the original count measured sit outside the scan set.</StatusText>
   </Row>
+<Row name="C-CONTRACT-DEBT" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Closing the contract-debt items: the single exported cloneXmlNode and the additive UTF-8 byte skill footprint beside the frozen line total. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F20, F29, F29.1</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-3 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: exactly one definition of cloneXmlNode survives, exported at src/artifact/xml.ts:239, and the sites that held private copies import it (src/grace-cursor.ts:126, src/artifact/run-membership.ts:22, src/gates/ledger.ts:65); the token-accounting helper ships UTF-8 byte accounting beside the frozen line total (countUtf8Bytes, perSkillBytes, totalBytes at src/test-support/token-accounting.ts:70-115, documented as matching wc -c).</StatusText>
+  </Row>
+<Row name="C-RECORDED-DEBT" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Paying four recorded P1 debts: undeclared-flag refusal with usage, getModulePath reduced to the graph path, and the as-state class taxonomy. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F76, F71, F71.1, F77</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-3 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: the real CLI refuses an undeclared flag — bun ./src/grace.ts lint --path . --totallyBogusFlag hello exits 1 with invalid-arguments naming the flag and printing usage, on a throwaway project at this commit; getModulePath returns moduleRecord.graph.path and nothing else (src/query/core.ts:111-113), covering all four display strings F71.1 counted; the as-state class taxonomy is a single exported const with an exhaustiveness guard that throws when a class is unassigned (AS_STATE_PURITY_CLASSES at src/lint/types.ts:36, iterated and enforced at src/lint/core.ts:206-212).</StatusText>
+  </Row>
+<Row name="C-SUBSTANTIATION-HONESTY" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Closing the attempt-pair review surface: the identical-tree raise rule and the active/-or-archive plan resolution. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F9.10, F31, F32</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-3 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: the raise condition is the identical-tree rule — raise only when the non-.ngrace/ trees are identical across a fail→pass pair (src/review/core.ts:1405-1411, with the comment at :1589 naming this bundle and F31); the attempt-pair audit resolves the plan under active/ or archive/ (the "no plan found for … under active/ or archive/" resolution and planLocation "archive" in src/review/core.ts's pair loader).</StatusText>
+  </Row>
+<Row name="C-REPORT-HONESTY" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Making the tool's own report surfaces agree about facts on disk: one shared loose-event membership for status and the archive gate, the archive-identity reading for MustExist, and lifecycle-path exclusion from the scope audit. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F11, F11.2, F14, F15, F16</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-3 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: isCliLifecyclePath (src/review/core.ts:1013) skips the CLI's own lifecycle writes in the scope audit at :1063 and :1127, covering run.xml, run-ledger.xml and run/**; both status and the archive gate take loose-event membership from the one shared module (src/gates/core.ts:33 and :480, src/grace-status.ts:29 and :267, whose comment says "membership is listLooseEvents (shared with archive gate)"); the MustExist check reuses expandScopePathsForArchiveIdentity for the archive-identity reading (src/review/core.ts:504 and :523).</StatusText>
+  </Row>
+<Row name="C-FLAG-HONESTY" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Refusing the space-separated true/false form for boolean flags with a loud error naming the two working forms, fixed as a class across the CLI. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F18</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-3 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: the real CLI refuses the space form — bun ./src/grace.ts gate archive --change C-X --record false exits 1 with "Boolean flag `--record` does not accept a space-separated value" naming both working forms, before any ledger write, on a throwaway project at this commit; the check lives at src/query/command.ts:84-116 and the gate-side comment at src/gates/command.ts:214 names F18.</StatusText>
+  </Row>
+<Row name="C-ESCALATION-HONESTY" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>The fix-budget / resume seam: the signature-budget thrash rule, the distinct-signature backstop, and the reason-required escalation-clearing resume. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F22</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-3 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: an escalation-clearing resume requires a recorded --reason and refuses before any write (src/grace-cursor.ts:1048-1068).</StatusText>
+  </Row>
+<Row name="C-RECOVER-FOLDABLE" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Making ngrace cursor recover --fix produce a ledger that can actually fold. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F13</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-3 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: writeCoveringOpened allocates headroom past the covering event's own id — OPEN_EPOCH_DEFAULT_HEADROOM = 98 at src/grace-cursor.ts:742, applied at :756 as to = Math.max(coveringRequirementTo, openedId + OPEN_EPOCH_DEFAULT_HEADROOM).</StatusText>
+  </Row>
+<Row name="C-EXECUTION-CONTRACT" status="retired" kind="historical">
+    <Number></Number>
+    <Charter>Documenting the cursor event protocol the CLI already enforces inside skills/ngrace/ngrace-execute/SKILL.md and its packaged mirror. This row exists so the derivation can see the payment.</Charter>
+    <Pays>F12</Pays>
+    <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-3 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: the terminal kind entry at skills/ngrace/ngrace-execute/SKILL.md:84-87 says to emit terminal before ngrace cursor fold and that fold requires a terminal event inside the covering allocation range, and the packaged mirror carries the same text (grep -c terminal identical in both copies).</StatusText>
+  </Row>
 </Registry>
