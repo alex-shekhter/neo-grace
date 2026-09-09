@@ -1,4 +1,4 @@
-<RecordIndex base="331" headroom="10" ceiling="341">
+<RecordIndex base="339" headroom="2" ceiling="341">
   <Entry id="f1" token="F1" genre="finding" layer="live" />
   <Entry id="f2" token="F2" genre="finding" layer="live" />
   <Entry id="f3" token="F3" genre="finding" layer="live" />
@@ -110,7 +110,7 @@
   <Entry id="f37" token="F37" genre="finding" layer="live" />
   <Entry id="d16" token="D16" genre="decision" layer="live" />
   <Entry id="f38" token="F38" genre="finding" layer="retired" />
-  <Entry id="f39" token="F39" genre="finding" layer="live" />
+  <Entry id="f39" token="F39" genre="finding" layer="retired" />
   <Entry id="f39.1" token="F39.1" genre="finding" layer="live" />
   <Entry id="f40" token="F40" genre="finding" layer="live" />
   <Entry id="f41" token="F41" genre="finding" layer="live" />
@@ -298,7 +298,7 @@
   <Entry id="f169" token="F169" genre="finding" layer="live" />
   <Entry id="f170" token="F170" genre="finding" layer="live" />
   <Entry id="f171" token="F171" genre="finding" layer="live" />
-  <Entry id="f172" token="F172" genre="finding" layer="live" />
+  <Entry id="f172" token="F172" genre="finding" layer="retired" />
   <Entry id="f173" token="F173" genre="finding" layer="live" />
   <Entry id="f174" token="F174" genre="finding" layer="live" />
   <Entry id="f175" token="F175" genre="finding" layer="live" />
@@ -328,4 +328,12 @@
   <Entry id="f193" token="F193" genre="finding" layer="live" />
   <Entry id="f194" token="F194" genre="finding" layer="retired" />
   <Entry id="f192" token="F192" genre="finding" layer="retired" />
+  <Entry id="f196" token="F196" genre="finding" layer="live" />
+  <Entry id="f197" token="F197" genre="finding" layer="live" />
+  <Entry id="f198" token="F198" genre="finding" layer="live" />
+  <Entry id="f199" token="F199" genre="finding" layer="live" />
+  <Entry id="f200" token="F200" genre="finding" layer="live" />
+  <Entry id="f201" token="F201" genre="finding" layer="live" />
+  <Entry id="f202" token="F202" genre="finding" layer="live" />
+  <Entry id="f203" token="F203" genre="finding" layer="live" />
 </RecordIndex>
