@@ -1,0 +1,151 @@
+{
+  "baseCommit": "49b4ebb7c6627601ca77ca384f7b6e205d1f65ed",
+  "measured": "2026-09-09",
+  "engine": "shipped (pre-conversion) scripts/validate-record-retirement.ts",
+  "falsePaymentProbe": {
+    "rule": "fixture = real record files + full archive tree at the base commit, built by build-fixture.ts; with --parked-spec the committed parked-spec.xml capture is planted as archive event C-PAYMENT-RECORD-3; validate and --retire run by spawnSync against the shipped engine in the fixture root",
+    "command": "bun scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH ; bun scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH",
+    "withParkedSpec": {
+      "validateExitCode": 1,
+      "findingEligibleStillLiveCount": 15,
+      "allNamingArchiveEvent": "C-PAYMENT-RECORD-3",
+      "includesF21": true,
+      "includesF21Correction": true,
+      "retireMoved": 15,
+      "paidByStampsWritten": 15,
+      "paidByValue": "C-PAYMENT-RECORD-3",
+      "postMoveValidateExitCode": 0
+    },
+    "withoutParkedSpec": {
+      "validateExitCode": 0
+    }
+  },
+  "equivalenceClassProbe": {
+    "rule": "four --f21-tag variants of the --c-selection-row fixture; validate, --retire, re-validate against the shipped engine; f21-left-live measured by scanning findings.xml for the f21 open tag in its recorded quote form",
+    "command": "bun scripts/fixtures/record-parse/build-fixture.ts <root> --c-selection-row [--f21-tag=V] ; validate ; --retire ; validate",
+    "unmodified": {
+      "preValidateExitCode": 1,
+      "preErrors": "registry-eligible-still-live for C-SELECTION (expected: the row is eligible; --retire is the remedy)",
+      "retireMoved": 3,
+      "f21LeftLive": false,
+      "postMoveValidateExitCode": 0
+    },
+    "singleQuoted": {
+      "retireMoved": 2,
+      "f21LeftLive": true,
+      "statusFileMismatch": true,
+      "statusFileMismatchDetail": "Finding id=\"?\" has status=\"undefined\" but the file is the live sibling — a false mismatch on perfectly parsed XML",
+      "postMoveValidateExitCode": 1,
+      "postMoveUnresolvable": "status-file-mismatch and finding-eligible-still-live (id f21) both reported; the parser path demands the move, the regex path cannot perform it"
+    },
+    "spaced": {
+      "retireMoved": 2,
+      "f21LeftLive": true,
+      "statusFileMismatch": true,
+      "postMoveValidateExitCode": 1,
+      "postMoveUnresolvable": "same unresolvable pair as single-quoted"
+    },
+    "reordered": {
+      "retireMoved": 3,
+      "f21LeftLive": false,
+      "postMoveValidateExitCode": 0
+    }
+  },
+  "payerMapBaseline": {
+    "rule": "derivePayerMap imported from the shipped engine, run over the real record and real archive at the base commit (record+archive verified byte-identical to 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed at HEAD via git diff --exit-code, exit 0); rows-only map = the same shipped derivation over a synthetic archive mirroring real archive membership, so the archived-spec prose pass contributes nothing",
+    "command": "bun <scratch script importing derivePayerMap>",
+    "fullTokenCount": 56,
+    "rowsOnlyTokenCount": 54,
+    "proseOnlyRoutes": [
+      "F152",
+      "F43"
+    ],
+    "rowRouteTokensNamedBySpec": {
+      "F161": "C-RECORD-RETIREMENT",
+      "F130": "C-PHASE-RULE-PIN",
+      "F149": "C-APPROVE-TIME-REVIEW",
+      "F150": "C-SCOPE-AUDIT-ATTRIBUTION",
+      "F147": "C-EVIDENCE-DISCRIMINATION"
+    },
+    "map": {
+      "F100": "C-CRITERION-CLOSE-EVIDENCE",
+      "F101": "C-CRITERION-CLOSE-EVIDENCE",
+      "F102": "C-CRITERION-CLOSE-EVIDENCE",
+      "F103": "C-CRITERION-CLOSE-EVIDENCE",
+      "F104": "C-CRITERION-CLOSE-EVIDENCE",
+      "F105": "C-CRITERION-CLOSE-EVIDENCE",
+      "F109": "C-APPROVAL-FINGERPRINT",
+      "F109.3": "C-APPROVAL-FINGERPRINT",
+      "F112": "C-APPROVAL-FINGERPRINT",
+      "F113": "C-APPROVAL-FINGERPRINT",
+      "F120": "C-SUPERSEDE-COMMAND",
+      "F121": "C-SUPERSEDE-COMMAND",
+      "F122": "C-SUPERSEDE-COMMAND",
+      "F125": "C-SUPERSEDE-COMMAND",
+      "F130": "C-PHASE-RULE-PIN",
+      "F136": "C-APPROVE-TIME-REVIEW",
+      "F137": "C-SCOPE-AUDIT-ATTRIBUTION",
+      "F147": "C-EVIDENCE-DISCRIMINATION",
+      "F148": "C-APPROVE-TIME-REVIEW",
+      "F149": "C-APPROVE-TIME-REVIEW",
+      "F149.1": "C-REVIEW-ARCHIVE-SCOPE",
+      "F150": "C-SCOPE-AUDIT-ATTRIBUTION",
+      "F152": "C-APPROVE-TIME-REVIEW",
+      "F155": "C-SCOPE-AUDIT-ATTRIBUTION",
+      "F155.1": "C-RECORD-RETIREMENT",
+      "F157": "C-RECORD-RETIREMENT",
+      "F160": "C-RECORD-RETIREMENT",
+      "F161": "C-RECORD-RETIREMENT",
+      "F164": "C-CITATION-ANCHOR-REPAIR",
+      "F172": "C-RECORD-RETIREMENT-2",
+      "F180": "C-RETIRE-AND-CODIFY",
+      "F181": "C-RETIRE-AND-CODIFY",
+      "F183": "C-RETIREMENT-WINDOW",
+      "F186": "C-RETIREMENT-WINDOW",
+      "F187": "C-PAYMENT-RECORD",
+      "F19": "C-APPROVAL-FINGERPRINT",
+      "F192": "C-RECORD-TEST-ISOLATION-2",
+      "F194": "C-RECORD-TEST-ISOLATION-2",
+      "F195": "C-RECORD-TEST-ISOLATION-2",
+      "F27": "C-DECLARED-WRITES",
+      "F27.1": "C-DECLARED-WRITES",
+      "F27.2": "C-DECLARED-WRITES",
+      "F35": "C-SUBSTANCE-OVER-NAME",
+      "F38": "C-GRAMMAR-SEAM",
+      "F39": "C-ARTIFACT-VALIDITY",
+      "F43": "C-APPROVE-TIME-REVIEW",
+      "F81": "C-APPROVAL-FINGERPRINT",
+      "F82": "C-CRITERION-CLOSE-EVIDENCE",
+      "F83": "C-CRITERION-CLOSE-EVIDENCE",
+      "F83.1": "C-CRITERION-CLOSE-EVIDENCE",
+      "F86.1": "C-SUPERSEDE-VERB",
+      "F86.2": "C-SUPERSEDE-VERB",
+      "F90": "C-CURSOR-TASK-RESOLVER",
+      "F90.1": "C-CURSOR-TASK-RESOLVER",
+      "F95": "C-APPROVAL-FINGERPRINT",
+      "F95.1": "C-APPROVAL-FINGERPRINT"
+    }
+  },
+  "canFailDemonstrations": {
+    "rule": "throwaway clone at 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed; one byte appended to docs/plans/active/RM-GOVERNED-PATH/registry.xml and one to README.md, then committed; exit codes read as cmd >out 2>err; echo $?, never through a pipe",
+    "commands": [
+      "git diff --exit-code -- <record paths> README.md",
+      "git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed -- <record paths> README.md",
+      "git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed -- docs/plans/active/RM-GOVERNED-PATH/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-RECORD-PARSE'",
+      "git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock"
+    ],
+    "cleanTree": {
+      "baseLess": 0,
+      "baseNamed": 0
+    },
+    "committedDrift": {
+      "baseLess": 0,
+      "baseNamed": 1,
+      "recordUntouchedPathsetBaseNamed": 1,
+      "docsExamplesPathsetBaseNamed": 1,
+      "recordUntouchedPathsetBaseLess": 0
+    },
+    "conclusion": "the base-less form passes unconditionally once work is committed (spurious pass); only the base-named form can fail"
+  }
+}
+

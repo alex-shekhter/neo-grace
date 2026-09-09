@@ -11,9 +11,11 @@
 //   COMMENT_WELL_FORMED_PATH_ALLOWLIST
 //   GraceXmlNode
 //   ParsedGraceXmlArtifact
+//   XmlElementSpan
 //   childNodes
 //   childText
 //   cloneXmlNode
+//   computeElementSpans
 //   createGraceXmlParser
 //   hasForbiddenAttributes
 //   parseGraceXmlArtifact
@@ -248,6 +250,152 @@ export function cloneXmlNode(node: GraceXmlNode): GraceXmlNode {
 /** Returns true when the node has any attributes other than the allowed list. */
 export function hasForbiddenAttributes(node: GraceXmlNode, allowed: ReadonlySet<string>): boolean {
   return Object.keys(node.attributes).some((attribute) => !allowed.has(attribute));
+}
+
+/** Source byte ranges of one element: the open tag always, the close tag when the element is not self-closing. */
+export type XmlElementSpan = {
+  openStart: number;
+  openEnd: number;
+  /** null for self-closing elements, which carry an open range only */
+  closeStart: number | null;
+  closeEnd: number | null;
+};
+
+function escapeRegex(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function collectDocumentOrder(node: GraceXmlNode, out: GraceXmlNode[]): void {
+  out.push(node);
+  for (const child of node.children) {
+    collectDocumentOrder(child, out);
+  }
+}
+
+/**
+ * Walks one open tag from the character after the tag name to its closing
+ * angle bracket, tracking quoted attribute values so a > inside quotes does
+ * not end the tag. Returns the index just past the closing >.
+ */
+function scanOpenTagEnd(text: string, from: number): number {
+  let quote: string | null = null;
+  for (let i = from; i < text.length; i++) {
+    const c = text[i]!;
+    if (quote !== null) {
+      if (c === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      quote = c;
+      continue;
+    }
+    if (c === ">") {
+      return i + 1;
+    }
+  }
+  throw new Error(
+    `computeElementSpans: open tag starting at byte ${from} is never closed by an unquoted >`,
+  );
+}
+
+/**
+ * Pairs the parser's document-order elements with a bounded open-tag scan of
+ * the source and returns each element's open-tag byte range and close-tag
+ * byte range. Self-closing elements carry an open range only. The pairing is
+ * verified against the parser at construction — element counts must agree per
+ * tag and every parsed attribute must be found inside its element's open-tag
+ * bytes — and any disagreement raises a loud error naming it; there is no
+ * fallback path and no reserialization.
+ */
+export function computeElementSpans(
+  text: string,
+  parsed: ParsedGraceXmlArtifact,
+): Map<GraceXmlNode, XmlElementSpan> {
+  if (!parsed.root) {
+    throw new Error(
+      `computeElementSpans: ${parsed.file || "document"} has no parsed root; fix the XML before computing spans`,
+    );
+  }
+
+  const order: GraceXmlNode[] = [];
+  collectDocumentOrder(parsed.root, order);
+
+  const parserCountByTag = new Map<string, number>();
+  for (const node of order) {
+    parserCountByTag.set(node.tag, (parserCountByTag.get(node.tag) ?? 0) + 1);
+  }
+  for (const [tag, parserCount] of parserCountByTag) {
+    const openTag = new RegExp(`<${escapeRegex(tag)}(?=[\\s/>])`, "g");
+    const scanCount = (text.match(openTag) ?? []).length;
+    if (scanCount !== parserCount) {
+      throw new Error(
+        `computeElementSpans: pairing disagreement for tag ${tag}: the parser counts ${parserCount} element(s) but the source scan counts ${scanCount} open-tag occurrence(s); the source and the parsed tree disagree`,
+      );
+    }
+  }
+
+  const spans = new Map<GraceXmlNode, XmlElementSpan>();
+  let cursor = 0;
+  for (const node of order) {
+    const openTag = new RegExp(`<${escapeRegex(node.tag)}(?=[\\s/>])`, "g");
+    openTag.lastIndex = cursor;
+    const match = openTag.exec(text);
+    if (!match) {
+      throw new Error(
+        `computeElementSpans: pairing disagreement for tag ${node.tag}: no open-tag occurrence at or after byte ${cursor}, but the parser expects one more element here`,
+      );
+    }
+    const openStart = match.index;
+    const openEnd = scanOpenTagEnd(text, openTag.lastIndex);
+    const selfClosing = text[openEnd - 2] === "/";
+    if (selfClosing && node.children.length > 0) {
+      throw new Error(
+        `computeElementSpans: pairing disagreement for tag ${node.tag} at byte ${openStart}: the source scan reads a self-closing open tag but the parser has ${node.children.length} child element(s) inside it`,
+      );
+    }
+    for (const name of Object.keys(node.attributes)) {
+      if (!new RegExp(`[\\s]${escapeRegex(name)}[\\s]*=`).test(text.slice(openStart, openEnd))) {
+        throw new Error(
+          `computeElementSpans: pairing disagreement for tag ${node.tag} at byte ${openStart}: parsed attribute "${name}" is not found inside the element's open-tag bytes`,
+        );
+      }
+    }
+    spans.set(node, {
+      openStart,
+      openEnd,
+      closeStart: null,
+      closeEnd: null,
+    });
+    cursor = openEnd;
+  }
+
+  // Close tags are located children-first: an element's close tag is the first
+  // </tag> after its last child's end, so nested elements never steal it.
+  for (let i = order.length - 1; i >= 0; i--) {
+    const node = order[i]!;
+    const span = spans.get(node)!;
+    if (text[span.openEnd - 2] === "/") {
+      continue;
+    }
+    let afterChildren = span.openEnd;
+    for (const child of node.children) {
+      const childSpan = spans.get(child)!;
+      afterChildren = Math.max(afterChildren, childSpan.closeEnd ?? childSpan.openEnd);
+    }
+    const closeTag = `</${node.tag}>`;
+    const closeStart = text.indexOf(closeTag, afterChildren);
+    if (closeStart < 0) {
+      throw new Error(
+        `computeElementSpans: pairing disagreement for tag ${node.tag} at byte ${span.openStart}: no </${node.tag}> close tag after byte ${afterChildren} for a non-self-closing element`,
+      );
+    }
+    span.closeStart = closeStart;
+    span.closeEnd = closeStart + closeTag.length;
+  }
+
+  return spans;
 }
 
 function normalizeParsedRoot(parsed: unknown): GraceXmlNode | null {
