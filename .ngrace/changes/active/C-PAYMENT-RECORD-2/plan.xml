@@ -1,0 +1,327 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-PAYMENT-RECORD-2>
+    <IntentSummary>
+      Open the findings window by proven payment, then flush the eight staged
+      entries the window cannot otherwise hold. Two post-hoc historical rows
+      land in live registry.xml — C-RECORD-RETIREMENT-2 paying F172 and
+      C-ARTIFACT-VALIDITY paying F39, each discharge witnessed by a
+      present-tree artifact checkable without judgement — then a task runs
+      scripts/validate-record-retirement.ts --retire in the same execution wave,
+      moving both rows and both findings to their retired siblings and stamping
+      PaidBy. The move is this bundle's act, not a follow-on, because the flush
+      deliverable needs the room the move opens and the close ceremony's
+      post-archive move is structurally too late. Then the bundle flushes
+      exactly the eight staged entries F196-F203 into findings.xml and
+      decisions.xml, with the written base read back from newlineCount, never
+      derived from a projection (F203). DurableScope is &lt;None /&gt;: no graph
+      module is written; do not mint a synthetic module. ObservedWriteScope is
+      the seven RM-GOVERNED-PATH files:
+      docs/plans/active/RM-GOVERNED-PATH/registry.xml, registry-retired.xml,
+      findings.xml, findings-retired.xml, decisions.xml, rulings.xml, and
+      rulings-retired.xml. Do not add spec.xml, plan.xml, decisions.md, src/,
+      scripts/, CLAUDE.md, docs/plans/README.md, skills/ngrace/*, package.json,
+      or anything under docs/plans/archive/ or .ngrace/changes/archive/.
+      Sequence is two tasks in one execution wave: T-001 inserts the two
+      historical rows into live registry.xml and invokes one
+      bun ./scripts/validate-record-retirement.ts --retire against the
+      production record in the same task. The intermediate state between insert
+      and move is deliberately red: validation reports
+      registry-eligible-still-live and finding-eligible-still-live twice each
+      (D28.1 enforcement saying the move is due). The task boundaries do not
+      require green there, and no task ends in that state. --retire moves the
+      two rows to registry-retired.xml with status="retired", stamps &lt;PaidBy&gt;
+      onto F172 and F39 and moves them to findings-retired.xml with
+      status="retired", flips the two index Entry layer attributes in
+      decisions.xml from live to retired, and updates live root attributes:
+      findings.xml base drops from 7635 to 7563 (freed 72 lines = 29 from F172 +
+      43 from F39), headroom becomes 7846 - 7563 = 283 against ceiling 7846
+      untouched (persistSnapshot anchors formula ceiling at pre-move base:
+      min(7846, 7635 + 245) = 7846); registry.xml base returns to 12, headroom
+      returns to 14, ceiling 26; rulings.xml and rulings-retired.xml are
+      rewritten byte-identically at 1697/186/1883; decisions.xml root stays at
+      331/10/341. Validation then exits 0. T-002 flushes exactly the eight
+      staged entries F196-F203 into findings.xml and decisions.xml. The flush
+      set is selected by anchor id, never by position, and is closed by id: an
+      entry is flushed if and only if its anchor id is one of F196-F203, and
+      nothing else in the buffer is flushed — including entries that do not
+      exist yet. Stale copies of F192-F195 (measured at this commit), F204, and
+      any entry staged during this bundle's window or after this plan was
+      written stay staged; no criterion depends on the buffer's entry count.
+      Do not prune or write the staged buffer. Each entry is cut at the anchor that
+      starts the next entry, dropping trailing blanks; landed element size =
+      buffer span + 3 (Title, &lt;Body&gt;, close tag, with &lt;/Body&gt; inline
+      on last prose line). Total landed flush is 245 lines (221 buffer prose
+      lines + 24 wrapper lines). Write findings.xml, then read newlineCount
+      back (7808)
+      for base, compute headroom = ceiling (7846) - 7808 = 38; never derive
+      base from a projection (F203). Add 8 Entry elements to decisions.xml,
+      reading newlineCount back for its root base the same way (339; headroom
+      2 against ceiling 341). A second --retire is a
+      no-op (moved = 0). F193 re-derivation: clamp anchors ceilingBase at
+      pre-move base, rulings untouched at 1697/186/1883; F193 stays live and
+      unpaid. Ceremony tier T1. Current-mode lint of this project root is not a
+      task Verification command and is not a TargetAssertions MustPassCommand;
+      the post-archive close criterion AC-CLOSE-LINT is the only place it
+      appears. The executor emits its own execution-time cursor events for its
+      tasks (opened, progress, attempt, command-run) and does not omit them.
+      Do not hand-write any status. Do not perform any close act: the terminal
+      event and the cursor fold are close acts owned by the authority, together
+      with the --assertions final --run-commands gate, both gate verdicts,
+      gate apply, the status="applied" write, gate archive, the git mv to
+      .ngrace/changes/archive/, and the record retirement move; no task performs
+      any of them and no sentence in this plan implies execution does.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Insert two historical rows and --retire in the same wave to open the findings window
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Insert two historical rows into live production registry.xml,
+            then invoke one bun ./scripts/validate-record-retirement.ts --retire
+            against the production record in this same task, before any commit
+            validate:ci can see. Do not separate the insert and the --retire into
+            two tasks or two commits: after insert the two names equal archive
+            directories, so they are immediately registry-eligible, and their
+            Pays fields make the two findings immediately finding-eligible; a
+            commit or a task boundary holding that tree fails
+            registry-eligible-still-live and finding-eligible-still-live, twice
+            each. The intermediate occupancy 12+2=14 does not exceed ceiling 26;
+            eligibility is why they cannot be separated. The intermediate state
+            is the D28.1 enforcement saying the move is due: it is a declared
+            working-tree state, never a commit validate:ci can see. No task ends
+            inside this deliberately-red window. One --retire pass: retireRecord
+            stamps &lt;PaidBy&gt; onto eligible live findings and moves those
+            findings and the archive-named rows in one invocation. Do not
+            hand-edit &lt;PaidBy&gt;. Do not write the rows directly into
+            registry-retired.xml. Do not raise any persisted ceiling. Do not flush
+            .ngrace/scratch/staged-findings.md. Do not mint a chartered row for
+            C-PAYMENT-RECORD-2.
+          </Criterion>
+          <Criterion>
+            Row contents, two rows, kind=&quot;historical&quot;, status=&quot;live&quot; on insert
+            (--retire rewrites status to &quot;retired&quot;). Number is empty. StatusText
+            begins with **Delivered.**, says the row is a historical payment
+            record written by C-PAYMENT-RECORD-2 because the archived spec never
+            used the payer phrase and no registry row existed at close, then
+            names the present-tree witness.
+            Row 1: name=&quot;C-RECORD-RETIREMENT-2&quot;. Pays carries F172. Charter
+            describes removal of the qualifier-suffix slug grammar from
+            citation validator. Witness: expectedSlugFor and duplicateCount
+            absent from src/ and scripts/ (0 hits at this commit); validator
+            duplicate rule is duplicate-id over index ids at
+            scripts/validate-citation-anchors.ts:122; file carries 0 occurrences
+            of slug; removal commit 67bc55c (PR #74).
+            Row 2: name=&quot;C-ARTIFACT-VALIDITY&quot;. Pays carries F39. Charter
+            describes artifact parsing and well-formedness validation. Witness:
+            xml.comment-not-well-formed at src/lint/catalog.ts:529 with test at
+            src/lint/catalog.test.ts:903; readGraceXmlArtifact at
+            src/artifact/xml.ts:201; malformed active artifact refuses with
+            xml.parse and exit 1; archived plans sit outside scan set.
+            After --retire: those two names exist as kind=&quot;historical&quot; rows in
+            registry-retired.xml and not in live registry.xml; live findings.xml
+            has no Finding whose token is F172 or F39; those tokens exist as
+            status=&quot;retired&quot; in findings-retired.xml with a &lt;PaidBy&gt; child
+            naming the corresponding archive event; decisions.xml Entry elements
+            for f172 and f39 have layer=&quot;retired&quot;; live findings.xml root has
+            base=&quot;7563&quot; headroom=&quot;283&quot; ceiling=&quot;7846&quot; (72 lines freed: 29 from
+            F172 + 43 from F39; ceiling untouched under persistSnapshot pre-move
+            base clamp min(7846, 7635 + 245) = 7846); registry.xml base returns to
+            12, headroom to 14, ceiling 26; rulings.xml and rulings-retired.xml
+            rewritten byte-identically at 1697/186/1883;
+            bun ./scripts/validate-record-retirement.ts exits 0. F193 stays live
+            and unpaid.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands and the plan's TargetAssertions
+            contain no current-mode lint of this project root, checked by the
+            rule in Constraints, by hand (F171): no command text contains
+            --assertions current, and none invokes ngrace lint or bun
+            ./src/grace.ts lint of this root while omitting --assertions. The
+            executor emits its own execution-time cursor events for this task
+            (opened, progress, attempt, command-run) and does not omit them; the
+            terminal event and cursor fold are close acts owned by the
+            authority, not this task's.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>git diff --exit-code e3b6dcc464f8dacc7d32f73d2ec359de6a89a54a -- src/ scripts/</Command>
+          <Command>git diff --exit-code e3b6dcc464f8dacc7d32f73d2ec359de6a89a54a -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+          <Command>git diff --exit-code e3b6dcc464f8dacc7d32f73d2ec359de6a89a54a -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-PAYMENT-RECORD-2'</Command>
+          <Command>git diff --exit-code e3b6dcc464f8dacc7d32f73d2ec359de6a89a54a -- docs/plans/active/RM-GOVERNED-PATH/rulings.xml docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>
+          Flush staged findings F196-F203 into findings.xml and decisions.xml
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Flush mechanics. Flush exactly the eight staged entries F196 through
+            F203, selected by anchor id (f196, f197, f198, f199, f200, f201, f202,
+            f203) and never by position. The flush set is closed by anchor id: an
+            entry is flushed if and only if its anchor id is one of the eight,
+            and nothing else in the buffer may be flushed — including entries
+            that do not exist yet. The buffer also holds stale copies of F192,
+            F193, F194 and F195 (measured at this commit; F192, F194, F195 are
+            already retired, F193 is live), F204 was staged during this bundle's
+            window and the spec's NonGoal leaves it staged, and any entry staged
+            later also stays staged. The buffer grows while this bundle is open
+            (findings raised under D30 are staged there, F204 onward); no
+            criterion in this plan depends on the buffer's total entry count.
+            Do not edit or prune the staged buffer: pruning is post-merge hygiene
+            owned by the authority. Cut each entry at the anchor that starts the
+            next entry, dropping all trailing blank lines. The heading line
+            becomes the Title; the body is copied verbatim; the element adds
+            three wrapper lines — open tag, &lt;Body&gt; on its own line, and close
+            tag — with &lt;/Body&gt; inline on the last prose line. Landed
+            element line counts: f196 (29), f197 (28), f198 (37), f199 (23), f200
+            (30), f201 (30), f202 (37), f203 (31) = 245 total lines (221 buffer
+            prose lines + 24 wrapper lines). Append the eight Finding elements in
+            anchor order after f193 in findings.xml.
+          </Criterion>
+          <Criterion>
+            Root attribute derivation and index flush. Write findings.xml, then
+            read newlineCount back for the root base attribute (F203: a written
+            root attribute is never derived from a projection; projection is used
+            only to check ceiling headroom): base becomes 7808 (7563 + 245);
+            headroom becomes ceiling minus base (7846 - 7808 = 38); ceiling remains
+            byte-identical at 7846 and is never raised. Append eight matching Entry
+            elements with genre=&quot;finding&quot; layer=&quot;live&quot; to decisions.xml,
+            reading newlineCount back after the write for its root base the same
+            way: base becomes 339 (331 + 8), headroom becomes 2 (341 - 339),
+            ceiling 341 untouched. After the flush, a second
+            bun ./scripts/validate-record-retirement.ts --retire is a byte-level
+            no-op (moved = 0, early return before any write), leaving all seven
+            record files byte-identical. Validation exits 0; preservation and
+            citation validators exit 0; tests pass.
+          </Criterion>
+          <Criterion>
+            This task's Verification commands and the plan's TargetAssertions
+            contain no current-mode lint of this project root, checked by the
+            rule in Constraints, by hand (F171). Selected --assertions target
+            --run-commands is the post-write evidence command and is meant to run
+            during execution with an open cursor on a declared task; its exit 1
+            today (pre-approval, no open cursor) is not a defect (F184). Do not
+            put bun ./src/grace.ts lint --path . --fail-on warnings here
+            (AC-CLOSE-LINT is post-archive). The executor emits its own
+            execution-time cursor events for this task (opened, progress, attempt,
+            command-run) and does not omit them; the terminal event and cursor
+            fold are close acts owned by the authority, together with the
+            --assertions final --run-commands gate, both gate verdicts, gate
+            apply, the status=&quot;applied&quot; write, gate archive, the git mv, and the
+            record retirement move; no task performs any of them.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-PAYMENT-RECORD-2 --assertions target --run-commands</Command>
+          <Command>git diff --exit-code e3b6dcc464f8dacc7d32f73d2ec359de6a89a54a -- src/ scripts/</Command>
+          <Command>git diff --exit-code e3b6dcc464f8dacc7d32f73d2ec359de6a89a54a -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+          <Command>git diff --exit-code e3b6dcc464f8dacc7d32f73d2ec359de6a89a54a -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-PAYMENT-RECORD-2'</Command>
+          <Command>git diff --exit-code e3b6dcc464f8dacc7d32f73d2ec359de6a89a54a -- docs/plans/active/RM-GOVERNED-PATH/rulings.xml docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-002>
+    </ImplementationPlan>
+  </C-PAYMENT-RECORD-2>
+</NgraceChangePlan>
