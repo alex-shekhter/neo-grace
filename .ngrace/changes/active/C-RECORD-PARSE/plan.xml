@@ -1,0 +1,542 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-RECORD-PARSE>
+    <IntentSummary>
+      Convert the record engine from regex-over-XML to parse-and-splice per
+      the approved spec. One stage captures the pre-conversion world before
+      any conversion lands: a deterministic fixture builder that materializes
+      the real record and the full archive tree from the git object store at
+      the spec's base commit 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed, the
+      shipped engine's golden move outputs stored byte-for-byte under
+      scripts/fixtures/record-parse/golden/, and both discriminating probes
+      reproduced failing against the shipped engine in
+      scripts/fixtures/record-parse/baseline-probes.json. Then the span
+      capability lands in src/artifact/xml.ts with its suite; the minimal
+      record-shape- check ships in the same stage as the capability, because
+      span pairing is well defined only under it; reads convert to the parsed
+      tree next; writes convert last, positioned by parser-derived spans so
+      byte preservation is testable against the goldens; then the archived-spec
+      prose pass is removed from derivePayerMap and both probes are inherited
+      as permanent tests; a final task drives the whole product and pins the
+      byte diffs against the named base commit. Reads convert before writes so
+      every write is positioned by the parser rather than by a pattern.
+      DurableScope anchors exactly the one graph module the spec enumerates —
+      the LINKS target of src/artifact/xml.ts; no other graph module is
+      written and no synthetic module is minted for the scripts/ files, which
+      are in .ngrace-lint.json ignoredDirs and have no owning module.
+      ObservedWriteScope is src/artifact/xml.ts, src/artifact/xml.test.ts,
+      scripts/validate-record-retirement.ts,
+      scripts/validate-record-retirement.test.ts, the fixture builder, the
+      baseline evidence files, and the seven golden outputs under
+      scripts/fixtures/record-parse/. Do not add spec.xml, plan.xml, or
+      anything under docs/plans/ or .ngrace/changes/archive/. No task carries
+      a Satisfies element: every AC-* in the approved spec carries a complete
+      CloseEvidence child, the shipped rule treats that as the third state
+      that is not a forgotten mapping, and a Satisfies of a close-bound
+      criterion is the error change.close-evidence-and-satisfied. No task
+      Verification and no TargetAssertions command contains a current-mode
+      lint of this project root — no Command text contains --assertions
+      current and none invokes ngrace lint or bun ./src/grace.ts lint of this
+      root while omitting --assertions — because the shipped detector misses
+      the house form bun ./src/grace.ts lint (F171); this rule is stated once
+      here and governs every task below; current-mode lint appears only as
+      the post-archive CloseEvidence of AC-CLOSE-LINT. The payer-phrase
+      pattern PAID_FINDING_RE is named by identifier only; its prose form
+      appears nowhere in this plan. The parked branch c-payment-record-3 is
+      read only through git show of its spec, never checked out, merged or
+      modified; its spec's bytes are captured once into
+      scripts/fixtures/record-parse/parked-spec.xml so no test depends on the
+      branch after baseline. Every new test that spawns a process or measures
+      the real repository carries an explicit generous timeout (F185). Every
+      diff-based criterion names the base commit in prose and in command, and
+      its can-fail direction is demonstrated in the baseline. bun test green
+      is a precondition, never the evidence; the probes are the evidence.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/artifact/xml.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/xml.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-RECORD-PARSE/spec.xml</Value>
+      </MustExist>
+      <MustNotExist>
+        <Value>scripts/fixtures/record-parse</Value>
+      </MustNotExist>
+      <MustContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>LINKS: M-GRAMMAR</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>derivePayerMap</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>PAID_FINDING_RE</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>function childInner</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>new RegExp</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun test src/artifact/xml.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>src/artifact/xml.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/xml.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/artifact/xml.ts</File>
+        <Text>computeElementSpans</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>PAID_FINDING_RE</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>function childInner</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>function childOpenAttrs</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>new RegExp</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun test src/artifact/xml.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+      </GraphAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/xml.ts</File>
+      <File>src/artifact/xml.test.ts</File>
+      <File>scripts/validate-record-retirement.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>scripts/fixtures/record-parse/build-fixture.ts</File>
+      <File>scripts/fixtures/record-parse/baseline-probes.json</File>
+      <File>scripts/fixtures/record-parse/parked-spec.xml</File>
+      <File>scripts/fixtures/record-parse/golden/findings.xml</File>
+      <File>scripts/fixtures/record-parse/golden/findings-retired.xml</File>
+      <File>scripts/fixtures/record-parse/golden/rulings.xml</File>
+      <File>scripts/fixtures/record-parse/golden/rulings-retired.xml</File>
+      <File>scripts/fixtures/record-parse/golden/registry.xml</File>
+      <File>scripts/fixtures/record-parse/golden/registry-retired.xml</File>
+      <File>scripts/fixtures/record-parse/golden/decisions.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Capture the pre-conversion world: fixture builder, shipped-engine
+          goldens, both probes reproduced failing, payer-map baseline
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Create scripts/fixtures/record-parse/build-fixture.ts, a
+            deterministic builder that materializes a throwaway fixture root
+            from the git object store at
+            49b4ebb7c6627601ca77ca384f7b6e205d1f65ed — never from the live
+            working tree, so the fixture is identical at baseline, mid-bundle
+            and post-archive: the whole docs/plans/active/RM-GOVERNED-PATH/
+            directory (the seven record XML files, the stub and the
+            inventory) and the whole .ngrace/changes/archive/ tree at that
+            commit. Flags: --c-selection-row inserts one deterministic live
+            chartered row named C-SELECTION whose Pays element names F21
+            (an archive directory with no row in either layer at that
+            commit); --f21-tag=single-quoted|spaced|reordered rewrites
+            f21's open tag accordingly, each variant valid XML that parses
+            identically; --parked-spec copies the parked bundle's approved
+            spec, read once via git show
+            c-payment-record-3:.ngrace/changes/active/C-PAYMENT-RECORD-3/spec.xml
+            and stored as scripts/fixtures/record-parse/parked-spec.xml,
+            into the fixture as archive event C-PAYMENT-RECORD-3 — the
+            branch is never checked out, merged or modified. The builder
+            never writes inside this repository except its declared output
+            files under scripts/fixtures/record-parse/.
+          </Criterion>
+          <Criterion>
+            In the same task, before any conversion task runs, capture the
+            baseline: run the shipped engine's --retire against the
+            --c-selection-row fixture in a temporary root and copy the seven
+            record files it writes byte-for-byte into
+            scripts/fixtures/record-parse/golden/ (findings.xml,
+            findings-retired.xml, rulings.xml, rulings-retired.xml,
+            registry.xml, registry-retired.xml, decisions.xml — the engine's
+            complete write set for a move); and write
+            scripts/fixtures/record-parse/baseline-probes.json recording,
+            each with the rule, the command and the measured result: (1) the
+            false-payment probe against the shipped engine — the fixture
+            with the parked spec validates exit 1 with 15
+            finding-eligible-still-live errors all naming archive event
+            C-PAYMENT-RECORD-3 including f21 and f21-correction, and
+            --retire then reports moved 15 and stamps PaidBy
+            C-PAYMENT-RECORD-3 on all 15 moved elements, while the same
+            fixture without the parked spec validates exit 0; (2) the
+            equivalence-class probe against the shipped engine — validate
+            and --retire over the four f21-tag variants, unmodified moved 3
+            with post-move validation exit 0, single-quoted and spaced each
+            moved 2 with f21 left live, a status-file-mismatch on perfectly
+            parsed XML, and a post-move validation that no operation can
+            resolve, reordered moved 3; (3) the payer-map baseline —
+            derivePayerMap imported from the shipped engine and run over the
+            real record and real archive at the base commit, with the
+            token-to-payer map recorded in full, including that F152 and F43
+            are prose-route only and that F161, F130, F149, F150 and F147
+            hold row routes; (4) the can-fail demonstrations for the diff
+            criteria — on a throwaway clone at the base commit, one byte
+            appended to one record path and one to README.md, committed:
+            the base-less git diff --exit-code form over those paths exits 0
+            against that committed drift while the form naming
+            49b4ebb7c6627601ca77ca384f7b6e205d1f65ed exits 1, and both exit
+            0 on the clean tree. Extend
+            scripts/validate-record-retirement.test.ts with a golden
+            comparison test — build the --c-selection-row fixture in a
+            temporary root, run the engine from the repository tree by
+            spawnSync, and byte-compare all seven written files against
+            golden/ — and a baseline-evidence test asserting the recorded
+            failure signatures in baseline-probes.json. Both tests carry
+            explicit generous timeouts (F185). The golden test passes
+            against the shipped engine at capture time and must keep
+            passing after every later task; it is the byte-preservation
+            tripwire, not a target-state criterion. Scratch work in
+            temporary directories, never the working tree.
+          </Criterion>
+          <Criterion>
+            The capture is complete before any conversion: the seven golden
+            files exist and are non-empty, baseline-probes.json records
+            every result named above, and parked-spec.xml is byte-identical
+            to git show c-payment-record-3:.ngrace/changes/active/C-PAYMENT-RECORD-3/spec.xml.
+            Failure: any conversion task started before these files exist.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>
+          Add the parser-derived source-span capability to the shared XML
+          adapter with its suite
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            src/artifact/xml.ts gains one exported capability,
+            computeElementSpans(text, parsed): given the original XML text
+            and its parseGraceXmlArtifact tree, it returns each element's
+            open-tag byte range and close-tag byte range, computed by
+            pairing the parser's document-order elements with a bounded
+            open-tag scan of the source — an open-tag pattern of the form
+            &lt;Tag\b[^&gt;]*&gt;, quote-aware; self-closing elements carry an
+            open range only. The pairing is verified against the parser at
+            construction: element counts must agree per tag and every
+            parsed attribute must be found inside its element's open-tag
+            bytes; any disagreement raises a loud error naming the
+            disagreement instead of returning spans, and there is no
+            fallback path. No reserialization: the parse output, the
+            GraceXmlNode tree and every existing consumer are unchanged;
+            the capability is additive. Add the export to the
+            START_MODULE_MAP block (the file's MAP_MODE is EXPORTS); the
+            MODULE_CONTRACT LINKS header already names the module and is
+            not edited. This task does not touch
+            scripts/validate-record-retirement.ts.
+          </Criterion>
+          <Criterion>
+            src/artifact/xml.test.ts gains the capability's suite: for
+            synthetic documents with known offsets, open and close ranges
+            are correct against hand-computed byte positions; for the real
+            record files read at their committed bytes, pairing agrees per
+            tag with the parser across findings.xml (213 Finding elements),
+            findings-retired.xml (58), rulings.xml (61), rulings-retired.xml
+            (5), registry.xml (12), registry-retired.xml (36) and the
+            index's 337 self-closing Entry elements through the self-closing
+            branch; self-closing elements carry open ranges only; a
+            document that mis-pairs raises the loud error; and parsed
+            attributes are located inside their element's open-tag bytes.
+            Counts re-measured at this task's base; the re-measured numbers
+            win if they differ from the ones written here. Explicit
+            generous timeouts where the real files are read (F185).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>
+          Ship the minimal record-shape- check in the engine, in the same
+          stage as the span capability
+        </Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            scripts/validate-record-retirement.ts gains the minimal shape
+            check, run on the parsed tree for each of the seven record
+            files, erroring with a code prefixed record-shape- when: the
+            root element is not the expected genre root (Findings for the
+            findings pair, Rulings for the rulings pair, Registry for the
+            registry pair, RecordIndex for the index); a Finding, Decision,
+            Row or Entry element appears anywhere except as a direct child
+            of the root; or any of those elements has a same-tag
+            descendant. Each refuse case is a valid XML document that
+            today's checks accept — parseRecordRoot compares no tag today,
+            and the regex path is blind to nesting — so the check
+            discriminates. This is the load-bearing minimum that makes span
+            pairing well defined, not the full schema: no required-children,
+            depth-beyond-same-tag or allowed-children checks. Clean
+            fixtures validate green. Extend
+            scripts/validate-record-retirement.test.ts with one fixture per
+            refuse case, each on its own isolated temporary root, plus the
+            clean control, with explicit generous timeouts where processes
+            are spawned (F185).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Convert every structural read in the engine to the parsed tree</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            In scripts/validate-record-retirement.ts, convert the structural
+            reads to the parser tree and the span map, changing no output
+            bytes: attrOf reads become node.attributes, binding attribute
+            reads to the open tag by construction; the checkStatusFile
+            extractElements/parseAttrs path reads parsed attributes, killing
+            the false status-file-mismatch class on single-quoted legal
+            XML; readRootSnapshot, checkRulingsProvenance and
+            checkCeilingValue read root attributes from the parsed root
+            instead of matching the root open tag; the fenced-metadata
+            scan's outsideBody text replacement becomes a parser walk — any
+            text node outside a Body element that contains a fence fails;
+            elementSpans callers take parser nodes with span-map offsets
+            from computeElementSpans instead of position-paired regex
+            spans; the eligibility scan in validateRecordRetirement is
+            already parser-based (walkNodes) and stays. The dead childInner
+            and childOpenAttrs helpers are deleted. The token readers over
+            prose fields — F_TOKEN_RE over registry Pays cells, the
+            Closed-with clause reader, token extraction from finding
+            bodies, the markdown-table readers — are text processing and
+            are not converted (spec NonGoal). The golden test from T-001
+            stays green through this task: read conversion alone changes no
+            written byte.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>
+          Convert every structural write to a byte-preserving splice
+          positioned by parser-derived spans, and inherit the
+          equivalence-class probe as a permanent test
+        </Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            All seven document mutations keep their splice mechanics and
+            change only their positioning: withStatusRetired rewrites the
+            status attribute inside the open-tag range the span map
+            located; withPaidBy inserts the PaidBy line immediately after
+            the open tag's closing angle bracket; setEntryLayer locates the
+            Entry element by parsed id and rewrites the layer attribute
+            inside that open-tag range; withRootSnapshot rewrites the
+            root's attributes within the root open-tag range; removeSpans
+            removes exactly the parser-derived spans; appendElements
+            inserts before the root close-tag offset instead of a
+            lastIndexOf search. After this task no constructed regex or
+            attrOf call remains in the engine: the reads converted in
+            T-004 removed their last read-side callers and the write
+            conversion removes the rest, and the empty shells are deleted.
+            Byte preservation is the hard requirement and is tested by the
+            T-001 golden comparison staying green: on the fixture move,
+            every file the converted engine writes is byte-identical to the
+            file the shipped engine wrote for the same fixture state — the
+            diff stability, prose bytes and entity forms that citations
+            depend on may not move. No persisted ceiling, base or headroom
+            value changes; persistSnapshot and the newlineCount inputs to
+            the ceiling formulas are untouched.
+          </Criterion>
+          <Criterion>
+            The equivalence-class probe is inherited as a permanent test in
+            scripts/validate-record-retirement.test.ts: for the fixture
+            where one live element (f21) is eligible via the C-SELECTION
+            registry row, rewriting that element's open tag as single-quoted
+            attributes, as spaces around the equals signs, or with
+            attributes reordered — each valid XML parsing identically —
+            yields the same validate verdict and the same retire move-set
+            as the unmodified tag: element moved to the retired sibling,
+            stamped, index layer flipped, moved count unchanged. The test
+            drives the real script by spawnSync on isolated temporary
+            roots, covers the unmodified tag as the control, and carries an
+            explicit generous timeout (F185). This test could not pass
+            before T-004 and T-005 — the baseline recorded the shipped
+            engine failing it — which is its discrimination evidence.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>
+          Remove the archived-spec prose pass from derivePayerMap, declare
+          payment structurally, and inherit the false-payment probe as a
+          permanent test
+        </Title>
+        <DependsOn>
+          <Task>T-005</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The archived-spec sentence pass in derivePayerMap — the loop
+            that flattens each archived spec.xml, splits it into sentences,
+            tests each against the PAID_FINDING_RE pattern and pays every
+            F-token in a matching sentence — is removed, with its pattern
+            constant. After this task the payer map is derived from exactly
+            two declared routes, both already structural: a registry row
+            whose name is an archive directory, via its Pays element; and
+            that row's status text closing clause via the existing
+            Closed-with reader. No archived spec.xml file is read by the
+            payer derivation any more. The real record still validates
+            green: the seven tokens the nine minting sentences name are all
+            retired with stored PaidBy stamps, five have row routes in
+            registry-retired.xml, and F152 and F43 were prose-only routes
+            whose stamps are stored on the retired elements and never
+            re-derived, so removing the pass un-pays nothing and un-retires
+            nothing. No retired element's stamp is rewritten. This
+            overturns part of C-RECORD-RETIREMENT's finding-eligibility
+            constraint exactly as the approved spec argues it; the plan
+            adds no argument of its own.
+          </Criterion>
+          <Criterion>
+            Two permanent tests join scripts/validate-record-retirement.test.ts,
+            both using the committed copy scripts/fixtures/record-parse/parked-spec.xml
+            and never the parked branch. First, the false-payment probe,
+            both directions: the fixture record with the parked spec copied
+            in as archive event C-PAYMENT-RECORD-3 leaves every finding
+            that spec refuses to pay live and eligible by no prose route —
+            no finding-eligible-still-live error attributable to a spec
+            sentence — while the same fixture without the copied spec also
+            validates green, so the test discriminates; baseline-probes.json
+            records the shipped engine minting 15 payments here before the
+            fix. Second, the payer derivation over the real record and real
+            archive at this task's base: derivePayerMap's returned map
+            contains no F152 or F43 entry and every other token's payer is
+            unchanged from the baseline map in baseline-probes.json,
+            compared token by token, with an explicit generous timeout as a
+            real-repository measurement (F185). The map is invariant under
+            the archive move: after this bundle archives, its own spec
+            mints by no route, which is what the post-close validator run
+            probes (F196).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>
+          Drive the whole product and pin the byte diffs against the named
+          base commit
+        </Title>
+        <DependsOn>
+          <Task>T-006</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The full evidence pass, every command exiting 0 as written:
+            both test suites green (bun test src/artifact/xml.test.ts and
+            bun test scripts/validate-record-retirement.test.ts); the real
+            record validates green (bun ./scripts/validate-record-retirement.ts),
+            which post-close is also the probe that this bundle's own
+            archived spec mints by no route (F196); the two sibling
+            validators green (bun ./scripts/prove-record-preservation.ts
+            and bun ./scripts/validate-citation-anchors.ts); and selected
+            target assertions run (bun ./src/grace.ts lint --path .
+            --change C-RECORD-PARSE --assertions target --run-commands).
+            The three byte-diff pins, each naming
+            49b4ebb7c6627601ca77ca384f7b6e205d1f65ed in prose and command,
+            each able to fail per the T-001 can-fail demonstration: the
+            seven record paths plus the archive with this bundle's own
+            later arrival excluded; and the docs-and-release surface —
+            README.md, examples/, CLAUDE.md, docs/plans/README.md,
+            skills/ngrace/, plugins/ngrace/skills/ngrace/, package.json and
+            bun.lock. The record files are read, never written, by this
+            bundle: no task edits docs/plans/active/RM-GOVERNED-PATH/* and
+            no record file is registered in CONTEXT_ARTIFACTS.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-RECORD-PARSE --assertions target --run-commands</Command>
+          <Command>git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed -- docs/plans/active/RM-GOVERNED-PATH/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-RECORD-PARSE'</Command>
+          <Command>git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+        </Verification>
+      </T-007>
+    </ImplementationPlan>
+  </C-RECORD-PARSE>
+</NgraceChangePlan>
