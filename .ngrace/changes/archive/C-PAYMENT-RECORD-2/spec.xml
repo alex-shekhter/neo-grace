@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-PAYMENT-RECORD-2>
     <Summary>
       Open the findings window by proven payment, then flush the eight

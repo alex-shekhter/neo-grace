@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-PAYMENT-RECORD-2>
     <IntentSummary>
       Open the findings window by proven payment, then flush the eight staged
