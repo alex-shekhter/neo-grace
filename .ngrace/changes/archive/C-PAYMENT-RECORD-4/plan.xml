@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-PAYMENT-RECORD-4>
     <IntentSummary>
       Reconcile the two test pins that C-PAYMENT-RECORD-3's performed record work left stale,
