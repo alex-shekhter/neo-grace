@@ -1,0 +1,676 @@
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-PAYMENT-RECORD-3><Replacement>C-PAYMENT-RECORD-4</Replacement>
+    <Summary>
+      Run the rowless-archive payment survey the predecessor deferred,
+      record what it proves, and take the findings window from one
+      entry from full to hundreds of lines of headroom. The survey
+      measured 54 archived bundles with no registry row in either
+      sibling at commit 49b4ebb (76 archive directories, 48 distinct
+      row names) and verified present-tree witnesses for payments by
+      eight of them: C-CONTRACT-DEBT (F20, F29, F29.1),
+      C-RECORDED-DEBT (F76, F71, F71.1, F77), C-SUBSTANTIATION-HONESTY
+      (F9.10, F31, F32), C-REPORT-HONESTY (F11, F11.2, F14, F15, F16),
+      C-FLAG-HONESTY (F18), C-ESCALATION-HONESTY (F22),
+      C-RECOVER-FOLDABLE (F13), C-EXECUTION-CONTRACT (F12) — 19 live
+      findings, 699 live element lines under the shipped counting rule
+      (newlineCount plus one per element). Eight historical rows land in
+      live registry.xml, one per paying bundle, each payment witnessed
+      by a symbol, a refuse path, or a file:line a reviewer can check
+      without judgement; then a task runs
+      scripts/validate-record-retirement.ts --retire in the same
+      execution wave, moving the eight rows and 19 findings to their
+      retired siblings and stamping PaidBy. Then the bundle flushes
+      the one staged entry F204 into findings.xml and decisions.xml —
+      the index headroom admits exactly one entry and the freed
+      findings room makes it free. Binding live rulings D28, D28.1,
+      D30, D11; the record is this bundle's deliverable, so D30 is
+      scoped, not skirted. Name searched at this commit: no archive
+      directory and no row in either layer carries it.
+    </Summary>
+    <Problem>
+      The findings window is one entry from full — base 7808 against
+      ceiling 7846 at 49b4ebb, median element 35 lines — and the
+      derivation cannot see most of the record's own history. 54 of
+      76 archived bundles have no registry row in either layer, so
+      every finding they settled is unpayable by any path: the paid
+      map mints 56 tokens at this commit and none of them names a
+      live finding. C-PAYMENT-RECORD-2 proved two payments out of
+      that population and deliberately left the rest to a later
+      charter. This bundle is that rest, scoped by measurement: the
+      survey ran the predecessor's evidence rule over the rowless
+      population and proved eight payers covering 19 still-live
+      findings.
+
+      The yield is unevenly distributed and the survey says so
+      honestly. Six of the eight payers announce their payments in
+      their own spec prose — C-RECORDED-DEBT's Summary opens "Pay four
+      recorded P1 debts in one bundle", C-CONTRACT-DEBT's names F29,
+      F29.1 and F20, C-ESCALATION-HONESTY's says "Close F21 and F22",
+      C-SUBSTANTIATION-HONESTY's says "Close F9.10, F31, and F32",
+      C-REPORT-HONESTY's lists F14/F15, F16 and F11/F11.2 among its
+      deliverables, C-FLAG-HONESTY's says "fixing F18 as a class" —
+      yet the shipped prose-mint pattern matches only the exact phrase
+      "the paid finding(s)", which none of them contains, and the
+      derivation reads no other sentence shape. The payments were
+      made, witnessed in the tree, and are invisible to the record
+      that should be able to read them.
+
+      The move and any flush must be ordered as in the predecessor:
+      the room the rows open exists only after --retire re-anchors the
+      findings ceiling, and the close ceremony's move is structurally
+      too late because it follows the archive git mv. D30 freezes the
+      record for a bundle that measures it; this bundle deliberately
+      writes the record — that is the deliverable, stated here so it
+      is a scoped exception and not a silent breach.
+    </Problem>
+    <Goals>
+      <Goal>
+        Eight post-hoc historical rows in live registry.xml, one per
+        paying archived bundle, each naming its findings in Pays and
+        inserted only after the payment is proven. The payment set,
+        each with the present-tree witness that discharges the
+        finding's defect, measured at 49b4ebb:
+
+        C-CONTRACT-DEBT pays F20, F29 and F29.1. Witnesses: exactly
+        one definition of cloneXmlNode survives, exported at
+        src/artifact/xml.ts:239, and the sites that held private
+        copies import it (src/grace-cursor.ts:126,
+        src/artifact/run-membership.ts:22, src/gates/ledger.ts:65) —
+        the two seven-line copies F20 records are gone; and the
+        token-accounting helper ships UTF-8 byte accounting beside the
+        frozen line total (countUtf8Bytes, perSkillBytes, totalBytes
+        at src/test-support/token-accounting.ts:70-115, documented as
+        matching wc -c) — the axis F29 and F29.1 found unmeasured.
+
+        C-RECORDED-DEBT pays F76, F71, F71.1 and F77. Witnesses: the
+        real CLI refuses an undeclared flag —
+        bun ./src/grace.ts lint --path . --totallyBogusFlag hello
+        exits 1 with invalid-arguments naming the flag and printing
+        usage, on a throwaway project at this commit (F76 measured the
+        opposite: no diagnostic, byte-shaped-normal output);
+        getModulePath returns moduleRecord.graph.path and nothing else
+        (src/query/core.ts:111-113) — the linked-file fallback F71 and
+        F71.1 describe is gone at the source, which covers all four
+        display strings F71.1 counted; and the as-state class taxonomy
+        is a single exported const with an exhaustiveness guard that
+        throws when a class is unassigned (AS_STATE_PURITY_CLASSES at
+        src/lint/types.ts:36, iterated and enforced at
+        src/lint/core.ts:206-212) — the hand-written conditional with
+        no completeness guard F77 records.
+
+        C-SUBSTANTIATION-HONESTY pays F9.10, F31 and F32. Witnesses:
+        the raise condition is the identical-tree rule — raise only
+        when the non-.ngrace/ trees are identical across a fail→pass
+        pair (src/review/core.ts:1405-1411, with the comment at :1589
+        naming this bundle and F31) — replacing the
+        production-must-move rule F9.10 measured firing zero times on
+        a real defect; and the attempt-pair audit resolves the plan
+        under active/ or archive/ instead of anchoring the finding at
+        a hardcoded active/ path (the "no plan found for … under
+        active/ or archive/" resolution and planLocation "archive" in
+        src/review/core.ts's pair loader) — the nonexistent-path
+        anchor F32 records is gone.
+
+        C-REPORT-HONESTY pays F11, F11.2, F14, F15 and F16.
+        Witnesses: isCliLifecyclePath (src/review/core.ts:1013) skips
+        the CLI's own lifecycle writes in the scope audit at :1063 and
+        :1127, covering run.xml, run-ledger.xml and run/** — the
+        ledger-write violations F11 and F11.2 record; both status and
+        the archive gate take loose-event membership from the one
+        shared module (src/gates/core.ts:33 and :480,
+        src/grace-status.ts:29 and :267, whose comment says
+        "membership is listLooseEvents (shared with archive gate)") —
+        the two-definitions disagreement F14 and F15 record; and the
+        MustExist check reuses expandScopePathsForArchiveIdentity for
+        the archive-identity reading (src/review/core.ts:504 and :523)
+        — the ratified reading F16 records being ignored.
+
+        C-FLAG-HONESTY pays F18. Witness: the real CLI refuses the
+        space form — bun ./src/grace.ts gate archive --change C-X
+        --record false exits 1 with "Boolean flag `--record` does not
+        accept a space-separated value" naming both working forms,
+        before any ledger write, on a throwaway project at this
+        commit; the check lives at src/query/command.ts:84-116 and the
+        gate-side comment at src/gates/command.ts:214 names F18.
+
+        C-ESCALATION-HONESTY pays F22. Witness: an escalation-clearing
+        resume requires a recorded --reason and refuses before any
+        write (src/grace-cursor.ts:1048-1068) — the reason-free,
+        self-granted clear F22 records is refused. F21 is refused: the
+        renamed signature-budget mechanism exists
+        (FIX_SIGNATURE_REPEAT_BUDGET and FIX_DISTINCT_SIGNATURE_BUDGET
+        at src/grace-cursor.ts:177 and :183), the check the
+        predecessor recorded, and no mechanical witness separates the
+        shipped rule from the contract sentence without judgement.
+
+        C-RECOVER-FOLDABLE pays F13. Witness: writeCoveringOpened
+        allocates headroom past the covering event's own id —
+        OPEN_EPOCH_DEFAULT_HEADROOM = 98 at src/grace-cursor.ts:742,
+        applied at :756 as to = Math.max(coveringRequirementTo,
+        openedId + OPEN_EPOCH_DEFAULT_HEADROOM) — the
+        never-terminatable allocation F13 reproduces in a temp project
+        is gone.
+
+        C-EXECUTION-CONTRACT pays F12. Witness: the execution contract
+        now mentions the terminal-before-fold rule — the terminal kind
+        entry at skills/ngrace/ngrace-execute/SKILL.md:84-87 says to
+        emit terminal before ngrace cursor fold and that fold requires
+        a terminal event inside the covering allocation range, and the
+        packaged mirror carries the same text (grep -c terminal
+        identical in both copies) — the never-mentioned requirement
+        F12 records is documented in the contract the executor reads.
+
+        All eight payers are archived applied (spec and plan
+        status="applied", measured), have no registry row in either
+        sibling, and none of their specs contains the prose-mint
+        phrase, so the row is the only route for each. status="live"
+        on insert; the move rewrites it to "retired". One row's Pays
+        names several findings where measured; the row is still one
+        row per bundle.
+      </Goal>
+      <Goal>
+        The move is a task's act, in the same execution wave as the
+        row inserts. After the eight rows exist in live registry.xml,
+        one bun ./scripts/validate-record-retirement.ts --retire
+        invocation stamps PaidBy on the 19 findings, moves the eight
+        rows to registry-retired.xml (name equals an archive
+        directory), moves the 19 findings to findings-retired.xml, and
+        flips the matching RecordIndex Entry layer attributes.
+        Validation then exits 0. The intermediate state between insert
+        and move — finding-eligible-still-live and
+        registry-eligible-still-live — is the D28.1 enforcement saying
+        the move is due; it is a declared, verified working-tree
+        state, never a commit validate:ci can see. No committed tree
+        holds the intermediate occupancy.
+      </Goal>
+      <Goal>
+        The flush of exactly the one staged entry F204 — a scope
+        decision, argued here rather than defaulted. The staged buffer
+        holds one entry at this commit (measured: one anchor, f204).
+        The index admits it: decisions.xml base 339 against ceiling
+        341 leaves headroom 2, and one Entry line lands at 340. The
+        findings room after the move is the freed 699 lines, so the
+        entry's element size cannot breach the window at these
+        numbers. Riding is worth more than staying staged: the record
+        is one entry from full, the freed room is already paid for by
+        this bundle's move, and leaving F204 staged buys nothing —
+        the next bundle would need its own payment wave to flush it.
+        The written findings root base comes from reading newlineCount
+        back after the write, never from a projection; headroom is
+        recomputed as ceiling minus the read-back base; the ceiling
+        itself is untouched. A read-back base above the persisted
+        ceiling stops the task and reports; it does not raise the
+        ceiling. The entry is selected by anchor id
+        &lt;a id="f204" name="f204"&gt;&lt;/a&gt;, never by position,
+        and the element shape follows the landed rule the predecessor
+        calibrated: buffer prose plus three wrapper lines.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module-change shape): the record the
+        retirement validator governs; no graph module is written, no
+        src/ or scripts/ file is edited. Gates still run. Roadmap
+        RM-GOVERNED-PATH. Binding live rulings: D28, D28.1, D30, D11.
+        D27: nothing in this bundle is approved unread; the payment
+        set is repaired by evidence, never by editing a finding to fit
+        it. The payment set is exactly the 19 findings named in Goals;
+        no other token is paid by this bundle.
+      </Constraint>
+      <Constraint>
+        Payment evidence, the load-bearing rule, inherited from
+        C-PAYMENT-RECORD and C-PAYMENT-RECORD-2 and re-applied.
+        Payments are proven first; the room is whatever falls out.
+        Never select a payment because it frees the right number of
+        lines. Sufficient, all of: (1) a present-tree witness — a
+        symbol, a named test, a refuse path driven on the real CLI, or
+        a file:line of the shipped behaviour that discharges the
+        finding's defect, checkable by a reviewer without judgement;
+        (2) the archived bundle that introduced that witness, with
+        spec and plan status="applied"; (3) that bundle has no
+        registry row in either sibling and its spec does not already
+        mint the payment by prose, so the row is the only route; (4)
+        the finding is still live. Insufficient, each refused: a
+        bundle name or charter topic that merely sounds related; the
+        finding's own discharge sentence without a tree check — a
+        finding is never evidence of present state; sharing a file
+        with a paid finding; a dated claim cited as present state;
+        a spec claim of payment without the tree witness (six of the
+        eight accepted payers announce their payments in prose, and
+        prose alone refused none of them — the tree check is what
+        admits each). Candidates examined and refused for this
+        bundle, with the check that refused them: F21 — the renamed
+        signature-budget mechanism exists (the predecessor's check,
+        carried forward unchanged); F63 — the bundle's response is a
+        design decision (one renderer, two emissions) whose discharge
+        of the skill-text half cannot be checked without judgement;
+        F41 and F35.1 — subject overlap with C-EXPLAIN-COVERAGE only,
+        no witness derived; F3 and F5.1 — the reject-don't-filter
+        conversion shipped, but neither finding's separator or
+        declaration defect is shown discharged by it; F137, F150,
+        F155, F157 and F90 — not live (retired with PaidBy naming
+        rows that exist). If the survey had proved fewer payers than
+        the flush needed, the bundle would say so and stop; the
+        honest yield is stated in Problem and it is enough.
+      </Constraint>
+      <Constraint>
+        Survey method, recorded so the number is reproducible. The
+        population is every archive directory matching ^C-[A-Z0-9-]+$
+        with no Row name in either registry sibling (54 at 49b4ebb).
+        Pass one: payment verbs within a clause of an F-token in each
+        rowless bundle's spec.xml and plan.xml, read in context to
+        separate payment claims from binding-constraint citations.
+        Pass two: every rowless bundle Summary against every live
+        finding Title for subject matches, each match chased to a
+        witness or refused. Pass three: the derivation replicated —
+        registry Pays and Closed-with tokens over both layers, plus
+        the prose-mint pattern over every archived spec — confirming
+        zero minted tokens are live, which is what makes every
+        candidate row the only route. The 8-bundle, 19-finding yield
+        is a verified floor: the 46 rowless bundles not named in
+        Goals were examined by these passes and produced no provable
+        witness at survey depth; the survey does not claim they
+        contain none.
+      </Constraint>
+      <Constraint>
+        Retire ownership: a task runs the move. The close ceremony's
+        --retire is an authority act performed after the archive git
+        mv; it cannot open room for this bundle because every task,
+        including any flush, precedes the archive. An authority act
+        between tasks is refused for the same reason the predecessor
+        argued: a record operation with no acceptance criterion, no
+        evidence trail, and writes outside any plan-declared scope is
+        silent by construction, whoever performs it. A task performing
+        the move deliberately — declared in the plan, scoped by its
+        write scope, verified by pre-move eligibility findings and
+        post-move validation green with re-derived roots — is the
+        operator use C-RECORD-TEST-ISOLATION-2 explicitly preserved.
+        The operation is the deliverable, performed once, verified in
+        both directions. Precedent: C-PAYMENT-RECORD's and
+        C-PAYMENT-RECORD-2's Goal — "--retire is this bundle's move,
+        not a follow-on" — executed in one execution wave, identically
+        here, restated rather than cited as settled because the
+        argument is load-bearing every time.
+      </Constraint>
+      <Constraint>
+        D30 scoped, not skirted. This bundle's purpose is to write the
+        record: registry.xml (eight historical rows), findings.xml and
+        decisions.xml (the F204 flush), and whatever the move writes —
+        findings.xml, findings-retired.xml, registry-retired.xml,
+        decisions.xml (Entry layer flips), and byte-identical
+        rewrites of rulings.xml and rulings-retired.xml, which
+        retireRecord writeFileSyncs on any successful move even when
+        no decision is eligible. The freeze holds for the execution
+        window that reads or rewrites the record files: no other
+        dispatch touches the record while a record-writing task of
+        this bundle is in flight, and no brief promises a frozen base
+        across one. Findings raised while this bundle is open go to
+        .ngrace/scratch/staged-findings.md (F205 onward), never into
+        the record under edit. No scalar count of a record file
+        appears in any Constraint; occupancy and wrap figures live in
+        Assumptions and expire. Ceilings are rewritten only by the
+        move and never raised; a flush that would exceed a persisted
+        ceiling stops and reports.
+      </Constraint>
+      <Constraint>
+        Order, ceiling, and CI. The committed sequence is: (1) the
+        eight historical rows in live registry.xml; (2) --retire in
+        the same execution wave, before any commit validate:ci can
+        see; (3) the flush of the one staged entry F204, writing first
+        and reading newlineCount back for the findings root base (a
+        projection is never a written root attribute); (4) validation
+        exits 0. Live registry occupancy after insert and before the
+        move is the pre-insert live row count plus eight, within the
+        persisted registry ceiling (figures in Assumptions). A commit
+        that holds the rows without the move is ineligible: validation
+        reports registry-eligible-still-live and
+        finding-eligible-still-live until the move runs. Do not raise
+        the persisted ceiling. A second --retire after the flush is a
+        byte-level no-op (moved = 0, early return before any write),
+        the predecessor's fixture result, re-probed at close by
+        AC-PAYMENT-SET's invariance.
+      </Constraint>
+      <Constraint>
+        Write scope, anchors, and imports. Files this spec forces
+        into write scope: the record files
+        docs/plans/active/RM-GOVERNED-PATH/registry.xml,
+        registry-retired.xml, findings.xml, findings-retired.xml,
+        decisions.xml, rulings.xml, rulings-retired.xml, plus this
+        bundle's own artifacts under
+        .ngrace/changes/active/C-PAYMENT-RECORD-3/. None of the
+        record files carries a LINKS: header (re-checked at this
+        commit; the LINKS tokens inside them are prose in finding
+        bodies and row Charters), and no graph module is written: do
+        not mint a synthetic module, and do not repeat this list as a
+        second module list anywhere (F136.1). Do not register the
+        record files in CONTEXT_ARTIFACTS. Do not edit anything under
+        src/ or scripts/: derivePayerMap, PAYER_KINDS, persistSnapshot
+        and the historical kind already see these rows — the shipped
+        code needs no new change. Do not add a lint issue code. Escape
+        markup as character data (&lt;, &gt;, &amp;) in every artifact
+        this bundle writes; never paraphrase brackets away.
+      </Constraint>
+      <Constraint>
+        Buffer handling. The flush set is exactly the anchor f204 —
+        matched as &lt;a id="f204" name="f204"&gt;&lt;/a&gt;, never by
+        position. The buffer holds one entry at this commit; any
+        entry staged during this bundle's window (F205 onward) stays
+        staged. Nothing in this bundle writes
+        .ngrace/scratch/staged-findings.md: pruning the flushed entry
+        is post-merge hygiene owned by the authority, not a task here.
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, settled lessons. Every diff-based
+        criterion's command scopes to exactly the paths its prose
+        names. A CloseEvidence pathspec covering
+        .ngrace/changes/archive/ must exclude this bundle's own
+        directory (':(exclude).ngrace/changes/archive/C-PAYMENT-RECORD-3');
+        C-RETIREMENT-WINDOW's AC-RECORD-FROZEN omitted that term and
+        became unsatisfiable (F188). Probe every pathspec criterion in
+        the post-close state, not the pre-close one (F196): the close
+        archives this bundle, whose name has no row, so the close's
+        own --retire is a no-op and every criterion here is invariant
+        under it. Archive-protection prose says tracked paths (F174).
+        Any test this bundle's plan adds that measures the real
+        repository carries an explicit generous timeout (F185). Every
+        task Verification command the later plan records must exit 0
+        as written at recording time (F184). Task Verification and
+        TargetAssertions contain no current-mode lint of this project
+        root — the command text contains --assertions current, or it
+        invokes ngrace lint of this root and omits --assertions;
+        checked by hand because the shipped detector misses
+        bun ./src/grace.ts lint (F171). Current-mode lint appears only
+        as post-archive AC-CLOSE-LINT. C-REPORT-HONESTY stands: do not
+        silence current-mode baseline issues, and do not treat bun
+        test green as the evidence — the ExpectedEvidence probes are
+        discriminating fixtures run against the delivered product.
+      </Constraint>
+      <Constraint>
+        The rowless remainder is not this bundle. The rowless
+        population at this commit is 54; this bundle records eight
+        payers because eight payers are proven under the evidence
+        rule above, and the survey Constraint states the method and
+        the floor. The remaining 46 rowless bundles and any payment
+        this bundle refused stay unrecorded here: the audit charter
+        that repeats this evidence rule at plan depth owns them.
+        D11: nothing deferred here lacks a dependency or a conflict —
+        the deeper audit is a separate charter by design, and the
+        refused candidates above stay live under their own tokens.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Paying F21, F63, F41, F35.1, F3, F5.1, or any finding whose
+        present-tree witness was not verified for this spec. Owner:
+        those tokens' remaining live findings, or the later payment
+        audit bundle that repeats this evidence rule. The refusal
+        reasons and the checks that produced them are in the
+        payment-evidence Constraint.
+      </NonGoal>
+      <NonGoal>
+        The 46 rowless bundles with no provable witness at survey
+        depth. Owner: a later, deeper audit charter with its own
+        proof standard; this bundle's boundary is stated in
+        Constraints.
+      </NonGoal>
+      <NonGoal>
+        Editing src/, scripts/, skills/ngrace/*, the packaged mirror,
+        CLAUDE.md, docs/plans/README.md, or anything under
+        docs/plans/archive/ or tracked paths under
+        .ngrace/changes/archive/ except this bundle's own later
+        arrival there. Owner: unchanged surfaces / the archive rule.
+        Archived specs are never edited to carry the payer phrase —
+        the row is the route, as the maintainer ruled for the two
+        predecessors. README.md and examples/ are untouched by this
+        bundle: no user-visible CLI token, config key, or ngrace
+        command changes.
+      </NonGoal>
+      <NonGoal>
+        Writing or pruning
+        .ngrace/scratch/staged-findings.md, including any F205-onward
+        entry staged during this bundle. Owner: post-merge hygiene,
+        the authority's.
+      </NonGoal>
+      <NonGoal>
+        Minting a live chartered row for C-PAYMENT-RECORD-3, flushing
+        any staged charter row, or re-flushing any entry already in
+        the record. Owner: the authority's flush; this bundle writes
+        only the eight historical rows and the one staged entry.
+      </NonGoal>
+      <NonGoal>
+        Raising any persisted ceiling, hand-editing PaidBy, or
+        writing the rows directly into registry-retired.xml. Owner:
+        the record rules; --retire stamps PaidBy and moves the rows.
+      </NonGoal>
+      <NonGoal>
+        Changing derivePayerMap's prose pattern so payment-claim
+        sentences mint directly. The missing phrase is the reason
+        this bundle exists, but widening the pattern is a src/ change
+        with its own test surface and belongs to a code bundle, not
+        to the record bundle it would obsolete. Owner: a later code
+        bundle, if the maintainer wants the derivation to read
+        payment claims without rows.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-PAYMENT-SET>
+        After this bundle's move, the eight names C-CONTRACT-DEBT,
+        C-RECORDED-DEBT, C-SUBSTANTIATION-HONESTY, C-REPORT-HONESTY,
+        C-FLAG-HONESTY, C-ESCALATION-HONESTY, C-RECOVER-FOLDABLE and
+        C-EXECUTION-CONTRACT exist as kind="historical" rows in
+        registry-retired.xml and not in live registry.xml; live
+        findings.xml has no Finding whose token is any of the 19 paid
+        tokens; those tokens exist as status="retired" in
+        findings-retired.xml with a PaidBy child naming the
+        corresponding archive event; and
+        bun ./scripts/validate-record-retirement.ts exits 0. The
+        criterion is invariant under this bundle's own close (the
+        bundle's name has no row; the close's move is a no-op).
+        Failure: a named finding is still live; a named row is still
+        live; PaidBy was hand-written rather than stamped by --retire;
+        the validate exits non-zero.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-PAYMENT-SET>
+      <AC-FLUSH-LANDED>
+        After the flush, live findings.xml contains exactly one
+        Finding element for F204 with status="live" and a matching
+        layer="live" Entry in decisions.xml; no duplicate id exists in
+        either file; the written findings root base equals the file's
+        newlineCount read back; headroom equals ceiling minus base;
+        every persisted ceiling is byte-identical to its pre-flush
+        value; bun ./scripts/validate-record-retirement.ts exits 0.
+        Failure: the entry is missing or duplicated; a ceiling was
+        raised; the base was derived from a projection instead of the
+        read-back; the validate exits non-zero.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-FLUSH-LANDED>
+      <AC-RECORD-PRESERVED>
+        The record's other genres are untouched by the flush:
+        rulings.xml and rulings-retired.xml are byte-identical to this
+        spec's base commit (the move rewrites them byte-identically
+        when no decision is eligible, and the flush does not write
+        them), and the preservation and citation validators exit 0.
+        <CloseEvidence>
+          <Command>git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed -- docs/plans/active/RM-GOVERNED-PATH/rulings.xml docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Command>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-PRESERVED>
+      <AC-NO-SRC>
+        No file under src/ or scripts/ is edited by this bundle. Prose
+        and command name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed -- src/ scripts/</Command>
+        </CloseEvidence>
+      </AC-NO-SRC>
+      <AC-NO-ARCHIVE-SPEC-EDIT>
+        Tracked paths under docs/plans/archive/ and
+        .ngrace/changes/archive/ are not modified; this bundle's own
+        later arrival under
+        .ngrace/changes/archive/C-PAYMENT-RECORD-3/ is not a
+        modification. The prose claims tracked paths only (F174). The
+        pathspec excludes this bundle's own archive directory (F188).
+        Probed in the post-close state.
+        <CloseEvidence>
+          <Command>git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-PAYMENT-RECORD-3'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-SPEC-EDIT>
+      <AC-DOCS-EXAMPLES>
+        README.md, examples/, CLAUDE.md, docs/plans/README.md,
+        skills/ngrace/, plugins/ngrace/skills/ngrace/, package.json,
+        and bun.lock are byte-identical to this spec's base commit.
+        Prose and command name the same pathset. The command sees
+        tracked edits and deletions only (F174).
+        <CloseEvidence>
+          <Command>git diff --exit-code 49b4ebb7c6627601ca77ca384f7b6e205d1f65ed -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task Verification commands and
+        TargetAssertions contain no current-mode lint of this project
+        root, checked by the rule in Constraints, by hand (F171).
+        Failure: a Command whose text contains --assertions current,
+        or that invokes ngrace lint of this root and omits
+        --assertions.
+      </AC-NO-CURRENT-MODE>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode
+        lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No graph module is written. Ceremony tier T1 names the same
+      fact: no module touch. Files this spec forces into write scope,
+      with LINKS headers checked, are enumerated once in the
+      write-scope Constraint and are not repeated as a second module
+      list (F136.1). Do not mint a synthetic module to fill this
+      section.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts --retire</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-PAYMENT-RECORD-3 --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes against the delivered product, not a
+        green suite. The witness probes were driven against the real
+        tree and the real CLI at this commit before this spec was
+        written, so the shapes are known to discriminate. (1) Payment
+        minting: the eight historical rows in live registry.xml make
+        the validate report finding-eligible-still-live and
+        registry-eligible-still-live for every paid token and row; a
+        fixture row without an archive-directory name pays nothing.
+        (2) The move: retireRecord reports moved = 27 (8 rows + 19
+        findings); the eight rows sit only in registry-retired.xml;
+        the 19 tokens sit only in findings-retired.xml with stamped
+        PaidBy; validation exits 0. (3) Window: the fixture move
+        rewrites the findings root to base = 7808 - 699 = 7109 with
+        headroom 737 against the untouched ceiling 7846 — lines freed
+        become headroom one for one under the shipped persistSnapshot.
+        (4) The flush: appending the F204 element (buffer prose + 3)
+        writes the findings base read back from newlineCount;
+        decisions.xml base = 340 against ceiling 341; validation exits
+        0. (5) No-op: a second --retire after the flush reports
+        moved = 0 and leaves all seven record files byte-identical.
+        (6) The witness probes from Goals: the flag and space-form
+        refuses exit 1 with the named diagnostics on a throwaway
+        project; the symbol and file:line greps return the cited
+        shapes. (7) Path-scoped git diffs empty at close, probed in
+        the post-close state, with this bundle's archive path excluded
+        from the archive pathspec. (8) The plan's task Verification
+        list contains no current-mode lint, checked by the rule, by
+        hand.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken 2026-09-09 at
+        49b4ebb7c6627601ca77ca384f7b6e205d1f65ed (git rev-parse HEAD),
+        branch main, tracked tree clean. Live roots (the median is
+        the shipped median over per-element line counts — an
+        element's line count is the newlineCount of its
+        &lt;Finding&gt;/&lt;Decision&gt; span plus one, the shipped
+        findingLineCounts rule at
+        scripts/validate-record-retirement.ts:892; a newline count
+        alone loses the element's last line. Calibrated against the
+        previous bundle's real move: F172 and F39 count 29 and 43
+        under this rule at e3b6dcc, and 29 + 43 = 72 is exactly the
+        base drop 7635 → 7563 that move produced. H is 7 × median):
+        findings.xml base="7808" headroom="38" ceiling="7846" with 213
+        live Finding elements, median 35, H = 245; decisions.xml
+        base="339" headroom="2" ceiling="341" with 337 Entry elements,
+        274 live; registry.xml base="12" headroom="14" ceiling="26"
+        where base counts live rows, the file being 74 lines with
+        multi-line rows; rulings.xml base="1697" headroom="186"
+        ceiling="1883". Every live root satisfies base + headroom =
+        ceiling. The findings median over the paid set's removal
+        stays 35 (the largest paid element is 71, above the median,
+        removed symmetrically with smaller ones).
+      </Assumption>
+      <Assumption>
+        Archive versus registry, same commit. 76 archive directories
+        matching ^C-[A-Z0-9-]+$; 48 distinct Row name values across
+        registry.xml and registry-retired.xml (structural
+        &lt;Row name=" open tag, sorted unique); 54 archived bundles
+        with no row in either layer (set difference). The brief's
+        55-of-75 figure was measured one commit earlier: since then
+        C-PAYMENT-RECORD-2 archived with no row (deliberate, its own
+        NonGoal) while C-RECORD-RETIREMENT-2 and C-ARTIFACT-VALIDITY
+        gained their rows. derivePayerMap replicated over both layers
+        and every archived spec's prose mints 56 distinct tokens, none
+        of which is a live finding — all 213 live findings are
+        unpayable by the derivation at this commit.
+      </Assumption>
+      <Assumption>
+        Window arithmetic, same commit, from the measured element
+        sizes. Every figure below uses the shipped line-count rule —
+        an element's line count is newlineCount(el.text) + 1
+        (findingLineCounts, scripts/validate-record-retirement.ts:892);
+        the per-element figures are one higher than a bare newline
+        count, and the rule is calibrated against reality: the
+        previous bundle's move dropped the findings base 7635 → 7563,
+        exactly 72, which is F172 + F39 at 29 + 43 under this rule
+        and 70 under the newline-only miscount. Per-payer freed
+        lines (live layer): C-CONTRACT-DEBT 27 + 44 + 56 = 127;
+        C-RECORDED-DEBT 44 + 30 + 26 + 41 = 141;
+        C-SUBSTANTIATION-HONESTY 71 + 36 + 29 = 136;
+        C-REPORT-HONESTY 23 + 31 + 24 + 37 + 41 = 156;
+        C-FLAG-HONESTY 52; C-ESCALATION-HONESTY 31;
+        C-RECOVER-FOLDABLE 28; C-EXECUTION-CONTRACT 28. Total 19
+        findings, 699 lines. Insert eight rows: live registry
+        occupancy 20 against ceiling 26; validate reports the
+        eligibility findings. Move: moved = 27; findings root
+        becomes base = 7808 - 699 = 7109, headroom 737, ceiling
+        untouched at 7846 (the formula ceiling re-anchored at the
+        pre-move base: min(7846, 7808 + H) = 7846, H = 245);
+        decisions.xml base unchanged at 339 with 19 layer flips;
+        validate exits 0. Flush: findings base = 7109 + element lines
+        read back; decisions base = 339 + 1 = 340, headroom 1,
+        ceiling 341; validate exits 0. Second --retire: moved = 0,
+        all seven record files byte-identical (the predecessor's
+        fixture result; re-probed at close).
+      </Assumption>
+      <Assumption>
+        Staged buffer, same commit: one held entry, f204, at
+        .ngrace/scratch/staged-findings.md:31. The predecessor's stale
+        copies F192-F203 are gone from the buffer (pruned post-merge
+        by the authority). F204's element size under the landed rule
+        is buffer prose plus three wrapper lines; at the freed-room
+        numbers no flush ceiling is reachable.
+      </Assumption>
+      <Assumption>
+        Name search re-run at this commit: 0 archive directories and
+        0 Row elements in either layer match C-PAYMENT-RECORD-3
+        exactly; the token PAYMENT-RECORD-3 appears in neither
+        registry layer. The name continues the predecessors' series.
+      </Assumption>
+    </Assumptions>
+  </C-PAYMENT-RECORD-3>
+</NgraceChangeSpec>

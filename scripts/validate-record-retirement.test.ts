@@ -3,10 +3,11 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { childText, parseGraceXmlArtifact } from "../src/artifact/xml.ts";
+import { childNodes, childText, parseGraceXmlArtifact, walkNodes } from "../src/artifact/xml.ts";
 import {
   RULINGS_PROVENANCE_CEILING,
   derivePayerMap,
+  listArchiveNames,
   liveH2DecisionLineCounts,
   median,
   newlineCount,
@@ -1885,13 +1886,14 @@ ${names
       expect(eq.reordered.f21LeftLive).toBe(false);
       expect(eq.reordered.postMoveValidateExitCode).toBe(0);
 
-      // The payer-map baseline: 56 derived tokens over the real record and
-      // real archive; exactly F152 and F43 are prose-route only.
+      // The payer-map baseline: 73 derived tokens captured post-payment from
+      // the real record and real archive; the derivation reads registry rows
+      // only, so proseOnlyRoutes is empty and F152/F43 are absent.
       const pm = probes.payerMapBaseline;
       expect(pm.fullTokenCount).toBe(Object.keys(pm.map).length);
-      expect(pm.proseOnlyRoutes.sort()).toEqual(["F152", "F43"]);
-      expect(pm.map.F152).toBe("C-APPROVE-TIME-REVIEW");
-      expect(pm.map.F43).toBe("C-APPROVE-TIME-REVIEW");
+      expect(pm.proseOnlyRoutes).toEqual([]);
+      expect(pm.map.F152).toBeUndefined();
+      expect(pm.map.F43).toBeUndefined();
       expect(pm.map.F161).toBe("C-RECORD-RETIREMENT");
       expect(pm.map.F130).toBe("C-PHASE-RULE-PIN");
       expect(pm.map.F149).toBe("C-APPROVE-TIME-REVIEW");
@@ -1967,6 +1969,147 @@ ${names
     expect(sameTagResult.status).not.toBe(0);
     expect(sameTagResult.stderr).toContain("record-shape-same-tag-nested");
   }, 60_000);
+
+  it(
+    "C-PAYMENT-RECORD-4 flush invariant: f204 is exactly once and live in the production record",
+    () => {
+      // The shipped parser walks both files; the walk over the whole tree is
+      // the no-duplicate check, because a second id="f204" anywhere in either
+      // tree makes the walk return two.
+      const findings = parseGraceXmlArtifact(
+        "findings.xml",
+        readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings.xml"), "utf8"),
+      );
+      const decisions = parseGraceXmlArtifact(
+        "decisions.xml",
+        readFileSync(path.join(REPO_ROOT, RECORD_REL, "decisions.xml"), "utf8"),
+      );
+      expect(findings.root, "findings.xml parses").not.toBeNull();
+      expect(decisions.root, "decisions.xml parses").not.toBeNull();
+      const findingsF204 = [...walkNodes(findings.root!)].filter(
+        (node) => node.tag === "Finding" && node.attributes.id === "f204",
+      );
+      const decisionsF204 = [...walkNodes(decisions.root!)].filter(
+        (node) => node.tag === "Entry" && node.attributes.id === "f204",
+      );
+      expect(
+        findingsF204.length,
+        `findings.xml: exactly one Finding with id="f204" (got ${findingsF204.length})`,
+      ).toBe(1);
+      expect(
+        decisionsF204.length,
+        `decisions.xml: exactly one Entry with id="f204" (duplicate would walk two)`,
+      ).toBe(1);
+      expect(
+        findingsF204[0]!.attributes.status,
+        "the f204 Finding is live",
+      ).toBe("live");
+      expect(
+        decisionsF204[0]!.attributes.layer,
+        "the f204 Entry is live",
+      ).toBe("live");
+    },
+    60_000,
+  );
+
+  it(
+    "C-PAYMENT-RECORD-4 roots invariant: every live root satisfies base + headroom = ceiling and base equals its shipped metric read back",
+    () => {
+      for (const file of ["findings.xml", "registry.xml", "decisions.xml", "rulings.xml"] as const) {
+        const text = readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8");
+        const parsed = parseGraceXmlArtifact(file, text);
+        expect(parsed.root, `${file} parses`).not.toBeNull();
+        const root = parsed.root!;
+        const base = Number(root.attributes.base);
+        const headroom = Number(root.attributes.headroom);
+        const ceiling = Number(root.attributes.ceiling);
+        expect(
+          Number.isFinite(base) && Number.isFinite(headroom) && Number.isFinite(ceiling),
+          `${file}: base, headroom and ceiling are numeric`,
+        ).toBe(true);
+        expect(
+          base + headroom,
+          `${file}: base + headroom = ceiling`,
+        ).toBe(ceiling);
+        // The shipped metric read back from the file: the exported
+        // newlineCount (whole-file lines) for the three line-budgeted
+        // genres; the liveRowCount rule — direct Row children whose status
+        // is not retired — over the shipped parser for registry (the rule
+        // is mirrored, liveRowCount itself is not exported).
+        const metric = file === "registry.xml"
+          ? childNodes(root, "Row").filter((row) => row.attributes.status !== "retired").length
+          : newlineCount(text);
+        expect(base, `${file}: base equals its shipped metric read back`).toBe(metric);
+      }
+    },
+    60_000,
+  );
+
+  it(
+    "C-PAYMENT-RECORD-4 retired-layer invariant: every retired Finding carries a PaidBy that matches its derived payer and names an archive directory",
+    () => {
+      // The same row collection the payer-derivation test builds: direct Row
+      // children of both registry layers whose kind is chartered or
+      // historical; derivePayerMap gates on real archive membership.
+      const rows: Array<{ name: string; pays: string; statusText: string }> = [];
+      for (const file of ["registry.xml", "registry-retired.xml"]) {
+        const parsed = parseGraceXmlArtifact(
+          file,
+          readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
+        );
+        expect(parsed.root, file).not.toBeNull();
+        for (const row of parsed.root!.children.filter((child) => child.tag === "Row")) {
+          const kind = row.attributes.kind ?? "chartered";
+          if (kind !== "chartered" && kind !== "historical") {
+            continue;
+          }
+          rows.push({
+            name: row.attributes.name ?? "",
+            pays: childText(row, "Pays") ?? "",
+            statusText: childText(row, "StatusText") ?? "",
+          });
+        }
+      }
+      const derived = derivePayerMap(REPO_ROOT, rows);
+      const archiveNames = listArchiveNames(REPO_ROOT);
+      const retired = parseGraceXmlArtifact(
+        "findings-retired.xml",
+        readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings-retired.xml"), "utf8"),
+      );
+      expect(retired.root, "findings-retired.xml parses").not.toBeNull();
+      const retiredFindings = [...walkNodes(retired.root!)].filter(
+        (node) => node.tag === "Finding",
+      );
+      expect(
+        retiredFindings.length,
+        "the retired layer is non-empty",
+      ).toBeGreaterThan(0);
+      for (const finding of retiredFindings) {
+        const token = finding.attributes.token ?? "";
+        const paidBy = childText(finding, "PaidBy");
+        expect(paidBy, `${token}: every retired Finding carries a PaidBy child`).toBeDefined();
+        expect(
+          (paidBy ?? "").trim().length,
+          `${token}: PaidBy is non-empty`,
+        ).toBeGreaterThan(0);
+        // The equality stays conditional on a derived payer existing: the
+        // shipped derivation is rows-only, so a retired Finding whose token
+        // no row derives (a prose-pass relic) keeps its stored stamp honest
+        // via the archive-membership check below and is never compared.
+        const derivedPayer = derived.get(token);
+        if (derivedPayer !== undefined) {
+          expect(paidBy, `${token}: stored PaidBy equals the derived row-route payer`).toBe(
+            derivedPayer,
+          );
+        }
+        expect(
+          archiveNames.has(paidBy!),
+          `${token}: PaidBy names a real archive directory`,
+        ).toBe(true);
+      }
+    },
+    60_000,
+  );
 });
 
 function rootAttrs(xml: string): { base: number; headroom: number; ceiling: number } {

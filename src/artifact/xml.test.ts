@@ -600,13 +600,13 @@ describe("computeElementSpans", () => {
   it("pairs every element of the real record files at their committed bytes", () => {
     const recordDir = path.resolve(import.meta.dir, "..", "..", "docs", "plans", "active", "RM-GOVERNED-PATH");
     const cases: Array<[file: string, tag: string, expected: number]> = [
-      ["findings.xml", "Finding", 213],
-      ["findings-retired.xml", "Finding", 58],
+      ["findings.xml", "Finding", 195],
+      ["findings-retired.xml", "Finding", 77],
       ["rulings.xml", "Decision", 61],
       ["rulings-retired.xml", "Decision", 5],
       ["registry.xml", "Row", 12],
-      ["registry-retired.xml", "Row", 36],
-      ["decisions.xml", "Entry", 337],
+      ["registry-retired.xml", "Row", 44],
+      ["decisions.xml", "Entry", 338],
     ];
     for (const [file, tag, expected] of cases) {
       const text = readFileSync(path.join(recordDir, file), "utf8");

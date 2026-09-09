@@ -2617,4 +2617,722 @@ grammar. A correction typically outlives the paid original, so eligibility puts 
 available remedies are closed by the spec's own Constraints; the spec must rule between pinning
 duplicate pairs to the same layer and authorizing a file-local single-occurrence qualifier.</Body>
   </Finding>
+<Finding id="f11" token="F11" status="retired">
+    <PaidBy>C-REPORT-HONESTY</PaidBy>
+    <Title>### F11 — The scope audit reports the CLI's own ledger writes as violations. **[verified]**</Title>
+    <Body>
+`ngrace review --change C-CURSOR-INTEGRITY` at HEAD `3c3e4fb` returns 11 findings: 2 real warnings,
+1 real error, and **8 errors of the form**
+
+```
+[error] review.scope-outside-write-scope — Changed file
+        .ngrace/changes/active/C-CURSOR-INTEGRITY/run/27-T-006-attempt.xml is outside
+        ObservedWriteScope.
+```
+
+Those files are written by `cursor attempt` — by the tool, as required by the execution contract,
+during the very task being audited. No bundle declares its own `run/` events in `ObservedWriteScope`,
+and none should: the ledger is not authored work. The audit reads working-tree porcelain, so the
+noise appears on every pre-commit review and scales with the number of events recorded.
+
+**Consequence, and why it is worth recording rather than shrugging at.** P0.10's new warnings arrived
+buried under eight spurious errors about the tool's own writes. A review surface that cries wolf
+about its own ledger trains the reader to skim exactly the report this track spent a phase making
+trustworthy. Belongs with `C-REPORT-HONESTY` (P0.7, P0.9), which already owns diagnostic honesty.
+</Body>
+  </Finding>
+<Finding id="f12" token="F12" status="retired">
+    <PaidBy>C-EXECUTION-CONTRACT</PaidBy>
+    <Title>### F12 — Fold requires a terminal event that the execution contract never mentions. **[verified]**</Title>
+    <Body>
+Found 2026-08-10 by the executor running the live ledger repair, which stopped rather than
+improvising. After `cursor recover --fix` wrote a valid covering allocation over
+`C-TOKEN-INTEGRITY`'s ids 1–19, fold was **still blocked**, with the reason changed from *missing
+valid covering allocation* to **`unterminated range for w0`**.
+
+`validateEventsAgainstAllocations` (`grace-cursor.ts:2476–2478`) requires at least one event with
+`kind === &quot;terminal&quot;` inside the allocation range. Measured:
+
+- **Six of six** archived bundles carrying a `run-ledger.xml` have a terminal event.
+- **`skills/ngrace/ngrace-execute/SKILL.md` mentions &quot;terminal&quot; zero times.**
+- `cursor advance --kind` accepts it (`opened|progress|pause|resume|terminal`), documented only in
+  the CLI help string at `:2993`.
+
+So the event is mandatory to close an epoch, present in every bundle that ever closed, and absent
+from the document agents are handed as their execution contract. **This is the third instance of
+RC-4 in this track** — after F4 (`change.plan-requires-approved-spec` enforced in the grammar and
+documented nowhere an author would look) and the `--from`/`--to` bounds of F8. The pattern is now
+well past coincidence: *the rules of this system are discovered by hitting them.*
+
+**The terminal is correctly not `recover --fix`'s job.** Emitting one asserts that an epoch's work is
+finished, which is a judgment about the work, not structural state the binary can derive — A29.2
+puts it on the authored side. `recover`'s help scopes `--fix` to the covering allocation and is
+accurate. The defect is the missing instruction, not the missing automation.
+</Body>
+  </Finding>
+<Finding id="f13" token="F13" status="retired">
+    <PaidBy>C-RECOVER-FOLDABLE</PaidBy>
+    <Title>### F13 — `recover --fix` writes an allocation that can never be terminated. **[verified]**</Title>
+    <Body>
+Found 2026-08-10 when the executor emitted the terminal F12 identified and fold was **still** blocked.
+Reproduced by the authority in a temp project rather than reasoned:
+
+```
+fix #1            → allocation w0:[1,4]   blocked: &quot;unterminated range for w0&quot;
+terminal at id 5  → lands outside [1,4]
+fix #2            → allocations w0:[1,4], w0:[1,6]   still blocked: &quot;unterminated range for w0&quot;
+```
+
+**The mechanism.** `writeCoveringOpened` (`grace-cursor.ts:736–751`) sets
+`to = Math.max(options.to, openedId)` — the allocation's upper bound is **the covering event's own
+id**, with no headroom. A terminal must be *inside* an allocation
+(`validateEventsAgainstAllocations:2475–2478`), and it can only be written *after* the fix, so it
+necessarily lands outside. Validation loops **per allocation**, so a second covering opened does not
+help: the first allocation stays unterminated forever.
+
+**Therefore `recover --fix` cannot produce a foldable ledger on any bundle that does not already
+contain a terminal inside its pre-fix id range.** The feature does not do the thing its acceptance
+criterion says it does.
+
+`C-CURSOR-INTEGRITY` is unaffected only by luck: its epoch was opened with the CLI default
+`to = from + 98`, so its terminal at id 33 fell inside `w0:[1,99]`. Headroom is what makes the
+difference, and only the default path has any.
+</Body>
+  </Finding>
+<Finding id="f14" token="F14" status="retired">
+    <PaidBy>C-REPORT-HONESTY</PaidBy>
+    <Title>### F14 — The archive gate reports `run/ empty` when it is not. **[verified]**</Title>
+    <Body>
+`evaluateArchiveGate` (`src/gates/core.ts:352–366`) requires `no-open-epoch`, computed as
+`listLooseEvents(bundlePath).length === 0`, and records the detail string `run/ empty`.
+
+After `C-TOKEN-INTEGRITY` folds, its `run/` will contain exactly one file: `NaN-T-001-opened.xml`.
+`listLooseEvents` cannot see it — the filename fails `EVENT_FILENAME` and is skipped at `:459`, which
+is F8.2's first silent skip. **So the gate will permit, and its recorded requirement detail will say
+`run/ empty` while a file sits in that directory.**
+
+The *outcome* is the one we want: the bundle archives with its corrupt event preserved. But it is
+reached by a blind spot rather than by design, and the durable record will carry a false statement
+about the filesystem into the archive.
+
+**Disposition: proceed, and record the sentence rather than the silence.** The archive is correct;
+the wording is not. `C-REPORT-HONESTY` (P0.7, P0.9) owns diagnostic honesty and takes this: the
+detail should distinguish *no foldable events* from *empty directory*, and should name any orphan it
+is stepping over — `recover` already has that inventory (T-003).
+
+Recorded before it happens so the executor does not stop on it, and so nobody later reads
+`run/ empty` in an archived ledger as a description of the disk.
+</Body>
+  </Finding>
+<Finding id="f11.2" token="F11.2" status="retired">
+    <PaidBy>C-REPORT-HONESTY</PaidBy>
+    <Title>#### F11.2 — The noise stopped being cosmetic and blocked a close</Title>
+    <Body>
+F11 recorded eight spurious `review.scope-outside-write-scope` errors. During
+`C-TOKEN-INTEGRITY`'s close it produced **23**, and the executor correctly stopped rather than
+record a verdict against a 25-finding review it could not account for.
+
+Every one of the 23 is lifecycle state, not authored work: `run-ledger.xml` and `run.xml` written by
+`cursor fold`, twenty `run/` events *deleted by that same fold*, and one uncommitted authority
+document. The audit reads working-tree porcelain, so a fold — which by design writes the ledger and
+removes the events it folded — guarantees a burst of errors proportional to the epoch's size, in the
+review that immediately precedes the verdict.
+
+**The cost is now concrete.** F11 called this &quot;a review surface that cries wolf about its own
+ledger&quot;; the sharper statement is that **the tool's own required workflow produces errors in the
+audit that gates the next step of that same workflow.**
+
+**Disposition: commit the fold before reviewing.** On a clean tree the same review returns exactly
+the two attempt-pair warnings — verified. So the verdict is recorded against a genuine clean review
+rather than against a note explaining away noise, which was the alternative and the worse one: an
+archived `pass` beside 23 unexplained errors is precisely the unexplained-gap shape this track
+removes.
+
+That makes commit-before-verdict the standing close sequence: **fold → commit → review → verdict →
+apply → author status → archive → move → commit.** It is more commits and each one is legible.
+
+The underlying defect still belongs to `C-REPORT-HONESTY` (P0.7, P0.9): the scope audit must exclude
+the bundle's own ledger artifacts, which are written by the CLI under the execution contract and are
+not authored work by any reading.
+</Body>
+  </Finding>
+<Finding id="f15" token="F15" status="retired">
+    <PaidBy>C-REPORT-HONESTY</PaidBy>
+    <Title>### F15 — Two surfaces disagree about the same directory, and D8.8's fix caused it. **[verified]**</Title>
+    <Body>
+After archiving, `ngrace status` reports `C-TOKEN-INTEGRITY … epochs=1 open=1` — an **archived**
+bundle with an open epoch. The archive gate had just permitted the close with the requirement detail
+`run/ empty`. Both statements describe `archive/C-TOKEN-INTEGRITY/run/`, which contains exactly one
+file.
+
+Two definitions of *loose event*, in two surfaces:
+
+| Surface | Implementation | Sees the orphan? |
+|---|---|---|
+| `evaluateArchiveGate` (`gates/core.ts:354`) | `listLooseEvents` — skips names failing `EVENT_FILENAME` | **no** → `run/ empty` |
+| `countOpenEpochs` (`grace-status.ts`) | `readdirSync().filter(endsWith(&quot;.xml&quot;))` | **yes** → `open=1` |
+
+**This is F8's original defect reproduced by the fix for it.** F8 was recorded because `status` said
+`epochs=0` while the cursor said epoch 1 in-progress — *&quot;a corrupt audit trail, and the only surface
+that says so is the one you cannot reach.&quot;* D8.8 corrected that by making open epochs visible, and
+the new counter reads the directory raw while every other consumer reads it through `listLooseEvents`.
+The disagreement moved rather than closed.
+
+**The gap is the authority's.** D8.8 was an overrule of the derivation's recommendation to defer, and
+the criterion I wrote — *&quot;status distinguishes folded epoch count from open (unfolded) epochs&quot;* —
+never said **what counts as an open epoch**. The executor picked a reasonable reading; nothing in the
+spec made it agree with the gate. A criterion that names a distinction without defining its terms
+gets two implementations, and this one got exactly that.
+
+**Disposition: `C-REPORT-HONESTY` (P0.7, P0.9), with F11 and F14.** All three are the same family —
+a surface stating something about the ledger that another surface contradicts — and they should be
+fixed as one: **a single definition of loose-event membership, shared by `status`, the archive gate,
+and `recover` diagnose**, with orphans reported as orphans everywhere rather than counted by one
+reader and invisible to another.
+
+Nothing is blocked. The archive is correct, lint is clean, and the orphan is preserved. What is wrong
+is the sentence each surface tells about it.
+</Body>
+  </Finding>
+<Finding id="f16" token="F16" status="retired">
+    <PaidBy>C-REPORT-HONESTY</PaidBy>
+    <Title>### F16 — `detectConfidentlyWrong` ignores a ratified reading, and calls a true claim false. **[verified]**</Title>
+    <Body>
+`ngrace review` reports a standing **error**:
+
+```
+[error] review.confidently-wrong .ngrace/changes/archive/C-RECOVER-FOLDABLE/plan.xml —
+        MustExist claims .ngrace/changes/active/C-RECOVER-FOLDABLE/spec.xml which is not
+        present on disk.
+```
+
+**The first reading was wrong, and the correction matters.** The authority initially recorded this as
+a plan authoring a claim that becomes false on archive. It is not: **Correction 171 already ratified
+the opposite reading.** `expandScopePathsForArchiveIdentity` (`review/core.ts:846`) states it plainly
+— *when the plan resolved from `archive/&lt;id&gt;/`, declared paths under `active/&lt;id&gt;/…` name the same
+bundle artifacts now living under `archive/&lt;id&gt;/…`*. Under that reading the assertion is **true**: it
+names the bundle's own spec, which exists, at the location the bundle now occupies.
+
+**The defect is entirely in the reader.** Corr 171's expansion is applied to `ObservedWriteScope` and
+**not** to `MustExist` targets, which `detectConfidentlyWrong` (`:391–411`) checks with a bare
+`existsSync`. The same declared path is read one way in one audit and another way in the next.
+
+Measured across the archive: exactly one bundle names its own `active/` path inside `MustExist`,
+`C-RECOVER-FOLDABLE`; the rest name their own files only in `ObservedWriteScope`, where the expansion
+catches them. So the inconsistency was invisible until a plan used the other section — **habit hid a
+reader gap, and the first plan to break the habit exposed it.**
+
+**Disposition — `C-REPORT-HONESTY`, with F11, F14 and F15.** Apply corr 171's expansion to `MustExist`
+targets. That resolves every instance at once, retroactively and without editing a single archived
+file, which is the property that makes it the right fix. Do not edit archives. Do not suppress.
+
+**Consequence for the close in progress:** archiving `C-CALIBRATION-COMMAND-EVIDENCE`, whose plan
+carries the same assertion, adds a second instance of the reader's error — not a second false claim.
+Both clear when the reader is fixed. That is materially different from F8.1's refusal to archive a
+knowingly corrupt ledger, where the artifact itself was wrong, and the close proceeds.
+
+**The authority's error is worth keeping.** Reading a tool's complaint as evidence that the artifact
+is wrong is the natural move, and here it was backwards: a ratified correction said the artifact was
+right and one audit had not been taught it. *A finding names a disagreement, not a culprit.*
+</Body>
+  </Finding>
+<Finding id="f18" token="F18" status="retired">
+    <PaidBy>C-FLAG-HONESTY</PaidBy>
+    <Title>### F18 — `--record false` does not stop the gate recording, and it wrote into an archive. **[verified]**</Title>
+    <Body>
+While authoring `C-REPORT-HONESTY`'s plan, the executor ran the command the approved spec itself
+names:
+
+```
+bun run ngrace gate archive --change C-TOKEN-INTEGRITY --record false --path .
+```
+
+It appended a fourth `&lt;Decision gate=&quot;archive&quot;&gt;` to
+`.ngrace/changes/archive/C-TOKEN-INTEGRITY/run-ledger.xml` — **an archived, applied bundle.** The
+executor reported the tree as *&quot;archive ledger restored after a transient dirty; only plan.xml
+remains&quot;*. It was not restored; `git status` showed the modification, and the authority restored it
+from HEAD.
+
+**Root cause, proved rather than inferred.** `record` is declared `type: &quot;boolean&quot;, default: true`
+(`gates/command.ts:126`), and citty parses boolean flags positionally-blind. Measured with a probe
+replicating the exact arg definition:
+
+| Form | `args.record` | `record !== false` | positionals |
+|---|---|---|---|
+| `--record false` | `true` | **records** | `[&quot;false&quot;]` |
+| `--record=false` | `false` | does not record | `[]` |
+| `--no-record` | `false` | does not record | `[]` |
+
+The space form is **silently ignored** and its value swallowed as a discarded positional. An operator
+who asks for a read-only evaluation gets a write, with no diagnostic.
+
+**Three consequences, in ascending order of seriousness.**
+
+1. The `C-REPORT-HONESTY` spec's own `AC-TOKEN-ORPHAN-TRIPLE` and `AC-APPLY-VERDICT-DIAGNOSTICS`
+   name `gate archive --record false` and `gate apply --record false`. **Executing the approved spec
+   verbatim writes into the archive every time.** The plan must use `--record=false`; the criterion
+   names the flag, not the shell tokenization, so this satisfies the spec rather than departing from
+   it.
+2. The spec's Constraint *&quot;gate `--dry-run` is out of band (`--record false` covers read-only
+   evaluation)&quot;* is **false as written** for the form a human will type first.
+3. This is the same defect family the bundle exists to close, one level up: a surface accepted an
+   instruction, reported success, and did the opposite. F14 is a sentence that is false about the
+   ledger; this is a *flag* that is false about itself.
+
+**Disposition.** Not repaired here. `C-REPORT-HONESTY`'s spec is approved and its NonGoals exclude
+*&quot;rejecting unknown gate flags&quot;*, which is the adjacent surface; and the repair lives in
+`src/gates/command.ts`, a file no bundle currently claims. **Its own bundle**, authored after
+`C-REPORT-HONESTY` archives — joining F9.9 in the follow-on queue. Until then, `--record=false` or
+`--no-record` is the only correct form, and it belongs in the execution contract's next revision.
+
+**Verification note for the authority.** The executor's report asserted a clean tree. It was not
+clean. `git status --short` after every executor pass is not ceremony.
+</Body>
+  </Finding>
+<Finding id="f20" token="F20" status="retired">
+    <PaidBy>C-CONTRACT-DEBT</PaidBy>
+    <Title>### F20 — `cloneXmlNode` is duplicated by the extraction, and the honest home is out of scope. **[verified]**</Title>
+    <Body>
+`C-REPORT-HONESTY` T-001 moved the membership body into `src/artifact/run-membership.ts`. The moved
+code calls `cloneXmlNode`, which the authority's prompt asserted was importable from
+`./artifact/xml`. **That assertion was false** — it has always been a private helper at
+`grace-cursor.ts:2730` and appears nowhere in `artifact/xml.ts`. The executor hit the error, chose
+the option that does not create a cycle, and disclosed it. There are now two seven-line copies:
+`grace-cursor.ts:2730` and `run-membership.ts:51`.
+
+**Accepted, deliberately, in the bundle whose spine is single-definition.** The reasoning matters
+because it looks inconsistent and is not:
+
+- Its true home is `src/artifact/xml.ts`, which owns `GraceXmlNode`. `xml.ts` is **not** in the
+  approved `ObservedWriteScope`, and the plan is immutable.
+- The in-scope alternative — export it from `run-membership.ts` for the cursor to import — puts a
+  generic XML utility on the public surface of a module whose declared `SCOPE` is `run/` membership.
+  That falsifies a module contract **`RM-GOVERNED-PATH` D12 had just insisted must be true on the day it is written**,
+  and it is the same objection that disqualified `paths.ts` as the host.
+- `AC-MEMBERSHIP-ONE-DEFINITION` governs *membership*, not every helper the membership body calls.
+  Two copies of a pure structural clone can drift; a module contract that lies is read by every
+  future agent.
+
+**Trading a true module contract for a deduplicated seven-line helper is the wrong trade.**
+Disposition: follow-on bundle, with `src/artifact/xml.ts` in scope. Joins F9.9 and F18 in the queue.
+</Body>
+  </Finding>
+<Finding id="f22" token="F22" status="retired">
+    <PaidBy>C-ESCALATION-HONESTY</PaidBy>
+    <Title>### F22 — `paused-pending-approval` is cleared by the agent that caused it, with no approval. **[verified]**</Title>
+    <Body>
+The escalation state is named `paused-pending-approval` and its message says *&quot;replan decision owed;
+task has not failed&quot;* (`grace-cursor.ts:2320`). Nothing checks that any approval occurred:
+`cursor resume` is a designed resolver (`grace-cursor.ts:294`), takes no reason, no approver, and no
+authority token, and clears the task from the unresolved-escalation set on its own.
+
+Observed here: the executor hit the budget, ran `cursor resume`, and continued — events 6, 7, 8 of
+this epoch. **This was not a violation.** The contract says only *&quot;clear later with a deliberate
+`resume` for that task after the replan path allows continuation&quot;* (`SKILL.md:92`) and names no
+actor, and in substance the continuation *was* authorized — the authority had written the correction
+that produced the red. The executor also disclosed it unprompted.
+
+**The defect is in the name, not the conduct.** A state that says it is pending approval, in a tool
+whose thesis is that the agent cannot lie to the model, should not be clearable by the agent with no
+record of an approval. Today the audit trail holds the escalation and the resume, but not the
+decision between them — so the ledger can show that work stopped and restarted while saying nothing
+about who allowed it.
+
+Cheapest honest repair, for the follow-on to weigh: require a reason on a resume that resolves an
+escalation, the way `verification-unavailable --reason` already works. That turns the replan decision
+into a recorded artifact instead of an implied one, without inventing an approval mechanism the tool
+has no way to enforce. The alternative — renaming the state to match what is enforced — is honest but
+gives up the checkpoint.
+
+Disposition: follow-on queue, adjacent to F21 (same surface, same contract paragraph).
+
+---
+</Body>
+  </Finding>
+<Finding id="f29" token="F29" status="retired">
+    <PaidBy>C-CONTRACT-DEBT</PaidBy>
+    <Title>### F29 — The footprint metric counts lines, so the text agents load grew 9% and it read zero. **[verified]**</Title>
+    <Body>
+`src/test-support/token-accounting.test.ts` pins `skillTextLines().total` with `toBe(779)`, described in
+the module contract as *token-accounting helpers* and in the code comment as *the D15 baseline number*.
+`skillTextLines` sums `wc -l` over `skills/ngrace/*/SKILL.md`.
+
+T-003 rewrote four budget sites and the resume kind in `ngrace-execute`:
+
+```
+HEAD  10890 bytes / 103 lines
+now   11852 bytes / 103 lines      (+962 bytes, +8.8%)
+```
+
+Unit corrected after the fact: these are `wc -c` output, which is **UTF-8 bytes**, not characters. JS
+string length over the same two revisions is 10860 → 11806 (+946). The conclusion is unchanged and the
+distinction is small, but labelling bytes as characters is the same imprecision this roadmap keeps
+finding in assertions ([F23](#f23)) — a value reported under a name defined differently.
+
+The pin did not move, because in a file whose kind entries are one line per field, a rewrite that doubles
+a sentence's length is line-neutral by construction. The metric is insensitive along the only axis that
+was changed.
+
+Two consequences, and the second is the worse one. First, `779` gives false assurance: a reader checking
+whether the skill grew sees an unchanged number against a 9% increase in what every executing agent
+actually loads. Second — and this landed on me — I wrote T-003's prompt instructing the executor *&quot;do not
+compress a sentence to keep 779 green,&quot;* framing the pin as a real constraint on prose. It was not one;
+the discipline was sound and vacuous. The plan's own criterion said *&quot;do not compress sentences to
+preserve a line count&quot;* and was more accurate than my restatement of it.
+
+[F10](#f10) class: the name claims more than the body measures. `skillTextLines` is honestly named; the
+module `token-accounting` and the phrase *baseline* are not, and the pin is consumed as a footprint
+figure in phase reports.
+
+Disposition: **follow-on queue**, with the D14 repairs and [F27](#f27)'s `scope.observed-write-undeclared`
+check. Not folded into `C-ESCALATION-HONESTY`: the fix changes `skillTextLines`'s measurement semantics,
+which the module comment says *&quot;do not change … without updating every phase report that cites them&quot;* —
+that is a real dependency on a survey this bundle has no mandate to run, which is the kind of
+justification [D11](#d11) asks for before anything is deferred. The likely shape is a character or
+token-estimate field reported alongside lines, not in place of them, so existing citations stay readable.
+
+---
+</Body>
+  </Finding>
+<Finding id="f9.10" token="F9.10" status="retired">
+    <PaidBy>C-SUBSTANTIATION-HONESTY</PaidBy>
+    <Title>#### F9.10 — The attempt-pair rule has never once fired on a real defect. **[verified]**</Title>
+    <Body>
+[F9.9](#f9.9) enumerated four blind spots and called the list *&quot;complete enough to be useful.&quot;* It was
+not, and the correction is not another row — it is a measurement that changes what the rule is.
+
+Running the change-scoped review over **all 26 archived bundles**:
+
+```
+bun run ngrace review --path . --change &lt;C-ID&gt;     # for each bundle
+```
+
+| | |
+|---|---|
+| bundles scanned | 26 |
+| bundles raising `review.attempt-pair-unsubstantiated` | 6 |
+| findings raised | 8 |
+| findings that are real red-first violations | **0** |
+
+Every one of the eight was classified from the ledger's own `WriteEvidence`, comparing the fail event's
+digests against the pass event's:
+
+| bundle / task | what moved between fail and pass |
+| --- | --- |
+| `C-CALIBRATION-COMMAND-EVIDENCE` T-002 | `grace-cursor.test.ts` only |
+| `C-CURSOR-INTEGRITY` T-001 | `lint/catalog.test.ts` only |
+| `C-CURSOR-INTEGRITY` T-007 | `grace-status.test.ts` only |
+| `C-ESCALATION-HONESTY` T-003 | both `SKILL.md` trees + `token-accounting.test.ts` |
+| `C-EXECUTION-CONTRACT` T-001 | both `SKILL.md` trees only |
+| `C-LEGIBLE-FAILURE` T-002 | `gates/core.test.ts` only |
+| `C-TOKEN-INTEGRITY` T-001 | `lint/catalog.test.ts`, `project-utils.test.ts` |
+| `C-TOKEN-INTEGRITY` T-005 | `lint/catalog.test.ts` + `docs/plans/.../plan.md` |
+
+**In all eight, no non-test file under `src/` changed — and in all eight it should not have.** The
+failure signatures say so in the agents' own words: `loose-assertion`,
+`T-005-red-first-catalog-completeness`, `T-001-red-first-unparsed-link-token`, `catalog-f10-namespace`.
+These are tasks whose *deliverable is a test or a document*. `C-LEGIBLE-FAILURE` T-002 is the sharpest:
+the production digest `af58dfca…` is byte-identical across the pair **because the defect was that the
+assertion was too weak** — the production code was already correct. Production moving would have been
+the bug.
+
+So the fifth blind spot is **a task whose deliverable is a strengthened assertion**, and it is
+structurally unfixable by widening the path rule: test paths are excluded from the substantiating set
+*by design* (F9.3), so the correct fix for a weak-assertion task can never substantiate its own pair.
+
+**The rule's premise is that the deliverable is production code.** That premise is false for at least
+three legitimate task classes — documentation/skills, test strengthening, and roadmap prose — and the
+corpus says those classes are not the exception. Six of twenty-six bundles, eight of eight findings.
+
+**A warning with a 100% false-positive rate over its entire operating history is not a check. It is a
+budget on the reviewer's attention with nothing purchased.** That is precisely the harm F9.9 predicted
+and could not yet measure.
+
+**This supersedes F9.9's disposition.** F9.9 said the honest fix is a wording change — say *&quot;no
+substantiating path exists in this bundle's scope&quot;* rather than implying a skipped step. The
+measurement says wording is not enough: a reworded warning that fires on every documentation and
+test-strengthening task is still noise, just politer noise. The rule must learn the deliverable class
+before it may raise, and the plan's per-task declaration is where that information already lives.
+Deliberately **not** adopted: widening `isSubstantiatingPath` to include `skills/` — F9.9's argument
+against it stands and this measurement does not touch it.
+
+One caution for whoever writes the repair. The finding's own parenthetical does **not** identify the
+cause: `C-EXECUTION-CONTRACT` (a skills deliverable) and `C-LEGIBLE-FAILURE` (a test-strengthening
+deliverable) both present as *&quot;N non-test src/ path(s) seen, all identical.&quot;* Classifying by that
+string produces a wrong taxonomy. Classify from `WriteEvidence` digests.
+
+Disposition: **next bundle**, with [F31](#f31) and [F32](#f32) — one surface, one repair.
+
+---
+</Body>
+  </Finding>
+<Finding id="f31" token="F31" status="retired">
+    <PaidBy>C-SUBSTANTIATION-HONESTY</PaidBy>
+    <Title>### F31 — One audit in the report declares its absence; the other skips in silence. **[verified]**</Title>
+    <Body>
+`auditAttemptPairWriteEvidence` runs only inside `if (options.changeId)` (`review/core.ts:1296`). Invoked
+as `ngrace review --path .`, with no `--change`, the entire attempt-pair audit **does not run**, and the
+report says nothing about it. The same command on the same tree:
+
+```
+bun run ngrace review --path .                             → Findings: 0
+bun run ngrace review --path . --change C-ESCALATION-HONESTY → Findings: 1 (warning)
+```
+
+`Findings: 0` is indistinguishable from *&quot;the audit ran and found nothing.&quot;*
+
+**What makes this a finding rather than an option's consequence is the asymmetry inside one report.**
+The scope audit in the same output prints `Scope audit: not-run — no changed files available (working
+tree clean; supply --base or --changed-files)`. It has a full absence vocabulary —
+`status: &quot;ran&quot; | &quot;not-run&quot; | &quot;unable-to-determine&quot;` with a `reason` — built by the same track, for the
+same purpose. The attempt-pair audit has none. Two audits, one report, one of them honest about not
+having looked.
+
+**The procedural half is mine and is recorded because the tool made it invisible.** `ngrace-execute`
+rule 9 is explicit: *&quot;Before setting `applied` or archiving: run `ngrace review --path . --change
+C-ID`.&quot;* Through this bundle's close I ran the unscoped form. The contract was right, I was wrong, and
+nothing in the output could have told me — which is the whole argument for the absence vocabulary. The
+verdict recorded for `C-ESCALATION-HONESTY` was formed from a review that could not have raised this
+class at all. It stands on the merits ([F9.10](#f9.10) shows the one finding is a false positive), but it
+claimed more scrutiny than it received, and that is disclosed rather than left to be discovered.
+
+Disposition: **next bundle**, with F9.10 and F32. The repair is an absence record for the attempt-pair
+audit on the same shape as the scope audit's, so an unscoped review reports `not-run — no --change
+supplied` instead of nothing.
+
+---
+</Body>
+  </Finding>
+<Finding id="f32" token="F32" status="retired">
+    <PaidBy>C-SUBSTANTIATION-HONESTY</PaidBy>
+    <Title>### F32 — The finding points at a path that does not exist. **[verified]**</Title>
+    <Body>
+`auditAttemptPairWriteEvidence` anchors every finding at a hardcoded string:
+
+```ts
+`.ngrace/changes/active/${input.changeId}/run`
+```
+
+For an archived bundle that path is gone. All six raising bundles are archived, so **all eight findings
+name a file that is not there** — including one emitted minutes after `C-ESCALATION-HONESTY` was moved
+to `archive/`:
+
+```
+[warning] review.attempt-pair-unsubstantiated .ngrace/changes/active/C-ESCALATION-HONESTY/run — …
+$ ls -d .ngrace/changes/active/C-ESCALATION-HONESTY/run
+ls: No such file or directory
+```
+
+Small, and worth fixing with the rest rather than alone: the codebase already has `resolveChangeBundle`,
+which the archive gate uses to find a bundle in either location. The finding builder does not call it.
+A reviewer following the path finds nothing and has no way to tell whether the bundle moved or the
+finding is stale.
+
+Disposition: **next bundle**, with F9.10 and F31.
+
+---
+</Body>
+  </Finding>
+<Finding id="f29.1" token="F29.1" status="retired">
+    <PaidBy>C-CONTRACT-DEBT</PaidBy>
+    <Title>#### F29.1 — The dependency that justified deferring F29 does not exist</Title>
+    <Body>
+[F29](#f29) was recorded with disposition *follow-on queue*, and the justification was explicit:
+
+&gt; Not folded into `C-ESCALATION-HONESTY`: the fix changes `skillTextLines`'s measurement semantics,
+&gt; which the module comment says *&quot;do not change … without updating every phase report that cites them&quot;*
+&gt; — that is a real dependency on a survey this bundle has no mandate to run, which is the kind of
+&gt; justification [D11](#d11) asks for before anything is deferred.
+
+**I never ran the survey.** Running it takes one command:
+
+```
+rg -ln 'skillTextLines' src/ scripts/ docs/
+```
+
+The citing documents are `docs/plans/archive/RM-AGENT-RELIABILITY/plan.md` and
+`docs/plans/archive/RM-AGENT-RELIABILITY-EVIDENCE/plan.md`. Both are `status: complete` and **under
+`archive/`, which is never edited.** They cite `skillTextLines().total` as **636** and **723** — neither
+is today's **779**.
+
+So the instruction is unsatisfiable in the direction it points, and unnecessary in the direction that
+matters:
+
+- **Unsatisfiable:** archived plans are immutable. &quot;Updating every phase report that cites them&quot; cannot
+  be done for the only reports that cite them.
+- **Unnecessary:** those citations are already numerically stale and *correct*, because they record what
+  the measurement said at a past commit. A historical report citing a historical value is history, not
+  drift.
+
+**This dissolves the deferral.** D11 says nothing is deferred without a dependency or a conflict. The
+dependency I named was a survey I had not run, and running it shows there is nothing to survey. The
+deferral was not justified, and F29 has been sitting in the queue on a reason that evaporates on
+contact.
+
+Recorded plainly because it is the second time today I stated a number or a condition without running
+the command behind it — the other being a commit count I tracked mentally instead of measuring. Both are
+the standard I put at the top of every executor prompt, applied outward and not inward.
+
+#### What it constrains in the repair
+
+The comment is right about one thing even though its instruction cannot be followed: **`total`'s meaning
+must not change.** Archived reports pin 636 and 723 against it, and redefining the field would silently
+falsify two completed roadmaps.
+
+So the fix is **additive, not a redefinition**: keep `total` as the line count it has always been, and
+report a character or token-estimate figure **alongside** it. Every historical citation stays true, the
+current pin stays meaningful, and the footprint number stops reading zero when the text agents load
+grows by 9%.
+
+The module comment itself should be corrected in the same change — an instruction that cannot be
+followed is worse than no instruction, because the next reader defers on it exactly as I did.
+
+---
+</Body>
+  </Finding>
+<Finding id="f71" token="F71" status="retired">
+    <PaidBy>C-RECORDED-DEBT</PaidBy>
+    <Title>### F71 — a getter named for the authored field returns a fallback, and the renderer labels the fallback with the authored field's name. **[verified]**</Title>
+    <Body>
+Raised by the executor while planning `C-ADAPTER-HONESTY`, and it is what kept that bundle's
+named-absence criterion satisfiable.
+
+`getModulePath` (`src/query/core.ts:111-113`) returns
+`moduleRecord.graph.path ?? localFiles.find(non-test)?.path ?? localFiles[0]?.path`. The name says
+*the module's Path*; the body says *the Path, or failing that any linked file*. `module show` then
+prints that result under the label **&quot;Graph Path&quot;** (`src/query/render.ts:113`). **So a module with no
+authored `&lt;Path&gt;` but one linked file reports a Graph Path it never declared**, and no surface says
+the value was inferred.
+
+`ngrace file exports --module M-X` had to name a missing `&lt;Path&gt;` as an absence. Reusing the existing
+getter — the obvious move, and the one a later reader will propose as a simplification — would have
+made `AC-FILE-EXPORTS`'s absence criterion **unsatisfiable**: the command would analyse a linked file
+and never report the absence at all. The plan therefore binds `moduleRecord.graph.path` and forbids
+`getModulePath` by name.
+
+**The label is still lying and is not this bundle's to fix** — the defect is inherited and
+`module show`'s output was out of scope. Recorded for its own repair.
+
+**The rule.** A `??` chain inside an accessor is a silent policy decision, and the accessor's name is
+where it hides. When a criterion depends on an authored field being *absent*, bind the field, never a
+getter that resolves it — and check what the renderer calls the result, because a fallback under an
+authored field's label is a false claim on a user-visible surface.
+
+**Discharged by [`C-RECORDED-DEBT`](../../../../.ngrace/changes/archive/C-RECORDED-DEBT/), the getter returns only the authored Path, so all four display sites report absence.**
+</Body>
+  </Finding>
+<Finding id="f76" token="F76" status="retired">
+    <PaidBy>C-RECORDED-DEBT</PaidBy>
+    <Title>### F76 — the CLI silently ignores an unrecognised flag, in the product whose thesis is that silence must not read as pass. **[verified]**</Title>
+    <Body>
+Found by the executor while executing `C-AS-STATE`, checking a HEAD claim the plan asserted and the
+authority's dispatch repeated: that an undeclared `--as` would fail as an unknown flag. **It does
+not.** Measured at HEAD:
+
+```
+ngrace lint --path . --totallyBogusFlag hello --format json
+```
+
+emits **no diagnostic naming the flag** and produces a byte-shaped-normal `LintResult`, identical to
+the run without it. (Exit code is not the tell: this tree had unrelated lint errors, so `1` came from
+those. Checking the exit code alone would have confirmed the wrong conclusion — measure the
+*diagnostic*, not the status.)
+
+**The consequence is worse than a typo.** `ngrace lint --assertionss target` — one transposed letter —
+runs in `current` mode, reports a clean result, and tells the author nothing. They believe they
+evaluated target assertions. They evaluated the default. Every selected-assertion command in the
+lifecycle is exposed the same way, and the `--assertions` modes are precisely the gates the execute
+flow depends on.
+
+**The irony is exact and worth keeping.** This finding surfaced inside the bundle implementing P1
+step 6, whose own **normative** text reads *&quot;Silence must not read as 'will pass.'&quot;* The feature was
+being built to hold the tool's rule-coverage to that standard while the CLI that dispatches it drops
+unrecognised arguments without a word.
+
+**Neither the plan nor the authority measured it.** The plan asserted the unknown-flag failure as a
+HEAD fact, the dispatch restated it, and both were wrong — the third time in this phase a HEAD claim
+about the CLI has been asserted rather than measured (see [F62](#f62), [F62.1](#f62.1)). The executor
+caught it because a red it expected to be red was green.
+
+**Not fixed here.** The behaviour belongs to the argument layer shared by every command, not to
+`--as`, and this bundle's scope is the overlay. **Owed as its own change**: decide whether unknown
+arguments are rejected, warned, or reported as a typed absence, and note that a strictness change is
+a compatibility break for any caller passing extra flags today.
+
+**The rule.** Before writing a criterion on &quot;the CLI rejects X&quot;, run it and read the **message**. An
+exit code is a summary of everything the command did, so it can confirm a rejection that never
+happened.
+
+**Discharged by [`C-RECORDED-DEBT`](../../../../.ngrace/changes/archive/C-RECORDED-DEBT/), unknown flag tokens now error with usage.**
+</Body>
+  </Finding>
+<Finding id="f77" token="F77" status="retired">
+    <PaidBy>C-RECORDED-DEBT</PaidBy>
+    <Title>### F77 — the coverage report's class taxonomy is a hand-written conditional with no completeness guard. **[verified]**</Title>
+    <Body>
+`C-AS-STATE` ships the `--as` coverage line — *&quot;evaluated N rule classes; M classes not evaluable at
+this state&quot;* — whose whole purpose is holding the tool's own coverage to the honesty rule it applies
+to everyone else. **The values are right and the mechanism can drift.**
+
+`applyAsStatePreview` (`src/lint/core.ts`) computes membership as a conditional over the requested
+status and whether a plan exists:
+
+```
+const ran = new Set([&quot;artifact&quot;]);
+if (… ARCHIVED_CHANGE_STATUSES.has(asStatus)) skipped.add(&quot;ledger-dependent&quot;);
+if (asStatus === &quot;applied&quot; || (asStatus === &quot;approved&quot; &amp;&amp; planExists)) skipped.add(&quot;verification-runtime&quot;);
+```
+
+`AC-AS-ABSENCE-REPORT` requires *&quot;N and M equal the derived class counts, not a frozen pair&quot;*, and
+that is **satisfied**: the same status yields different M depending on real project state — `approved`
+without a plan is M=0, `approved` with one is M=1, `applied` is M=2 — which no status→M table could
+produce. The executor disclosed the gap rather than claiming instrumentation it had not built.
+
+**The residual risk is specific.** The class set is not derived from which evaluators actually ran; it
+is asserted alongside them. **Add a fourth impure class and this conditional will not mention it, M
+will silently under-count, and the coverage line will under-report the tool's own blindness** — the
+exact lie the step exists to prevent, in the feature built to prevent it. Nothing catches that: the
+tests pin membership per state (`src/lint/core.test.ts:565-579`), which is real discrimination, but
+**no test asserts the taxonomy is complete**, so a new class is invisible rather than red.
+
+**The rule.** A coverage report is only as honest as the enumeration behind it. When a summary counts
+*classes of work*, derive the count from the work — instrument the evaluators, or at minimum pin the
+class inventory so that adding a member without updating the reporter fails. A hand-maintained
+conditional describing what the code did is [F60](#f60)'s second inventory wearing a summary's
+clothes, and it fails silently in the direction of over-claiming.
+
+**Not fixed here** — instrumenting the evaluators is a re-spec, not a repair, and the shipped values
+are correct today. **Owed with the next change that touches the purity taxonomy**, and owed *before*
+any fourth class is introduced.
+
+**Discharged by [`C-RECORDED-DEBT`](../../../../.ngrace/changes/archive/C-RECORDED-DEBT/), the purity classes are a declared inventory that throws when a member is neither run nor skipped.**
+</Body>
+  </Finding>
+<Finding id="f71.1" token="F71.1" status="retired">
+    <PaidBy>C-RECORDED-DEBT</PaidBy>
+    <Title>### F71.1 correction — four display strings, not two, and the live tree cannot be the fixture. **[verified]**</Title>
+    <Body>
+[F71](#f71) named `module show`'s **&quot;Graph Path&quot;** label and cited `src/query/render.ts:113`.
+Measured, corrected by the executor at `C-RECORDED-DEBT`'s spec authoring:
+
+- The label is at **`render.ts:114`**, not `:113`.
+- `getModulePath` feeds **four** display strings, not two: the module-find table's `PATH` column
+  (`render.ts:58`), **`Module Path:`** (`:81`), **`Graph Path:`** (`:114`), and the health record's
+  `path` (`health.ts:126`, rendered as `Path:` via `render.ts:94`). **Two of those four are labels
+  F71 never named**, so a repair that fixes only the labels F71 quoted would leave the same fallback
+  printing under different words.
+
+**And the live tree cannot serve as the acceptance fixture.** `M-SKILLS` has no `&lt;Path&gt;` **and no
+linked files**, so `getModulePath` already falls through to `undefined` and `module show` already
+prints `n/a`. A criterion written against it would pass at HEAD — [F28](#f28)'s shape, a green that
+is not evidence. Demonstrating the defect requires a module with **no authored Path and at least one
+linked file**, which is the only state where the fallback speaks.
+
+**The rule.** When a finding names a symptom, count **every** consumer of the mechanism before
+scoping the repair — a getter is a defect at each of its call sites, and the site the finding
+happened to notice is rarely all of them. And before writing an acceptance criterion, check whether
+the defect is **reachable on the tree you will run it against**; if the live project cannot express
+the broken state, the fixture is part of the deliverable, not an implementation detail.
+</Body>
+  </Finding>
 </Findings>
