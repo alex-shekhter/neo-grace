@@ -266,4 +266,10 @@
     <Pays>F12</Pays>
     <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-RECORD-3 because the archived spec never used the payer phrase and no registry row existed at close. Present-tree witness: the terminal kind entry at skills/ngrace/ngrace-execute/SKILL.md:84-87 says to emit terminal before ngrace cursor fold and that fold requires a terminal event inside the covering allocation range, and the packaged mirror carries the same text (grep -c terminal identical in both copies).</StatusText>
   </Row>
+<Row name="C-INDEX-METRIC-2" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Name.** `C-INDEX-METRIC-2`. **Searched before minting**, 2026-09-10 at `65c99ec`, over `.ngrace/changes/archive/` and both registry layers for any prior row carrying the name: **zero rows in either layer**. No prior name covers this ground. **Charter.** The index-ratchet remedy bundle: replaced the index budget with the live-`Entry` metric denominated in live `Entry` children (`INDEX_HEADROOM_ENTRIES = 40`), performed the one-time root rewrite the metric requires, and shipped the genre-aware breach diagnostic, so the index ceiling can no longer be consumed by retired entries.</Charter>
+    <Pays>[F205](#f205).</Pays>
+    <StatusText>**Delivered.** Archived applied 2026-09-09 as `C-INDEX-METRIC-2` (PR #84). This row was minted post-archive by `C-FLUSH-AND-PAY` so the derivation can see a payment the archived bundle's own spec names — the prose-mint pass is gone since C-RECORD-PARSE (PR #82), so the row is the only route at HEAD.</StatusText>
+  </Row>
 </Registry>

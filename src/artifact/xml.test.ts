@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 import ts from "typescript";
 
-import { childText, cloneXmlNode, COMMENT_WELL_FORMED_PATH_ALLOWLIST, computeElementSpans, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
+import { childNodes, childText, cloneXmlNode, COMMENT_WELL_FORMED_PATH_ALLOWLIST, computeElementSpans, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
 describe("neo-grace XML parser adapter", () => {
   it("returns xml.parse diagnostics for malformed XML instead of throwing", () => {
@@ -599,31 +599,362 @@ describe("computeElementSpans", () => {
 
   it("pairs every element of the real record files at their committed bytes", () => {
     const recordDir = path.resolve(import.meta.dir, "..", "..", "docs", "plans", "active", "RM-GOVERNED-PATH");
-    const cases: Array<[file: string, tag: string, expected: number]> = [
-      ["findings.xml", "Finding", 195],
-      ["findings-retired.xml", "Finding", 77],
-      ["rulings.xml", "Decision", 61],
-      ["rulings-retired.xml", "Decision", 5],
-      ["registry.xml", "Row", 12],
-      ["registry-retired.xml", "Row", 44],
-      ["decisions.xml", "Entry", 338],
+    const cases: Array<[file: string, tag: string]> = [
+      ["findings.xml", "Finding"],
+      ["findings-retired.xml", "Finding"],
+      ["rulings.xml", "Decision"],
+      ["rulings-retired.xml", "Decision"],
+      ["registry.xml", "Row"],
+      ["registry-retired.xml", "Row"],
+      ["decisions.xml", "Entry"],
     ];
-    for (const [file, tag, expected] of cases) {
+    const roots = new Map<string, GraceXmlNode>();
+    const identitiesByFile = new Map<string, Set<string>>();
+    for (const [file, tag] of cases) {
       const text = readFileSync(path.join(recordDir, file), "utf8");
       const parsed = parseGraceXmlArtifact(file, text);
       expect(parsed.root, file).not.toBeNull();
+      roots.set(file, parsed.root!);
       const spans = computeElementSpans(text, parsed);
-      const nodes = parsed.root!.children.filter((child) => child.tag === tag);
-      expect(nodes.length, file).toBe(expected);
+      const nodes = childNodes(parsed.root!, tag);
+      const [firstGenreChild] = nodes;
+      expect(firstGenreChild, `${file}:${tag} carries at least one element`).toBeDefined();
+      const identityAttribute = tag === "Row" ? "name" : "id";
+      const seen = new Set<string>();
+      const duplicates: string[] = [];
       for (const node of nodes) {
-        expect(spans.get(node), `${file}:${tag}`).toBeDefined();
-      }
-      if (file === "decisions.xml") {
-        for (const node of nodes) {
-          const span = spans.get(node)!;
-          expect(span.closeStart, "index Entries are self-closing: open range only").toBeNull();
+        const span = spans.get(node);
+        expect(span, `${file}:${tag}`).toBeDefined();
+        const identity = node.attributes[identityAttribute];
+        expect(identity, `${file}:${tag} carries its ${identityAttribute} identity`).toBeDefined();
+        if (seen.has(identity)) {
+          duplicates.push(identity);
+        } else {
+          seen.add(identity);
+        }
+        if (file === "decisions.xml") {
+          expect(span!.closeStart, "index Entries are self-closing: open range only").toBeNull();
         }
       }
+      identitiesByFile.set(file, seen);
+      expect(duplicates, `${file} duplicate ${tag} identities`).toEqual([]);
     }
+    // conservation: for each live and retired genre pair the identity sets are
+    // disjoint, so every element lives in exactly one layer.
+    const genrePairs: Array<[liveFile: string, retiredFile: string]> = [
+      ["findings.xml", "findings-retired.xml"],
+      ["rulings.xml", "rulings-retired.xml"],
+      ["registry.xml", "registry-retired.xml"],
+    ];
+    for (const [liveFile, retiredFile] of genrePairs) {
+      const overlaps = [...identitiesByFile.get(liveFile)!].filter((identity) =>
+        identitiesByFile.get(retiredFile)!.has(identity),
+      );
+      expect(overlaps, `${liveFile} and ${retiredFile} identity sets are disjoint`).toEqual([]);
+    }
+    // index bookkeeping: the persisted base equals the live Entry count read back
+    // through the shipped parser, under the shipped engine's own predicate — every
+    // direct Entry child whose layer attribute is anything other than retired.
+    const indexRoot = roots.get("decisions.xml")!;
+    const liveEntries = childNodes(indexRoot, "Entry").filter(
+      (entry) => entry.attributes.layer !== "retired",
+    );
+    expect(
+      Number(indexRoot.attributes.base),
+      "decisions.xml base equals its live Entry children",
+    ).toBe(liveEntries.length);
   }, 60_000);
+
+  it(
+    "regression guard: the pairing test carries no transcribed record element count in any form — keyed on the count forms, refusing what it cannot prove",
+    () => {
+      const self = readFileSync(
+        path.join(import.meta.dir, path.basename(new URL(import.meta.url).pathname)),
+        "utf8",
+      );
+      expect(antiOccupancyFailures(self)).toEqual([]);
+    },
+  );
+});
+
+const PAIRING_TEST_TITLE = "pairs every element of the real record files at their committed bytes";
+
+const GUARD_REFUSAL = "the pairing test's body span could not be located; the guard refuses what it cannot prove";
+
+/**
+ * Regression guard against the occupancy pins the pairing test once carried: the
+ * relations need no numbers, so any numeric literal inside the pairing test's body,
+ * any `expected: number`-shaped occupancy-table field anywhere in the file, and any
+ * module-scope binding with a numeric initializer referenced from the body is a
+ * restored pin. The scan reads guarded source with the TypeScript parser the file
+ * already imports: numeric literals are the parser's numeric-literal nodes, so
+ * string and comment prose cannot fire and separator, exponent and hexadecimal
+ * forms are seen; the occupancy-table shape is read from interface and type-literal
+ * property signatures and from labeled-tuple members, so the same prose inside a
+ * string literal is not a hit; module-scope bindings are visited at every declarator
+ * of every top-level variable statement — destructured names and non-first
+ * declarators included — and each initializer is examined in full as an expression
+ * node, so a number behind an internal semicolon or brace is seen. An identifier
+ * occurrence in the body — a property name included — counts as a reference, and a
+ * locally shadowed name is not distinguished from an outer binding
+ * (over-approximate, never under). Shapes the scan cannot prove are reported,
+ * never passed.
+ */
+function antiOccupancyFailures(source: string): string[] {
+  const failures: string[] = [];
+  const sourceFile = ts.createSourceFile("guarded-source.ts", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const body = pairingCallbackBody(sourceFile);
+  if (body === undefined) {
+    return [GUARD_REFUSAL];
+  }
+  for (const literal of numericLiteralsIn(body)) {
+    failures.push(`numeric literal ${literal} inside the pairing test's body`);
+  }
+  for (const shape of occupancyTableShapes(sourceFile)) {
+    failures.push(`occupancy-table shape ${shape} in the file`);
+  }
+  const referenced = identifiersIn(body);
+  for (const binding of moduleScopeBindings(sourceFile)) {
+    if (!referenced.has(binding.name) || !binding.numericInitializer) continue;
+    failures.push(`module-scope binding ${binding.name} referenced from the pairing test's body has a numeric initializer`);
+  }
+  return failures;
+}
+
+function visitSubtree(node: ts.Node, visit: (child: ts.Node) => void): void {
+  visit(node);
+  ts.forEachChild(node, (child) => {
+    visitSubtree(child, visit);
+  });
+}
+
+/** Locates the pairing test's callback body block; undefined when it cannot be proven. */
+function pairingCallbackBody(sourceFile: ts.SourceFile): ts.Block | undefined {
+  let found: ts.Block | undefined;
+  visitSubtree(sourceFile, (node) => {
+    if (found !== undefined || !ts.isCallExpression(node)) return;
+    if (!ts.isIdentifier(node.expression) || node.expression.text !== "it") return;
+    const title = node.arguments[0];
+    if (title === undefined || !ts.isStringLiteral(title) || title.text !== PAIRING_TEST_TITLE) return;
+    const callback = node.arguments[1];
+    if (callback === undefined || !ts.isArrowFunction(callback) || !ts.isBlock(callback.body)) return;
+    found = callback.body;
+  });
+  return found;
+}
+
+function numericLiteralsIn(body: ts.Block): string[] {
+  const literals: string[] = [];
+  visitSubtree(body, (node) => {
+    if (ts.isNumericLiteral(node)) {
+      literals.push(node.text);
+    }
+  });
+  return literals;
+}
+
+function identifiersIn(body: ts.Block): Set<string> {
+  const names = new Set<string>();
+  visitSubtree(body, (node) => {
+    if (ts.isIdentifier(node)) {
+      names.add(node.text);
+    }
+  });
+  return names;
+}
+
+function expectedNumberType(typeNode: ts.TypeNode | undefined): boolean {
+  let current = typeNode;
+  while (current !== undefined && ts.isParenthesizedTypeNode(current)) {
+    current = current.type;
+  }
+  return current?.kind === ts.SyntaxKind.NumberKeyword;
+}
+
+function occupancyTableShapes(sourceFile: ts.SourceFile): string[] {
+  const shapes: string[] = [];
+  visitSubtree(sourceFile, (node) => {
+    if (!ts.isPropertySignature(node) && !ts.isNamedTupleMember(node)) return;
+    const name = ts.isIdentifier(node.name) || ts.isStringLiteral(node.name) ? node.name.text : undefined;
+    if (name !== "expected") return;
+    if (expectedNumberType(node.type)) {
+      shapes.push("expected: number");
+    }
+  });
+  return shapes;
+}
+
+function declaredBindingNames(nameNode: ts.BindingName, into: string[]): void {
+  if (ts.isIdentifier(nameNode)) {
+    into.push(nameNode.text);
+    return;
+  }
+  for (const element of nameNode.elements) {
+    if (ts.isOmittedExpression(element)) continue;
+    declaredBindingNames(element.name, into);
+  }
+}
+
+function moduleScopeBindings(sourceFile: ts.SourceFile): Array<{ name: string; numericInitializer: boolean }> {
+  const bindings: Array<{ name: string; numericInitializer: boolean }> = [];
+  for (const statement of sourceFile.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      const numericInitializer = subtreeHasNumericLiteral(declaration.initializer);
+      const names: string[] = [];
+      declaredBindingNames(declaration.name, names);
+      for (const name of names) {
+        bindings.push({ name, numericInitializer });
+      }
+    }
+  }
+  return bindings;
+}
+
+function subtreeHasNumericLiteral(node: ts.Expression | undefined): boolean {
+  if (node === undefined) return false;
+  let found = false;
+  visitSubtree(node, (child) => {
+    if (ts.isNumericLiteral(child)) {
+      found = true;
+    }
+  });
+  return found;
+}
+
+const GUARD_GREEN_FIXTURE = `describe("pairing guard fixture", () => {
+  it("${PAIRING_TEST_TITLE}", () => {
+    const nodes = readNodes();
+    expect(nodes).toBeDefined();
+  });
+});`;
+
+const GUARD_INLINE_LITERAL_FIXTURE = `describe("pairing guard fixture", () => {
+  it("${PAIRING_TEST_TITLE}", () => {
+    const nodes = readNodes();
+    expect(nodes).toHaveLength(3);
+  });
+});`;
+
+const GUARD_SNEAKY_INITIALIZER_FIXTURE = `const SNEAKY = (() => {
+  const setup = "x";
+  return 195;
+})();
+describe("pairing guard fixture", () => {
+  it("${PAIRING_TEST_TITLE}", () => {
+    expect(typeof SNEAKY).toBe("number");
+  });
+});`;
+
+const GUARD_DESTRUCTED_BINDING_FIXTURE = `const { DESTRUCTED_PIN, UNREFERENCED_PIN } = { DESTRUCTED_PIN: 195, UNREFERENCED_PIN: 195 };
+describe("pairing guard fixture", () => {
+  it("${PAIRING_TEST_TITLE}", () => {
+    expect(DESTRUCTED_PIN).toBeDefined();
+  });
+});`;
+
+const GUARD_SECOND_DECLARATOR_FIXTURE = `const FIRST_PIN = 195, SECOND_PIN = 195;
+describe("pairing guard fixture", () => {
+  it("${PAIRING_TEST_TITLE}", () => {
+    expect(SECOND_PIN).toBeDefined();
+  });
+});`;
+
+const GUARD_TABLE_INTERFACE_FIXTURE = `interface PairingRow {
+  file: string;
+  expected: number;
+}
+describe("pairing guard fixture", () => {
+  it("${PAIRING_TEST_TITLE}", () => {
+    expect(readNodes()).toBeDefined();
+  });
+});`;
+
+const GUARD_TABLE_TUPLE_FIXTURE = `type PairingRows = Array<[file: string, expected: number]>;
+describe("pairing guard fixture", () => {
+  it("${PAIRING_TEST_TITLE}", () => {
+    expect(readNodes()).toBeDefined();
+  });
+});`;
+
+const GUARD_TABLE_PROSE_FIXTURE = `describe("pairing guard fixture", () => {
+  it("${PAIRING_TEST_TITLE}", () => {
+    const note = "the retired table once carried expected: number";
+    expect(note).toBeDefined();
+  });
+});`;
+
+const GUARD_ASYNC_CALLBACK_FIXTURE = `describe("pairing guard fixture", () => {
+  it("${PAIRING_TEST_TITLE}", async () => {
+    const nodes = readNodes();
+    expect(nodes).toBeDefined();
+  }, 60_000);
+});`;
+
+const GUARD_STRING_PROSE_FIXTURE = `describe("pairing guard fixture", () => {
+  it("${PAIRING_TEST_TITLE}", () => {
+    // the retired pin read 195 from a table nobody restored
+    const text = readFileSync(recordPath, "utf8");
+    expect(text).toBeDefined();
+  });
+});`;
+
+const GUARD_UNLOCATABLE_CALLBACK_FIXTURE = `const PAIRING_TITLE = "${PAIRING_TEST_TITLE}";
+describe("pairing guard fixture", () => {
+  it(PAIRING_TITLE, () => {
+    const nodes = readNodes();
+    expect(nodes).toBeDefined();
+  });
+});`;
+
+describe("anti-occupancy guard discriminating directions", () => {
+  it("passes a pairing body with no numeric literals and no numeric module bindings", () => {
+    expect(antiOccupancyFailures(GUARD_GREEN_FIXTURE)).toEqual([]);
+  });
+
+  it("fails on an inline numeric literal inside the pairing body", () => {
+    expect(antiOccupancyFailures(GUARD_INLINE_LITERAL_FIXTURE)).toEqual([
+      "numeric literal 3 inside the pairing test's body",
+    ]);
+  });
+
+  it("fails on a numeric initializer behind an internal semicolon referenced from the body", () => {
+    expect(antiOccupancyFailures(GUARD_SNEAKY_INITIALIZER_FIXTURE)).toEqual([
+      "module-scope binding SNEAKY referenced from the pairing test's body has a numeric initializer",
+    ]);
+  });
+
+  it("fails on a destructured numeric binding referenced from the body and skips its unreferenced sibling", () => {
+    expect(antiOccupancyFailures(GUARD_DESTRUCTED_BINDING_FIXTURE)).toEqual([
+      "module-scope binding DESTRUCTED_PIN referenced from the pairing test's body has a numeric initializer",
+    ]);
+  });
+
+  it("fails on a non-first-declarator numeric binding referenced from the body and skips the first declarator", () => {
+    expect(antiOccupancyFailures(GUARD_SECOND_DECLARATOR_FIXTURE)).toEqual([
+      "module-scope binding SECOND_PIN referenced from the pairing test's body has a numeric initializer",
+    ]);
+  });
+
+  it("flags the occupancy-table shape in interface and labeled-tuple form, and not its prose mention inside a string", () => {
+    expect(antiOccupancyFailures(GUARD_TABLE_INTERFACE_FIXTURE)).toEqual([
+      "occupancy-table shape expected: number in the file",
+    ]);
+    expect(antiOccupancyFailures(GUARD_TABLE_TUPLE_FIXTURE)).toEqual([
+      "occupancy-table shape expected: number in the file",
+    ]);
+    expect(antiOccupancyFailures(GUARD_TABLE_PROSE_FIXTURE)).toEqual([]);
+  });
+
+  it("passes an async callback and never fires on the timeout argument outside the body", () => {
+    expect(antiOccupancyFailures(GUARD_ASYNC_CALLBACK_FIXTURE)).toEqual([]);
+  });
+
+  it("never fires on a digit inside a string literal or a comment inside the body", () => {
+    expect(antiOccupancyFailures(GUARD_STRING_PROSE_FIXTURE)).toEqual([]);
+  });
+
+  it("reports its refusal when the pairing callback cannot be located", () => {
+    expect(antiOccupancyFailures(GUARD_UNLOCATABLE_CALLBACK_FIXTURE)).toEqual([GUARD_REFUSAL]);
+  });
 });
