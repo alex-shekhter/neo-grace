@@ -1,0 +1,387 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-FLUSH-AND-PAY-2>
+    <IntentSummary>
+      Author the execution for the approved, frozen spec
+      `.ngrace/changes/active/C-FLUSH-AND-PAY-2/spec.xml` and only within it; the plan conforms to the
+      spec, it does not extend, narrow or reinterpret it. One deliverable, the reconciliation the
+      superseded predecessor could not deliver under its own ratified criteria: in
+      `src/artifact/xml.test.ts`, the pairing test named `pairs every element of the real record files
+      at their committed bytes` (`src/artifact/xml.test.ts:600` at this plan's base commit) keeps its
+      substance and loses its occupancy transcription — the `cases` table
+      (`src/artifact/xml.test.ts:602`-609) and the count comparison (`:617`) — and gains exactly the
+      three file-determined relations the repair Goal mandates, plus the anti-occupancy guard in the
+      house body-shaped single-definition form. One task. The record is this bundle's read, never its
+      write (spec P4): no task re-runs the flush, the mint, or `--retire` against the production
+      record — the end state the predecessor produced is asserted by the shipped production assertions
+      in `scripts/validate-record-retirement.test.ts` (AC-END-STATE-HELD's CloseEvidence), never
+      re-performed, and every mutation probe lives on a throwaway copy.
+
+      The red and the green (spec P1). Measured at this plan's commit `cf4e0ce` (branch
+      `c-flush-and-pay`, tree clean apart from this bundle's own untracked artifacts):
+      `bun test src/artifact/xml.test.ts` exits 1 — read from the command, not a pipeline — 24 pass /
+      1 fail, the failure the occupancy pin at `src/artifact/xml.test.ts:617` for `findings.xml`,
+      expected 195, received 210; `bun run test` reports 1787 pass, 3 skip, 1 fail across 63 files,
+      the single failure this test; every other `validate:ci` stage exits 0 when run separately at
+      this commit (typecheck, validate:cli, validate:marketplace, validate:examples,
+      validate:determinism, validate:packed, validate:schema-reference, validate:skeleton-templates,
+      validate:teaching-surface, validate:citation-anchors, validate:record-retirement,
+      prove-record-preservation) — so the whole red is this one assertion and the whole repair is this
+      one file. The repair makes that same command green: the plan's TargetAssertions carry
+      `bun test src/artifact/xml.test.ts` as a MustPassCommand, so the red-to-green flip of one
+      instrument demonstrates both directions. Nothing outside the spec's write scope changes:
+      ObservedWriteScope is exactly the repair file, and the byte-invariance commands pin every other
+      surface to the spec's base commit `ce9b506f763fe9a97d57e10f3c3cf7b24266f277` (F210's named
+      baseline; F215's window — the commands are this bundle's own diff, and the predecessor's
+      supersede arrival and this bundle's own later archive arrival are named exclusions). Dated
+      engine counts, expiring context only (F123's law): 210 / 78 / 61 / 5 / 12 / 45 / 354 by
+      `parseGraceXmlArtifact` plus `childNodes` over direct children against the pins 195 / 77 / 61 /
+      5 / 12 / 44 / 338 — four stale, three agreeing, the deltas reconstructing the predecessor's
+      committed work exactly. The pins do not go back in: no criterion, assertion, or task below
+      carries a transcribed record element count in any form (spec P3), and the repaired test reads
+      every number it uses about a record file from that file at test time.
+
+      T1 — granularity, one task. The budgets re-read at HEAD: `FIX_SIGNATURE_REPEAT_BUDGET = 2`
+      (`src/grace-cursor.ts:187`) and `FIX_DISTINCT_SIGNATURE_BUDGET = 4` (`src/grace-cursor.ts:193`),
+      firing per task on failed verification attempts by exact kind+key signature equality
+      (`src/grace-cursor.ts:1824`-1835). The deliverable is one file and one failure family — the
+      pairing test's content: a mis-stated relation reds the suite in T-001 and reds the same
+      relation's probe on the copy, so the probe demonstrations are that family's discriminating half,
+      not a second family. Splitting them would put a green-but-undemonstrated boundary between the
+      repair and its probes with no isolation gain (same file, same suite, same OWS), and there is no
+      second unrelated family here whose failures need the distinct budget held in reserve. The
+      by-hand criterion AC-NO-CURRENT-MODE is implemented by this one task's Verification commands and
+      the plan's TargetAssertions and carries the plan's single `Satisfies` (measured basis below).
+
+      T2 — what the deleted counts were protecting, and what already catches which part. The counts
+      guarded wholesale record corruption that stays well-formed and pairs cleanly: a drop, a
+      duplicate, a copy-instead-of-move, a wrong flip. Shipped instruments and their parts: the
+      eligibility codes catch archive-paid elements still live
+      (`finding-eligible-still-live` `scripts/validate-record-retirement.ts:1380`,
+      `registry-eligible-still-live` `:1399`, `decision-eligible-still-live` `:1429`);
+      `status-file-mismatch` `:1483` catches a verbatim cross-sibling copy whose status was not made
+      consistent (re-driven at this plan's commit: a verbatim f206 copy into the retired sibling reds
+      it, validator exit 1; the status-flipped form of the same copy exits 0); the shipped flush
+      invariant catches exactly-once for the sixteen flushed ids f205 through f220 (id-scoped); the
+      shipped roots invariant asserts `base + headroom = ceiling` and `base` equal to its shipped
+      metric for the four live roots, including the `decisions.xml` clause that relation (c) restates
+      — the mandated set is shipped, not pruned, and the overlap is stated rather than hidden: (c) is
+      the pairing-test-level read-back of the relation the roots invariant already asserts at the
+      suite level, and the shipped validator alone stays green on the Entry-removal mutation because
+      it never re-derives the persisted base against the metric (measured zero findings); the
+      retired-layer invariant catches a retired Finding whose `PaidBy` is missing, empty, or disagrees
+      with a derived row — and rides through a copy carrying any real archive name when the token has
+      no derived row (measured: `F204` has no row-route payer, so a plausible `PaidBy` passes it);
+      `prove-record-preservation` asserts body-hash presence across the genre union. Only the new
+      relations catch: corpus-wide identity uniqueness across all seven files (duplication of any
+      element beyond the named ids), cross-layer disjointness for non-eligible, status-consistent
+      copies — the shipped validator measured green on exactly that copy — and, at the pairing surface
+      where the counts used to live, the base read-back. The plan adds no second copy of any shipped
+      end-state assertion (the spec's NonGoal): its assertions are the shipped suite commands, and the
+      three relations are exactly the spec's mandated set.
+
+      T3 — the suites' root binding, and what it permits and forbids for probes. The pairing test
+      resolves the production record from its own tree — `path.resolve(import.meta.dir, "..", "..",
+      "docs", "plans", "active", "RM-GOVERNED-PATH")` (`src/artifact/xml.test.ts:601`) — and the
+      retirement suite from `REPO_ROOT = path.resolve(import.meta.dir, "..")`
+      (`scripts/validate-record-retirement.test.ts:18`); neither takes a record path; only the shipped
+      CLI does (`validateRecordRetirement({ repoRoot, recordDir })`,
+      `scripts/validate-record-retirement.ts:1296`). Consequence, binding on every probe below: a
+      standalone copy of the record is invisible to both suites, so suite probes run on throwaway
+      REPOSITORY copies with the copy's record mutated and the suite run inside the copy, while the
+      CLI probes (the `--retire` no-op, the plain validator) take a standalone record copy. The
+      AC-END-STATE-HELD red direction and every AC-OCCUPANCY-REPLACED mutation therefore run as
+      repository copies; the spec's own Assumption 6 records this resolution, and this plan states it
+      as the operative rule rather than rediscovering it.
+
+      T4 — assertion wiring. BaselineAssertions carry the shipped end-state instruments that are green
+      before the write — the retirement suite (67 pass / 0 fail / exit 0 at this plan's commit) and
+      the shipped validator (exit 0) — plus `MustExist` for the repair file, the retirement suite, the
+      seven record files and the spec; they red if the end state this bundle asserts is broken before
+      work starts, or if any asserted file is missing. TargetAssertions carry the repair's own suite —
+      the same command that is red at baseline — plus the end-state suite, the validator, and the two
+      record validators; the red-to-green flip of `bun test src/artifact/xml.test.ts` is the
+      demonstration of P1's both directions, and it reds at target if a relation is missing or
+      weakened to a subset, a pairing breaks, or a transcribed count returns (the guard). The
+      byte-invariance commands are task `Verification` and close-only `CloseEvidence` instruments
+      (`git diff --exit-code` with a named baseline — F210), never TargetAssertions, in the
+      predecessor's house shape.
+
+      T5 — the execution/close boundary. The executor emits this task's own execution-time cursor
+      events (opened with the epoch open at this task's start, progress, attempt on every verification
+      cycle, command-run events from the target lint's `--run-commands`, verification-unavailable when
+      evidence cannot be collected) inside the open epoch, and does not omit them. Close acts, owned
+      by the authority and performed by no task: the terminal event, the cursor fold,
+      `--assertions final --run-commands`, the review verdicts, gate apply, the `status="applied"`
+      write, gate archive, the git mv to `.ngrace/changes/archive/`, the close's own record retirement
+      move — a byte-level no-op here, because no `Row` in either registry layer carries
+      `C-FLUSH-AND-PAY-2` (measured by parse at this plan's commit, so both the close's move and a
+      fresh `--retire` over a throwaway copy of the end state report moved 0) — and the CloseEvidence
+      evaluations recorded on the post-archive Verdict (F196's applied-archive state). The
+      predecessor's supersede is already committed (`cf4e0ce`); this bundle performs no outward-facing
+      act.
+
+      The one `Satisfies`, and why. The approved spec's evidence-hygiene Constraint reads "no task
+      carries `Satisfies`, the admissible mapping set is empty, and every criterion is complete
+      `CloseEvidence` except the by-hand one". Measured at this plan's commit with the shipped engine
+      over the real approved spec: a plan with no `Satisfies` leaves AC-NO-CURRENT-MODE — the by-hand
+      criterion, which carries no `CloseEvidence` child — unmapped, and
+      `validateSpecPlanCoverage` emits warning `change.acceptance-criterion-unmapped`
+      (`src/artifact/grammar.ts:2058`-2064); AC-CLOSE-LINT's post-archive command runs
+      `--fail-on warnings`, which fails on any issue (`src/grace-lint.ts:142`-143), so the literal
+      reading makes the bundle's own close unsatisfiable. The house pattern is the predecessors' own:
+      every ratified bundle in this lineage that carried this by-hand criterion mapped exactly it via
+      `Satisfies` (`C-PAYMENT-RECORD`, `C-PAYMENT-RECORD-2`, `C-PAYMENT-RECORD-3`,
+      `C-RECORD-TEST-ISOLATION-2`, `C-FLUSH-AND-PAY` — searched at this plan's commit). This plan
+      therefore carries exactly one `Satisfies` — AC-NO-CURRENT-MODE under T-001 — a criterion that is
+      not close-bound, so `change.close-evidence-and-satisfied` cannot fire, while the close-bound
+      criteria stay unmapped because a `Satisfies` of a close-bound criterion is that error; the
+      admissible mapping set for the close-bound criteria is empty, exactly as the spec states. The
+      same engine returns zero coverage issues with this mapping (driven both ways at this plan's
+      commit).
+
+      Scalar expiry and probe timing. Every dated figure below and in the criteria is plan-time
+      context that expires on the next record or suite write (F123); every criterion asserts a
+      relation its instrument can observe, and no criterion pins a record element count. The five
+      AC-OCCUPANCY-REPLACED probes wait for the repair, because the relations do not exist until
+      T-001's edit lands — the spec drives its own probes at its base commit and delegates exactly
+      these to this plan, demonstrated during execution on throwaway repository copies with the
+      repaired suite run inside each copy, tails recorded in the executor's report before the
+      authority accepts the delivered work and runs the close.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/artifact/xml.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-FLUSH-AND-PAY-2/spec.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>src/artifact/xml.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test src/artifact/xml.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+      </GraphAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/xml.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Replace the occupancy transcription in the pairing test with the three file-determined
+          relations and the anti-occupancy guard, and demonstrate every named probe on throwaway
+          copies
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The repair, in `src/artifact/xml.test.ts` only. The pairing test named `pairs every
+            element of the real record files at their committed bytes` keeps its substance: the
+            record-directory resolve from its own tree (`src/artifact/xml.test.ts:601` — the root
+            binding is unchanged, T3), all seven real record files parsed at their committed bytes
+            with the shipped `parseGraceXmlArtifact`, a non-null root per file, `computeElementSpans`
+            succeeding so every loud disagreement still raises (source-scan/parser count
+            disagreement, parsed attribute outside its open-tag bytes, self-closing open tag with
+            parser children, non-self-closing element without a close tag), a span for every direct
+            genre child, index `Entry` elements self-closing, and the explicit generous timeout kept
+            (F185). It loses the `cases` table (`src/artifact/xml.test.ts:602`-609 at this plan's
+            base commit) and the count comparison (`:617`) — the `expected` column and every other
+            transcribed element count of a record file — and gains exactly the three relations the
+            repair Goal mandates, no more and no fewer: (a) identity — every direct genre child of
+            the seven files carries its genre identity attribute (`Finding` id, `Decision` id,
+            `Row` name, `Entry` id) and the identities are unique within their file; (b) conservation
+            — for the findings, rulings and registry genre pairs the live and retired identity sets
+            are disjoint; (c) index bookkeeping — the `decisions.xml` root's persisted `base` equals
+            the count of its direct `Entry` children with `layer="live"`, read back through
+            `parseGraceXmlArtifact` and `childNodes` (the `C-INDEX-METRIC-2` live-entry metric).
+            Measured green at this plan's commit, expiring figures (F123): identity 0 missing and
+            0 duplicate across the seven files (210 / 78 / 61 / 5 / 12 / 45 / 354 direct genre
+            children), disjointness 0 overlap in all three pairs, `decisions.xml` root `base="271"`
+            equal to its 271 live `Entry` children — the criteria bind the relations, never the
+            figures, and every number the test uses about a record file is read back from that file
+            at test time. The per-file genre tag stays the test's existing local pairing shape (the
+            file-to-tag mapping is pairing substance, not a count). No occupancy pin returns in any
+            form — not as the `expected` column, a constant, or an inline literal (spec P3); if any
+            relation proves non-assertable at implementation time, stop and report rather than
+            reintroducing a count.
+          </Criterion>
+          <Criterion>
+            The anti-occupancy guard, in the same file, in the house body-shaped single-definition
+            form. A second shipped test reads the file's own source — the regression-guard shape of
+            `scripts/validate-record-retirement.test.ts:1586`-1594, which reads its own source via
+            `import.meta` and runs a keyed scan over it, refusing what it cannot prove — and expects
+            an empty failure list. The scan observes that the pairing test carries no transcribed
+            record element count in any form, keyed on the three forms the spec names: (i) any
+            numeric literal inside the pairing test's body span — the relations need none, so a
+            restored `expected` column, an inline literal, or an in-body count constant dies there;
+            (ii) the occupancy-table shape anywhere in the file — an `expected: number`-shaped field
+            on a record-file table, the triple-array form the deleted table took; (iii) any
+            module-scope binding whose initializer is a numeric literal or a numeric-literal array
+            and which is referenced from the pairing test's body — the constant form. Keyed shapes
+            only; the guard may be strengthened at implementation, never weakened; the mutation that
+            reddens it is restoring any transcribed count in the pairing test's body, demonstrated
+            per the probe criterion below.
+          </Criterion>
+          <Criterion>
+            The discriminating probes, driven during execution — never against the production record.
+            Every suite probe runs on a throwaway copy of the REPOSITORY with the copy's record
+            mutated and the suite run inside the copy, because neither shipped suite takes a record
+            path (T3); CLI probes take a standalone record copy. (0) The end-state red direction, on
+            a repository copy: the unmutated copy runs `bun test
+            scripts/validate-record-retirement.test.ts` green (67 pass / 0 fail / exit 0 at this
+            plan's commit — re-drive the control and record the tail); with `F205` replanted live in
+            the copy's `findings.xml` and its `&lt;PaidBy&gt;` dropped from
+            `findings-retired.xml`, the same suite exits 1 with the flush, payment, roots,
+            production and clamp invariants among the failures (driven at the spec's base: 60 pass /
+            7 fail / exit 1 — re-drive and record the tails). (1) Duplicate one `Finding` element in
+            a copy's `findings.xml`: identity uniqueness (a) reds in the repaired pairing test run
+            inside the copy. (2) Copy one live `Finding` element into the copy's
+            `findings-retired.xml` as a well-formed retired element — status flipped to `retired`,
+            nothing deleted: the shipped validator alone stays green (measured exit 0 on exactly this
+            mutation at this plan's commit) and the disjointness relation (b) reds on the same bytes;
+            the verbatim (status-kept) form is caught by the shipped `status-file-mismatch` first
+            (measured exit 1) and discriminates nothing, which is why the status-consistent form is
+            the demonstrated one. (3) Remove one live index `Entry` from a copy's `decisions.xml`:
+            the base read-back (c) reds, and the shipped validator stays green because it never
+            re-derives the persisted base against the metric (driven at the spec's base: zero
+            findings after the removal) — while the shipped roots invariant reds at the suite level
+            on the same mutation, relation (c) being its pairing-surface restatement. (4) Restore any
+            transcribed count in the repaired test inside a copy: the anti-occupancy guard reds. (5)
+            The growth probe — append one fresh, well-formed `&lt;Finding&gt;` (house shape, fresh
+            id, not archive-paid) and its `&lt;Entry&gt;` to a copy's `findings.xml` and
+            `decisions.xml` and re-persist the copy's live roots exactly as the next flush's wave
+            would: findings `base` = `newlineCount` read back from the written file, index `base` =
+            the live-`Entry` count read back, `headroom` = ceiling minus base, ceiling
+            byte-identical and never raised — the predecessor T-001's ratified root procedure — and
+            every relation stays green, which is the discrimination any restored count lacks. Each
+            mutated copy has its unmutated twin run green in the same instrument, so a refusal
+            discriminates rather than merely fails; every tail lands in the executor's report.
+          </Criterion>
+          <Criterion>
+            The by-hand rule and the boundary. This task's `Verification` commands and the plan's
+            `TargetAssertions` contain no current-mode lint of this project root, checked by hand
+            (F171, the shipped detector missing the `grace.ts` form): no `Command` text contains
+            `--assertions current`, and none invokes lint of this root omitting `--assertions`;
+            current-mode lint appears only as the post-archive `CloseEvidence` of AC-CLOSE-LINT. This
+            task carries the plan's single `Satisfies` (AC-NO-CURRENT-MODE) — the mapping the close's
+            `--fail-on warnings` requires (measured basis in the IntentSummary); the close-bound
+            criteria stay unmapped, because a `Satisfies` of a close-bound criterion is the error
+            `change.close-evidence-and-satisfied`. The executor emits its own execution-time cursor
+            events for this task (opened with the epoch open at this task's start, progress, attempt
+            on every verification cycle, verification-unavailable when evidence cannot be collected)
+            inside the open epoch and does not omit them; the terminal event, the cursor fold, the
+            `--assertions final --run-commands` gate, the review verdicts, gate apply, the
+            `status="applied"` write, gate archive, the archive move, the close's own record
+            retirement move — a byte-level no-op here, no `Row` carrying `C-FLUSH-AND-PAY-2` — and
+            the `CloseEvidence` evaluations are close acts owned by the authority; no task performs
+            any of them, and no sentence in this plan implies execution does. Do not hand-write any
+            status. No task re-runs the flush, the mint, or `--retire` against the production record
+            (spec P4): the record is this bundle's read, never its write, and no task boundary sits
+            anywhere the record is not byte-identical to the spec's base commit. The
+            `lint --change C-FLUSH-AND-PAY-2 --assertions target --run-commands` command is the
+            post-write evidence command and is meant to run during execution with an open cursor on a
+            declared task; its exit 1 today (pre-approval, `assertion.change-not-approved` — driven
+            at this plan's commit) is not a defect (F184's refined rule: a recorded `Verification`
+            command must exit 0 at the stage it is meant to run, and a plan is not judged by running
+            its execution-stage commands at plan time).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>git diff --exit-code ce9b506f763fe9a97d57e10f3c3cf7b24266f277 -- src/ scripts/ ':(exclude)src/artifact/xml.test.ts'</Command>
+          <Command>git diff --exit-code ce9b506f763fe9a97d57e10f3c3cf7b24266f277 -- docs/plans/active/RM-GOVERNED-PATH/</Command>
+          <Command>git diff --exit-code ce9b506f763fe9a97d57e10f3c3cf7b24266f277 -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+          <Command>git diff --exit-code ce9b506f763fe9a97d57e10f3c3cf7b24266f277 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-FLUSH-AND-PAY-2' ':(exclude).ngrace/changes/archive/C-FLUSH-AND-PAY'</Command>
+          <Command>bash -c 'T=$(mktemp -d) &amp;&amp; cp -R docs/plans/active/RM-GOVERNED-PATH "$T/R" &amp;&amp; bun ./scripts/validate-record-retirement.ts "$T/R" &amp;&amp; bun ./scripts/validate-record-retirement.ts --retire "$T/R" &amp;&amp; rm -rf "$T"'</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-FLUSH-AND-PAY-2 --assertions target --run-commands</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-001>
+    </ImplementationPlan>
+  </C-FLUSH-AND-PAY-2>
+</NgraceChangePlan>
