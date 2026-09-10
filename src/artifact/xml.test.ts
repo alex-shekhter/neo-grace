@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 import ts from "typescript";
 
-import { childText, cloneXmlNode, COMMENT_WELL_FORMED_PATH_ALLOWLIST, computeElementSpans, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
+import { childNodes, childText, cloneXmlNode, COMMENT_WELL_FORMED_PATH_ALLOWLIST, computeElementSpans, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "./xml";
 
 describe("neo-grace XML parser adapter", () => {
   it("returns xml.parse diagnostics for malformed XML instead of throwing", () => {
@@ -599,31 +599,308 @@ describe("computeElementSpans", () => {
 
   it("pairs every element of the real record files at their committed bytes", () => {
     const recordDir = path.resolve(import.meta.dir, "..", "..", "docs", "plans", "active", "RM-GOVERNED-PATH");
-    const cases: Array<[file: string, tag: string, expected: number]> = [
-      ["findings.xml", "Finding", 195],
-      ["findings-retired.xml", "Finding", 77],
-      ["rulings.xml", "Decision", 61],
-      ["rulings-retired.xml", "Decision", 5],
-      ["registry.xml", "Row", 12],
-      ["registry-retired.xml", "Row", 44],
-      ["decisions.xml", "Entry", 338],
+    const cases: Array<[file: string, tag: string]> = [
+      ["findings.xml", "Finding"],
+      ["findings-retired.xml", "Finding"],
+      ["rulings.xml", "Decision"],
+      ["rulings-retired.xml", "Decision"],
+      ["registry.xml", "Row"],
+      ["registry-retired.xml", "Row"],
+      ["decisions.xml", "Entry"],
     ];
-    for (const [file, tag, expected] of cases) {
+    const roots = new Map<string, GraceXmlNode>();
+    const identitiesByFile = new Map<string, Set<string>>();
+    for (const [file, tag] of cases) {
       const text = readFileSync(path.join(recordDir, file), "utf8");
       const parsed = parseGraceXmlArtifact(file, text);
       expect(parsed.root, file).not.toBeNull();
+      roots.set(file, parsed.root!);
       const spans = computeElementSpans(text, parsed);
-      const nodes = parsed.root!.children.filter((child) => child.tag === tag);
-      expect(nodes.length, file).toBe(expected);
+      const nodes = childNodes(parsed.root!, tag);
+      const identityAttribute = tag === "Row" ? "name" : "id";
+      const seen = new Set<string>();
+      const duplicates: string[] = [];
       for (const node of nodes) {
-        expect(spans.get(node), `${file}:${tag}`).toBeDefined();
-      }
-      if (file === "decisions.xml") {
-        for (const node of nodes) {
-          const span = spans.get(node)!;
-          expect(span.closeStart, "index Entries are self-closing: open range only").toBeNull();
+        const span = spans.get(node);
+        expect(span, `${file}:${tag}`).toBeDefined();
+        const identity = node.attributes[identityAttribute];
+        expect(identity, `${file}:${tag} carries its ${identityAttribute} identity`).toBeDefined();
+        if (seen.has(identity)) {
+          duplicates.push(identity);
+        } else {
+          seen.add(identity);
+        }
+        if (file === "decisions.xml") {
+          expect(span!.closeStart, "index Entries are self-closing: open range only").toBeNull();
         }
       }
+      identitiesByFile.set(file, seen);
+      expect(duplicates, `${file} duplicate ${tag} identities`).toEqual([]);
     }
+    // conservation: for each live and retired genre pair the identity sets are
+    // disjoint, so every element lives in exactly one layer.
+    const genrePairs: Array<[liveFile: string, retiredFile: string]> = [
+      ["findings.xml", "findings-retired.xml"],
+      ["rulings.xml", "rulings-retired.xml"],
+      ["registry.xml", "registry-retired.xml"],
+    ];
+    for (const [liveFile, retiredFile] of genrePairs) {
+      const overlaps = [...identitiesByFile.get(liveFile)!].filter((identity) =>
+        identitiesByFile.get(retiredFile)!.has(identity),
+      );
+      expect(overlaps, `${liveFile} and ${retiredFile} identity sets are disjoint`).toEqual([]);
+    }
+    // index bookkeeping: the persisted base equals the live Entry count read back
+    // through the shipped parser.
+    const indexRoot = roots.get("decisions.xml")!;
+    const liveEntries = childNodes(indexRoot, "Entry").filter(
+      (entry) => entry.attributes.layer === "live",
+    );
+    expect(
+      Number(indexRoot.attributes.base),
+      "decisions.xml base equals its live Entry children",
+    ).toBe(liveEntries.length);
   }, 60_000);
+
+  it(
+    "regression guard: the pairing test carries no transcribed record element count in any form — keyed on the count forms, refusing what it cannot prove",
+    () => {
+      const self = readFileSync(
+        path.join(import.meta.dir, path.basename(new URL(import.meta.url).pathname)),
+        "utf8",
+      );
+      expect(antiOccupancyFailures(self)).toEqual([]);
+    },
+  );
 });
+
+const PAIRING_TEST_NEEDLE = `it("pairs every element of the real record files at their committed bytes"`;
+
+const NUMERIC_LITERAL_SHAPE = /\b\d[\d_]*(?:\.\d+)?\b/g;
+const OCCUPANCY_TABLE_SHAPE = /\bexpected\s*:\s*number\b/;
+const MODULE_BINDING_SHAPE = /^(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/gm;
+
+/**
+ * Regression guard against the occupancy pins the pairing test once carried: the
+ * relations need no numbers, so any numeric literal inside the pairing test's body,
+ * any `expected: number`-shaped occupancy-table field anywhere in the file, and any
+ * module-scope numeric constant referenced from the body is a restored pin. Shapes
+ * the scan cannot prove are reported, never passed.
+ */
+function antiOccupancyFailures(source: string): string[] {
+  const failures: string[] = [];
+  const span = pairingBodySpan(source);
+  if (span === undefined) {
+    return ["the pairing test's body span could not be located; the guard refuses what it cannot prove"];
+  }
+  const body = source.slice(span.start, span.end);
+  const scan = scanCode(source);
+  const blankBody = scan.blanked.slice(span.start, span.end);
+  for (const match of blankBody.matchAll(NUMERIC_LITERAL_SHAPE)) {
+    failures.push(`numeric literal ${match[0]} inside the pairing test's body`);
+  }
+  const tableShape = OCCUPANCY_TABLE_SHAPE.exec(scan.blanked);
+  if (tableShape) {
+    failures.push(`occupancy-table shape ${tableShape[0]} in the file`);
+  }
+  for (const binding of source.matchAll(MODULE_BINDING_SHAPE)) {
+    const name = binding[1]!;
+    if (!new RegExp(`\\b${name}\\b`).test(body)) {
+      continue;
+    }
+    const initializer = moduleBindingInitializer(scan.blanked, binding.index! + binding[0].length);
+    if (initializer === undefined) {
+      failures.push(`module-scope binding ${name} referenced from the pairing test's body has an unresolvable initializer`);
+      continue;
+    }
+    if (/\d/.test(initializer)) {
+      failures.push(`module-scope binding ${name} referenced from the pairing test's body has a numeric initializer`);
+    }
+  }
+  return failures;
+}
+
+/** Locates the pairing test's callback body span; undefined when it cannot be proven. */
+function pairingBodySpan(source: string): { start: number; end: number } | undefined {
+  const openShape = /^\s*,\s*\(\)\s*=>\s*\{/;
+  let cursor = source.indexOf(PAIRING_TEST_NEEDLE);
+  while (cursor !== -1) {
+    const argsStart = cursor + PAIRING_TEST_NEEDLE.length;
+    const open = openShape.exec(source.slice(argsStart, argsStart + 16));
+    if (open) {
+      const bodyOpen = argsStart + open[0].length - 1;
+      const end = scanCode(source).braceMatch.get(bodyOpen);
+      if (end === undefined) {
+        return undefined;
+      }
+      return { start: bodyOpen + 1, end };
+    }
+    cursor = source.indexOf(PAIRING_TEST_NEEDLE, cursor + 1);
+  }
+  return undefined;
+}
+
+type CodeScan = { blanked: string; braceMatch: Map<number, number> };
+
+/**
+ * Single tokenizer over the file's own TypeScript source: comments and string and
+ * template contents are blanked, template interpolations are scanned as code so
+ * nested templates stay in sync, regex literals are blanked when an unescaped
+ * closing slash occurs on their line, and the matching close brace of every
+ * code-mode open brace is recorded. Positions are preserved byte for byte; the
+ * pairing span's refusal covers anything the walk cannot prove.
+ */
+function scanCode(text: string): CodeScan {
+  const out = text.split("");
+  const braceMatch = new Map<number, number>();
+  const openBraces: number[] = [];
+  type Frame = { kind: "code"; fromInterpolation: boolean; depth: number } | { kind: "template" };
+  const stack: Frame[] = [{ kind: "code", fromInterpolation: false, depth: 0 }];
+  let index = 0;
+  while (index < text.length) {
+    const ch = text[index];
+    const next = text[index + 1];
+    if (ch === "/" && next === "/") {
+      while (index < text.length && text[index] !== "\n") {
+        out[index] = " ";
+        index++;
+      }
+      continue;
+    }
+    if (ch === "/" && next === "*") {
+      out[index] = " ";
+      out[index + 1] = " ";
+      index += 2;
+      while (index < text.length && !(text[index] === "*" && text[index + 1] === "/")) {
+        if (text[index] !== "\n") {
+          out[index] = " ";
+        }
+        index++;
+      }
+      if (index < text.length) {
+        out[index] = " ";
+        out[index + 1] = " ";
+        index += 2;
+      }
+      continue;
+    }
+    const frame = stack[stack.length - 1]!;
+    if (frame.kind === "template") {
+      if (ch === "$" && next === "{") {
+        out[index] = " ";
+        out[index + 1] = " ";
+        index += 2;
+        stack.push({ kind: "code", fromInterpolation: true, depth: 0 });
+        continue;
+      }
+      if (ch === "`") {
+        out[index] = " ";
+        index++;
+        stack.pop();
+        continue;
+      }
+      if (ch !== "\n") {
+        out[index] = " ";
+      }
+      index++;
+      continue;
+    }
+    if (ch === "/") {
+      // regex literal when an unescaped closing slash occurs on the same line
+      // (character classes may hold slashes); otherwise a plain code character
+      let scanIndex = index + 1;
+      let inClass = false;
+      let closed = false;
+      while (scanIndex < text.length && text[scanIndex] !== "\n") {
+        const c = text[scanIndex];
+        if (c === "\\") {
+          scanIndex += 2;
+          continue;
+        }
+        if (c === "[") {
+          inClass = true;
+        } else if (c === "]") {
+          inClass = false;
+        } else if (c === "/" && !inClass) {
+          closed = true;
+          break;
+        }
+        scanIndex++;
+      }
+      if (closed) {
+        while (index <= scanIndex) {
+          if (text[index] !== "\n") {
+            out[index] = " ";
+          }
+          index++;
+        }
+        continue;
+      }
+      index++;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      const quote = ch;
+      out[index] = " ";
+      index++;
+      while (index < text.length && text[index] !== quote) {
+        if (text[index] === "\\") {
+          out[index] = " ";
+          if (index + 1 < text.length) {
+            out[index + 1] = " ";
+          }
+          index += 2;
+          continue;
+        }
+        if (text[index] !== "\n") {
+          out[index] = " ";
+        }
+        index++;
+      }
+      if (index < text.length) {
+        out[index] = " ";
+        index++;
+      }
+      continue;
+    }
+    if (ch === "`") {
+      out[index] = " ";
+      index++;
+      stack.push({ kind: "template" });
+      continue;
+    }
+    if (ch === "{") {
+      frame.depth++;
+      openBraces.push(index);
+      index++;
+      continue;
+    }
+    if (ch === "}") {
+      if (frame.depth > 0) {
+        frame.depth--;
+        const open = openBraces.pop();
+        if (open !== undefined) {
+          braceMatch.set(open, index);
+        }
+      } else if (frame.fromInterpolation) {
+        stack.pop();
+        out[index] = " ";
+        index++;
+        continue;
+      }
+      index++;
+      continue;
+    }
+    index++;
+  }
+  return { blanked: out.join(""), braceMatch };
+}
+
+/** Initializer text of a module-scope binding in blanked source, to its terminating semicolon. */
+function moduleBindingInitializer(blanked: string, from: number): string | undefined {
+  const end = blanked.indexOf(";", from);
+  if (end === -1) {
+    return undefined;
+  }
+  return blanked.slice(from, end).trim();
+}
