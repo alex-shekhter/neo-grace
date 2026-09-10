@@ -5,6 +5,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { childNodes, childText, parseGraceXmlArtifact, walkNodes } from "../src/artifact/xml.ts";
 import {
+  INDEX_HEADROOM_ENTRIES,
   RULINGS_PROVENANCE_CEILING,
   derivePayerMap,
   listArchiveNames,
@@ -353,6 +354,8 @@ token: F1
       expect(text, label).toContain("live");
       expect(text, label).toContain("retired");
       expect(text, label).toContain("--retire");
+      expect(text, label).toContain("index Entry layers flip in place");
+      expect(text, label).toContain("the index has no retired sibling");
     }
     expect(claude).toContain("re-derives PaidBy");
     expect(claude).toContain("never raised");
@@ -2031,14 +2034,19 @@ ${names
           base + headroom,
           `${file}: base + headroom = ceiling`,
         ).toBe(ceiling);
-        // The shipped metric read back from the file: the exported
-        // newlineCount (whole-file lines) for the three line-budgeted
-        // genres; the liveRowCount rule — direct Row children whose status
-        // is not retired — over the shipped parser for registry (the rule
-        // is mirrored, liveRowCount itself is not exported).
+        // The shipped metric read back from the file: the liveRowCount
+        // rule — direct Row children whose status is not retired — over
+        // the shipped parser for registry (the rule is mirrored,
+        // liveRowCount itself is not exported).
+        // decisions.xml joins the live-entry metric — direct Entry
+        // children whose layer is not retired, mirroring the registry
+        // rule (C-INDEX-METRIC-2); newlineCount (whole-file lines)
+        // keeps governing findings and rulings.
         const metric = file === "registry.xml"
           ? childNodes(root, "Row").filter((row) => row.attributes.status !== "retired").length
-          : newlineCount(text);
+          : file === "decisions.xml"
+            ? childNodes(root, "Entry").filter((entry) => entry.attributes.layer !== "retired").length
+            : newlineCount(text);
         expect(base, `${file}: base equals its shipped metric read back`).toBe(metric);
       }
     },
@@ -2107,6 +2115,164 @@ ${names
           `${token}: PaidBy names a real archive directory`,
         ).toBe(true);
       }
+    },
+    60_000,
+  );
+
+  it(
+    "C-INDEX-METRIC-2 live-entry metric: an index whose whole-file line count exceeds its persisted ceiling while its live Entry count does not validates clean",
+    () => {
+      const root = isolatedRoot();
+      const parts = happyParts();
+      // Two live entries (f1, d1 — f2 is retired) against a ceiling of 12,
+      // with five blank lines between the Entry elements: 15 whole-file
+      // lines, above the ceiling — the exact shape the shipped line metric
+      // rejects and the live-Entry metric accepts.
+      parts.index = `<RecordIndex base="10" headroom="40" ceiling="12">
+  <Entry id="f1" token="F1" genre="finding" layer="live" />
+
+
+
+
+
+  <Entry id="f2" token="F2" genre="finding" layer="retired" />
+
+
+
+
+
+  <Entry id="d1" token="D1" genre="decision" layer="live" />
+
+
+
+
+
+</RecordIndex>
+`;
+      writeHappy(root, parts);
+      expect(newlineCount(parts.index), "the fixture's line count exceeds the ceiling").toBeGreaterThan(12);
+      const result = runValidator(root);
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+    },
+    60_000,
+  );
+
+  it(
+    "C-INDEX-METRIC-2 live-entry metric: an index whose live Entry count exceeds its persisted ceiling exits non-zero with ceiling-exceeded",
+    () => {
+      const root = isolatedRoot();
+      const parts = happyParts();
+      // Two live entries (f1, d1) against a ceiling of 1: breached under
+      // the live-Entry metric and under the shipped line metric alike.
+      parts.index = `<RecordIndex base="10" headroom="40" ceiling="1">
+  <Entry id="f1" token="F1" genre="finding" layer="live" />
+  <Entry id="f2" token="F2" genre="finding" layer="retired" />
+  <Entry id="d1" token="D1" genre="decision" layer="live" />
+</RecordIndex>
+`;
+      writeHappy(root, parts);
+      const result = runValidator(root);
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("ceiling-exceeded");
+      expect(result.stderr).toContain("live index live-entry count 2 exceeds persisted ceiling 1");
+    },
+    60_000,
+  );
+
+  it(
+    "C-INDEX-METRIC-2 index ceiling breach names the index flip mechanic, never a config key",
+    () => {
+      const root = isolatedRoot();
+      const parts = happyParts();
+      parts.index = `<RecordIndex base="10" headroom="40" ceiling="1">
+  <Entry id="f1" token="F1" genre="finding" layer="live" />
+  <Entry id="f2" token="F2" genre="finding" layer="retired" />
+  <Entry id="d1" token="D1" genre="decision" layer="live" />
+</RecordIndex>
+`;
+      writeHappy(root, parts);
+      const result = runValidator(root);
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("ceiling-exceeded");
+      expect(result.stderr).toContain("live index live-entry count");
+      expect(result.stderr).toContain("--retire");
+      expect(result.stderr).toContain(
+        "the eligible entries flip their index Entry layer to retired in place",
+      );
+      expect(result.stderr).toContain(
+        "the index has no retired sibling and its Entry lines stay",
+      );
+      expect(result.stderr).toContain("Raising the persisted ceiling is not the remedy");
+      expect(result.stderr.toLowerCase()).not.toContain("config key");
+      expect(result.stderr).not.toContain("ignoredDirs");
+    },
+    60_000,
+  );
+
+  it(
+    "C-INDEX-METRIC-2 the findings-genre breach message is unchanged: it names the retired-sibling move",
+    () => {
+      const root = isolatedRoot();
+      const parts = happyParts();
+      parts.findings = `<Findings base="1" headroom="0" ceiling="1">
+  <Finding id="f1" token="F1" status="live">
+    <Title>### F1 — live</Title>
+    <Body>body one</Body>
+  </Finding>
+</Findings>
+`;
+      writeHappy(root, parts);
+      const result = runValidator(root);
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain("ceiling-exceeded");
+      expect(result.stderr).toContain("move the eligible entry to the retired sibling");
+      expect(result.stderr).not.toContain("flip their index Entry layer");
+    },
+    60_000,
+  );
+
+  it(
+    "C-INDEX-METRIC-2 --split computes the index base in the live-Entry unit behind INDEX_HEADROOM_ENTRIES",
+    () => {
+      const fixtureRoot = isolatedRoot();
+      const dump = `# RM-GOVERNED-PATH record stub
+
+The parseable citation index is [./decisions.xml](./decisions.xml).
+
+<a id="f1" name="F1"></a>
+### F1 — first finding
+
+body of the finding.
+
+<a id="d1" name="D1"></a>
+## D1 — decision one
+
+body of the decision.
+`;
+      plant(fixtureRoot, `${RECORD_REL}/decisions.md`, dump);
+      const result = runValidator(fixtureRoot, ["--split"]);
+      expect(result.status, `${result.stderr}`).toBe(0);
+      const written = readFileSync(
+        path.join(fixtureRoot, RECORD_REL, "decisions.xml"),
+        "utf8",
+      );
+      const parsed = parseGraceXmlArtifact("decisions.xml", written);
+      expect(parsed.root, "the written index parses").not.toBeNull();
+      const root = parsed.root!;
+      const liveEntries = childNodes(root, "Entry").filter(
+        (entry) => entry.attributes.layer !== "retired",
+      ).length;
+      expect(liveEntries, "the minimal dump carries two live entries").toBe(2);
+      expect(root.attributes.base, "base equals the live-Entry count read back").toBe(
+        String(liveEntries),
+      );
+      expect(Number(root.attributes.headroom), "headroom equals the shipped constant").toBe(
+        INDEX_HEADROOM_ENTRIES,
+      );
+      expect(Number(root.attributes.ceiling), "ceiling equals base + headroom").toBe(
+        Number(root.attributes.base) + Number(root.attributes.headroom),
+      );
     },
     60_000,
   );

@@ -1,4 +1,4 @@
-<RecordIndex base="340" headroom="1" ceiling="341">
+<RecordIndex base="256" headroom="40" ceiling="296">
   <Entry id="f1" token="F1" genre="finding" layer="live" />
   <Entry id="f2" token="F2" genre="finding" layer="live" />
   <Entry id="f3" token="F3" genre="finding" layer="live" />
