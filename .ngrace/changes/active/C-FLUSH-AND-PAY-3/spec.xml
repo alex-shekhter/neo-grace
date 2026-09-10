@@ -1,0 +1,658 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-FLUSH-AND-PAY-3>
+    <Summary>
+      One deliverable: the supersede replacement for `C-FLUSH-AND-PAY-2` under `D27`. That
+      bundle's output is committed at `74f706aa1f26d95687c2fb23fa179351dfde9e33` (branch
+      `c-flush-and-pay`, this bundle's base) and `validate:ci` is green there — but defects were
+      then found in the delivered suite itself, and two of them cannot be repaired inside
+      `C-FLUSH-AND-PAY-2` because its approved spec carries the hard Constraint that
+      "the replacement relations are exactly the three in the repair Goal", and `D27` makes
+      `ngrace supersede` the only repair route for an approved artifact. The maintainer has ruled:
+      supersede. One deliverable file, `src/artifact/xml.test.ts`, three repairs in one bundle
+      (`D11`: nothing is deferred, and nothing needs to be — all three land here):
+
+      **R1 — the pairing loop is a zero-or-more-swallow.** The test "pairs every element of the
+      real record files at their committed bytes" binds a node list per file and only iterates it;
+      nothing requires the list to be non-empty, so the test is satisfied by zero elements
+      (`src/artifact/xml.test.ts:619` at this commit). Measured on a throwaway copy of the
+      repository: with every `&lt;Finding&gt;` element in `findings.xml` renamed (210 elements,
+      measured by the shipped parser over direct children), the suite still passes — 26 pass,
+      0 fail, exit 0, with 1589 expect() calls against the control's 2009. The repair is a
+      non-vacuity assertion that carries no numeric literal, because the shipped anti-occupancy
+      guard rejects any numeric literal inside that test's body, `0` included.
+
+      **R2 — the index relation contradicts the shipped engine.** The test derives the live
+      index `Entry` set by `entry.attributes.layer === "live"`
+      (`src/artifact/xml.test.ts:657` at this commit); the shipped record engine derives it by
+      `entry.attributes.layer !== "retired"`
+      (`scripts/validate-record-retirement.ts:996`, the `liveEntryCount` metric at :991 that both
+      the persist path at :1260 and the ceiling check at :1439 consume). The shipped validator
+      never re-derives the persisted `base` against the metric (`checkCeilingValue` at :1514
+      compares only `liveSize &gt; ceiling`), so the test relation is the only instrument comparing
+      `base` to the live count — and on the discriminating record state (one direct `Entry` child
+      carrying no `layer` attribute at all, `base` untouched) the engine metric includes it, every
+      shipped validator accepts the record (`record-retirement: ok`, exit 0, driven on a throwaway
+      copy), and the shipped test reds (270 filtered vs 271 base, driven). The criterion must hold
+      the engine's predicate: the test's job is to be the canary over the engine's own invariant,
+      and a stricter predicate contradicts the engine on a state the engine accepts and persists.
+
+      **R3 — the anti-occupancy guard is evadable, brittle, and hand-rolls a lexer.** Three
+      measured failures, each on a throwaway copy, each reproduced before this spec was written:
+      (a) *evasion* — a module-scope binding whose initializer holds its number behind an internal
+      semicolon (`const SNEAKY = (() =&gt; { const setup = "x"; return 195; })();`) referenced from
+      the guarded test's body as a count comparison: the pairing test reds (195 vs 271) and the
+      regression guard stays green, because the initializer slice terminates at the first
+      semicolon (`moduleBindingInitializer` at `src/artifact/xml.test.ts:900`) and never reaches
+      the number; (b) *false red* — reformatting the pairing test's callback to
+      `async () =&gt; {`: the pairing test still passes, and the guard fails the suite with
+      "the pairing test's body span could not be located", because the hand-rolled span locator
+      (`pairingBodySpan` at :724) matches only the exact `,\s*\(\)\s*=&gt;\s*\{` shape; (c)
+      *invisible bindings* — `MODULE_BINDING_SHAPE` (:681) sees neither a binding introduced by
+      destructuring nor a second declarator in a single statement: with
+      `const { DESTRUCTED_PIN } = { DESTRUCTED_PIN: 195 };` and
+      `const FIRST_PIN = 195, SECOND_PIN = 195;` both referenced from the guarded body, the
+      suite is fully green (26 pass, 0 fail, exit 0, driven). Meanwhile the file already imports
+      and uses a real TypeScript parser — `import ts from "typescript"` at :5, consumed by
+      `collectFromText` at :392 (`ts.createSourceFile` at :393), the structural-clone
+      single-definition scanner — and the hand-rolled scanner (`scanCode` at :753 and the three
+      shapes at :679-681) provides no capability that parser does not: the parser yields exact
+      byte positions, classifies numeric literal nodes directly (subsuming the regex, which also
+      misses exponent and hexadecimal forms), visits every declarator including destructured
+      names, and spans initializers as expression nodes so internal statement boundaries cannot
+      hide their contents. The replacement guard is chartered over that parser, keeping the
+      shipped contract — keyed on the count forms, refusing what it cannot prove.
+
+      This spec overturns a clause of its predecessor deliberately, in the `Constraints`: the
+      exactly-three clause is widened to admit R1's non-vacuity assertion and the R3 guard
+      replacement, and the overturn answers the argument behind the clause. The predecessor's
+      committed engine work stands untouched: this bundle writes no record file, edits no
+      `scripts/` file, performs no supersede, and raises no ceiling. The record end state the
+      predecessor asserted needs no re-assertion here: this bundle's base
+      `74f706aa1f26d95687c2fb23fa179351dfde9e33` is the post-flush commit, and
+      `AC-RECORD-UNTOUCHED` pins all seven
+      record files byte-identically to it, which subsumes any semantic end-state claim for this
+      window. Binding live rulings `D27` and `D27.1` (supersede is the route; this draft is
+      corrected in place until ratified), `D11`, `D30` (dated figures in Assumptions, never in
+      hard Constraints), `D28` and `D28.1` (the enforcement and ceilings asserted green and never
+      changed), `F136.1` (one module enumeration). Name searched 2026-09-10 at this commit: no
+      archive directory and no `Row` in either registry layer carries `C-FLUSH-AND-PAY-3`; the
+      name is new.
+    </Summary>
+    <Problem>
+      `C-FLUSH-AND-PAY-2` delivered a green suite at `74f706aa1f26d95687c2fb23fa179351dfde9e33`
+      (`bun run validate:ci` exits 0 there; `bun test src/artifact/xml.test.ts` reports 26 pass,
+      0 fail, exit 0 — both read directly at this commit). The defects below were then measured
+      against the delivered test file. Each is a hole the delivered criteria let through, and two
+      are unrepairable there because the approved spec's occupancy-prohibition Constraint fixes
+      the replacement relations at exactly three and its `AC-NO-SRC-BEYOND-REPAIR` forbids any
+      further change to the repair file; under `D27` the route is supersede, and this bundle is
+      the replacement.
+
+      **The zero-or-more-swallow (R1).** The pairing test's per-file loop binds
+      `childNodes(parsed.root!, tag)` (:619) and iterates it; every per-element assertion lives
+      inside the loop, so an empty list satisfies the whole test vacuously. The suite cannot
+      notice a record genre emptied of its elements: renaming every `&lt;Finding&gt;` element in
+      `findings.xml` on a throwaway copy leaves the suite green (measured, tails in
+      VerificationIntent), with the identity, pairing and disjointness assertions silently skipped
+      — 420 fewer expect() calls and no failure. The relations catch duplication, copy-instead-
+      -of-move and a wrongly flipped `Entry`; they catch nothing when the elements themselves are
+      absent from the walk. The obvious repair — a greater-than-zero assertion — is itself
+      refused by the shipped guard, which rejects any numeric literal inside the pairing test's
+      body (`0` included), so the non-emptiness form must carry no digit.
+
+      **The contradictory index predicate (R2).** The shipped engine's `liveEntryCount`
+      (`scripts/validate-record-retirement.ts:996`) counts direct `Entry` children whose `layer`
+      attribute is not `retired` — an `Entry` carrying no `layer` attribute is live to the engine.
+      The test (:657) counts only `layer === "live"` and compares that to the persisted `base`.
+      On the discriminating record state — one `Entry`'s `layer` attribute removed, `base` left
+      at 271 — the validator's ceiling check stays green (it compares only
+      `liveSize &gt; ceiling`, :1514, and never re-derives `base`), the persist path (:1260)
+      would keep `base` at the engine's metric, and the shipped test fails with "Expected: 270,
+      Received: 271". A shipped criterion that reds on a record state the shipped engine accepts,
+      persists and validates is a defect of the criterion, not of the record: the predicate the
+      test must hold is the engine's, so the canary measures the engine's own invariant rather
+      than a stricter one nobody writes.
+
+      **The hand-rolled guard (R3).** The shipped regression guard is a hand-rolled lexer over
+      the file's own source: `scanCode` (:753) blanks comments, strings and template contents
+      with a character walk, `pairingBodySpan` (:724) locates the pairing test's body by matching
+      a fixed open-argument shape after the title needle, `moduleBindingInitializer` (:900) slices
+      a binding's initializer to its first terminating semicolon, and three regex shapes (:679-681)
+      carry the count forms. Measured: it is silent on a restored occupancy pin whose number sits
+      behind an internal semicolon in the initializer (R3-a); it fails the suite on a cosmetic
+      `async` reformat of the callback (R3-b); it cannot see a destructured numeric binding or a
+      non-first declarator referenced from the guarded body (R3-c). The file already carries the
+      TypeScript parser and uses it for the structural-clone single-definition scan; the lexer is
+      the weaker instrument, and its replacement over the parser is implementable today — the
+      bar (silent on R3's second probe, red on its first and third, the suite's synthetic
+      directions green at close) is demonstrated driven on throwaway copies with a working
+      prototype of exactly this shape (tails in VerificationIntent).
+
+      The predecessor cannot carry these repairs: its approved spec binds the replacement
+      relations at exactly three and forbids further writes to the one file all three repairs
+      live in. The authority supersedes `C-FLUSH-AND-PAY-2` once this spec exists; this bundle
+      performs no outward-facing act itself.
+    </Problem>
+    <Goals>
+      <Goal>
+        **R1 — the pairing walk is never vacuous.** In `src/artifact/xml.test.ts`, the test
+        "pairs every element of the real record files at their committed bytes" asserts, without
+        any numeric literal, that every paired genre child list is non-empty. The chartered form,
+        proven green on the real record and red on a hollowed copy in both directions before this
+        spec was written: destructure the first element of the bound node list and require it
+        defined — `const [firstGenreChild] = nodes;` then
+        `expect(firstGenreChild, ...).toBeDefined();` — a form that carries no digit, so the
+        shipped guard's numeric-literal scan over the body stays green on it. Red direction:
+        hollow one record genre on a throwaway copy of the repository (rename every
+        `&lt;Finding&gt;` element of `findings.xml` to some other tag, root attributes and close
+        tag untouched) and run the suite inside the copy — the repaired test exits 1 naming the
+        genre's non-emptiness (driven: "findings.xml:Finding carries at least one element",
+        Received: undefined). Green direction: the real record (driven: 33 pass, 0 fail, exit 0
+        in the prototype state carrying all three repairs). The assertion adds no count: it
+        asserts existence, reads nothing transcribed, and expires under no legitimate write.
+      </Goal>
+      <Goal>
+        **R2 — the index relation holds the engine's predicate.** In the same test, the
+        index-bookkeeping relation derives the live `Entry` set with exactly the shipped engine's
+        predicate — every direct `Entry` child whose `layer` attribute is not `retired`
+        (`scripts/validate-record-retirement.ts:996`), the metric the engine's persist path
+        (:1260) and ceiling check (:1439) both consume — so the persisted `base` is compared
+        against exactly the count the engine defines and writes, with no stricter and no looser
+        predicate. The discriminating record state (one direct `Entry` child carrying no `layer`
+        attribute, `base` untouched) is accepted by the shipped validator and green under the
+        repaired predicate, where the shipped test reds; the repaired relation's own red direction
+        is the dropped-entry mutation — remove one live `Entry` without re-persisting `base`, and
+        the repaired test reds (270 vs 271, driven) while the shipped validator stays silent
+        (driven: `record-retirement: ok`), because it never re-derives the persisted base against
+        the metric. The engine is the standard here, not a surface: this bundle edits no engine
+        file and widens no metric.
+      </Goal>
+      <Goal>
+        **R3 — the guard over the real parser.** The anti-occupancy guard is reimplemented over
+        the TypeScript parser the file already imports and uses, and the hand-rolled scanner is
+        gone: `scanCode`, `pairingBodySpan`, `moduleBindingInitializer` and the three regex
+        shapes at :679-681 are removed with their lexer. The replacement keeps the shipped
+        contract — keyed on the count forms, binding on the pairing test's body shape, refusing
+        what it cannot prove — and carries the same three detection duties, widened to close the
+        measured failures: (1) any numeric literal inside the pairing test's callback body, read
+        from the parser's numeric-literal nodes, so string and comment prose cannot fire and
+        exponent, hexadecimal and separator forms are seen; (2) the occupancy-table field shape
+        anywhere in the file — a member named `expected` typed `number`, in interface/type-literal
+        form and labeled-tuple form (`Array&lt;[file: string, expected: number]&gt;`, the shape
+        the predecessor's table actually carried), while the same prose inside a string literal is
+        not a hit; (3) any module-scope binding with a numeric initializer referenced from the
+        body — every declarator of a module-scope variable statement visited, destructured names
+        and non-first declarators included, and the initializer examined in full as an expression
+        node, so a number behind an internal semicolon or brace is seen. The bar, binding on the
+        plan and machine-observed at close by the shipped synthetic directions: the R3-a probe is
+        red (the SNEAKY-shaped initializer is caught), the R3-b probe is green (an `async`
+        callback reformats without a false red, the timeout argument outside the body never
+        firing), the R3-c probe is red (both binding forms caught), and when the pairing test's
+        callback cannot be located the guard reports its refusal rather than passing. The suite
+        ships these directions as synthetic self-tests beside the real-file direction, so every
+        clause is exercised by the close's own suite run. Known boundary, stated rather than
+        hidden: an identifier occurrence in the body — a property name included — counts as a
+        reference (over-approximate, never under), and a locally shadowed name is not
+        distinguished from an outer binding, the shipped word-boundary behavior retained.
+      </Goal>
+      <Goal>
+        **The supersede window, and what this bundle does not perform.** The authority supersedes
+        `C-FLUSH-AND-PAY-2` once this spec exists — an outward-facing act under `D27` that this
+        spec requests but does not perform. The move edits only the predecessor bundle's paths
+        under `.ngrace/changes/`, writes no record file, and mints no eligibility: no `Row` in
+        either registry layer carries the name `C-FLUSH-AND-PAY-3` (searched at this commit), and
+        no `Row` carries the predecessor's name either, so the close ceremony's move is a no-op
+        (`F196`'s post-close rule, inherited). Every byte-invariance criterion below therefore
+        holds in the only state where `CloseEvidence` is ever evaluated, and each exclusion that
+        keeps it satisfiable is named with its reason in the criterion.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1: one `src/` test file, this bundle's own artifacts; no record write, no
+        `scripts/` edit, no runtime file of any graph module edited. Roadmap: RM-GOVERNED-PATH
+        (record integrity). Binding live rulings: `D27` and `D27.1` (supersede is the only repair
+        route for the approved predecessor; this spec is a draft and is corrected in place until
+        the maintainer ratifies it), `D11` (all three repairs land in this bundle; no follow-up
+        bundle for any of them), `D30` (a spec may not pin scalar counts of a file it changes
+        into its hard Constraints — what is forbidden is a Constraint whose truth expires the next
+        time anyone writes the file; every dated figure in this spec lives in Assumptions and
+        expires; the extension of that reasoning to test assertions over the record is this
+        repository's convention, not `D30`'s text, and this bundle inherits it as shipped by its
+        predecessor), `D28` and `D28.1` (the enforcement and ceilings this bundle asserts green
+        and never revisits — no ceiling is raised, no eligibility scan or metric constant
+        changed). `D30` scoped: this bundle writes no record file, so no freeze question arises;
+        its hard Constraints transcribe no scalar count of any file it changes.
+
+        **Overturned clause, named and answered.** `C-FLUSH-AND-PAY-2`'s occupancy-prohibition
+        Constraint states: "the replacement relations are exactly the three in the repair Goal;
+        the anti-occupancy guard assertion ships in the same file, in the house body-shaped
+        single-definition form, so the prohibition is machine-observed at close and not a prose
+        promise." This spec deliberately widens that clause in two ways. First, the pairing test
+        gains a fourth assertion beside the three relations: the non-vacuity requirement of R1 —
+        not a relation between record layers and not a count, but the precondition without which
+        the three relations are satisfiable by an empty record. The clause's argument was that a
+        fixed, small relation set prevents occupancy pins from returning disguised as relations
+        and keeps the replacement minimal; the non-vacuity assertion serves that same argument —
+        it strengthens the corruption coverage the relations were chartered for, carries no
+        number, and cannot expire under any legitimate write — so the widening answers the
+        argument instead of reopening it. Second, the guard's implementation is replaced (R3):
+        the clause's operative requirement — machine-observed at close, body-shaped,
+        single-definition, never a prose promise — is preserved verbatim; only the detection
+        mechanism is chartered over the TypeScript parser the file already imports, because the
+        shipped lexer provably fails the bar the clause was written for. Nothing else about the
+        predecessor's prohibition is widened: the prohibition itself (no transcribed record
+        element count in any form) is inherited unchanged.
+      </Constraint>
+      <Constraint>
+        F136.1 anchors — files this spec forces into write scope, with their `LINKS:` state,
+        listed here once and not repeated as a second module list anywhere:
+        `src/artifact/xml.test.ts` — no contract header, re-checked at this commit; it is the
+        test surface of the module whose runtime file is `src/artifact/xml.ts` and carries that
+        module's `LINKS:` header (`M-GRAMMAR`, re-read at this commit); and this bundle's own
+        artifacts under `.ngrace/changes/active/C-FLUSH-AND-PAY-3/`. The module enumeration for
+        this bundle is exactly: `M-GRAMMAR` (via `src/artifact/xml.ts`'s `LINKS:` header). No
+        other graph module is written; do not mint a synthetic module; do not repeat this
+        enumeration as a second module list. The record files under
+        `docs/plans/active/RM-GOVERNED-PATH/`, the record engine
+        `scripts/validate-record-retirement.ts` and its test, and every README, docs, skills and
+        packaging surface are read, never written.
+      </Constraint>
+      <Constraint>
+        The occupancy prohibition, binding on the plan, inherited and amended. The repaired test
+        must not carry a transcribed element count of any record file in any form — the
+        `expected` column, a constant, or an inline literal compared against a parsed element
+        count — and every number the test uses about a record file is read back from that file at
+        test time. The chartered assertions are the predecessor's three relations with relation
+        (c) re-derived under the engine's predicate, plus R1's non-vacuity assertion in a
+        digit-free form; the anti-occupancy guard ships in the same file, in the house
+        body-shaped single-definition form, implemented over the TypeScript parser the file
+        already imports (`import ts from "typescript"`, consumed today by `collectFromText`),
+        with the hand-rolled scanner removed (`scanCode`, `pairingBodySpan`,
+        `moduleBindingInitializer`, and the three regex shapes), the refusal clause kept, and the
+        guard's discriminating directions shipped as synthetic self-tests in the same suite. The
+        plan observes the lexer's removal with a target assertion over
+        `src/artifact/xml.test.ts` (for example `MustNotContain` over the shipped function
+        names), so the implementation clause is machine-checked and not a prose promise. The
+        criteria below name the mutations that redden each claim.
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, settled lessons. Every criterion below is close-bound: every criterion
+        carries complete `CloseEvidence` except the one by-hand criterion (`AC-NO-CURRENT-MODE`,
+        the `C-RECORD-PARSE` shape), which has none — and the mapping obligation for it is
+        unambiguous on its face: exactly one task carries `Satisfies` mapping
+        `AC-NO-CURRENT-MODE`, and that single mapping is the admissible mapping set; no other
+        task carries `Satisfies`, and no other criterion is unmapped. (This is the corrected
+        mapping clause: the predecessor's version said no task carries `Satisfies` and the
+        admissible mapping set is empty while also admitting the by-hand criterion, which must be
+        mapped — a contradiction resolved by a recorded reading rather than a third supersede.
+        This bundle does not inherit the defect.) Every `CloseEvidence` `Command` matches a
+        shipped discriminating shape — re-read at `src/artifact/grammar.ts`'s
+        `DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES` at this commit (the `bun test`, the
+        `grace.ts`-basename `lint --fail-on`, and the `git diff --exit-code` shapes) — and every
+        byte-invariance command names a baseline commit, because the base-less `git diff` form
+        cannot fail (`F210`'s rule); the baseline is this spec's base commit
+        `74f706aa1f26d95687c2fb23fa179351dfde9e33`, verified present on branch
+        `c-flush-and-pay` (it is the branch head at authoring time). The window of every
+        byte-invariance criterion is this bundle's own diff, stated in the criterion (`F215`'s
+        rule); the commands see tracked edits and deletions only (`F174`) and exclude this
+        bundle's own later archive arrival (`F188`) and the predecessor's sanctioned supersede
+        arrival, named with the `D27` reason in `AC-NO-ARCHIVE-SPEC-EDIT`. `CloseEvidence` is
+        evaluated only in the applied-archive state (`F196`): every criterion below holds there,
+        because neither this bundle's close nor the predecessor's supersede writes the record or
+        any `src/` path. Assertions are cited by their shipped test names —
+        "pairs every element of the real record files at their committed bytes" and
+        "regression guard: the pairing test carries no transcribed record element count in any
+        form — keyed on the count forms, refusing what it cannot prove", both searched in the
+        shipped suite at this commit (`F213`'s law); suite line numbers appear only in Assumptions
+        as dated context that expires on any suite edit (`F123`'s law). Every task `Verification`
+        command the later plan records must exit 0 at the stage it is meant to run (`F184`'s
+        refined rule), and task `Verification` and `TargetAssertions` carry no current-mode lint
+        of this project root (`F171`'s rule, checked by hand because the shipped detector misses
+        the `grace.ts` form). Every mutation probe runs on a throwaway copy, never the committed
+        tree: the shipped suites resolve the record from their own tree and take no path, so
+        suite-level probes take a copy of the repository with its record or test file mutated,
+        never the committed tree. Any test measuring the real repository keeps an explicit
+        generous timeout (`F185`'s rule); the repaired test keeps its 60_000.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Writing any record file, re-running the flush, re-paying any finding, minting any row,
+        or raising any ceiling. Owner: none — the record is this bundle's read, never its write;
+        `AC-RECORD-UNTOUCHED` pins all seven record files byte-identically to the base commit.
+      </NonGoal>
+      <NonGoal>
+        Editing `scripts/validate-record-retirement.ts` or
+        `scripts/validate-record-retirement.test.ts`. Owner: unchanged surface — the engine is
+        the standard R2 aligns the test to, not a surface this bundle touches; its production
+        assertions stand and are re-run, never duplicated.
+      </NonGoal>
+      <NonGoal>
+        Changing any shipped engine surface: `liveEntryCount`, `derivePayerMap`,
+        `persistSnapshot`, the eligibility scans, the shape check, the ceiling checks,
+        `INDEX_HEADROOM_ENTRIES`, `computeElementSpans` itself, or any CLI token. Owner:
+        unchanged surfaces — R2 aligns the test's predicate to the engine's; the engine needs no
+        change.
+      </NonGoal>
+      <NonGoal>
+        Editing the predecessor bundle under `.ngrace/changes/active/C-FLUSH-AND-PAY-2/` or its
+        later archive home. Owner: the authority — the supersede is the outward-facing act under
+        `D27`, performed after this spec exists, and this bundle performs no outward-facing act.
+      </NonGoal>
+      <NonGoal>
+        Editing `README.md`, `examples/`, `CLAUDE.md`, `docs/plans/README.md`, `skills/ngrace/`,
+        `plugins/ngrace/skills/ngrace/`, `docs/plans/archive/`, `package.json`, `bun.lock`,
+        `.ngrace-lint.json`, `CONTEXT_ARTIFACTS`, or any fixture under `scripts/fixtures/`.
+        Owner: unchanged surfaces.
+      </NonGoal>
+      <NonGoal>
+        Updating any transcribed record count, in this bundle or any successor, and restoring any
+        occupancy pin. Owner: no one — the predecessor's rule that occupancy pins do not go back
+        in stands; R1's non-vacuity assertion carries no number and the guard's widened forms
+        exist to keep it that way.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-PAIRING-NONEMPTY>
+        The pairing test never passes on an emptied genre: the test "pairs every element of the
+        real record files at their committed bytes" asserts, for every one of the seven record
+        files, that the bound genre child list it walks is non-empty, in a form carrying no
+        numeric literal (the chartered form: destructure the first element and require it
+        defined), so the anti-occupancy guard's numeric-literal scan over the body stays green on
+        it. The test keeps all of its other substance unchanged at this criterion's granularity:
+        all seven real record files parsed at their committed bytes, non-null roots,
+        `computeElementSpans` succeeding, identity completeness and within-file uniqueness,
+        cross-layer disjointness, the index bookkeeping relation, and index `Entry` elements
+        self-closing. Content question, answered by the shipped suite itself: the `CloseEvidence`
+        runs the repaired suite, so the real-record green direction and the guard's green-on-
+        the-body claim are machine-observed at close. Failure: the non-emptiness assertion is
+        absent, weakened to a subset of the files, or reintroduces a numeric literal or a
+        transcribed count. Mutations that redden the evidence, each on a throwaway copy of the
+        repository with the copy's record mutated and the repaired suite run inside the copy (the
+        pairing test resolves the record from its own tree and takes no path): rename every
+        `&lt;Finding&gt;` element of `findings.xml` to some other tag — the repaired test exits 1
+        naming the file's non-emptiness (driven at this commit in the prototype state carrying
+        the chartered form: 32 pass, 1 fail, the failure "findings.xml:Finding carries at least
+        one element"), while the unmutated copy is green. The unmutated direction and the
+        hollowed direction are both demonstrated by the later plan on throwaway copies before the
+        artifact is approved.
+        <CloseEvidence>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+        </CloseEvidence>
+      </AC-PAIRING-NONEMPTY>
+      <AC-INDEX-METRIC-ALIGNED>
+        The index-bookkeeping relation holds the shipped engine's predicate: the pairing test
+        derives the live `Entry` count of `decisions.xml` by exactly the engine's
+        `liveEntryCount` semantics — every direct `Entry` child whose `layer` attribute is not
+        `retired` (`scripts/validate-record-retirement.ts:996` at this commit), the same metric
+        the engine's persist path (:1260) and ceiling check (:1439) consume — and compares the
+        persisted `base` against that count, with no stricter predicate (no `layer === "live"`
+        filter remains) and no looser one. Content question, answered by the shipped suite itself
+        (the `CloseEvidence` runs it on the real record). Failure: the predicate diverges from
+        the engine's in either direction, or the base comparison is weakened away. The
+        discriminating mutation, on a throwaway copy of the repository with the copy's record
+        mutated and the repaired suite run inside the copy: remove one direct `Entry` child
+        carrying `layer="live"` without re-persisting the roots — the repaired test exits 1 on
+        the `base` read-back (driven at this commit: Expected 270, Received 271) while the
+        shipped validator stays silent because it never re-derives the persisted base against the
+        metric (driven at this commit: `record-retirement: ok`, exit 0); and the predecessor's
+        discriminating state — one `Entry` carrying no `layer` attribute at all, `base` untouched
+        — is accepted by the shipped validator (driven: `record-retirement: ok`) and green under
+        the repaired predicate (driven: suite 33 pass, 0 fail) where the shipped predicate reds
+        (driven: Expected 270, Received 271), which is the disagreement this repair removes. Both
+        directions are demonstrated by the later plan on throwaway copies before the artifact is
+        approved.
+        <CloseEvidence>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+        </CloseEvidence>
+      </AC-INDEX-METRIC-ALIGNED>
+      <AC-GUARD-OVER-PARSER>
+        The anti-occupancy guard is shipped over the TypeScript parser and meets the bar. In
+        `src/artifact/xml.test.ts`: the guard is implemented over the parser the file already
+        imports (`import ts from "typescript"` — consumed in the shipped file by the
+        structural-clone scanner, and after this bundle by the guard too), the hand-rolled
+        scanner is gone (`scanCode`, `pairingBodySpan`, `moduleBindingInitializer`, and the
+        `NUMERIC_LITERAL_SHAPE`, `OCCUPANCY_TABLE_SHAPE`, `MODULE_BINDING_SHAPE` shapes removed;
+        the plan observes the removal with a target assertion over the file), the refusal clause
+        is kept (an unlocatable pairing callback is reported, never passed), and the guard's
+        three detection duties hold in their widened forms: numeric literals inside the pairing
+        test's body (read from the parser's numeric-literal nodes, so string and comment prose
+        never fires and the timeout argument outside the body never fires), the occupancy-table
+        field shape anywhere in the file in interface/type-literal form and labeled-tuple form
+        while its prose mention inside a string is not a hit, and module-scope bindings with
+        numeric initializers referenced from the body with every declarator visited — destructured
+        names and non-first declarators included — and the initializer examined in full, so a
+        number behind an internal semicolon is seen. The suite ships the guard's discriminating
+        directions as synthetic self-tests, all green at close: green on a pairing body with no
+        numeric literals and no numeric bindings; red on an inline numeric literal in the body;
+        red on a numeric initializer behind an internal semicolon (the R3-a shape) referenced
+        from the body; red on a destructured numeric binding and on a non-first-declarator
+        numeric binding referenced from the body, and not red on the same statement's unreferenced
+        declarator; red on the occupancy-table shape in both forms and not red on its prose
+        mention; green on an `async` callback; and the refusal message when the callback cannot
+        be located. Content question, answered by the shipped suite itself: the `CloseEvidence`
+        runs the suite, so every synthetic direction and the real-file direction (the shipped
+        file's own body carries no count forms) are machine-observed at close. Failure: any
+        synthetic direction is missing, weakened, or disagrees; the hand-rolled scanner survives;
+        the guard passes instead of refusing when it cannot locate the pairing test. The
+        real-copy probes are demonstrated by the later plan on throwaway copies of the
+        repository before the artifact is approved, against the delivered file: the R3-a shape
+        (`const SNEAKY = (() =&gt; { const setup = "x"; return 195; })();` referenced from the
+        body) leaves the regression guard red with the numeric-initializer finding (driven at
+        this commit against the prototype guard); the R3-b reformat (`async () =&gt; {`) leaves
+        the whole suite green (driven: 33 pass, 0 fail); the R3-c bindings (destructured and
+        non-first declarator, referenced from the body) leave the regression guard red naming
+        both bindings (driven).
+        <CloseEvidence>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+        </CloseEvidence>
+      </AC-GUARD-OVER-PARSER>
+      <AC-NO-SRC-BEYOND-REPAIR>
+        No file under `src/` or `scripts/` changes relative to this spec's base commit except
+        `src/artifact/xml.test.ts`, named here and in the command's exclude. Prose and command
+        name the same pathset. Failure: any other `src/` or `scripts/` path differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code 74f706aa1f26d95687c2fb23fa179351dfde9e33 -- src/ scripts/ ':(exclude)src/artifact/xml.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-SRC-BEYOND-REPAIR>
+      <AC-RECORD-UNTOUCHED>
+        The seven record files under `docs/plans/active/RM-GOVERNED-PATH/` — the four findings
+        and rulings genre files, the two registry layers, and `decisions.xml` — are
+        byte-identical to this spec's base commit. The record end state the predecessor asserted
+        is therefore pinned for this bundle's window in the strongest available form, and no
+        second, semantic copy of that assertion is carried (the predecessor's own NonGoal stands:
+        duplication is debt). The end state is this bundle's read, never its write, and the byte
+        diff against a named baseline is the instrument that answers the byte question (`F210`'s
+        rule: a named baseline, so the command can fail; `F215`'s rule: the window is this
+        bundle's own diff, and no criterion pins a fixed base against a floating working-tree
+        read beyond it). The command sees tracked edits and deletions only (`F174`). Failure: any
+        record byte moves during this bundle's window.
+        <CloseEvidence>
+          <Command>git diff --exit-code 74f706aa1f26d95687c2fb23fa179351dfde9e33 -- docs/plans/active/RM-GOVERNED-PATH/findings.xml docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml docs/plans/active/RM-GOVERNED-PATH/rulings.xml docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml docs/plans/active/RM-GOVERNED-PATH/registry.xml docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Command>
+        </CloseEvidence>
+      </AC-RECORD-UNTOUCHED>
+      <AC-NO-ARCHIVE-SPEC-EDIT>
+        Tracked paths under `docs/plans/archive/` and `.ngrace/changes/archive/` are not modified
+        by this bundle; this bundle's own later arrival under
+        `.ngrace/changes/archive/C-FLUSH-AND-PAY-3/` is not a modification (`F188`'s exclusion,
+        named because the close itself moves this bundle's bytes into that directory), and
+        neither is the predecessor's sanctioned supersede arrival under
+        `.ngrace/changes/archive/C-FLUSH-AND-PAY-2/` — the authority's `D27` route, performed
+        outside this bundle and guaranteed to move those bytes, so the exclusion is named with
+        its reason and the criterion stays satisfiable (`F188`'s law). The prose claims tracked
+        paths only (`F174`) and is probed in the post-close state (`F196`). Failure: any tracked
+        archive byte outside the two named arrivals differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code 74f706aa1f26d95687c2fb23fa179351dfde9e33 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-FLUSH-AND-PAY-3' ':(exclude).ngrace/changes/archive/C-FLUSH-AND-PAY-2'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-SPEC-EDIT>
+      <AC-DOCS-EXAMPLES>
+        `README.md`, `examples/`, `CLAUDE.md`, `docs/plans/README.md`, `skills/ngrace/`,
+        `plugins/ngrace/skills/ngrace/`, `package.json`, and `bun.lock` are byte-identical to
+        this spec's base commit. Prose and command name the same pathset. The command sees
+        tracked edits and deletions only (`F174`). Failure: any listed path differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code 74f706aa1f26d95687c2fb23fa179351dfde9e33 -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task `Verification` commands and `TargetAssertions` contain no
+        current-mode lint of this project root, checked by hand (`F171`'s rule, the shipped
+        detector missing the `grace.ts` form). This is the bundle's only by-hand criterion and
+        the only criterion without `CloseEvidence`: the evidence-hygiene Constraint fixes its
+        mapping obligation — exactly one task carries `Satisfies` mapping this criterion, the
+        only `Satisfies` in the plan. Failure: a `Command` whose text contains
+        `--assertions current`, or that invokes lint of this root and omits `--assertions`.
+      </AC-NO-CURRENT-MODE>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      `M-GRAMMAR` is written: its test surface `src/artifact/xml.test.ts` is the only governed
+      file this bundle edits, and the module is enumerated here once — the runtime file itself
+      is not edited. Ceremony tier T1 names the same fact: one test file, no runtime module
+      touch. Files this spec forces into write scope, with their `LINKS:` headers checked
+      (`src/artifact/xml.test.ts` carries none — re-checked at this commit), are enumerated once
+      in the anchors Constraint and are not repeated as a second module list (`F136.1`'s rule).
+      Do not mint a synthetic module to fill this section.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/artifact/xml.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>git diff --exit-code 74f706aa1f26d95687c2fb23fa179351dfde9e33 -- docs/plans/active/RM-GOVERNED-PATH/</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-FLUSH-AND-PAY-3 --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes against the shipped and prototype code, driven 2026-09-10 at
+        `74f706aa1f26d95687c2fb23fa179351dfde9e33` (branch `c-flush-and-pay`), on throwaway
+        copies of the repository — never the committed tree — in both directions where a failing
+        direction exists. (1) The control: `bun run validate:ci` exits 0 at the base commit;
+        `bun test src/artifact/xml.test.ts` exits 0, 26 pass / 0 fail, 2009 expect() calls —
+        the shipped suite is green before any repair. (2) R1's swallow, measured: on a copy with
+        every `&lt;Finding&gt;` element of `findings.xml` renamed (210 elements), the shipped
+        suite still exits 0 (26 pass / 0 fail) with 1589 expect() calls — the 420 missing
+        expectations are the hollowed elements' per-element assertions, silently skipped, so the
+        pairing loop is satisfied by zero elements. (3) R1's repair, measured in a prototype
+        state carrying the chartered digit-free non-emptiness assertion: the unmutated copy runs
+        33 pass / 0 fail, and the hollowed copy exits 1 with "findings.xml:Finding carries at
+        least one element" (32 pass / 1 fail). (4) R2's two predicates, cited from the code at
+        this commit: the test's `entry.attributes.layer === "live"` at
+        `src/artifact/xml.test.ts:657` and the engine's
+        `entry.attributes.layer !== "retired"` at
+        `scripts/validate-record-retirement.ts:996`, consumed by the persist path (:1260) and
+        the ceiling check (:1439); the validator never re-derives the persisted `base`
+        (`checkCeilingValue` compares only the live count against the ceiling). (5) R2's
+        discriminating state, measured on a copy with one `Entry`'s `layer="live"` attribute
+        removed and `base` untouched: `record-retirement: ok` (exit 0) and the shipped test reds
+        (Expected 270, Received 271). (6) R2's repair, measured with the engine's predicate in
+        the prototype: pristine 33 pass / 0 fail; the discriminating copy — validator
+        `record-retirement: ok`, suite 33 pass / 0 fail — so the shipped validator and the
+        shipped test agree on a state they previously disagreed on. (7) R2's repaired red
+        direction, measured on a copy with one live `Entry` removed entirely, no re-persist:
+        validator `record-retirement: ok` (exit 0) and the repaired test reds (Expected 270,
+        Received 271) — the relation is the only instrument re-deriving `base`. (8) R3-a, the
+        evasion, measured against the shipped guard on a copy: with
+        `const SNEAKY = (() =&gt; { const setup = "x"; return 195; })();` referenced from the
+        pairing body as a count comparison, the pairing test fails (Expected 195, Received 271)
+        and the regression guard passes — the guard never sees the number behind the internal
+        semicolon. (9) R3-a closed, measured against the prototype guard with a benign reference
+        (`typeof SNEAKY` compared to `"number"`, pairing test green): the regression guard fails
+        with "module-scope binding SNEAKY referenced from the pairing test's body has a numeric
+        initializer". (10) R3-b, the false red, measured against the shipped guard on a copy
+        with the pairing callback reformatted to `async () =&gt; {`: the pairing test passes and
+        the regression guard fails the suite with "the pairing test's body span could not be
+        located; the guard refuses what it cannot prove" (25 pass / 1 fail, exit 1) — a cosmetic
+        reformat reds the suite. (11) R3-b's repair, measured against the prototype guard: the
+        same reformat leaves the whole suite green (33 pass / 0 fail, exit 0). (12) R3-c,
+        measured against the shipped guard on a copy with
+        `const { DESTRUCTED_PIN } = { DESTRUCTED_PIN: 195 };` and
+        `const FIRST_PIN = 195, SECOND_PIN = 195;` both referenced from the guarded body: the
+        entire suite is green (26 pass / 0 fail, exit 0) — the guard's binding regex sees neither
+        a destructured name nor a second declarator. (13) R3-c's repair, measured against the
+        prototype guard: the regression guard fails naming both `DESTRUCTED_PIN` and
+        `SECOND_PIN` with numeric initializers. (14) The prototype's synthetic directions, run in
+        every prototype suite run: green body, inline literal, internal-semicolon initializer,
+        destructured and second-declarator bindings (with the unreferenced declarator correctly
+        out of scope), occupancy-table shape in interface and labeled-tuple form, prose mention
+        not a hit, `async` callback green, refusal message on an unlocatable callback — 33 pass,
+        0 fail on the unmutated prototype. (15) The name search: no archive directory and no
+        `Row` in either registry layer carries `C-FLUSH-AND-PAY-3` (measured by parse and by
+        directory listing at this commit).
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken 2026-09-10 at `74f706aa1f26d95687c2fb23fa179351dfde9e33`
+        (`git rev-parse HEAD`), branch `c-flush-and-pay`, tracked tree clean apart from the
+        predecessor's loose run events (`.ngrace/changes/active/C-FLUSH-AND-PAY-2/run.xml` and
+        `run/`, untracked, permitted bundle files). Every structural count in this spec is
+        parse-based over direct children of the parsed root — never a grep, because `grep -c`
+        counts lines and these artifacts wrap phrases across lines.
+      </Assumption>
+      <Assumption>
+        Suite line numbers, dated context that expires on any suite edit (`F123`'s law): at this
+        commit `src/artifact/xml.test.ts` is 906 lines; the pairing test's `it(` opens at :600
+        with the node-list binding at :619, the index predicate at :657, and the `base` relation
+        ending at :662 before the 60_000 timeout; the regression guard test spans :666-674; the
+        guard's internals are `PAIRING_TEST_NEEDLE` :677, the three shapes :679-681,
+        `antiOccupancyFailures` :690, `pairingBodySpan` :724, `scanCode` :753,
+        `moduleBindingInitializer` :900; the TypeScript import is :5 and its shipped use is
+        `ts.createSourceFile` :393 inside `collectFromText` :392. In the engine,
+        `liveEntryCount` spans :991-997, its predicate :996, the persist consumption :1260, the
+        ceiling-check consumption :1439, `checkCeilingValue` :1514. This bundle rewrites the test
+        file, so these expire with its first edit; the shipped test names are the durable
+        citations.
+      </Assumption>
+      <Assumption>
+        Record shape, measured by the shipped parser over direct children at this commit:
+        `decisions.xml` carries `base="271"` with 271 live `Entry` children and 83 retired;
+        `findings.xml` carries 210 direct `Finding` children. The 420-expectation delta between
+        the control run (2009 expect() calls) and the hollowed run (1589) matches the 210
+        hollowed elements' per-element assertions (span, identity, duplicate tracking, plus the
+        count comparison removed with the walk); it is dated context, not a pin.
+      </Assumption>
+      <Assumption>
+        The prototype referenced throughout VerificationIntent is a working implementation of
+        the three repairs over a copy of this commit's file: R1's digit-free non-emptiness
+        assertion (`const [firstGenreChild] = nodes;` required defined), R2's engine-aligned
+        predicate, and the AST guard over the already-imported TypeScript parser with the
+        hand-rolled scanner removed and seven synthetic direction tests added. It was driven
+        green on the unmutated record (33 pass / 0 fail, exit 0) and through every probe
+        direction named in VerificationIntent. It is evidence that the charter is implementable
+        and meets the bar; the plan and executor own the delivered implementation, and this
+        spec does not pin the prototype's identifiers or its exact prose.
+      </Assumption>
+      <Assumption>
+        The predecessor's overturned clause, quoted from
+        `.ngrace/changes/active/C-FLUSH-AND-PAY-2/spec.xml` at this commit: "the replacement
+        relations are exactly the three in the repair Goal; the anti-occupancy guard assertion
+        ships in the same file, in the house body-shaped single-definition form, so the
+        prohibition is machine-observed at close and not a prose promise." The widening is
+        stated in the first Constraint with the argument answered; the prohibition itself is
+        inherited unchanged. `D27.1` applied to this spec: it is a draft and is corrected in
+        place until the maintainer ratifies it.
+      </Assumption>
+      <Assumption>
+        The supersede of the predecessor is the authority's act, expected as the first commit
+        after this spec's base: it edits only `.ngrace/changes/` paths (the predecessor's spec
+        status and `Replacement`, and its directory move), writes no record file and no `src/`
+        path, and is therefore covered by the named exclusions in `AC-NO-ARCHIVE-SPEC-EDIT`
+        without weakening any criterion's intent. Neither this bundle's close nor the supersede
+        changes record bytes, so the byte-invariance criteria hold in the applied-archive state
+        where `CloseEvidence` is measured (`F196`).
+      </Assumption>
+      <Assumption>
+        The shipped suites' record resolution, re-read at this commit: the pairing test resolves
+        `path.resolve(import.meta.dir, "..", "..", "docs", "plans", "active",
+        "RM-GOVERNED-PATH")` (`src/artifact/xml.test.ts:601`), and the retirement suite resolves
+        the record under its own `import.meta.dir`'s parent — neither suite takes a record path,
+        which is why every suite-level probe in this spec runs on a copy of the repository, while
+        the shipped CLI validators take a record directory argument.
+      </Assumption>
+    </Assumptions>
+  </C-FLUSH-AND-PAY-3>
+</NgraceChangeSpec>

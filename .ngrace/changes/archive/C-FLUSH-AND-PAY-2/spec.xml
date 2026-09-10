@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-FLUSH-AND-PAY-2>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-FLUSH-AND-PAY-2><Replacement>C-FLUSH-AND-PAY-3</Replacement>
     <Summary>
       One deliverable: the reconciliation `C-FLUSH-AND-PAY` could not deliver under its own
       ratified criteria. The predecessor's work is committed and stands — sixteen staged findings

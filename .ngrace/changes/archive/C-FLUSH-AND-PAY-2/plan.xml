@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-FLUSH-AND-PAY-2>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-FLUSH-AND-PAY-2><Replacement>C-FLUSH-AND-PAY-3</Replacement>
     <IntentSummary>
       Author the execution for the approved, frozen spec
       `.ngrace/changes/active/C-FLUSH-AND-PAY-2/spec.xml` and only within it; the plan conforms to the
