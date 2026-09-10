@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-FLUSH-AND-PAY-3>
     <Summary>
       One deliverable: the supersede replacement for `C-FLUSH-AND-PAY-2` under `D27`. That
