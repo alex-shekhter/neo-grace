@@ -1,0 +1,605 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-INDEX-METRIC-2>
+    <Summary>
+      The citation index `docs/plans/active/RM-GOVERNED-PATH/decisions.xml` is budgeted by
+      whole-file line count, but retirement flips an `Entry` `layer` attribute in place and never
+      removes a line, and the persisted ceiling is clamped so it can only hold or fall — so the
+      index base only rises and no shipped operation returns capacity. Its live headroom is one
+      entry (measured 2026-09-09 at `3ba0d77a76ba108be5a60e740d83dc2b734a7c46`: `base="340"
+      headroom="1" ceiling="341"`). The maintainer has chartered the remedy, V1 + M1: the index
+      budget is measured by live `Entry` count — direct children of the root whose `layer`
+      attribute is not `"retired"`, mirroring the rule `registry.xml` already applies to rows —
+      and the index root's `base` / `headroom` / `ceiling` are rewritten once, in this bundle's
+      own diff, to the new unit. No new tool mode is added. The genre-aware breach diagnostic
+      ships in this bundle and is not deferred. Two remedies were considered and rejected by the
+      charter and stay rejected here: giving the index a retired sibling (the index is the
+      citation directory of every token, live or retired, and `layer` is precisely the pointer
+      saying where the body now lives), and re-deriving the ceiling from the current base (that is
+      exactly a number that can be raised to pass). Derived at this commit and agreed with the
+      charter: the rewritten root carries `base="256" headroom="40" ceiling="296"` — base is the
+      live `Entry` count (338 direct `Entry` children, 82 with `layer="retired"`), headroom is the
+      shipped index headroom constant 40, and ceiling is what the shipped `persistSnapshot` clamp
+      yields: `min(341, 256 + 40) = 296`. This bundle implements
+      [RM-GOVERNED-PATH](../../../../docs/plans/active/RM-GOVERNED-PATH/plan.md) record
+      integrity; it pays the staged finding F205 (the index ratchet), which is cited as staged,
+      not as a record finding. Name searched 2026-09-09 at this commit: no archive directory and
+      no `Row` element in either registry layer matches C-INDEX-METRIC-2; the name is new.
+    </Summary>
+    <Problem>
+      Three shipped facts, each re-read from `scripts/validate-record-retirement.ts` at this
+      commit and each first staged as F205. One: the index budget counts whole-file lines —
+      `checkCeiling` feeds `newlineCount(xml)` to the index check at
+      `scripts/validate-record-retirement.ts:1423`, and the retire path persists
+      `persistSnapshot(indexPrev, newlineCount(indexXml), 40, true)` at
+      `scripts/validate-record-retirement.ts:1244`. Two: retirement never removes an index line —
+      `setEntryLayer` (`scripts/validate-record-retirement.ts:902`, called at
+      `scripts/validate-record-retirement.ts:1197`) rewrites the `layer` attribute inside the
+      existing open tag, so the `Entry` element stays in `decisions.xml` forever; the index is the
+      one genre with no retired sibling. Three: the ceiling can only hold or fall —
+      `persistSnapshot` (`scripts/validate-record-retirement.ts:942`) computes
+      `min(previous.ceiling, ceilingBase + computedHeadroom)`, so the persisted 341 is a
+      historical low-water mark. The consequence is measured: 256 live entries against a 341
+      ceiling with headroom 1 — one more entry and the record stops accepting findings at all,
+      and no operation in the product can change that.
+
+      The breach diagnostic makes it worse than tight: `checkCeilingValue`
+      (`scripts/validate-record-retirement.ts:1498`) emits, for every genre, *"--retire / move the
+      eligible entry to the retired sibling"* — a remedy that does not exist for the index genre.
+      For the index, `--retire` moves nothing; the line stays. The message names an impossible
+      operation and forbids the only other one.
+
+      Two shipped acceptance criteria stand behind parts of this behaviour and are overturned by
+      this bundle, with their original arguments answered in the Goals. The charter fixes the
+      remedy; this spec expresses it. Everything the traps probed — the split path's index metric,
+      the two headroom sites, the golden fixture, the roots-invariant tripwire, the absence of any
+      index-breach test, the prose that becomes false, and the module-anchor question — was
+      answered from the tree, and each answer is in scope or explicitly out of it below.
+
+      Lineage, recorded once and truthfully: this bundle supersedes `C-INDEX-METRIC`, whose
+      spec now sits at `.ngrace/changes/archive/C-INDEX-METRIC/spec.xml` with root
+      `status="superseded"` (measured at this commit). It had been approved —
+      `status="approved"`, fingerprinted in its `run-ledger.xml` — and under D27 an approved
+      artifact is repaired only by supersede; one of its acceptance criteria was measured
+      unsatisfiable after approval, and the supersede was executed 2026-09-09:
+      `AC-INDEX-PROVENANCE-CEILING` required an index provenance
+      guard mirroring the rulings genre's, and the measurement at this commit
+      (`3ba0d77a76ba108be5a60e740d83dc2b734a7c46`, 2026-09-09) is the chain verified from the
+      tree — the rulings check it mirrors runs unconditionally in plain validation
+      (`checkRulingsProvenance` called at `scripts/validate-record-retirement.ts:1422` inside
+      `validateRecordRetirement`, the shared record-validation entry the plain validator drives
+      at `scripts/validate-record-retirement.ts:1608`), so an index twin errors on any record
+      directory validated, fixtures included: seven inline index fixtures carry
+      `ceiling="1000"` (occurrence lines 112, 425, 585, 856, 908, 950 and 1363 of
+      `scripts/validate-record-retirement.test.ts`, counted as whitespace-flattened
+      occurrences of a `RecordIndex` root tag carrying `ceiling="1000"`), and the golden
+      fixture's post-move index ceiling is 312 — the fixture `--retire` leaves 272 live
+      `Entry` children (measured by parse 2026-09-09: the committed golden
+      `scripts/fixtures/record-parse/golden/decisions.xml` holds 337 direct `Entry` children,
+      65 `layer="retired"`, 272 live) so the converted engine's persist writes
+      `min(341, 272 + 40) = 312`, and the committed golden already carries `ceiling="341"` —
+      all above the 296 constant the guard would pin, so green shipped tests turn red, and no
+      in-scope resolution exists: the golden's post-move ceiling is derived from its frozen
+      `input/` snapshot (out of scope per NonGoals) as `min(341, 272 + 40) = 312`, and the
+      constant is the live ceiling this bundle's diff persists, so neither moving the golden
+      under the constant nor raising the constant above the ceiling it exists to pin is in
+      scope, and gating the check to the `--retire` path alone would change the rulings
+      genre's validation shape, which is out of scope per NonGoals. This spec is the same
+      change with that criterion and every argument that leaned on it removed. Supersede
+      chain depth one, derived by the engine from the `&lt;Replacement&gt;` stamp the
+      predecessor now carries (measured `supersede-depth=1` in `ngrace status` at this
+      commit).
+    </Problem>
+    <Goals>
+      <Goal>
+        V1 — the index budget is the live `Entry` count. The validator's index ceiling check and
+        the retire path's index snapshot both measure direct `Entry` children of the
+        `RecordIndex` root whose `layer` attribute is not `"retired"` — the mirror of
+        `liveRowCount` (`scripts/validate-record-retirement.ts:975`), which the registry budget
+        already uses for rows. The unit change makes retirement relieve the index: when `--retire`
+        flips an `Entry`'s layer in place, the live count falls, the next persist writes
+        `base = live entries`, `headroom = constant`, `ceiling = min(previous, base + constant)`,
+        and headroom is restored — measured on the C-RECORD-PARSE fixture with the converted
+        engine in a throwaway tree: a `--retire` that flipped two entries wrote
+        `base="272" headroom="40" ceiling="312"` where the shipped engine wrote the root line
+        byte-identically (the ratchet, demonstrated on the fixture). The anti-raise property is
+        unchanged: the clamp still only holds or falls, and no shipped operation raises the index
+        ceiling.
+      </Goal>
+      <Goal>
+        M1 — the one-time root rewrite, in this bundle's own diff. The live
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.xml` root line is rewritten from
+        `base="340" headroom="1" ceiling="341"` to the V1 unit — `base="256" headroom="40"
+        ceiling="296"`, the values derived above — as a one-line attribute edit in this bundle's
+        diff. No `Entry` is added, removed, or re-toned; no other record byte changes; findings,
+        rulings and registry are untouched. The rewrite cannot be a `--retire` run:
+        `retireRecord` early-returns before persisting any snapshot when nothing is eligible
+        (`scripts/validate-record-retirement.ts:1134`), so the value is hand-written once — the
+        same shape the rulings genre accepted when C-RETIRE-AND-CODIFY's one-time correction
+        persisted its ceiling at commit `1896592`. That hand-written value is detected by
+        nothing in the product, and this spec says so plainly: the only shipped code that
+        rewrites an existing record's root attributes is the `--retire` move's
+        `persistSnapshot` (`scripts/validate-record-retirement.ts:1214`, `:1226`, `:1238`,
+        `:1244`), which early-returns when nothing is eligible
+        (`scripts/validate-record-retirement.ts:1134`-1135), and the `--split` conversion
+        writes root attributes only onto a newly created record built from a pre-split dump
+        (`scripts/validate-record-retirement.ts:603`-620) — so after this bundle's diff the
+        index root is hand-maintained between eligible moves, which is already the standing
+        practice for every record-touching bundle, because the engine carries exactly one
+        provenance guard, the rulings genre's (`RULINGS_PROVENANCE_CEILING` at
+        `scripts/validate-record-retirement.ts:446`), leaving the findings, registry and index
+        genres unguarded. This bundle inherits that condition; it does not create it. The
+        superseded predecessor answered the hand-written value with an index provenance guard
+        mirroring the rulings one; that criterion was measured unsatisfiable after approval
+        and is superseded with the bundle (the lineage in Problem carries the measurement), so
+        the honest position here is that the hand-written root stands undetected by design,
+        and closing that window belongs to its own bundle across all genres, where raising
+        the suite's fixture ceilings would be in scope — not smuggled into this bundle.
+        Falling stays legitimate — every value the clamp writes is a hold or a fall, and no
+        shipped operation raises the index ceiling.
+      </Goal>
+      <Goal>
+        The genre-aware breach diagnostic, shipped here. On an index ceiling breach the validator
+        names an operation that exists: it reports the live-`Entry` count against the persisted
+        ceiling, names `--retire` as the operation, and states the index mechanic — the eligible
+        entries flip their index `Entry` layer to `"retired"` in place; the index has no retired
+        sibling and its `Entry` lines stay. It keeps every prohibition the overturned criterion
+        was protecting: it never names a config key or `ignoredDirs` as the remedy, and it keeps
+        *"Raising the persisted ceiling is not the remedy."* The other genres' message is
+        unchanged. Measured with the converted engine on a fixture whose index ceiling was
+        shrunk: the emitted `ceiling-exceeded` line reads *live index live-entry count 274
+        exceeds persisted ceiling 270; --retire / the eligible entries flip their index Entry
+        layer to retired in place; the index has no retired sibling and its Entry lines stay.
+        Raising the persisted ceiling is not the remedy.*
+      </Goal>
+      <Goal>
+        The two overturns, answered rather than ignored. First — `AC-CEILINGS` in
+        `.ngrace/changes/archive/C-RECORD-RETIREMENT-2/spec.xml` (carried forward verbatim from
+        `.ngrace/changes/archive/C-RECORD-RETIREMENT/spec.xml`): *"The failure message names the
+        retirement operation (move the eligible entry to the retired sibling) and does not name a
+        config key as the remedy."* This bundle overturns the parenthetical for the index genre
+        only: the message still names the retirement operation and still never names a config
+        key, and D28.1's ruling that the failure message names the retirement operation rather
+        than the config key stands. The original argument — D28.1's *a budget that can be raised
+        to pass is not a budget* — is answered by V1 itself, not around it: under the line metric
+        the message's named operation could not return capacity, so the ceiling was the only
+        enforcement and had to be unraisable; under the live-entry metric the named operation
+        actually restores headroom (measured, first Goal), so the enforcement is the operation
+        again and the ceiling returns to being the backstop D28.1 designed it to be. The raise
+        path stays closed for every shipped operation — the clamp — and a hand-written raise is
+        detected by nothing: that residual window is the standing hand-written-root condition the
+        second Goal states for every record-touching bundle, named in AC-INDEX-ROOT-REWRITTEN rather
+        than implied closed, and closing it belongs to its own bundle across all genres, not this
+        one.
+        Second — `AC-ROOTS-CONSISTENT` in
+        `.ngrace/changes/archive/C-PAYMENT-RECORD-4/spec.xml`: *"every persisted ceiling is
+        byte-identical to its value at the base commit — ceilings are rewritten only by a move
+        and never raised, so the post-payment roots must carry the ceiling attributes the
+        pre-payment record carried."* This bundle overturns that criterion for the index genre:
+        the ceiling falls 341 to 296 in this bundle's own diff. The original argument — ceilings
+        must not drift silently — is answered by how loud the rewrite is: a ratified spec, this
+        bundle's diff, and the derivation in the Summary, none of it silent; it is a fall, never
+        a raise; and after it, the standing rule in `CLAUDE.md` (*"Ceiling attributes are
+        rewritten only by the move and never raised"*) is true again for every shipped operation
+        that exists — the clamp persists, and a later hand-written raise is detected by nothing,
+        which is the same hand-maintained-root condition the findings and registry genres already
+        live under, inherited here rather than created, and stated in the second Goal and in
+        AC-INDEX-ROOT-REWRITTEN rather than implied closed.
+      </Goal>
+      <Goal>
+        The trap consequences, each decided from the tree. T1 — the split path: the one-time
+        `--split` conversion computes its own index base and headroom
+        (`scripts/validate-record-retirement.ts:591`, `:595`, `:600`), today in lines. Measured on
+        a minimal pre-split dump in a throwaway tree: the shipped engine writes
+        `&lt;RecordIndex base="4" headroom="40" ceiling="44"&gt;` for a two-entry index, and the
+        converted validator accepts that output with exit 0 — so leaving `--split` on the old
+        metric does not produce a rejection, it produces a silently wrong-unit snapshot that
+        nothing shipped catches: the plain validator checks occupancy against the ceiling only,
+        and the roots-invariant tripwire reads the real record, never split output. The split
+        path's index base therefore moves to the live-`Entry` metric in this bundle — same
+        expression as the retire path — so every writer of the index base is born in the right
+        unit. T2 — the two headroom sites (`scripts/validate-record-retirement.ts:591` and
+        `:1244`, both the literal 40, today in lines) become one named module-level constant
+        denominated in entries, read by both sites, because T1 shows a wrong-unit snapshot
+        validates clean and the constant removes the half-conversion class; the registry's
+        duplicated literal 15 is the same shape with an unchanged unit, touching it is outside
+        the charter, and this bundle leaves it alone. T3 — the golden fixture: the byte-for-byte
+        golden test (`scripts/validate-record-retirement.test.ts:1835`) pins seven files including
+        `decisions.xml`, and the change invalidates exactly one of them — measured with the
+        converted engine: the golden test fails on `decisions.xml` alone, and regenerating it and
+        re-running the suite is green, the regenerated file differing from the committed one by
+        exactly the root line, with both `f21` layer flips intact and `moved 3` unchanged. The
+        regeneration of `scripts/fixtures/record-parse/golden/decisions.xml` is in scope for this
+        bundle. T4 — the roots-invariant tripwire
+        (`scripts/validate-record-retirement.test.ts:2015`-2046) selects the shipped metric per
+        file and reads the real record: its selection (`registry` gets live rows, everything else
+        `newlineCount`, at `scripts/validate-record-retirement.test.ts:2039`-2042) must learn the
+        index rule, and because it reads the real record, the engine change, the test's metric
+        change and the root rewrite must land in one commit — measured in the throwaway tree: the
+        rewritten root against the old selection is red, the new selection against the rewritten
+        root is green, and the suite is red in between either way. T5 — no existing test drives an
+        index ceiling breach: both shipped `ceiling-exceeded` tests
+        (`scripts/validate-record-retirement.test.ts:183`-201 and `:634`-653) drive the breach
+        through `findings`, and every index fixture the suite plants carries `ceiling="1000"`.
+        The index-breach coverage in this bundle is therefore net-new, not an edit of an existing
+        assertion. T6 and T7 are decided in the Constraints and NonGoals.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module-change shape): the record-retirement engine, its suite, one
+        fixture, one record root line, and governed prose. Roadmap: RM-GOVERNED-PATH (record
+        integrity). Binding live rulings: D28 (every genre carries a retirement rule and a size
+        ratchet — this bundle gives the index genre a retirement rule that works), D28.1 (the
+        ceiling message names the retirement operation rather than the config key; ceilings are
+        the backstop, eligibility-style rules the enforcement), D30 (a spec may not pin scalar
+        counts of a file it changes into its hard Constraints — every number above is derivation
+        or dated measurement context, and the Criteria below assert relations), D11 (no deferral
+        without a dependency or conflict — the diagnostic ships here), D27 (nothing is approved
+        unread; ratification is the maintainer's). Role split: the maintainer owns every
+        outward-facing act; this bundle's executor authors artifacts from this spec and reports,
+        and does not approve, commit, push, or run a gate.
+      </Constraint>
+      <Constraint>
+        Dynamic derivation, per D30. No hard Constraint in this spec transcribes a scalar count
+        of any file it changes. The numbers 256, 40, 296, 272, 312, 338, 341 and 340 appear in
+        this spec only as the derivation the charter required (R1) or as dated measurements in
+        the Summary, Goals and Assumptions, each with the command or `file:line` it came from;
+        every criterion asserts a relation its instrument can observe — base equals its shipped
+        metric read back, base + headroom = ceiling — never a snapshot; the clamp relation
+        (ceiling equals what the shipped `persistSnapshot` yields from the pre-rewrite persisted
+        ceiling and the shipped headroom constant) is the derivation the rewritten values must
+        carry, not an observation any standing instrument makes, and AC-INDEX-ROOT-REWRITTEN
+        states which relations its instrument observes and which it does not.
+        The values the rewritten root must carry are the ones this spec derives; if execution
+        re-derives a disagreement, that disagreement is a finding for the authority, not a number
+        to adopt silently.
+      </Constraint>
+      <Constraint>
+        Write scope, anchors — enumerated once (F136.1's rule). Files this spec forces into write
+        scope: this bundle's own artifacts under `.ngrace/changes/active/C-INDEX-METRIC-2/`, and
+        exactly six governed files — `scripts/validate-record-retirement.ts`;
+        `scripts/validate-record-retirement.test.ts`;
+        `scripts/fixtures/record-parse/golden/decisions.xml` (byte regeneration only);
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.xml` (the root line only, the M1 rewrite);
+        `CLAUDE.md`; `docs/plans/README.md`. `AGENTS.md` is in neither list because it is not a
+        file: measured at this revision, `ls -la AGENTS.md` reports a symlink to `CLAUDE.md`
+        (git mode 120000), so correcting `CLAUDE.md` corrects both names, and no plan task may
+        write through the link — a write through it is either a no-op or replaces the link with a
+        real file and silently un-twins the two names. Nothing under `src/` changes, and no
+        record file other than the named root line changes. Anchor facts, re-checked at this
+        revision: none of the six carries a `LINKS:` header, and no module in
+        `.ngrace/graph/main.xml` declares any of them — the graph's modules own `src/**` paths
+        plus M-SKILLS, and none of the six sits under an owned path. The record files carry no `LINKS:` header (the LINKS tokens inside them
+        are prose in finding bodies and row Charters). AffectedAreas therefore names the single
+        real anchor the C-RECORD-PARSE precedent used for this same file family — an anchor the
+        gates accepted — and this spec does not mint a synthetic module, does not repeat this
+        list as a second module list anywhere, does not register the record files in
+        CONTEXT_ARTIFACTS, does not add a lint issue code, and does not change
+        `.ngrace-lint.json`. Escape markup as character data (`&lt;`, `&gt;`, `&amp;`) in every
+        artifact this bundle writes; never paraphrase brackets away (F43's rule).
+      </Constraint>
+      <Constraint>
+        Evidence hygiene. Every criterion below is close-bound to a Command matching a shipped
+        discriminating shape — read at `src/artifact/grammar.ts:100`-177
+        (`DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES`) and `:191`-203
+        (`closeEvidenceCommandIsDiscriminating`, token-based over flattened text, so a shape
+        match inside `bash -c` would also qualify): `bun test scripts/validate-record-retirement.test.ts`
+        (the bun-test shape) and `bun ./src/grace.ts lint --path . --fail-on warnings` (the
+        grace.ts-lint shape). Each criterion's derivation names the mutation that would make its
+        evidence red; where both directions exist, the criterion says what passes and what fails.
+        No criterion compares a fixed `git show` against a floating working-tree read (E3): the
+        one-time golden diff and the root rewrite are recorded as dated measurements in
+        Assumptions, and the close-time instruments are the suite and the lint, which pin the
+        end state without a base commit. Close-time lint runs at `--fail-on warnings`, so no
+        CloseEvidence Command here may be undiscriminating. Findings raised while this bundle is
+        open go to `.ngrace/scratch/staged-findings.md` under the next staged number the
+        authority assigns, never into the record. The D30 freeze: this bundle's diff rewrites one
+        root line and appends nothing; no dispatch that reads or rewrites the record is in flight
+        with an append, and the authority performs the record write as part of this bundle's own
+        approved diff.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Adding a tool mode, command, or flag for the rewrite or the metric. No new `--` mode on
+        `scripts/validate-record-retirement.ts`, no second conversion pass, no interactive
+        repair command. The rewrite is this bundle's own diff; the metric lives in the three
+        existing call sites — the validator's index ceiling check, the retire path's index
+        snapshot, and the split path's index base computation — so no new mode is needed to hold
+        it. Owner: no one — chartered away by M1.
+      </NonGoal>
+      <NonGoal>
+        Giving the index a retired sibling, or re-deriving the ceiling from the current base.
+        Both were considered and rejected by the charter, and this spec does not drift toward
+        them: the index keeps every token, live and retired, because `layer` is the pointer to
+        where the body lives; the ceiling keeps its clamp so no number can be raised to pass.
+        Owner: no one — the charter's rejection is the position.
+      </NonGoal>
+      <NonGoal>
+        Changing any other genre's budget, message, or constant: the findings and rulings line
+        budgets, the registry's live-row budget and its duplicated headroom literal, the rulings
+        provenance guard, the eligibility findings, and `checkStatusFile` are untouched. Owner:
+        unchanged surfaces — their units never changed, and no defect this bundle creates lives
+        there.
+      </NonGoal>
+      <NonGoal>
+        Editing record bodies or the staged buffer: no prose inside `findings.xml`,
+        `findings-retired.xml`, `registry-retired.xml` (which quote past messages and past
+        charters as dated history), `rulings.xml`, `decisions.md`, `record-inventory.json`, or
+        `.ngrace/scratch/staged-findings.md` is corrected by this bundle — the record's own
+        process governs its bodies, and the buffer is the authority's. The M1 root-line rewrite
+        is the only record byte in scope. Owner: the record's own process; the authority for the
+        buffer.
+      </NonGoal>
+      <NonGoal>
+        Editing `README.md`, `examples/`, `skills/ngrace/`, `plugins/ngrace/skills/ngrace/`,
+        `docs/plans/archive/`, `.ngrace/changes/archive/`, `package.json`, `bun.lock`,
+        `.ngrace-lint.json`, or `CONTEXT_ARTIFACTS`, and any frozen test fixture under
+        `scripts/fixtures/record-parse/` other than the one regenerated golden file (the
+        fixture's `input/` snapshot, `parked-spec.xml`, `archive-names.json` and
+        `baseline-probes.json` stay byte-identical). Owner: unchanged; no user-visible CLI token,
+        config key, or ngrace command changes.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-INDEX-METRIC-LIVE-ENTRIES>
+        The validator's index ceiling check and the retire path's index snapshot measure the live
+        `Entry` count: direct `Entry` children of the `RecordIndex` root whose `layer` attribute
+        is not `"retired"`. The suite gains the discriminating pair, net-new (T5): an index
+        fixture whose whole-file line count exceeds its persisted ceiling while its live-`Entry`
+        count does not must validate exit 0 — the exact fixture the shipped line metric fails;
+        and an index fixture whose live-`Entry` count exceeds its persisted ceiling must exit
+        non-zero with `ceiling-exceeded`. A fixture `--retire` that flips entries persists
+        `base = live entries` and `headroom = constant` (the golden bytes pin the measured
+        instance). Content question. Failure: either metric half reverted to `newlineCount` — the
+        named mutation makes the green direction red; a ceiling raised to pass instead of the
+        metric changed.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-INDEX-METRIC-LIVE-ENTRIES>
+      <AC-INDEX-BREACH-DIAGNOSTIC>
+        The index ceiling-breach message is genre-aware: it reports the live-`Entry` count
+        against the persisted ceiling, names `--retire` as the operation, and states that the
+        eligible entries flip their index `Entry` layer to `"retired"` in place, that the index
+        has no retired sibling, and that the `Entry` lines stay; it keeps *"Raising the persisted
+        ceiling is not the remedy"*, and its flattened text contains neither `config key` nor
+        `ignoredDirs`. The other genres' message is byte-unchanged. The suite gains the net-new
+        test driving an index breach through a fixture with a shrunken index ceiling, asserting
+        the message content on stderr, and asserting the findings-genre message still names the
+        retired-sibling move. Content question. Failure: the shared remedy string restored for
+        the index — the named mutation makes the new assertions red; a config-key remediation
+        added — the prohibition assertions red.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-INDEX-BREACH-DIAGNOSTIC>
+      <AC-SPLIT-INDEX-METRIC>
+        The one-time `--split` conversion computes its index base in the live-`Entry` unit from
+        the same named headroom constant the retire path reads (one module-level constant read at
+        the two persist sites — T2's decision — inside the three call sites the metric conversion
+        covers: the validator's index check, the retire persist, and this split base). The suite gains a net-new test that runs `--split` against a
+        minimal pre-split dump in a throwaway root and asserts the written index root's
+        relations: base equals the live-`Entry` count of the written index, headroom equals the
+        shipped constant, ceiling equals base + headroom. Discriminates both ways (measured on
+        the minimal dump): the shipped line-metric engine writes base = entries + 2 and fails
+        this assertion; the converted engine passes. Failure: either call site reverting to a
+        line computation or to a second literal — the split test or the golden bytes go red.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-SPLIT-INDEX-METRIC>
+      <AC-ROOTS-TRIPWIRE-UNIT>
+        The production roots-invariant tripwire (`scripts/validate-record-retirement.test.ts:2015`-2046)
+        selects the shipped metric per file with the index rule added: `registry` gets the live
+        row count, `decisions.xml` gets the live-`Entry` count, findings and rulings keep
+        `newlineCount`. The test reads the real record, so the engine change, this metric
+        selection, and the M1 root rewrite must land in the same commit — measured in a
+        throwaway tree, the suite is red in between in both partial orders. Content question.
+        Failure: the selection reverted for `decisions.xml` against the rewritten root — the
+        named mutation makes this test red while the rest of the suite stays green.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROOTS-TRIPWIRE-UNIT>
+      <AC-INDEX-ROOT-REWRITTEN>
+        The live `docs/plans/active/RM-GOVERNED-PATH/decisions.xml` root carries the V1 unit as
+        relations, not transcriptions, and this criterion claims only what its instrument
+        observes: base equals its live-`Entry` count read back, and base + headroom = ceiling —
+        the two assertions the roots-invariant test (the instrument the previous criterion
+        wires) actually makes; re-read at this revision, that test compares neither `headroom`
+        nor `ceiling` to any constant. The Summary's other two relations — headroom equals the
+        shipped index headroom constant, ceiling equals the shipped `persistSnapshot` clamp
+        applied to the pre-rewrite persisted ceiling — are therefore stated as derivation, not
+        claimed as observation: no standing instrument can check the clamp relation without
+        pinning the pre-rewrite persisted ceiling as a base-commit number, the floating-baseline
+        defect the Evidence-hygiene Constraint forbids, and an instrument asserting `headroom`
+        equals the constant would go red on the first legitimate append, which the clamp answers
+        by holding the ceiling and shrinking headroom — under the constant is the clamp's own
+        product, not drift. What stands over the unguarded direction is stated, not implied:
+        nothing — no shipped instrument detects a later hand-written root whose attributes hold
+        any arithmetically consistent triple whose base equals the live count, including one
+        that restores a fallen ceiling or raises headroom; the provenance guard the predecessor
+        demanded was measured unsatisfiable after approval and is superseded with it (the
+        lineage in Problem), so the residual window is the whole hand-edit space under the
+        tripwire's two relations — wider than the bound the guard would have pinned — and
+        closing it belongs to its own bundle across all genres, where raising the suite's
+        fixture ceilings would be in scope. The golden bytes still pin the measured fixture
+        instance. No `Entry` element is added, removed, or re-toned by the
+        rewrite, and no other record file changes. The plain validator exits 0 on the record.
+        Content question, answered by parsing the root line. Failure: an observed relation
+        broken — a mutated copy whose `base` disagrees with its live-`Entry` count, or whose
+        three attributes are not internally consistent, turns the roots-invariant assertion red;
+        an `Entry` count changed; a second record byte moved.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-INDEX-ROOT-REWRITTEN>
+      <AC-GOLDEN-REGENERATED>
+        The golden test (`C-RECORD-PARSE golden`) is green against the converted engine:
+        `scripts/fixtures/record-parse/golden/decisions.xml` is regenerated from the converted
+        engine's fixture `--retire`, and the other six golden files are byte-identical to their
+        committed state — measured before regeneration: with the converted engine the golden
+        test fails on `decisions.xml` alone, and the regenerated file differs from the committed
+        one by exactly the root attribute line (the dated diff is in Assumptions), which is why
+        regeneration hides no behaviour change: the suite re-pins every other byte, both `f21`
+        layer flips, and `moved 3`. Failure: any golden byte differing for a reason other than
+        the root line — the diff recorded in Assumptions is the rule beside the number, and the
+        golden test itself is the standing pin.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-GOLDEN-REGENERATED>
+      <AC-GOVERNED-PROSE-CORRECTED>
+        The live governed prose states the index genre's actual retirement mechanic and does not
+        present the retired-sibling move as the index remedy: `CLAUDE.md` and
+        `docs/plans/README.md` — the only two live files carrying that prose, `AGENTS.md` being a
+        symlink to `CLAUDE.md` with no bytes of its own and therefore neither edited nor written
+        by any task — name that index `Entry` layers flip in place and that the index has no
+        retired sibling —
+        minimal edits that keep every token the suite's existing CLAUDE/README teaching test
+        requires (`decisions.md`, `decisions.xml`, `findings`, `decisions`, `registry`, `index`,
+        `live`, `retired`, `--retire`, `re-derives PaidBy`, `never raised`, `resolving CodifiedIn`,
+        *a resolving TaughtIn does not move it*), which this bundle extends to require the
+        index-flip clause so the prose cannot silently regress. Frozen surfaces are named in
+        NonGoals and are not edited. Content question. Failure: the clause removed from either
+        named file — the extended test goes red. A twin-divergence failure mode is deliberately
+        absent: it cannot occur, one file carrying two names, and a criterion whose evidence
+        cannot go red is a defect, not a formality.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-GOVERNED-PROSE-CORRECTED>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GRAMMAR />
+      The one graph anchor above is kept, and its justification is the rule itself, re-derived at
+      this revision rather than borrowed from precedent — the precedent argument does not
+      transfer, because the one bundle it cites, `C-RECORD-PARSE`, wrote files under
+      `src/artifact/`, which this bundle never does. The governing rule, read at `validateGraphAnchorsOwnWriteScope`
+      (`src/lint/core.ts:740`) with its predicate `isModuleOwnableWritePath`
+      (`src/lint/core.ts:724`): the error `change.graph-anchors-miss-write-scope` (raised at
+      `src/lint/core.ts:766`) can fire only when an active plan's ObservedWriteScope names a path
+      under `src/` that is not a test file and whose own MODULE_CONTRACT `LINKS` modules include
+      no module in the plan's GraphAnchors. No write scope in this bundle names any `src/` path —
+      every governed path sits under `scripts/`, `docs/` or the record — so the predicate is
+      never satisfied and the error cannot fire here for any anchor choice. The anchor is
+      retained because AffectedAreas is what the plan's DurableScope must cover
+      (`change.scope-does-not-cover-spec`), and M-GRAMMAR is the real module whose parser the
+      record engine is built on (`src/artifact/xml.ts:5` carries `LINKS: M-GRAMMAR`). Stated
+      plainly, per the brief's T7: none of the six governed write-scope files carries a `LINKS:`
+      header, and none is declared in any module graph — `scripts/`, `docs/` and the record sit
+      outside the graph's path set. No module
+      is edited, no module is minted to fill this section, and the write-scope list lives once,
+      in its Constraint.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts -t "golden"</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-INDEX-METRIC-2 --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes against the delivered product, not a green suite; every shape below
+        was driven at this commit in a throwaway tree with the converted engine before this spec
+        was written, in both directions where a failing direction exists. (1) The metric: an
+        index fixture whose line count exceeds its ceiling while its live-`Entry` count does not
+        validates exit 0 under V1 and fails under the shipped engine; the breached-direction
+        fixture exits non-zero both ways. (2) The diagnostic: the fixture probe's stderr line,
+        quoted in the third Goal, and the findings-genre message unchanged. (3) The persist: a
+        fixture `--retire` flipping two entries writes the root line `base="272" headroom="40"
+        ceiling="312"` where the shipped engine writes it byte-identically to the input — the
+        ratchet demonstrated and its removal pinned by the golden test. (4) The tripwire: the
+        rewritten real root against the old metric selection is red; the new selection is green;
+        the suite is red in both partial orders of the same-commit landing. (5) The split: the
+        minimal-dump probe writes `base="2"` under V1 and `base="4"` shipped, and the new
+        validator accepts the shipped output — the silent wrong unit, which is why the split
+        metric is in scope. (6) The
+        golden: the one-line diff in Assumptions, taken before regeneration, is the rule beside
+        AC-GOLDEN-REGENERATED's claim. (7) The whole suite: green in the throwaway tree with all
+        five changes applied, which is what rules out second-order pins in
+        `src/artifact/xml.test.ts` and the preservation validators.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken 2026-09-09 at `3ba0d77a76ba108be5a60e740d83dc2b734a7c46` (`git
+        rev-parse HEAD`), tracked tree clean, on the working branch the authority forks from.
+        Record roots: `decisions.xml base="340" headroom="1" ceiling="341"`, 338 direct `Entry`
+        children, 82 with `layer="retired"`, 256 live; `findings.xml base="7139" headroom="707"
+        ceiling="7846"`; `rulings.xml base="1697" headroom="186" ceiling="1883"`;
+        `registry.xml base="12" headroom="14" ceiling="26"`. Live-`Entry` count measured by
+        counting `layer="retired"` among direct `Entry` children over the shipped parser shape;
+        the whole-population command is a parse, not a grep, because the claim is structural.
+      </Assumption>
+      <Assumption>
+        Throwaway-tree conversion, all five changes applied to a copy at this commit (the engine
+        metric converted at all three sites — the validator's index check, the retire persist,
+        the split base; genre-aware remedy; test metric selection; golden regenerated; record
+        root rewritten): the record validator exits 0; the target suite and the full-repo suite
+        are green in the same tree, which is what rules out second-order pins in
+        `src/artifact/xml.test.ts` and the preservation validators. The converted-engine fixture
+        numbers above (272/40/312; golden root line the only golden diff; `moved 3`) were taken
+        in that tree.
+      </Assumption>
+      <Assumption>
+        The one-time golden diff, taken before regeneration in the throwaway tree, is exactly one
+        line: `&lt;RecordIndex base="339" headroom="2" ceiling="341"&gt;` becomes
+        `&lt;RecordIndex base="272" headroom="40" ceiling="312"&gt;` — the fixture input carries
+        337 `Entry` children, 63 of them already `layer="retired"`, 274 live, and the fixture
+        `--retire` flips `f21` and `f21-correction` (the third moved element is the
+        `C-SELECTION` row, which has no index `Entry`). Under the shipped engine the same run
+        rewrites the root byte-identically (`min(341, 339 + 40) = 341`), which is the ratchet the
+        golden test has been pinning.
+      </Assumption>
+      <Assumption>
+        Split probe: a minimal pre-split dump (one finding, one h2 decision, no registry tables)
+        split successfully with both engines in the throwaway tree — shipped
+        `&lt;RecordIndex base="4" headroom="40" ceiling="44"&gt;`, converted
+        `&lt;RecordIndex base="2" headroom="40" ceiling="42"&gt;` — and the converted validator
+        accepts the shipped output with exit 0, which is the measured basis for T1's
+        no-rejection finding.
+      </Assumption>
+      <Assumption>
+        Overturn citations read verbatim at this commit: `AC-CEILINGS` in
+        `.ngrace/changes/archive/C-RECORD-RETIREMENT-2/spec.xml` (and its first shipping in
+        `.ngrace/changes/archive/C-RECORD-RETIREMENT/spec.xml`), and `AC-ROOTS-CONSISTENT` in
+        `.ngrace/changes/archive/C-PAYMENT-RECORD-4/spec.xml`. The staged citations — F205 (the
+        ratchet and the impossible remedy), F206 (the text-metric family) — are buffer entries
+        staged at `.ngrace/scratch/staged-findings.md`, cited as staged, never as record
+        findings; this bundle is the charter F205's owner line calls for, and paying it is the
+        authority's flush act after archive, not this bundle's.
+      </Assumption>
+      <Assumption>
+        The T6 corpus sweep, whole-population, at this commit: the phrase `retired sibling`
+        appears in live surfaces only in the two governed prose paragraphs this bundle corrects
+        (`CLAUDE.md:37` — which `AGENTS.md`, a symlink to `CLAUDE.md` measured at this revision,
+        exposes under its own name with no bytes of its own — and `docs/plans/README.md:29`), the
+        engine's six message sites, the suite's five `toContain("retired sibling")` assertion
+        sites — re-measured 2026-09-09 at this commit with `grep -on 'retired sibling'
+        scripts/validate-record-retirement.test.ts`: five assertions (`:160`, `:180`, `:197`,
+        `:394`, `:649`) and a sixth occurrence of the phrase at `:1750` that is a comment, not an
+        assertion — the record bodies (out of scope per NonGoal), and the staged buffer (the
+        authority's). The phrase `headroom` in
+        live governed markdown appears only in the buffer. No skill file, no file under `src/`,
+        no changelog, and no context artifact states the index is line-measured. The line-metric
+        comment inside the roots-invariant test (`scripts/validate-record-retirement.test.ts:2034`-2038)
+        is in scope and is edited by AC-ROOTS-TRIPWIRE-UNIT.
+      </Assumption>
+      <Assumption>
+        Mint search re-run 2026-09-09 at this commit, house form: no archive directory and no
+        `Row` element in either registry layer matches C-INDEX-METRIC-2 (archive directory
+        names matched by exact listing against the change-anchor pattern; the `Row` name
+        attribute matched exactly over the shipped parser shape, both registry layers parsed).
+        The name is new.
+      </Assumption>
+    </Assumptions>
+  </C-INDEX-METRIC-2>
+</NgraceChangeSpec>

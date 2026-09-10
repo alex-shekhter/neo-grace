@@ -36,7 +36,10 @@ citation index, live, and retired (retired siblings `findings-retired.xml`,
 attributes or elements. `--retire` is the move: `bun ./scripts/validate-record-retirement.ts --retire`
 stamps PaidBy, moves eligible entries to the retired sibling, and rewrites live-root
 ceiling attributes; validation re-derives PaidBy and exits non-zero until that
-move. Ceiling attributes are rewritten only by the move and never raised. An
+move. The index genre is the exception: the index has no retired sibling;
+its eligible index Entry layers flip in place, so the index Entry lines
+stay and retirement relieves the index budget. Ceiling attributes are
+rewritten only by the move and never raised. An
 entry moves when: a finding's PaidBy names an archived bundle; a decision
 carries a resolving CodifiedIn (a resolving TaughtIn does not move it); a
 registry row's name equals an archive directory. Existing markdown citations of the `decisions.md` path may

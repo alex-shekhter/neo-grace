@@ -445,6 +445,14 @@ export function collectPaidBy(repoRoot: string, chartered: RegistryRow[]): Map<s
  */
 export const RULINGS_PROVENANCE_CEILING = 1883;
 
+/**
+ * Index headroom, denominated in live `Entry` children (not lines) per
+ * C-INDEX-METRIC-2. Read by both persist sites: the retire path's index
+ * snapshot and the one-time --split conversion's index base. The
+ * persistSnapshot clamp is unchanged — ceilings still only hold or fall.
+ */
+export const INDEX_HEADROOM_ENTRIES = 40;
+
 function recordPaths(recordDir: string) {
   return {
     stub: path.join(recordDir, "decisions.md"),
@@ -588,11 +596,11 @@ export function splitFrozenRecord(repoRoot: string, recordDir = path.join(repoRo
   const findingsHeadroom = 7 * median(findingMedians);
   const rulingsHeadroom = 2 * median(h2DecisionMedians);
   const registryHeadroom = 15;
-  const indexHeadroom = 40;
+  const indexHeadroom = INDEX_HEADROOM_ENTRIES;
 
   const findingsBaseProbe = newlineCount(wrapRoot("Findings", liveFindingXml, {}));
   const rulingsBaseProbe = newlineCount(wrapRoot("Rulings", liveDecisionXml, {}));
-  const indexBaseProbe = newlineCount(wrapRoot("RecordIndex", indexBody, {}));
+  const indexBaseProbe = liveEntryCount(wrapRoot("RecordIndex", indexBody, {}));
   const registryBase = liveRows.length;
 
   const findingsCeiling = findingsBaseProbe + findingsHeadroom;
@@ -980,6 +988,14 @@ function liveRowCount(xml: string): number {
   return childNodes(parsed.root, "Row").filter((row) => row.attributes.status !== "retired").length;
 }
 
+function liveEntryCount(xml: string): number {
+  const parsed = parseGraceXmlArtifact("decisions.xml", xml);
+  if (!parsed.root) {
+    return 0;
+  }
+  return childNodes(parsed.root, "Entry").filter((entry) => entry.attributes.layer !== "retired").length;
+}
+
 function payerMapFromRecord(repoRoot: string, registryXml: string, registryRetiredXml: string): Map<string, string> {
   const findings: RetirementFinding[] = [];
   const liveRoot = parseRecordRoot("registry.xml", registryXml, findings);
@@ -1241,7 +1257,7 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
     indexXml,
     indexParse.root!,
     indexSpans.get(indexParse.root!)!,
-    persistSnapshot(indexPrev, newlineCount(indexXml), 40, true),
+    persistSnapshot(indexPrev, liveEntryCount(indexXml), INDEX_HEADROOM_ENTRIES, true),
   );
 
   writeFileSync(paths.findings, findingsLive);
@@ -1420,7 +1436,7 @@ export function validateRecordRetirement(options: RetirementOptions): Retirement
   checkCeiling("findings", paths.findings, files.findings!, findingsRoot, "line", findings);
   checkCeiling("rulings", paths.rulings, files.rulings!, rulingsRoot, "line", findings);
   checkRulingsProvenance(paths.rulings, rulingsRoot, findings);
-  checkCeiling("index", paths.index, files.index!, indexRoot, "line", findings);
+  checkCeilingValue("index", paths.index, indexRoot, liveEntryCount(files.index!), "live-entry", findings);
   const registryLiveRows = registryRoot
     ? childNodes(registryRoot, "Row").filter((row) => row.attributes.status !== "retired").length
     : 0;
@@ -1520,9 +1536,13 @@ function checkCeilingValue(
   }
   const ceiling = Number(attrs.ceiling);
   if (liveSize > ceiling) {
+    const remedy =
+      part === "index"
+        ? "the eligible entries flip their index Entry layer to retired in place; the index has no retired sibling and its Entry lines stay"
+        : "move the eligible entry to the retired sibling";
     findings.push({
       code: "ceiling-exceeded",
-      message: `${file}: live ${part} ${unit} count ${liveSize} exceeds persisted ceiling ${ceiling}; --retire / move the eligible entry to the retired sibling. Raising the persisted ceiling is not the remedy.`,
+      message: `${file}: live ${part} ${unit} count ${liveSize} exceeds persisted ceiling ${ceiling}; --retire / ${remedy}. Raising the persisted ceiling is not the remedy.`,
     });
   }
 }

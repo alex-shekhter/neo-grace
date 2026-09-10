@@ -27,6 +27,8 @@ index at `decisions.xml`, three D28 genres (findings, decisions, registry), and
 three D31 layers (index, live, retired). Machine-read fields are XML attributes
 or elements. `--retire` (`bun ./scripts/validate-record-retirement.ts --retire`)
 is the command that moves eligible entries to the retired sibling. The index
+genre is the exception: the index has no retired sibling; its eligible
+index Entry layers flip in place, so the index Entry lines stay. The index
 row keeps its link to `decisions.md` because that path is the stub.
 
 `RM-AGENT-RELIABILITY` completed on
