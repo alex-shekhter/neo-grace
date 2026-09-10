@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-INDEX-METRIC-2>
     <IntentSummary>
       Convert the record engine's index budget from whole-file lines to the live-`Entry` count,
