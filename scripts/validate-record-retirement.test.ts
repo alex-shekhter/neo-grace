@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { childNodes, childText, parseGraceXmlArtifact, walkNodes } from "../src/artifact/xml.ts";
+import { childNodes, childText, computeElementSpans, parseGraceXmlArtifact, walkNodes } from "../src/artifact/xml.ts";
 import {
   INDEX_HEADROOM_ENTRIES,
   RULINGS_PROVENANCE_CEILING,
@@ -12,6 +12,7 @@ import {
   liveH2DecisionLineCounts,
   median,
   newlineCount,
+  validateRecordRetirement,
 } from "./validate-record-retirement.ts";
 
 const REPO_ROOT = path.resolve(import.meta.dir, "..");
@@ -1827,8 +1828,11 @@ ${names
         }
         expect(derived.get(token), token).toBe(payer);
       }
+      // C-FLUSH-AND-PAY minted the C-INDEX-METRIC-2 row post-archive, so the production
+      // derivation mints F205; the baseline map was captured before that row existed.
+      const bundleMinted: Record<string, string> = { F205: "C-INDEX-METRIC-2" };
       for (const [token] of derived) {
-        expect(baseline[token], `${token} must exist in the baseline map`).toBeDefined();
+        expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
       }
     },
     60_000,
@@ -2273,6 +2277,195 @@ body of the decision.
       expect(Number(root.attributes.ceiling), "ceiling equals base + headroom").toBe(
         Number(root.attributes.base) + Number(root.attributes.headroom),
       );
+    },
+    60_000,
+  );
+
+  it(
+    "C-FLUSH-AND-PAY flush invariant: f205 through f220 each exist exactly once across the findings files with agreeing index layers — f206 through f220 live, f205 retired and paid",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const liveXml = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+      const retiredXml = readFileSync(path.join(recordDir, "findings-retired.xml"), "utf8");
+      const indexXml = readFileSync(path.join(recordDir, "decisions.xml"), "utf8");
+      const liveParsed = parseGraceXmlArtifact("findings.xml", liveXml);
+      const retiredParsed = parseGraceXmlArtifact("findings-retired.xml", retiredXml);
+      const indexParsed = parseGraceXmlArtifact("decisions.xml", indexXml);
+      const liveFindings = [...walkNodes(liveParsed.root!)].filter((n) => n.tag === "Finding");
+      const retiredFindings = [...walkNodes(retiredParsed.root!)].filter((n) => n.tag === "Finding");
+      const entries = childNodes(indexParsed.root!, "Entry");
+      const flushed = ["f205", "f206", "f207", "f208", "f209", "f210", "f211", "f212", "f213", "f214", "f215", "f216", "f217", "f218", "f219", "f220"];
+      for (const id of flushed) {
+        const expectedStatus = id === "f205" ? "retired" : "live";
+        const inLive = liveFindings.filter((n) => n.attributes.id === id);
+        const inRetired = retiredFindings.filter((n) => n.attributes.id === id);
+        expect(
+          inLive.length + inRetired.length,
+          `${id}: exactly one Finding element across both findings files — the walk is the duplicate check`,
+        ).toBe(1);
+        const holder = inLive.length === 1 ? inLive[0]! : inRetired[0]!;
+        expect(holder.attributes.status, `${id}: expected status`).toBe(expectedStatus);
+        expect(holder.attributes.token, `${id}: token matches`).toBe(id.toUpperCase());
+        const entry = entries.filter((e) => e.attributes.id === id);
+        expect(entry.length, `${id}: exactly one matching decisions.xml Entry`).toBe(1);
+        expect(entry[0]!.attributes.layer, `${id}: index layer agrees with the holding file`).toBe(
+          expectedStatus,
+        );
+        if (id === "f205") {
+          expect(holder.attributes.status, "f205 is retired").toBe("retired");
+        }
+      }
+      // read-back arithmetic: the written base comes from the file's newlineCount
+      const root = liveParsed.root!;
+      const base = newlineCount(liveXml);
+      expect(Number(root.attributes.base), "findings base equals the file's newlineCount read back").toBe(base);
+      expect(
+        Number(root.attributes.headroom),
+        "findings headroom equals ceiling minus base",
+      ).toBe(Number(root.attributes.ceiling) - base);
+    },
+    60_000,
+  );
+
+  it(
+    "C-FLUSH-AND-PAY payment invariant: the C-INDEX-METRIC-2 row is retired with a derived payment set of exactly F205, and f205 is not live",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const liveRegistryXml = readFileSync(path.join(recordDir, "registry.xml"), "utf8");
+      const retiredRegistryXml = readFileSync(path.join(recordDir, "registry-retired.xml"), "utf8");
+      const name = "C-INDEX-METRIC-2";
+      const liveRows = childNodes(parseGraceXmlArtifact("registry.xml", liveRegistryXml).root!, "Row").filter(
+        (row) => row.attributes.name === name,
+      );
+      expect(liveRows.length, "no live row carries the name").toBe(0);
+      const retiredRows = childNodes(parseGraceXmlArtifact("registry-retired.xml", retiredRegistryXml).root!, "Row").filter(
+        (row) => row.attributes.name === name,
+      );
+      expect(retiredRows.length, "exactly one retired row carries the name").toBe(1);
+      const row = retiredRows[0]!;
+      expect(row.attributes.status, "the row is retired").toBe("retired");
+      expect(row.attributes.kind, "the row is chartered").toBe("chartered");
+      // F212: the isolated archive root mirrors the real archive membership this claim needs
+      const isolatedRepo = isolatedRoot();
+      mkdirSync(path.join(isolatedRepo, ".ngrace", "changes", "archive", name), { recursive: true });
+      const isolatedRows = [
+        {
+          name,
+          pays: childText(row, "Pays") ?? "",
+          statusText: childText(row, "StatusText") ?? "",
+        },
+      ];
+      const isolatedMap = derivePayerMap(isolatedRepo, isolatedRows);
+      expect([...isolatedMap.keys()], "the row's derived payment set is exactly F205").toEqual(["F205"]);
+      // the production derivation over the real archive and both registry layers
+      const productionRows: Array<{ name: string; pays: string; statusText: string }> = [];
+      for (const file of ["registry.xml", "registry-retired.xml"]) {
+        const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+        for (const candidate of childNodes(parsed.root!, "Row")) {
+          const kind = candidate.attributes.kind ?? "chartered";
+          if (kind !== "chartered" && kind !== "historical") {
+            continue;
+          }
+          productionRows.push({
+            name: candidate.attributes.name ?? "",
+            pays: childText(candidate, "Pays") ?? "",
+            statusText: childText(candidate, "StatusText") ?? "",
+          });
+        }
+      }
+      const productionMap = derivePayerMap(REPO_ROOT, productionRows);
+      expect(productionMap.get("F205"), "the production map names F205 with this payer").toBe(name);
+      // f205 is not live; the retired copy carries the move's PaidBy stamp
+      const liveFindingsXml = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+      const retiredFindingsXml = readFileSync(path.join(recordDir, "findings-retired.xml"), "utf8");
+      const liveFindings = [...walkNodes(parseGraceXmlArtifact("findings.xml", liveFindingsXml).root!)].filter(
+        (n) => n.tag === "Finding",
+      );
+      expect(
+        liveFindings.filter((n) => n.attributes.token === "F205").length,
+        "no live Finding carries token F205",
+      ).toBe(0);
+      const retiredFindings = [...walkNodes(parseGraceXmlArtifact("findings-retired.xml", retiredFindingsXml).root!)].filter(
+        (n) => n.tag === "Finding" && n.attributes.id === "f205",
+      );
+      expect(retiredFindings.length, "exactly one retired Finding carries id f205").toBe(1);
+      const f205 = retiredFindings[0]!;
+      expect(f205.attributes.status, "f205 is retired").toBe("retired");
+      expect(childText(f205, "PaidBy"), "PaidBy names the archive event the move stamped").toBe(name);
+      // the index Entry flipped in place
+      const f205Entries = childNodes(parseGraceXmlArtifact("decisions.xml", readFileSync(path.join(recordDir, "decisions.xml"), "utf8")).root!, "Entry").filter(
+        (e) => e.attributes.id === "f205",
+      );
+      expect(f205Entries.length, "exactly one f205 Entry").toBe(1);
+      expect(f205Entries[0]!.attributes.layer, "the f205 Entry layer is retired").toBe("retired");
+      expect(f205Entries[0]!.attributes.token, "the f205 Entry token is F205").toBe("F205");
+    },
+    60_000,
+  );
+
+  it(
+    "C-FLUSH-AND-PAY production invariant: the shipped validateRecordRetirement returns zero findings on the production record, and the same call reports planted eligibility on a mutated copy",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const findingsBefore = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+      const production = validateRecordRetirement({ repoRoot: REPO_ROOT, recordDir });
+      expect(production, "the shipped validator returns zero findings on the production record").toEqual([]);
+      expect(readFileSync(path.join(recordDir, "findings.xml"), "utf8"), "the call is read-only over production").toBe(findingsBefore);
+      // the demonstrated red direction: a mutated copy with a live F205 Finding replanted
+      const mutatedRoot = isolatedRoot();
+      const recordCopy = path.join(mutatedRoot, RECORD_REL);
+      mkdirSync(recordCopy, { recursive: true });
+      // F212: the copy's repoRoot carries the paying archive event, mirroring the real membership
+      // the eligibility check needs — the shipped derivation gates on archive membership.
+      mkdirSync(path.join(mutatedRoot, ".ngrace", "changes", "archive", "C-INDEX-METRIC-2"), { recursive: true });
+      for (const file of ["findings.xml", "findings-retired.xml", "rulings.xml", "rulings-retired.xml", "registry.xml", "registry-retired.xml", "decisions.xml"]) {
+        writeFileSync(path.join(recordCopy, file), readFileSync(path.join(recordDir, file), "utf8"));
+      }
+      const retiredCopy = readFileSync(path.join(recordCopy, "findings-retired.xml"), "utf8");
+      const f205Block = retiredCopy.match(/<Finding id="f205"[\s\S]*?<\/Finding>/)?.[0] ?? "";
+      expect(f205Block.length > 0, "the retired f205 element exists to replant").toBe(true);
+      const replanted = f205Block.replace('status="retired"', 'status="live"');
+      const liveCopy = readFileSync(path.join(recordCopy, "findings.xml"), "utf8");
+      writeFileSync(
+        path.join(recordCopy, "findings.xml"),
+        liveCopy.replace("</Findings>", `${replanted}\n</Findings>`),
+      );
+      const mutated = validateRecordRetirement({ repoRoot: mutatedRoot, recordDir: recordCopy });
+      expect(
+        mutated.filter((f) => f.code === "finding-eligible-still-live" && f.message.includes('id="f205"')).length,
+        "the same call reports planted eligibility on the mutated copy",
+      ).toBe(1);
+    },
+    60_000,
+  );
+
+  it(
+    "C-FLUSH-AND-PAY clamp invariant: the persisted findings headroom is the clamp's result — equal to ceiling minus base and below seven times the median live element line count",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const findingsXml = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+      const parsed = parseGraceXmlArtifact("findings.xml", findingsXml);
+      const root = parsed.root!;
+      const base = Number(root.attributes.base);
+      const headroom = Number(root.attributes.headroom);
+      const ceiling = Number(root.attributes.ceiling);
+      // the arithmetic mirrored over the shipped parser because findingLineCounts is not exported
+      const spans = computeElementSpans(findingsXml, parsed);
+      const liveCounts: number[] = [];
+      for (const node of walkNodes(root)) {
+        if (node.tag !== "Finding" || node.attributes.status === "retired") {
+          continue;
+        }
+        const span = spans.get(node)!;
+        if (span.closeStart === null || span.closeEnd === null) {
+          continue;
+        }
+        liveCounts.push(newlineCount(findingsXml.slice(span.openStart, span.closeEnd)) + 1);
+      }
+      const product = 7 * median(liveCounts);
+      expect(base + headroom, "base plus headroom equals ceiling").toBe(ceiling);
+      expect(base, "base equals the file's newlineCount").toBe(newlineCount(findingsXml));
+      expect(headroom, "the persisted headroom is below seven times the median live element line count — the clamp binds").toBeLessThan(product);
     },
     60_000,
   );

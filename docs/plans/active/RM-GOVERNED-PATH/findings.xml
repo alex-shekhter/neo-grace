@@ -1,4 +1,4 @@
-<Findings base="7139" headroom="707" ceiling="7846">
+<Findings base="7673" headroom="173" ceiling="7846">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7135,5 +7135,539 @@ were a contract: it has already drifted in `main`, and a plan that hard-codes th
 against the tree for no reason worth failing over.
 
 Owner: the ordering lesson binds every plan from now. The drift itself needs no bundle.</Body>
+  </Finding>
+                        <Finding id="f206" token="F206" status="live">
+    <Title>### F206 — the record's volume budget is a text metric on a structured document, and every measurement error of this session came from that. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `b62698e`, from the session that produced `C-RECORD-TEST-ISOLATION-2` and
+`C-PAYMENT-RECORD-3`.
+
+Findings, rulings and the index are budgeted by `newlineCount` — raw file lines. Only `registry` is
+budgeted structurally, by `liveRowCount` (direct `Row` children whose `status` is not `retired`).
+
+**Three measurement failures in one session, all from the text metric, none from the record's content:**
+
+- `--retire` re-indented three structural lines (a `Finding` open tag 4→8 spaces, `&amp;lt;/Findings&amp;gt;`
+  0→8, `&amp;lt;/Registry&amp;gt;` 8→10), drifting bytes a criterion had been written to protect ([F204](#f204)).
+- The element line rule — `newlineCount(el.text) + 1`, the shipped `findingLineCounts` — was applied as
+  a bare newline count **three times**, producing a flush projection 8 lines low, a payment total 19
+  lines low, and per-payer sums each low by their finding count. One of those was in the bundle that
+  had **just recorded the lesson**.
+- Landed-element projections have been wrong repeatedly because they model formatting — wrapper lines,
+  trailing blanks, separator blanks — rather than content.
+
+**A structural volume metric would delete the class.** Parsed text content is immune to indentation,
+wrapping and separator blanks; a formatting change could not move it, and no projection would need to
+model the house element shape.
+
+**But element *count* is the wrong replacement for the general case.** `D28.1` makes the budget a bound
+on the reading set. Counting elements bounds how many entries exist, not how much text must be read:
+fifty seventy-line findings and two hundred twenty-line findings are identical under element counting
+and wildly different to read. Lines are a crude proxy for the right quantity; element count is a
+precise proxy for the wrong one.
+
+**Element counting is nevertheless the fix for exactly one genre — the index** — because there
+retirement flips `layer` in place instead of moving the element, so a line metric can never shrink
+([F205](#f205)). Counting live entries makes retirement relieve the index, which is what `registry`
+already does.
+
+Owner: the index remedy is chartered. The general question — measuring volume structurally rather than
+by lines — is its own later charter, and it depends on [F207](#f207): a structural metric counts
+something undefined until the record's shape is validated.
+</Body>
+  </Finding>
+        <Finding id="f207" token="F207" status="live">
+    <Title>### F207 — the record has no schema: its shape and depth are convention, and nothing verifies them. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `b62698e`, when the authority claimed the record's depth was &quot;fixed by
+schema&quot; and the maintainer asked whether the schema is verified every time. It is not.
+
+**What is checked:** XML well-formedness (`XMLValidator`, `parseGraceXmlArtifact`), targeted reads of
+named children (`childNodes(root, &quot;Row&quot;)`, `&quot;Decision&quot;`, `&quot;Finding&quot;`, `&quot;CodifiedIn&quot;`, `&quot;TaughtIn&quot;`),
+root size attributes, and citation resolution.
+
+**What is not checked, searched rather than assumed:** `grep` for `allowedChildren`, `requiredChildren`
+and `schema` across `scripts/validate-record-retirement.ts` and `scripts/prove-record-preservation.ts`
+returns **nothing**, and the record files appear nowhere in `src/artifact/grammar.ts` or
+`src/lint/catalog.ts`. The record is deliberately outside the artifact grammar —
+`C-RECORD-TEST-ISOLATION-2`'s spec forbids adding it — so **no rule constrains which children an
+element may have, how deep it may nest, or which are required.**
+
+**So the observed depth 3 is an artefact of every writer happening to agree.** A record with a `Finding`
+nested inside a `Finding`, or an unexpected child, is well-formed and passes every shipped check.
+
+**The consequence is not aesthetic.** `childNodes` reads **direct** children only, so a misplaced
+element is invisible to every structural count while still occupying lines. Under today's line metric
+it inflates the budget; under a structural metric it would vanish from it. **Any move to structural
+measurement ([F206](#f206)) must therefore ship a shape check first, or the new metric counts something
+undefined.**
+
+Owner: a later bundle, and a prerequisite of the structural-metric charter rather than an independent
+nicety.
+</Body>
+  </Finding>
+        <Finding id="f208" token="F208" status="live">
+    <Title>### F208 — a spec that quotes the payer phrase pays by accident: `C-PAYMENT-RECORD-3` would retire `F21` at its own close, the token it explicitly refuses. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `c920415`, raised by the executor's `WRONG` field and reproduced end to end
+by the authority. Numbered `F208` because the executor proposed it as `F206`, which was taken by the
+record-metric finding first.
+
+`derivePayerMap`'s third pass reads **every archived `spec.xml`**, splits it into sentences, and pays
+every `F`-token in any sentence matching `PAID_FINDING_RE` = `/\bthe paid findings?\b/i`
+(`scripts/validate-record-retirement.ts:474-491`).
+
+`C-PAYMENT-RECORD-3`'s `Problem` contains exactly one matching sentence — the one that **explains the
+pattern by quoting it**: *&quot;…yet the shipped prose-mint pattern matches only the exact phrase
+&amp;quot;the paid finding(s)&amp;quot;, which none of them contains…&quot;*. It carries **14** tokens: `F9.10`,
+`F11`, `F11.2`, `F14`, `F15`, `F16`, `F18`, `F20`, `F21`, `F22`, `F29`, `F29.1`, `F31`, `F32`.
+
+Thirteen are already paid by the bundle's own rows, and rows win — the registry pass runs first and
+`paid.set` is guarded by `!paid.has(token)`. **`F21` is not**: no row pays it, and this bundle's
+payment-evidence Constraint refuses it by name, with its NonGoal excluding it.
+
+**Reproduced, not inferred.** With the bundle's `spec.xml` absent from the archive, validate exits 0.
+Copy that one file into `.ngrace/changes/archive/C-PAYMENT-RECORD-3/` — which is exactly what the close
+does — and validate exits **1** with `finding-eligible-still-live` for both live elements, `f21` and
+`f21-correction`, each naming archive event `C-PAYMENT-RECORD-3`. Running `--retire` in that state
+reports **moved 2** and stamps `&amp;lt;PaidBy&amp;gt;C-PAYMENT-RECORD-3&amp;lt;/PaidBy&amp;gt;` on both.
+
+**So the close would pay a finding the approved spec forbids paying**, retiring live governance text on
+a premise the same spec calls insufficient.
+
+**The artifact is not wrong; the derivation is.** Every sentence in that spec is true. The pass cannot
+tell a **quoted** phrase inside an explanatory clause from a declaration of payment, and it reads prose
+that was never addressed to it. [F197](docs/plans/active/RM-GOVERNED-PATH/findings.xml) recorded this
+class before this bundle existed; `C-PAYMENT-RECORD-2` had to carry a guard clause asserting its own
+prose could not mint, which is a tax every future spec would otherwise pay. This is the first measured
+instance of the class producing a **false payment** rather than a defensive sentence.
+
+**A constraint on any remedy:** nine sentences across the archived corpus currently mint by prose
+(`F161`, `F130`, `F149`, `F150`, `F152`, `F43`, `F147`). A fix that narrows or removes the pass must
+check what those tokens depend on — the retired ones carry stored `PaidBy`, and the eligibility check
+reads derived **or** stored, so the stored stamp may already carry them.
+
+Owner: the maintainer's decision, and it gates this bundle's close.
+</Body>
+  </Finding>
+        <Finding id="f209" token="F209" status="live">
+    <Title>### F209 — validate parses the record while the move engine matches it with regexes, so legal XML can put the record in a state no operator action resolves. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `49b4ebb`, after the maintainer objected that regex over XML is unsound and
+that empirical green gives a false sense of security. Both objections were correct, and the second
+changed how this was tested.
+
+**The engine is split down the middle.** `scripts/validate-record-retirement.ts` calls the parser six
+times, builds seven regexes over XML, and performs ten `.replace()` call expressions across nine lines
+— seven of them document mutations.
+
+- **Validate's eligibility scan is parser-based**: `walkNodes(findingsRoot)` reading
+  `node.attributes.status` (`:1199-1215`).
+- **The move engine is regex-based**: `retireRecord` scans `elementSpans` and reads `attrOf(span.text,
+  &quot;status&quot;)` (`:985-1000`). `elementSpans` matches `&amp;lt;Tag\b[\s\S]*?&amp;lt;/Tag&amp;gt;` and `attrOf`
+  matches an attribute **anywhere in the element text**, not only the open tag.
+
+**Nothing keeps the two views in agreement, and they disagree on legal XML.** Rewriting one live
+element's open tag three ways, each valid and each parsing identically:
+
+| variant | parser sees live | regex path sees live |
+|---|---|---|
+| unchanged | 213 | 213 |
+| single-quoted attributes | 213 | **212** |
+| spaces around `=` | 213 | **212** |
+| attributes reordered | 213 | 213 |
+
+**The consequence is not a silent skip — it is an unresolvable record.** Reproduced end to end on a
+fixture: give one live finding a payer via a registry row, and write that finding's open tag with
+single quotes. Validate exits 1 reporting **both** `finding-eligible-still-live` — the parser sees an
+eligible element — **and** `status-file-mismatch`. Running `--retire` reports `moved 1`, which is the
+row; the finding stays live because the move engine cannot see it. Validate afterwards reports the same
+two findings again. **No sequence of shipped commands clears it**, and the error message's own remedy
+(&quot;--retire / move the eligible entry&quot;) is one the engine will not perform.
+
+**A formatter, a human, or another tool emitting equally valid XML is enough to reach that state.** No
+schema forbids the formatting ([F207](#f207)), and nothing warns before it happens.
+
+**One live instance already shows the collision surface is populated**, though currently shadowed
+rather than safe: `F195`'s body in `findings-retired.xml` contains the literal string `status=&quot;retired&quot;`
+as prose, and `attrOf` is correct there only because the open tag happens to sit earlier in the string.
+
+**This is one defect wearing four hats.** No shape check ([F207](#f207)) means no guaranteed structure;
+no guaranteed structure is why regex is reached for; regex over text is why volume is counted in lines
+([F206](#f206)); and regex over prose is why a quoted phrase minted a false payment ([F208](#f208)).
+Narrowing any one pattern patches one hat.
+
+**The remedy is a direction, not a patch:** parse for every read; take positions from the parser so
+writes stay surgical without matching; bind attribute reads to the open tag; declare payment
+structurally; and ship the shape check that makes it well defined. Byte preservation is a hard
+requirement — reserializing would rewrite prose, entities and the diff stability citations depend on —
+so the answer is parser-derived offsets, not a round trip. The parser exposes no offsets today, which
+is exactly why the engine reaches for regex.
+
+Owner: chartered as `C-RECORD-PARSE`, with [F206](#f206), [F207](#f207) and [F208](#f208) as its
+findings.
+
+**Two method notes, both recorded against the authority.** First, the authority reported &quot;collisions in
+today's corpus: zero, therefore safe&quot; — the wrong standard, establishing present behaviour rather than
+soundness; the maintainer's objection produced the equivalence-class test above. Second, the authority
+described the failure as the eligibility scan silently skipping elements. That was backwards: the scan
+parses, the **move** matches, and the real failure is the deadlock between them — corrected here after
+the executor reproduced it and the authority reproduced it independently.
+</Body>
+  </Finding>
+        <Finding id="f210" token="F210" status="live">
+    <Title>### F210 — a `git diff` close criterion with no baseline cannot fail, and one archived bundle shipped two. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `49b4ebb`, during the `C-RECORD-PARSE` spec review.
+
+`git diff --exit-code -- &amp;lt;paths&amp;gt;` compares the working tree to the **index**. Once a bundle's work
+is committed — which it is by close — the form is always clean, so a criterion using it passes
+regardless of what the bundle did. Demonstrated: on the branch that rewrote every record file, the
+base-less form over those exact paths exits **0**; the same paths with a base commit exit **1**.
+
+**Population, measured rather than sampled:** of the archived specs carrying a `git diff --exit-code`
+criterion, **17** have one, **16** name a baseline commit, and **1** does not —
+`C-CITATION-ANCHOR-REPAIR`, whose prose says &quot;pre-change tree&quot; while its commands name no commit. Its
+criteria were therefore satisfied by construction at its close.
+
+**Lint is not the gap.** `change.close-evidence-undiscriminating` states its own limit in its
+explanation: *&quot;The rule catches only the cheap class: it does not prove the command can fail…
+`git diff --exit-code` over the wrong paths still exit 0.&quot;* It never claimed this class. **The check is
+human**, and it failed once in the archive and once in a draft — the draft caught in review only
+because the authority ran the command against a branch that had actually changed the paths.
+
+**The rule for authors:** every diff-based criterion names a baseline commit, and the author shows it
+**failing** as well as passing before the artifact is approved. A criterion demonstrated only in the
+passing direction carries no information — the same principle as [F204](#f204), where a check sat
+before the only writer of the bytes it checked.
+
+**A related trap, recorded because it bit the authority in the same review:** a byte diff answers &quot;did
+these bytes change&quot;, not &quot;did this document change&quot;. Valid XML documents differ in bytes while parsing
+identically — measured on the real `registry.xml`: single-quoting one attribute and spacing one `=`
+gives 12,985 bytes against 12,983, `diff` exits 1, and the parsed trees are **identical**. Byte
+instruments are right for &quot;this bundle modified nothing&quot; and for a golden-output promise; they are the
+wrong instrument for &quot;the content is unchanged&quot;.
+
+Owner: no bundle. The archived instance is immutable and closed; this entry exists so the rule is
+written down where the next author will find it.
+
+**Method note against the authority.** Two errors in one review, both of the kind this record keeps
+recording. &quot;Every prior bundle used the base-commit form&quot; was a population claim made from the specs
+the authority happened to have read — the measurement above says 16 of 17. And the byte figures first
+reported (12,939 → 12,945) were JavaScript string `.length`, which counts UTF-16 code units, not bytes;
+`wc -c` gives 12,983. Reporting code units as bytes inside an argument about choosing the instrument
+that answers the question is the error the argument was about.
+</Body>
+  </Finding>
+        <Finding id="f211" token="F211" status="live">
+    <Title>### F211 — current-mode lint re-evaluates an active bundle's baseline assertions, so a conversion bundle's root lint is guaranteed red between its first write and its archive. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `f9fa8a7`, during `C-RECORD-PARSE`'s implementation, raised by the executor
+and reproduced by the authority.
+
+`BaselineAssertions` describe the world **before** the bundle's work: `C-RECORD-PARSE`'s assert that the
+engine still contains `PAID_FINDING_RE`, `function childInner` and `new RegExp`, and that
+`scripts/fixtures/record-parse` does not yet exist. Those are exactly what the bundle removes and
+creates. Current-mode lint evaluates them against the **present** tree, so from the first converted
+write until the archive, `bun ./src/grace.ts lint --path .` on this root exits 1 with precisely four
+`assertion.MustContain` / `assertion.MustNotExist` errors, all naming the bundle's own `plan.xml`.
+
+**It resolves at the archive and the close is safe.** Archived plans are evaluated *syntax only, never
+semantic* — the comment says so at `src/lint/core.ts`, both sections passing the semantic flag false —
+and **74** archived bundles carry `BaselineAssertions` while `main` lints green. So `AC-CLOSE-LINT`'s
+post-archive `lint 0/0` is reachable; the red is a window, not a defect in the bundle.
+
+**The cost is misreading.** Anyone running root lint mid-bundle — a maintainer checking state, a CI
+step, a later dispatch — sees four errors that look like failures and are the assertion set working as
+designed. A well-formed baseline is *supposed* to fail once the work lands.
+
+Owner: a later bundle, if the maintainer wants the window narrowed. Options are a matter of design, not
+a patch: current mode could skip the selected bundle's baseline, or the report could label those errors
+as baseline-of-an-active-bundle rather than plain errors.
+</Body>
+  </Finding>
+        <Finding id="f212" token="F212" status="live">
+    <Title>### F212 — a payer-map measurement over a synthetic archive silently under-reports unless the archive mirrors real membership. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `f9fa8a7`, reported by the executor against its own intermediate work.
+
+`derivePayerMap` gates every registry row on `archive.has(row.name)`. A measurement that builds a
+synthetic `repoRoot` to isolate the rows-only derivation therefore mints **nothing** from rows unless
+that synthetic archive contains a directory for each real row name. The failure is silent: the map
+comes back small and plausible, with no error and no warning.
+
+The executor's first two rows-only measurements were wrong for exactly this reason before it noticed;
+the recorded baseline uses a synthetic archive with one directory per real archive name and calls the
+**shipped** `derivePayerMap` rather than re-deriving the logic.
+
+**The rule that follows:** a payer-map measurement calls the shipped function, and its fixture mirrors
+real archive membership by name. Re-implementing the derivation, or shrinking the archive for
+convenience, produces a number that is wrong in the safe-looking direction — fewer payments than
+reality, which reads as &quot;nothing depends on this&quot; exactly when something does.
+
+Same family as the count errors this record keeps recording: the instrument was not wrong, the
+**population it was pointed at** was.
+
+Owner: no bundle. It is a measurement rule for whoever next reasons about payments.
+</Body>
+  </Finding>
+        <Finding id="f213" token="F213" status="live">
+    <Title>### F213 — a `CloseEvidence` command that does not exercise the claim cannot fail, and one draft spec shipped three. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `654b5a3` by the authority, reviewing the `C-PAYMENT-RECORD-4` draft spec
+before approval. Caught at review; nothing was approved and nothing merged.
+
+[F204](docs/plans/active/RM-GOVERNED-PATH/findings.xml) named the **ordering** defect: a criterion
+placed before the only writer of the bytes it checks cannot fail.
+[F210](docs/plans/active/RM-GOVERNED-PATH/findings.xml) named one **instrument** defect: a `git diff`
+criterion with no baseline commit cannot fail. Both are species of a genus neither names — *the
+evidence command does not exercise the claim* — and the genus is what keeps recurring, because an
+author who has satisfied F204's ordering rule and F210's baseline rule still has no prompt to ask
+whether the command can observe the assertion at all.
+
+Three criteria in one draft, each citing F204 and F210 in the same artifact's evidence Constraint:
+
+- `AC-FLUSHED-F204` asserted the flushed entry is live exactly once in `findings.xml` and
+  `decisions.xml`; its `CloseEvidence` was `bun test scripts/validate-record-retirement.test.ts`, a
+  file containing **zero** occurrences of `f204` in either case. It passes whether the entry is
+  present, absent, duplicated, or retired.
+- `AC-ROOTS-CONSISTENT` called itself &quot;the arithmetic and read-back tripwire&quot; and said in its own
+  prose that the plain validator does not check either — then handed its proof to a suite whose only
+  production-root instrument *is* that validator. Measured on a throwaway copy of the record:
+  `headroom` 707→807 (so `base + headroom ≠ ceiling`) → validator exit **0**; `base` 7139→9999
+  against a 7139-line file → validator exit **0**. All three markers the criterion claimed to trip
+  on pass. The probe that would discriminate was printed in `Assumptions` and never wired as
+  evidence.
+- `AC-RETIRED-FINDINGS` asserted every retired finding carries a `PaidBy` naming its payer.
+  `scripts/validate-record-retirement.ts:1351` skips any finding whose `status` is not `&quot;live&quot;`, so
+  the validator decides **eligibility of live findings** and never re-validates a retired one; no
+  suite assertion covers the retired side. The criterion's own named failure modes — &quot;PaidBy
+  missing, hand-edited to a name the pairing refuses&quot; — pass silently.
+
+The shape is not laziness. Each command was real, ran green, and was reported green; the suite is
+large and genuinely tests the engine, so citing it *feels* like citing coverage. What was missing is
+the one question that separates a command from an instrument: **what mutation makes this command
+red?**
+
+**The rule that follows:** a criterion is not delivered until its author names the mutation that
+makes its `CloseEvidence` fail and runs it. Passing direction plus failing direction, per criterion,
+recorded — the same standard this record already demands of a diff baseline, generalized to every
+instrument. A criterion whose failing direction cannot be produced does not belong in the artifact;
+either wire an instrument that can observe the claim, or delete the claim.
+
+Corollary for suites: citing `bun test &amp;lt;file&amp;gt;` proves only what that file asserts. Before a suite is
+named as evidence, grep it for the subject of the claim. A large green suite is the easiest place in
+this repository to hide a criterion that cannot fail.
+
+Owner: no bundle. It is an authoring and review rule, and belongs beside F204 and F210 as the genus
+they are species of.
+</Body>
+  </Finding>
+        <Finding id="f214" token="F214" status="live">
+    <Title>### F214 — the run ledger records that a command ran, never who ran it, so an authority's verification is indistinguishable from execution. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `9629ceb` by the authority, verifying `C-PAYMENT-RECORD-4`'s
+implementation report.
+
+Re-running one of the plan's own `Verification` commands —
+`bun ./src/grace.ts lint --path . --change C-PAYMENT-RECORD-4 --assertions target --run-commands` —
+appended four `command-run` events to the bundle's loose `run/` directory, one per
+`MustPassCommand`. The bundle went from 15 loose events to 19 while nobody was executing anything:
+the authority was checking the executor's claims, and the act of checking wrote into the artifact
+under examination.
+
+The four new events (`16`–`19`) are byte-equivalent in content to the executor's own (`12`–`15`) —
+same `command`, same `exitCode=&quot;0&quot;`, same `assertionPassed=&quot;true&quot;`, same
+`source=&quot;lint-run-commands&quot;`. Nothing in the event says who invoked it. After the fold, the durable
+`run-ledger.xml` will carry eight `command-run` entries for four commands, and a reader auditing
+*what execution ran* gets a doubled answer with no way to separate the two runs.
+
+This is not a defect in the flag: `--run-commands` is documented to record, and the plan says so.
+It is a gap in what the event captures. Verification by the authority is a first-class, required
+act in this methodology — the evidence standard demands it — so it is going to keep happening, and
+it will keep being recorded as though execution did it.
+
+**The rule that follows, until the event carries provenance:** the authority notes in the close
+which loose events its own verification produced, and an event count is never cited as evidence of
+what execution did without subtracting them. The cheap remedy is an actor or origin attribute on
+the event; the expensive symptom is an audit that cannot tell a re-run from a run.
+
+Owner: no bundle. It belongs with the evidence-provenance rules ([F213](#f213) is its neighbour: one is
+evidence that cannot fail, this is evidence that cannot be attributed).
+</Body>
+  </Finding>
+        <Finding id="f215" token="F215" status="live">
+    <Title>### F215 — a close criterion that pins a fixed base commit against a floating working-tree read stops describing its own bundle the moment a later bundle touches the same bytes. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `3ba0d77`, while scoping the index-ratchet charter.
+
+`C-PAYMENT-RECORD-4`'s `AC-ROOTS-CONSISTENT` asserts that every persisted ceiling is byte-identical
+to its value at the base commit, and answers it with a command that extracts `ceiling` from
+`git show $B:$p` on one side and from `head -1 $p` — **the working tree** — on the other. The base
+side is pinned; the working side floats forever.
+
+**Both directions were run.** As shipped, today, the command exits **0**. With only the index root
+rewritten to the values the chartered `C-INDEX-METRIC` will persist, the same command exits **1**.
+Nothing about `C-PAYMENT-RECORD-4` changed; a later bundle moved a byte the criterion never owned.
+
+**It is not mechanically re-run**, and that is the only reason this is cheap: review's close-evidence
+audit takes a single change id, resolves that one bundle, and reads `run-ledger.xml` for a recorded
+evaluation — it never executes a command and never walks other archives
+(`src/review/core.ts:1803-1849`). So the criterion goes quietly false rather than red.
+
+**This is [F210](#f210)'s mirror.** There the criterion had no baseline; here it has one, on the wrong
+side. The genus is the same: an instrument that does not observe the window the claim is about.
+
+**The rule:** a criterion comparing against a base commit pins **both** sides to the bundle's own
+range. A working-tree read is a claim about the present, and a closed bundle has no present.
+
+Owner: the close-evidence rules. It belongs with [F213](#f213) and [F214](#f214).
+</Body>
+  </Finding>
+        <Finding id="f216" token="F216" status="live">
+    <Title>### F216 — the record's root attributes are maintained by hand on every write, and the only tool that rewrites them refuses to run unless something moves. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `3ba0d77`, from `git log -L1,1` on the record roots.
+
+The production tripwire requires every live root to satisfy `base + headroom = ceiling` **and** for
+`base` to equal its shipped metric read back. Any write to the record therefore obliges a matching
+root rewrite. The only code that rewrites an *existing* record's roots is inside the `--retire` move, which
+returns early when nothing was eligible to move — so the tool cannot be used for the ordinary
+case. (`--split` also writes root attributes, but only onto a newly created record from a
+pre-split dump, never onto an existing record directory — corrected 2026-09-09 after the
+executor measured the broader claim false.)
+
+The consequence is visible in history. Every root change was hand-written by the bundle that wrote
+the record, ceiling held constant while headroom absorbed the delta:
+
+```
+registry.xml   11/15 -&gt; 13/13 -&gt; 12/14      (ceiling 26 throughout)
+decisions.xml  301/40 -&gt; 327/14 -&gt; 331/10 -&gt; 339/2 -&gt; 340/1   (ceiling 341 throughout)
+```
+
+**So &quot;ceilings are rewritten only by a move&quot; describes the ceiling, not the root.** Base and headroom
+are rewritten by hand, routinely, by every record-touching bundle — including the charter of a new
+bundle, since adding a registry row changes `liveRowCount` and the tripwire compares it to `base`.
+
+This also corrects an argument the authority made this session: M2 (a remeasure mode) was rejected on
+the ground that it would introduce a permanent new way to rewrite roots outside a move. The permanent
+path already exists and is unguarded; it is a pair of human hands.
+
+Owner: a later charter. The remedy is a mode that rewrites roots from the shipped formula without
+requiring a move; the symptom is that the tripwire's correctness depends on nobody miscounting.
+</Body>
+  </Finding>
+        <Finding id="f217" token="F217" status="live">
+    <Title>### F217 — close-evidence command shapes are token-based, not prefix-based, so a `bash -c` wrapper is shippable whenever its inner command matches a shape. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `3ba0d77`, against `src/artifact/grammar.ts:100-176,191-204`.
+
+`closeEvidenceCommandIsDiscriminating` flattens the command text, splits it on spaces, and asks each
+shipped shape whether the **token list** matches. `git-diff-exit-code` matches any command whose
+tokens include `git`, `diff` and `--exit-code`, wherever they sit. Configured extra shapes are
+prefix-matched; the defaults are not.
+
+So a `bash -c '…'` command is discriminating whenever the command inside it matches a shape, which is
+why `C-PAYMENT-RECORD-4` shipped one and closed at `--fail-on warnings`.
+
+**This falsifies a rule the authority carried into this session** — that a `bash -c` probe is
+unshippable as `CloseEvidence`. The earlier failure it was drawn from was a `bash -c` whose inner
+command matched **no** shape; the wrapper was never the cause. Written onto the wrapper, the lesson
+forbade a whole class of correct instruments.
+
+**The rule:** check a candidate command against the shape table by flattening it to tokens, not by
+looking at how it starts.
+
+Owner: no bundle; it is a correction to the authority's own brief-writing rules.
+</Body>
+  </Finding>
+        <Finding id="f218" token="F218" status="live">
+    <Title>### F218 — an executor that probes in a throwaway tree cites that tree's line numbers, and they point at unrelated code in the one that ships. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `3ba0d77`, auditing the `C-INDEX-METRIC` draft spec.
+
+The executor converted the record engine in a throwaway copy to measure behaviour — correct practice,
+and the measurements were sound. But the `file:line` citations it wrote into the spec were sourced
+from that copy. `scripts/validate-record-retirement.ts:376-385` and `:1106` were cited twice for the
+rulings provenance guard; at `HEAD` the declaration is one line at `:446` and the comparison is at
+`:1442`, and the cited ranges hold `expandFRange` and a decision-move loop. The cited lines are
+plausibly where the *inserted* guard sat in the converted tree.
+
+**Five more citations in the same document were off** — an off-by-one, a range that excluded the very
+shape its own sentence depended on, and two that mis-located a test's metric selection. Every
+behavioural claim in the document measured true; only the addresses were wrong.
+
+**So the failure is invisible to every check that matters to an executor.** The suite is green, the
+validator exits 0, lint is 0/0 — nothing in the product reads a prose citation. The artifact is a
+map, and the map was drawn of a territory that no longer exists.
+
+**The rule:** a probe tree measures behaviour and never sources an address. Every `file:line` that
+ships in an artifact is re-read in the committed tree at `HEAD` before it ships, and the sweep covers
+every citation in the document, not the ones someone happened to question.
+
+Owner: the brief-writing rules. Neighbour to [F213](#f213) — one is evidence that cannot fail, this is a
+citation that cannot be followed.
+</Body>
+  </Finding>
+        <Finding id="f219" token="F219" status="live">
+    <Title>### F219 — reading an artifact whole is not the same as verifying it, and the authority conflated them. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `3ba0d77`, across two review rounds of the same draft spec.
+
+The authority read the `C-INDEX-METRIC` spec end to end and reported three defects as the full
+picture, satisfying [F136](#f136)'s rule to read whole and the house rule that every known issue travels
+in one message. A subsequent audit of the same unchanged bytes found **nine more**, including a
+criterion whose evidence could not go red — the same class as one of the three already found.
+
+**The first pass followed the argument; it did not follow the addresses.** Structural reading catches
+contradiction and unsatisfiable criteria in the prose. It does not catch a citation that points at
+the wrong line, because nothing in the argument looks wrong — the sentence is coherent and the claim
+is true, only the address is false. Those need a different pass: open each cited line.
+
+**&quot;One message, the whole picture&quot; is a duty owed to the reader, and it is only as wide as the
+inspection behind it.** Reporting three as the complete set, when the inspection could not have found
+the other nine, is the serial disclosure the rule exists to prevent — arrived at honestly.
+
+**The rule:** before reporting defects in an artifact, run both passes — the argument pass and the
+citation pass — and say which passes were run. A defect report names its own inspection's coverage,
+so &quot;complete&quot; means complete with respect to something stated.
+
+Owner: the authority's review procedure. Neighbour to [F218](#f218), which is the executor-side half of
+the same gap.
+</Body>
+  </Finding>
+        <Finding id="f220" token="F220" status="live">
+    <Title>### F220 — the authority ratified a design addition on principle and never drove it against the shipped suite, and it was unsatisfiable. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `3ba0d77`, when a plan brief stopped on an approved spec.
+
+The executor proposed an index provenance guard as a deviation and flagged it for the authority to
+strike. The authority **ratified it** — reasoning that M1 hand-writes a ceiling, that the rulings
+genre had already closed that window, and that leaving it open would be debt this bundle created. The
+argument was clean and the conclusion was wrong twice over.
+
+**It could not be implemented.** The rulings twin runs unconditionally in plain validation
+(`scripts/validate-record-retirement.ts:1422`), so an index guard fires on every record directory
+including fixtures. Seven inline suite fixtures carry an index ceiling of 1000
+(`scripts/validate-record-retirement.test.ts:112,425,585,856,908,950,1363`) and the golden fixture's
+post-move ceiling is 312 — all above the constant's 296. The guard turns green shipped tests red, and
+every resolution contradicts another part of the same spec. It reached ratification, approval, and a
+fingerprint before anyone ran it.
+
+**And it was never this bundle's debt.** [F216](#f216), staged by the same authority earlier in the same
+session, records that hand-written root attributes are the standing practice for every
+record-touching bundle and that every genre except rulings already has this window open. The bundle
+inherits the condition; the &quot;no debt&quot; law was invoked for debt the bundle did not create.
+
+**The rule that was skipped is the one already written down**: exercise the product, do not accept a
+passing argument. The authority drove probes against every claim the executor made and none against
+the one it added itself. **A design addition is a claim, and the author's own additions are the
+claims least likely to be probed** — so they are probed first, against the shipped suite, before
+ratification and not after approval.
+
+Cost: one supersede, at depth 1.
+
+Owner: the authority's review procedure. Neighbours [F219](#f219) (an inspection's coverage is only as
+wide as the passes it ran) and [F213](#f213) (evidence that cannot fail).</Body>
   </Finding>
         </Findings>

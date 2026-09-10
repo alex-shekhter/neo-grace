@@ -3335,4 +3335,47 @@ the defect is **reachable on the tree you will run it against**; if the live pro
 the broken state, the fixture is part of the deliverable, not an implementation detail.
 </Body>
   </Finding>
+<Finding id="f205" token="F205" status="retired">
+    <PaidBy>C-INDEX-METRIC-2</PaidBy>
+    <Title>### F205 — the citation index is a one-way ratchet: its lines never come back, and the remedy its own error message prescribes cannot work for that genre. **[verified]**</Title>
+    <Body>
+Measured **2026-09-08** at `49b4ebb`, while reviewing `C-PAYMENT-RECORD-3`'s draft spec.
+
+Three shipped facts, each read from `scripts/validate-record-retirement.ts`:
+
+- **The index budget counts whole-file lines.** `checkCeiling(&quot;index&quot;, …, newlineCount(xml), &quot;line&quot;)`
+  — not live entries. `registry` is the only genre measured by live rows.
+- **Retirement never removes an index line.** `setEntryLayer` rewrites the `layer` attribute in place;
+  the `Entry` element stays in `decisions.xml` forever. Only findings, rulings and registry rows move
+  to a retired sibling. **The index has no retired sibling.**
+- **The ceiling can only hold or fall.** `persistSnapshot(indexPrev, newlineCount(indexXml), 40, true)`
+  passes no `ceilingBase`, so the ceiling is `min(previous, base + 40)` — a historical low-water mark,
+  pinned at **341** and unable to rise.
+
+**So the index base only grows, and no operation in the product reduces it.** At this commit
+`decisions.xml` is `base=&quot;339&quot; headroom=&quot;2&quot; ceiling=&quot;341&quot;`: **two more entries and the record stops
+accepting findings at all.**
+
+**The prescribed remedy does not exist for this genre.** On breach the validator emits
+`ceiling-exceeded` with *&quot;--retire / move the eligible entry to the retired sibling. Raising the
+persisted ceiling is not the remedy.&quot;* For the index, `--retire` moves nothing — the line stays — so
+the message names a remedy that cannot be performed, and forbids the only other one.
+
+**Retirement does not help, and the payment work does not change this.** `C-PAYMENT-RECORD-3` frees
+**699** lines in the findings genre and **zero** in the index: its 19 retirements flip 19 `layer`
+attributes and remove no line. Before that bundle the record admits one more finding (findings-bound);
+after it, one more (index-bound). **The capacity is unchanged at one.** That is not a defect in the
+bundle — the payments are real and the findings genre genuinely needed the room — but it means the
+capacity problem is not the one that bundle solves.
+
+**Remedies are a design question, not a patch**, and each needs a ruling: give the index a retired
+sibling so entries can leave the live file; measure the index budget by live entries rather than file
+lines; or re-derive the index ceiling from the current base instead of the historical minimum. The
+third is closest to what the other genres already do, and it is the one the ceilings-never-raised rule
+most directly forbids.
+
+Owner: the maintainer's next charter decision. This is the binding wall on the whole record, and it is
+two entries away.
+</Body>
+  </Finding>
 </Findings>
