@@ -1,0 +1,573 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-INDEX-METRIC-2>
+    <IntentSummary>
+      Convert the record engine's index budget from whole-file lines to the live-`Entry` count,
+      ship the genre-aware index breach diagnostic, regenerate the one invalidated golden file,
+      correct the governed prose, and re-select the roots-invariant tripwire's metric — per the
+      approved spec `.ngrace/changes/active/C-INDEX-METRIC-2/spec.xml` and only within it; the plan
+      conforms to the spec, it does not extend, narrow or reinterpret it. DurableScope anchors
+      exactly the one module the spec's AffectedAreas names, M-GRAMMAR (the LINKS target of
+      src/artifact/xml.ts:5, whose parser the record engine is built on); no other anchor is named
+      and no synthetic module is minted — none of the six governed write paths sits under src/, so
+      the module-ownable predicate (src/lint/core.ts:724) is never satisfied and
+      change.graph-anchors-miss-write-scope cannot fire for any anchor choice.
+
+      ObservedWriteScope is exactly the spec's six governed files —
+      scripts/validate-record-retirement.ts, scripts/validate-record-retirement.test.ts,
+      scripts/fixtures/record-parse/golden/decisions.xml,
+      docs/plans/active/RM-GOVERNED-PATH/decisions.xml, CLAUDE.md and docs/plans/README.md. The
+      bundle's own spec.xml and plan.xml are deliberately absent: the scope audit expects them
+      outside ObservedWriteScope at plan-approve, and run-ledger.xml and run/** are tool-owned
+      lifecycle paths no plan declares. The record root line is written once by the authority as
+      part of this bundle's own approved diff (the M1 act the spec's second Goal defines); no task
+      writes it and no task may claim a test guarantees the rewritten triple — the roots-invariant
+      instrument observes exactly two relations, base equals its live-`Entry` count read back and
+      base + headroom = ceiling, and the residual hand-edit window AC-INDEX-ROOT-REWRITTEN states
+      stays open by design. The rewritten values are the spec's own derivation; verifying them at
+      the record write is the authority's act. AGENTS.md is a symlink to CLAUDE.md (git mode 120000,
+      measured at this revision) and is neither edited nor written by any task — a write through
+      the link is either a no-op or silently un-twins the two names.
+
+      Decomposition and the red window (spec P1): four sequential tasks. T-001 lands the engine
+      conversion at all three metric sites — the validator's index ceiling check
+      (scripts/validate-record-retirement.ts:1423), the retire path's index persist
+      (scripts/validate-record-retirement.ts:1244) and the split path's index base
+      (scripts/validate-record-retirement.ts:591 and :595) — behind one exported module-level
+      constant, plus the genre-aware diagnostic, plus the golden regeneration; its boundary is
+      green because the standing suite's only conversion-sensitive pin is the golden (no shipped
+      test drives an index breach — the spec's T5), the findings and rulings messages are
+      byte-unchanged, and the roots-invariant test still compares the unchanged record against its
+      old line metric. T-002 adds the net-new fixture tests against the already-converted engine;
+      additive tests cannot redden a green suite. T-003 corrects CLAUDE.md and
+      docs/plans/README.md and extends the CLAUDE/README teaching test
+      (scripts/validate-record-retirement.test.ts:340-362) in the same task, so the extended test
+      and the clause it requires land together and the boundary is green. T-004 re-selects the
+      tripwire metric for decisions.xml and edits the stale line-metric comment
+      (scripts/validate-record-retirement.test.ts:2034-2038) last, because landing it earlier
+      would hold the suite red across every later boundary — the suite is red in the reverse
+      partial orders (the spec's T4 measurement), which is why T-004 is last and depends on all
+      three predecessors. Exactly one boundary is unavoidably red: after T-004 and before the
+      authority's M1 record write, the full suite shows exactly one failure, the roots-invariant
+      test at `decisions.xml: base equals its shipped metric read back`. That window is
+      authority-closed and expected; the engine change, the tripwire selection and the record root
+      rewrite land in the same commit, and the write closes the window.
+
+      Fix budgets (spec T1): FIX_SIGNATURE_REPEAT_BUDGET = 2 (src/grace-cursor.ts:187) and
+      FIX_DISTINCT_SIGNATURE_BUDGET = 4 (src/grace-cursor.ts:193) fire per task on the same
+      signature twice or four distinct signatures. A single task bundling engine, tests, fixture
+      and prose would carry at least four unrelated failure surfaces (metric pair, diagnostic,
+      split relations, golden bytes, teaching tokens) and burn the distinct budget on unrelated
+      causes; splitting the engine from its golden would open a red window (the converted engine
+      writes a different golden root line, so engine and regeneration are one task); splitting the
+      prose from the teaching-test extension would open another (the extended test requires the
+      clause). Each task below carries one failure family: T-001 the golden bytes, T-002 the new
+      fixtures, T-003 the teaching tokens, T-004 the single expected red. That is the decomposition
+      satisfying both budgets and the one-red-window rule together.
+
+      Golden honesty (spec T2): the one-time proof that regeneration hides nothing is an
+      execution-time dated probe run in T-001 — the committed golden bytes pinned to this bundle's
+      base commit (3ba0d77a76ba108be5a60e740d83dc2b734a7c46, the baseCommit recorded in this
+      bundle's run-ledger.xml) diffed against the file this task writes, the diff shown to be
+      exactly one line, the RecordIndex root open tag. Both sides are pinned to this bundle's own
+      range at the moment both are alive; the probe is a dated measurement recorded in the
+      executor's report, never a standing criterion — a close criterion comparing a fixed base
+      commit against a floating working-tree read stops describing its own bundle the moment a
+      later bundle touches the same bytes (staged finding F215), so no close instrument here reads
+      a base commit: the close-time instruments are the suite and the lint, which pin the end state
+      without one. The standing pin is the golden test itself
+      (scripts/validate-record-retirement.test.ts:1835).
+
+      Assertion wiring (spec T3): baseline assertions pin the shipped line-metric world and go red
+      exactly when the task that rewrites each pin lands — the four engine pins at T-001, the
+      teaching and comment pins at T-003 and T-004, the suite MustPassCommand at T-004 (the open
+      window). Target assertions are satisfiable at the target gate, which runs after the
+      executor's writes and before the authority's record write: nothing in TargetAssertions
+      depends on the record write, no target MustPassCommand runs the full suite (the
+      roots-invariant test is red in the open window — the full suite is close-bound evidence
+      through the spec's CloseEvidence commands, green again after the write), and the two target
+      commands — the golden subset and the real-record validator — are green on both sides of the
+      write. Final mode evaluates these same target assertions as the outer gate, after the record
+      write, where they are green. No Command text anywhere below contains
+      `--assertions current`, and none invokes a lint of this project root omitting `--assertions`:
+      current-mode lint re-evaluates active baselines and is expected red between T-001's first
+      write and archive (a conversion bundle's root lint is red in that window by design — the
+      C-REPORT-HONESTY framing — so no task's completion depends on it and the only current-mode
+      lint of this root in this bundle is the post-archive CloseEvidence of AC-CLOSE-LINT).
+
+      Execution/close boundary (spec T4): this plan covers execution only. Tasks emit the cursor
+      events the ngrace-execute skill assigns to execution — opened (epoch open at the first
+      task's start), progress (task start and completion), attempt (every verification cycle,
+      with signature kind and key on fail), verification-unavailable (when evidence cannot be
+      collected), pause and resume around interruptions, and terminal immediately before folding
+      the quiescent epoch, then cursor fold. Tasks must not emit or perform anything belonging to
+      the close: no gate approve, gate verdict, gate apply or gate archive; no ngrace supersede;
+      no status write to applied; no archive move; and none of the CLI-written kinds (escalation,
+      circuit, command-run, discarded) may be invented by hand. The spec's Constraint fixes the
+      role split: the executor authors artifacts and reports; it does not approve, commit, push
+      or run a gate.
+
+      No task carries a Satisfies element: every AC-* in the approved spec carries a complete
+      CloseEvidence child, the shipped rule treats that as the third state that is not a forgotten
+      mapping, and a Satisfies of a close-bound criterion is the error change.close-evidence-and-satisfied
+      (src/artifact/grammar.ts:2087). Every Criterion below names the mutation that turns it red.
+      Assertions state invariants and relations, never occupancy or archive-directory counts.
+      Names are mandated here so the pins are satisfiable: the engine gains
+      `export const INDEX_HEADROOM_ENTRIES = 40;` and `function liveEntryCount(xml: string):
+      number` (the mirror of liveRowCount at scripts/validate-record-retirement.ts:975, parsing as
+      decisions.xml and counting direct `Entry` children whose `layer` attribute is not
+      "retired"), and the governed prose gains the exact clause tokens the extended teaching test
+      requires. When this plan must name a tag or attribute form it writes character data with
+      entities (`&lt;`, `&gt;`, `&amp;`) and never paraphrases the brackets away. Explicit
+      generous timeouts on every net-new test that spawns a process (F185).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-GRAMMAR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/fixtures/record-parse/golden/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>CLAUDE.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/README.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-INDEX-METRIC-2/spec.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>checkCeiling("index", paths.index, files.index!, indexRoot, "line", findings)</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>persistSnapshot(indexPrev, newlineCount(indexXml), 40, true)</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>const indexBaseProbe = newlineCount(wrapRoot("RecordIndex", indexBody, {}));</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>const indexHeadroom = 40;</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>const metric = file === "registry.xml"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>newlineCount (whole-file lines) for the three line-budgeted</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>INDEX_HEADROOM_ENTRIES</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>liveEntryCount</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>"live-entry"</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>the eligible entries flip their index Entry layer to retired in place</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>childNodes(root, "Entry")</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>decisions.xml joins the live-entry metric</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>toContain("index Entry layers flip in place")</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>toContain("the index has no retired sibling")</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>CLAUDE.md</File>
+        <Text>index Entry layers flip in place</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>CLAUDE.md</File>
+        <Text>the index has no retired sibling</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>docs/plans/README.md</File>
+        <Text>index Entry layers flip in place</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>docs/plans/README.md</File>
+        <Text>the index has no retired sibling</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>M-GRAMMAR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/fixtures/record-parse/golden/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>CLAUDE.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/README.md</Value>
+      </MustExist>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>export const INDEX_HEADROOM_ENTRIES = 40;</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>function liveEntryCount(xml: string): number</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>checkCeilingValue("index", paths.index, indexRoot, liveEntryCount(files.index!), "live-entry", findings)</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>persistSnapshot(indexPrev, liveEntryCount(indexXml), INDEX_HEADROOM_ENTRIES, true)</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>const indexBaseProbe = liveEntryCount(wrapRoot("RecordIndex", indexBody, {}));</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>the eligible entries flip their index Entry layer to retired in place</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>the index has no retired sibling and its Entry lines stay</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>Raising the persisted ceiling is not the remedy</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>childNodes(root, "Entry").filter((entry) =&gt; entry.attributes.layer !== "retired").length</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>decisions.xml joins the live-entry metric</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>toContain("index Entry layers flip in place")</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>toContain("the index has no retired sibling")</Text>
+      </MustContain>
+      <MustContain>
+        <File>CLAUDE.md</File>
+        <Text>index Entry layers flip in place</Text>
+      </MustContain>
+      <MustContain>
+        <File>CLAUDE.md</File>
+        <Text>the index has no retired sibling</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/README.md</File>
+        <Text>index Entry layers flip in place</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/README.md</File>
+        <Text>the index has no retired sibling</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>checkCeiling("index", paths.index, files.index!, indexRoot, "line", findings)</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>persistSnapshot(indexPrev, newlineCount(indexXml), 40, true)</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>const indexBaseProbe = newlineCount(wrapRoot("RecordIndex", indexBody, {}));</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>const indexHeadroom = 40;</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>newlineCount (whole-file lines) for the three line-budgeted</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts -t "golden"</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+      </GraphAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>scripts/validate-record-retirement.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>scripts/fixtures/record-parse/golden/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>CLAUDE.md</File>
+      <File>docs/plans/README.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Convert the index metric to the live-`Entry` count at all three call sites behind one
+          exported constant, ship the genre-aware index breach diagnostic, and regenerate the
+          golden decisions.xml with the one-line diff shown
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            In scripts/validate-record-retirement.ts, add `export const INDEX_HEADROOM_ENTRIES =
+            40;` — one named module-level constant denominated in entries, the two headroom sites
+            the spec's T2 names both reading it — and add `function liveEntryCount(xml: string):
+            number`, the mirror of liveRowCount (scripts/validate-record-retirement.ts:975):
+            parseGraceXmlArtifact over the given text as decisions.xml, then the count of direct
+            `Entry` children of the parsed root whose `layer` attribute is not "retired". Convert
+            all three call sites to it, each with its named red-making mutation: the validator's
+            index ceiling check (scripts/validate-record-retirement.ts:1423, shipping
+            `checkCeilingValue("index", paths.index, indexRoot, liveEntryCount(files.index!),
+            "live-entry", findings)` — the registry-genre shape already shipped for live-row
+            budgets — where the mutation is the "line" unit reverting); the retire path's index
+            persist (scripts/validate-record-retirement.ts:1244, shipping
+            `persistSnapshot(indexPrev, liveEntryCount(indexXml), INDEX_HEADROOM_ENTRIES, true)`);
+            and the split path's index base (scripts/validate-record-retirement.ts:591 and :595,
+            shipping `const indexBaseProbe = liveEntryCount(wrapRoot("RecordIndex", indexBody,
+            {}));` with its headroom read from the constant, not a second literal). The clamp in
+            persistSnapshot (scripts/validate-record-retirement.ts:942) is untouched: ceilings
+            still only hold or fall. The retire path's early return is not touched either:
+            retireRecord still early-returns when nothing is eligible
+            (scripts/validate-record-retirement.ts:1134-1135), so the conversion gives the index
+            genre a retirement rule that relieves it and adds no new tool mode.
+          </Criterion>
+          <Criterion>
+            The index ceiling-breach message is genre-aware, shipped in this task: for the index,
+            the emitted flattened message reports the live-`Entry` count against the persisted
+            ceiling and reads `live index live-entry count N exceeds persisted ceiling M;
+            --retire / the eligible entries flip their index Entry layer to retired in place; the
+            index has no retired sibling and its Entry lines stay. Raising the persisted ceiling is
+            not the remedy.` — it names `--retire` as the operation, states the flip mechanic,
+            keeps the prohibition verbatim, and its flattened text contains neither `config key`
+            nor `ignoredDirs`. The findings, rulings and registry messages are byte-unchanged: the
+            shared remedy line (`move the eligible entry to the retired sibling`) survives for
+            them, as does checkCeilingValue's template shape
+            (scripts/validate-record-retirement.ts:1498). The two clause literals live in the
+            engine as contiguous strings so the target pins observe them.
+          </Criterion>
+          <Criterion>
+            Regenerate scripts/fixtures/record-parse/golden/decisions.xml from the converted
+            engine's fixture `--retire` — the golden test's own flow
+            (scripts/validate-record-retirement.test.ts:1711-1722 and :1835): build the
+            `--c-selection-row` fixture in a temporary root via
+            scripts/fixtures/record-parse/build-fixture.ts, run the converted engine with
+            `--retire docs/plans/active/RM-GOVERNED-PATH`, and copy the written decisions.xml over
+            the committed golden; the other six golden files are not written. Before regenerating,
+            capture the committed golden bytes pinned to this bundle's base commit
+            (3ba0d77a76ba108be5a60e740d83dc2b734a7c46, the baseCommit in this bundle's
+            run-ledger.xml) — `git show` of that path at that commit — and after regenerating,
+            diff the captured bytes against the regenerated file and show the diff is exactly one
+            changed line, the RecordIndex root open tag: from the committed
+            `&lt;RecordIndex base="339" headroom="2" ceiling="341"&gt;` to the converted engine's
+            `&lt;RecordIndex base="272" headroom="40" ceiling="312"&gt;` (the fixture instance the
+            spec's Assumptions record: 337 direct `Entry` children, 274 live, the move flipping
+            f21 and f21-correction). Any other differing line is a stop-and-report, not a
+            regeneration to absorb. This diff is a dated execution-time measurement recorded in
+            the executor's report — both sides pinned to this bundle's own range, never a standing
+            criterion, never re-read against a later tree (the staged finding F215 rule); the
+            standing pin is the golden test itself. The fixture's `input/` snapshot and every
+            other file under scripts/fixtures/record-parse/ stay byte-identical (spec NonGoal).
+            Failure: any golden byte differing for a reason other than the root line turns the
+            golden test red.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>
+          Add the net-new fixture coverage: the live-`Entry` metric discriminating pair, the
+          genre-aware diagnostic content, and the split-path relations
+        </Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            scripts/validate-record-retirement.test.ts gains the discriminating metric pair,
+            net-new (the spec's T5: no shipped test drives an index breach — both shipped
+            ceiling-exceeded tests at scripts/validate-record-retirement.test.ts:183-201 and
+            :634-653 drive findings, and every planted index fixture carries ceiling="1000").
+            First direction: an index fixture whose whole-file line count exceeds its persisted
+            ceiling while its live-`Entry` count does not — blank lines between `Entry` elements
+            are the honest way to separate the two counts, the fixture parses clean, and the
+            ceiling sits between the two numbers — must validate exit 0; this is the exact fixture
+            the shipped line metric fails, so reverting either metric half to newlineCount makes
+            this test red (the named mutation). Second direction: an index fixture whose
+            live-`Entry` count exceeds its persisted ceiling must exit non-zero with
+            `ceiling-exceeded`; the mutation that makes it red is a ceiling raised to pass instead
+            of the metric changed. Both run through runValidator on isolated temporary roots with
+            an explicit generous timeout (F185).
+          </Criterion>
+          <Criterion>
+            A net-new test drives an index breach through a fixture with a shrunken index ceiling
+            and asserts the message content on stderr: `ceiling-exceeded`, `live index live-entry
+            count`, `--retire`, `the eligible entries flip their index Entry layer to retired in
+            place`, `the index has no retired sibling and its Entry lines stay`, `Raising the
+            persisted ceiling is not the remedy`, and — lowercased — neither `config key` nor
+            `ignoredDirs`; a second assertions block drives a findings-genre breach on its own
+            fixture and asserts stderr still names `move the eligible entry to the retired
+            sibling`, pinning the other genres' byte-unchanged message. Mutations named: restoring
+            the shared remedy string for the index makes the index assertions red; adding a
+            config-key remediation makes the prohibition assertions red; altering the findings
+            message makes the unchanged-genre assertion red. Explicit generous timeout (F185).
+          </Criterion>
+          <Criterion>
+            A net-new test runs `--split` against a minimal pre-split dump — one finding, one h2
+            decision, no registry tables, the spec's Assumption shape — in a throwaway root and
+            asserts the written index root's relations: base equals the live-`Entry` count of the
+            written index (parseGraceXmlArtifact plus childNodes over direct `Entry` children,
+            `layer` not "retired"), headroom equals INDEX_HEADROOM_ENTRIES imported from the
+            engine (the test file already imports named engine exports at
+            scripts/validate-record-retirement.test.ts:7-14), and ceiling equals base + headroom.
+            Discriminates both ways, per the spec's measurement: the shipped line-metric engine
+            writes a base inflated by two on the minimal dump and fails the base assertion; the
+            converted engine passes. Mutations named: either call site reverting to a line
+            computation or to a second literal makes this test or the golden bytes red. Explicit
+            generous timeout (F185).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>
+          Correct the governed prose in CLAUDE.md and docs/plans/README.md and extend the
+          CLAUDE/README teaching test with the index-flip clause in the same task
+        </Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            CLAUDE.md and docs/plans/README.md — the only two live files carrying the
+            retired-sibling prose (the spec's T6 corpus sweep; AGENTS.md is a symlink to CLAUDE.md
+            with no bytes of its own and is neither edited nor written by any task) — state the
+            index genre's actual retirement mechanic: each carries the exact clause tokens
+            `index Entry layers flip in place` and `the index has no retired sibling`, naming that
+            eligible index `Entry` layers flip in place and that the index has no retired sibling.
+            Minimal edits: every token the existing teaching test requires survives
+            (scripts/validate-record-retirement.test.ts:340-362 — decisions.md, decisions.xml,
+            findings, decisions, registry, index, live, retired, --retire, re-derives PaidBy,
+            never raised, resolving CodifiedIn, a resolving TaughtIn does not move it), the
+            overturned-criterion argument stays the spec's own, and the record's other prose is
+            untouched. Failure: the clause removed from either named file makes the extended test
+            red.
+          </Criterion>
+          <Criterion>
+            In the same task, extend the CLAUDE/README teaching test's per-file loop
+            (scripts/validate-record-retirement.test.ts:340-362) with
+            `toContain("index Entry layers flip in place")` and
+            `toContain("the index has no retired sibling")` for both files, so the prose cannot
+            silently regress. Landing the test extension without the prose — or the prose without
+            the extension — reddens this boundary; that is why one task carries both. Failure: the
+            clause absent from either file turns the extended assertions red.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>
+          Re-select the roots-invariant tripwire metric for decisions.xml, edit the stale
+          line-metric comment, and record the one expected red that the authority's M1 record
+          write closes
+        </Title>
+        <DependsOn>T-001 T-002 T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The production roots-invariant test
+            (scripts/validate-record-retirement.test.ts:2015-2046) selects the shipped metric per
+            file with the index rule added: registry keeps the live-Row rule, decisions.xml gets
+            the live-`Entry` count — `childNodes(root, "Entry").filter((entry) =&gt;
+            entry.attributes.layer !== "retired").length` — and findings and rulings keep
+            newlineCount. The stale line-metric comment
+            (scripts/validate-record-retirement.test.ts:2034-2038) is edited in the same task to
+            say `decisions.xml joins the live-entry metric`, removing the false `for the three
+            line-budgeted` claim. This test reads the real record, so the engine change, this
+            metric selection and the M1 root rewrite must land in the same commit; landing this
+            selection before T-001 would hold the suite red across every later boundary, which is
+            why this task is last and depends on all three predecessors. Failure: the selection
+            reverted for decisions.xml against the rewritten root makes this test red while the
+            rest of the suite stays green.
+          </Criterion>
+          <Criterion>
+            The open boundary, stated plainly: after this task and before the authority's M1
+            record write, the full suite shows exactly one failure — the roots-invariant test at
+            `decisions.xml: base equals its shipped metric read back` — because the record still
+            carries the pre-rewrite root while the selection now reads the live-`Entry` count. The
+            window is authority-closed and expected: the record write is the authority's act as
+            part of this bundle's own approved diff, never a task, its values are the spec's
+            derivation, and the write turns the roots-invariant test green (base equals its
+            live-`Entry` count read back; base + headroom = ceiling). This criterion claims only
+            what the instrument observes: no task asserts the rewritten triple's headroom or
+            ceiling against any constant, no task writes the record, and the residual hand-edit
+            window AC-INDEX-ROOT-REWRITTEN states is not closed here. Verification evidence for
+            this task is the expected open-window state: the roots-invariant subset exits non-zero
+            naming exactly that decisions.xml failure, the real-record validator exits 0 (the
+            live count does not breach the persisted ceiling on either side of the write), both
+            sibling validators exit 0, and selected target assertions with command evidence pass —
+            any red other than the one named failure is a fail, not a window.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts -t "roots invariant"</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-INDEX-METRIC-2 --assertions target --run-commands</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-INDEX-METRIC-2>
+</NgraceChangePlan>
