@@ -3512,4 +3512,130 @@ Owner: a later charter. The remedy is a mode that rewrites roots from the shippe
 requiring a move; the symptom is that the tripwire's correctness depends on nobody miscounting.
 </Body>
   </Finding>
+  <Finding id="f225" token="F225" status="retired">
+    <PaidBy>C-ROOT-WINDOW</PaidBy>
+    <Title>### F225 — the shipped flush invariant pins fifteen findings `live`, so the first payment of any of them turns the retirement suite red. **[verified]**</Title>
+    <Body>
+`scripts/validate-record-retirement.test.ts:2285` — the `C-FLUSH-AND-PAY flush invariant`, shipped in
+PR #85 — walks `f205` through `f220` and asserts, for every id but `f205`, that its holding element
+carries `status=&quot;live&quot;` (`:2299`, `:2307`) and that its index `Entry` layer agrees with that fixed
+expectation (`:2311`-2312). Fifteen ids are pinned live. Six of them name a bundle or a maintainer decision as owner —
+`F206`, `F207`, `F208`, `F209`, `F211`, `F216` — so each is a payment waiting to happen, and `F216`
+is first in the queue. (A first count said three; it came from a pattern matching only the phrases
+&quot;a later bundle&quot; and &quot;chartered bundle&quot;, which missed &quot;chartered&quot;, &quot;the maintainer's decision&quot; and a
+named archived bundle. The executor's wider scan found six; re-measured by the authority, six.) A payment moves the
+finding to `findings-retired.xml` with `status=&quot;retired&quot;` and flips its index layer; the assertion then
+fails on both counts. The bundle that pays `F216` cannot close green without also editing this test.
+
+**Measured 2026-09-10 at `8bfa3b7`**, by reading the shipped assertion and by parsing the `Owner:`
+line of every finding in the pinned range (fifteen; six name a payer). Not driven, because the red direction is the next bundle's close,
+and driving it would mean retiring a live finding on a copy — the mechanism is not in doubt: the
+assertion compares a status attribute to a constant.
+
+**This is the expiring-pin class the same PR removed elsewhere.** PR #85 replaced
+`src/artifact/xml.test.ts`'s occupancy counts with relations because counts expire on the next
+legitimate write ([F221](#f221)'s neighbours, `C-FLUSH-AND-PAY-3`). A liveness pin expires on the next
+legitimate *payment*, which is the record's designed life cycle, so it is the same defect with a
+different trigger. The authority approved the spec that asserted &quot;`f206` through `f220` live&quot; as an end
+state and did not ask what happens when the end state is meant to change. The relation that survives
+payment is already in the same test: *exists exactly once across the two findings files, and the index
+layer agrees with the holding file* — with no fixed expectation of which file that is.
+
+Disposition: repaired at the point of detection by `C-FLUSH-AND-REPAIR`, whose write scope already
+holds this suite — the assertion is rewritten to the payment-invariant form, and the bundle's own new
+assertions for `F221`–`F224` are written in that form from the start so they add no new pin. This entry
+cannot flush in that bundle (the findings genre has five lines of headroom after its flush) and is
+paid by the first bundle whose `--retire` frees the space — the root-window bundle that pays `F216`,
+which is also the bundle this pin would have reddened. Neighbour to [F216](#f216) and to
+[F198](#f198) (a settled finding that cannot be paid is a finding that never leaves the live genre).
+</Body>
+  </Finding>
+  <Finding id="f226" token="F226" status="retired">
+    <PaidBy>C-ROOT-WINDOW</PaidBy>
+    <Title>### F226 — paid lessons do not reach the teaching surface: eight rules the record has settled are absent from the authoring skills and two more are only half there, and the authority re-types all ten into every brief. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-10 at `8bfa3b7`**, over `skills/ngrace/ngrace-spec`, `ngrace-plan`, `ngrace-execute`
+and `ngrace-reviewer`, by reading the passage behind every keyword hit rather than counting hits — the
+first pass counted seven rules present, and five of the seven were mentions of a different thing; a
+second pass, made by *following* `ngrace-plan` to author a brief rather than grepping it, found two of
+the &quot;absent&quot; rules partly present, corrected below. Eight absent, two partial.
+Present as rules: the `F43` escaping rule (verbatim in spec and plan), the fix budgets (execute), and
+the three review moments (reviewer). Absent, each searched with a pattern wider than the claim:
+
+1. a byte-invariance `git diff --exit-code` criterion must name a baseline commit — the base-less form
+   cannot fail (`F210`; &quot;baseline&quot; in the skills means only the baseline assertion gate);
+2. an archive pathspec must exclude the bundle's own arrival and any sanctioned move in its window,
+   named with its reason (`F188`; &quot;exclude&quot; in the skills refers to the schema reference's coverage);
+3. `CloseEvidence` is evaluated only in the applied-archive state, so criteria are written to hold
+   there (`F196` — present on the reviewer's checklist, absent from the skill that teaches authoring,
+   which is that finding's own claim, still true);
+4. **partly present** — `ngrace-plan` states both halves (&quot;Unmapped criteria warn&quot;; &quot;Satisfies of a
+   complete CloseEvidence `AC-*` is an error&quot;, `:96`-97); what it never says is the consequence that
+   `AC-CLOSE-LINT`'s `--fail-on warnings` turns the warning into an uncloseable bundle, which is the
+   reason the mapping is a trap rather than a nicety. A first draft of this entry counted the rule
+   absent: the search stopped at two hits in `ngrace-spec` and never reached `ngrace-plan`;
+5. **partly present** — `ngrace-plan` requirement 6 (&quot;scope covers what the deliverable forces, not
+   only the files it targets&quot;, `:61`) is the principle; the specific `F136.1` mechanics — read each
+   forced file's `LINKS:` header and enumerate its owner in *every* module list the spec carries,
+   because a list that appears twice can be wrong twice — are absent;
+6. structural counts are parsed, never grepped — `grep -c` counts lines and these artifacts wrap;
+7. an exit code read through a pipe is the pipe's;
+8. a test that measures the real repository carries an explicit generous timeout (`F185`);
+9. no criterion may assert a state the shipped engine will not produce, require a change another
+   criterion forbids, or name a probe that cannot be run — three supersedes in one lineage;
+10. every criterion is probed on a throwaway copy in both directions before approval (&quot;mutat&quot; in the
+    skills is &quot;do not mutate current graph state&quot;).
+
+A candidate that may belong to the brief rather than the skill: report by exception, with a standing
+`WRONG` field for what the brief got wrong.
+
+**First live sample, 2026-09-10 — an executor following `ngrace-plan` under a brief that carried a
+standing `SKILL GAPS` report field.** It named five gaps by skill line; three restate items above
+(the `--fail-on warnings` consequence; `F184` and `F210` silent in `command_phase_rules`), two are
+new: (11) the skill is silent that `ngrace plan new`'s skeleton seeds — a synthetic
+`M-AFFECTED-MODULE` in `DurableScope`/`MustExist`, an `AC-SKELETON` `Satisfies` under `T-001` — are
+placeholders, so the spec had to teach &quot;do not mint a synthetic module&quot; and where the one `Satisfies`
+goes; (12) `must_do` 15 has the authoring executor run `ngrace review` and `gate approve` itself
+after a lexicon phrase, with no carve-out for a split model where the authority performs the approval
+write (`F84`), so every brief in this repository overrides the skill by hand. The field cost the
+executor a paragraph and produced two findings; it stays in every brief.
+
+**Second and third samples, 2026-09-10/11 — `ngrace-execute` and `ngrace-spec`.** New gaps: (13)
+`ngrace-execute` states the open-epoch-before-baseline ordering only as a parenthetical, and the
+executor learned it from a refusal (`Cannot record command-run: no declared task is in scope`);
+(14) it is silent on tasks with no red direction available before the write — honest red-first is
+mandated for &quot;runs meant to fail&quot; and nothing says what a pass-only cycle is; (15) `ngrace-spec`'s
+`Clarifications` example targets `IC-*` and says unresolved `IC`/`INV` block approval, but never says
+that a target may be declared nowhere else in the spec, nor that a hole targeting `AC-*` — the form
+house specs reach for — blocks nothing, because the gate filters on `IC`/`INV` patterns only
+(`src/gates/core.ts:287`-292); (16) `ngrace-spec`'s workflow is a one-question-at-a-time interview
+of a human and is silent on a cold, briefed dispatch that has no one to ask. Three of the four are
+universal; the fourth is the operating model this repository runs and belongs in the same carve-out
+as item 12. **Fourth sample, `ngrace-plan` again:** (17) `ngrace plan new` pre-wires a
+`Satisfies` onto its seeded first task, which must be re-homed deliberately to whichever task the
+spec's mapping Constraint names — the skill never says the seed is a placeholder; (18) the skill
+lists the preflights but never the plan-time obligation to drive every criterion's probes on a
+prototype before the artifact is approved, which every house spec now requires.
+
+**The cost is measured in briefs.** Each executor brief this session ran ~150 lines, and the trap
+section was the same ten rules every time, because the authority could not rely on the skills to carry
+them — it had not read them. The executor refreshes those skills and reads the brief, so it receives
+each rule twice, and where the brief's wording drifts from the skill's it receives two rules.
+
+**The universality constraint, measured so the fix does not break it.** The shipped skills contain zero
+references to `RM-GOVERNED-PATH`, `findings.xml` or `decisions.xml`; the only roadmap tokens point at
+the archived `RM-AGENT-RELIABILITY`, and every `C-*` is a placeholder. The skills are universal today.
+The rule for the repair: the skill states the rule generically, and the record keeps the provenance;
+the link runs record → skill, through `TaughtIn`, never the other way.
+
+**Acceptance test, empirical.** After the skills change, dispatch an executor on a throwaway bundle
+with a brief carrying only bundle-specifics and none of the ten. It lands clean, or the skill has not
+taught the rule — measured, not asserted. `check-teaching-surface` already runs in `validate:ci`
+([F199](#f199)), so skill content can be asserted rather than described.
+
+Owner: a chartered bundle on the teaching surface, sequenced by the maintainer — its payoff multiplies
+across every later brief and every external user. Neighbour to [F196](#f196) (the specific case this
+entry generalises) and [F199](#f199) (the teaching-surface validator's silent refusal).
+</Body>
+  </Finding>
 </Findings>

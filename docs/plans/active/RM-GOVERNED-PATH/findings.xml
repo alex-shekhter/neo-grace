@@ -1,4 +1,4 @@
-<Findings base="7711" headroom="135" ceiling="7846">
+<Findings base="7840" headroom="6" ceiling="7846">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7706,6 +7706,135 @@ Owner: a chartered bundle, governed by [D37](#d37), which rules that status tran
 archive move performed with `supersede`'s existing write-then-rename-with-rollback shape rather than
 by hand. Neighbour to [F216](#f216) (hand-maintained XML metadata with no owning verb) and
 [F214](#f214) (the ledger records that a command ran, never who ran it).
+</Body>
+  </Finding>
+  <Finding id="f227" token="F227" status="live">
+    <Title>### F227 — the authority's forced-file check reads the write-scope Constraint's own list and never the Goals, so a spec that charters a write it does not list passes the check and fails its own close. **[verified]**</Title>
+    <Body>
+`C-ROOT-WINDOW`'s spec charters, in a Goal (`:218`) and permits, in a NonGoal (`:372`), re-capturing
+four fixtures under `scripts/fixtures/record-parse/golden/`. Its write-scope Constraint lists the
+engine, the suite, the record files and the bundle's own artifacts — not the fixtures — and
+`AC-NO-SRC-OTHER`'s `CloseEvidence` inherits that list as its exclusions. On the delivered tree the
+command exits 1 (measured 2026-09-11 at `8eb5978`: exactly the four golden files, 79 insertions and
+79 deletions, nothing else in the pathset). The spec requires a change its own criterion forbids —
+the first of the three unsatisfiable-criterion traps every brief in this lineage names — and it was
+approved.
+
+**The check that let it through was wrong in kind.** The authority's pre-approval procedure verifies
+the Constraint's enumerated files against their `LINKS:` headers and confirms each owner appears in
+every module list ([F136.1](#f136.1)). That derives the forced-file set from the Constraint's
+*self-report*. A Constraint that omits a file the Goals force is invisible to it, and the omission
+propagates into every criterion built on the same list. The correct derivation starts from the Goals:
+enumerate every write a Goal makes inevitable, then require the Constraint to list each and every
+byte-invariance criterion to exclude each. The executor's report named the contradiction at
+execution, where it cost a supersede; the check would have named it at approval, where it costs a
+sentence.
+
+Disposition: repaired by `C-ROOT-WINDOW-2`, the successor that carries the corrected pathset and
+asserts the delivered end state. The procedure change is the authority's own and applies from this
+entry forward. Neighbour to [F136.1](#f136.1) (the same error one enumeration earlier) and
+[F226](#f226) item 9.
+</Body>
+  </Finding>
+  <Finding id="f228" token="F228" status="live">
+    <Title>### F228 — a duplicate live finding id crashes `--retire` before any write, with a message that names the wrong cause. **[verified]**</Title>
+    <Body>
+Measured by the executor during `C-ROOT-WINDOW`'s probes, 2026-09-11: a `Finding` whose `id` already
+names an index `Entry` that an earlier item of the same move spliced — a duplicate live id, which the
+record shape check does not forbid — makes `--retire` throw in `setEntryLayer` with *&quot;no readable
+layer attribute&quot;*. The throw is before any write, so the record is not corrupted; the message blames
+the attribute when the cause is the duplicate. Loud-before-write is the right behaviour; the
+diagnosis is the defect. The shape check's silence on duplicate ids is the same gap
+[F207](#f207) records from the schema side.
+
+Owner: a later bundle on the engine surface, sized by the authority. Neighbour to [F207](#f207).
+</Body>
+  </Finding>
+  <Finding id="f229" token="F229" status="live">
+    <Title>### F229 — a red-direction probe can expire the way a pin does: one in the delivered suite plants its mutation into the live layer and reds the whole suite in the only state close evidence is evaluated. **[verified]**</Title>
+    <Body>
+`C-ROOT-WINDOW` delivered a suite at 78 pass on the pre-close tree. Its `row invariant` test walks
+both registry layers and asserts the row exists exactly once with status agreeing with the holding
+file — payment-invariant, as the house form requires. Its red-direction probe is not: it plants a
+duplicate row into live `registry.xml` unconditionally and expects the walk to read 2. After the
+close's `--retire` the row has moved to the retired layer, the live layer holds it zero times, and
+the walk reads 1. Measured 2026-09-11 on a driven close at `8eb5978`: 77 pass / 1 fail,
+`Expected: 2 / Received: 1`, the suite's exit 1 reddening every `CloseEvidence` of the form
+`bun test scripts/validate-record-retirement.test.ts` — six of the successor's criteria — in the
+applied-archive state (`F196`). The executor authoring the successor's spec measured it and
+refused to write a spec whose close its own evidence forbids.
+
+**The class.** [F225](#f225) was a pin on a finding's status; this is a pin on a *fixture's*
+placement. Both encode &quot;the record looks like this now&quot; into a permanent test, and both expire on
+the record's designed transition. [F221](#f221)'s neighbours removed the counts; `C-FLUSH-AND-REPAIR`
+removed the liveness pins; the probes were never audited, because every verification in this
+lineage — the executor's plan-time drives and the authority's own — ran the suite on the pre-close
+tree and the validators, never the suite, on the moved record.
+
+**The rule this adds to the authority's procedure.** Before approving any bundle whose close moves
+record elements, drive the close on a copy and run every suite-bound `CloseEvidence` command inside
+the moved copy. A suite that is green pre-close and unmeasured post-close is unverified for the
+state that matters.
+
+Disposition: repaired at the point of detection inside `C-ROOT-WINDOW`'s own write scope, as a
+state-independent probe (plant into whichever file the walk found the row in; expect the
+pre-mutation count plus one), committed before the successor's spec names its baseline. Neighbour to
+[F225](#f225) and [F227](#f227) — three authority-side verification gaps in two days, all of the same
+shape: a check run against a self-report or a convenient state instead of the state the criterion
+binds.
+</Body>
+  </Finding>
+  <Finding id="f231" token="F231" status="live">
+    <Title>### F231 — running every `CloseEvidence` inside a moved clone is not running the PR gate, and a `git clone` is not a faithful copy of a bundle mid-execution. **[verified]**</Title>
+    <Body>
+`F229` fixed the authority's check to run every suite-bound `CloseEvidence` command inside a driven
+close copy. `C-ROOT-WINDOW-2` passed that check — all eleven commands exit 0 in the copy — and was
+unsatisfiable within the hour, for a reason no `CloseEvidence` observes: `validate:ci`, the PR gate,
+runs the whole `src/` suite, and `src/review/core.test.ts`'s archive ratchet fired on the
+predecessor's folded `WriteEvidence` the moment it was archived. Recording the four pairs is a
+`src/` edit after the successor's pinned baseline, so its `AC-NO-SRC-OTHER` cannot pass. Two gaps,
+both the authority's: (1) `CloseEvidence` is the bundle's evidence; `validate:ci` is the branch's,
+and the branch is what merges — run both in the moved copy. (2) The copy was made with `git clone`,
+which drops untracked files; the predecessor's loose `run/` events — the `WriteEvidence` the ratchet
+reads once folded — never reached the clone, so the clone's `validate:ci` passed where the real
+tree's failed (measured: clone exit 0, tree exit 1, same commit). A faithful copy is the working
+tree including untracked bundle files, with the supersede performed by the real verb so the fold
+happens.
+
+Owner: the authority's procedure, from this entry forward. The fourth verification gap of this shape
+in two days ([F225](#f225), [F227](#f227), [F229](#f229)): each time, the check ran against a
+narrower instrument or a more convenient state than the one that binds.
+</Body>
+  </Finding>
+  <Finding id="f232" token="F232" status="live">
+    <Title>### F232 — the `C-ROOT-WINDOW` payment invariant pins the pre-flush state: zero `Finding` elements may carry `F225` or `F226`, so the first flush of either turns the shipped suite red. **[verified]**</Title>
+    <Body>
+`scripts/validate-record-retirement.test.ts:2884`-2927, shipped in PR #87 (`ed67f45`) with
+`C-ROOT-WINDOW-3`. After the two payer-map checks that do survive payment — each of the six tokens
+minted, if at all, by `C-ROOT-WINDOW`; every `C-ROOT-WINDOW` mint within the six — the test walks
+`findings.xml` and `findings-retired.xml` and asserts that no `Finding` carries `F225` or `F226`
+(`:2926`), under the comment *&quot;the pre-payment waits for the next flush&quot;*. The flush it waits for is
+what breaks it. **Driven 2026-09-11 on a faithful copy at `ed67f45`:** rendering the staged `F225` and
+`F226` into `findings.xml` with their index entries and running `--retire` moves both (`moved 2`,
+`PaidBy` `C-ROOT-WINDOW`, every root held at its persisted bytes, `record-retirement: ok`,
+`record-preservation: ok`) — and `validate:ci` exits 1 on this one assertion out of 1809
+(`Expected: 0 Received: 2`, on `findings-retired.xml`).
+
+**The class, third instance.** [F225](#f225) pinned fifteen findings `live`; [F229](#f229) planted a
+fixture into the live layer; this pins two tokens *absent*. All three are a check written against the
+state that existed at approval rather than the state the record's own rules produce next. This one
+was approved in the session that wrote &quot;assertions and probes must survive payment&quot; into its own
+handoff, and the review that approved it drove `validate:ci` in a faithful copy at the pre-flush
+state only — [F231](#f231)'s procedure, applied to the one state the next bundle is chartered to
+leave.
+
+**The payment-invariant form**, the PR #86 repair's shape: for each of `F225` and `F226`, if any
+`Finding` carries the token it exists exactly once across the two files, in `findings-retired.xml`,
+with `status=&quot;retired&quot;`, a `PaidBy` equal to `C-ROOT-WINDOW`, and an index `Entry` whose layer
+agrees; the absent case stays green. Zero carriers is one valid state of that relation, not a pin.
+
+Owner: the flush bundle that lands `F225` and `F226` — the repair is forced by the flush, so it is the
+`C-FLUSH-AND-REPAIR` shape (PR #86) a second time. Neighbour to [F225](#f225) and [F229](#f229).
 </Body>
   </Finding>
 </Findings>
