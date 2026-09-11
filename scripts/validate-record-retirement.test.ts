@@ -2282,7 +2282,7 @@ body of the decision.
   );
 
   it(
-    "C-FLUSH-AND-PAY flush invariant: f205 through f220 each exist exactly once across the findings files with agreeing index layers — f206 through f220 live, f205 retired and paid",
+    "C-FLUSH-AND-REPAIR repaired flush invariant: f205 through f220 each exist exactly once across the findings files with the index layer agreeing with the holding file — no fixed expectation of which file that is; f205's paid state is the durable pin",
     () => {
       const recordDir = path.join(REPO_ROOT, RECORD_REL);
       const liveXml = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
@@ -2296,7 +2296,6 @@ body of the decision.
       const entries = childNodes(indexParsed.root!, "Entry");
       const flushed = ["f205", "f206", "f207", "f208", "f209", "f210", "f211", "f212", "f213", "f214", "f215", "f216", "f217", "f218", "f219", "f220"];
       for (const id of flushed) {
-        const expectedStatus = id === "f205" ? "retired" : "live";
         const inLive = liveFindings.filter((n) => n.attributes.id === id);
         const inRetired = retiredFindings.filter((n) => n.attributes.id === id);
         expect(
@@ -2304,15 +2303,17 @@ body of the decision.
           `${id}: exactly one Finding element across both findings files — the walk is the duplicate check`,
         ).toBe(1);
         const holder = inLive.length === 1 ? inLive[0]! : inRetired[0]!;
-        expect(holder.attributes.status, `${id}: expected status`).toBe(expectedStatus);
+        expect(holder.attributes.status, `${id}: status agrees with the holding file`).toBe(inLive.length === 1 ? "live" : "retired");
         expect(holder.attributes.token, `${id}: token matches`).toBe(id.toUpperCase());
         const entry = entries.filter((e) => e.attributes.id === id);
         expect(entry.length, `${id}: exactly one matching decisions.xml Entry`).toBe(1);
         expect(entry[0]!.attributes.layer, `${id}: index layer agrees with the holding file`).toBe(
-          expectedStatus,
+          inLive.length === 1 ? "live" : "retired",
         );
         if (id === "f205") {
-          expect(holder.attributes.status, "f205 is retired").toBe("retired");
+          expect(inLive.length, "f205's paid state is the durable pin — held by the retired file").toBe(0);
+          expect(holder.attributes.status, "f205's paid state is the durable pin — f205 is retired").toBe("retired");
+          expect(entry[0]!.attributes.layer, "f205's paid state is the durable pin — the f205 Entry layer is retired").toBe("retired");
         }
       }
       // read-back arithmetic: the written base comes from the file's newlineCount
@@ -2435,6 +2436,120 @@ body of the decision.
         mutated.filter((f) => f.code === "finding-eligible-still-live" && f.message.includes('id="f205"')).length,
         "the same call reports planted eligibility on the mutated copy",
       ).toBe(1);
+    },
+    60_000,
+  );
+
+  it(
+    "C-FLUSH-AND-REPAIR flush invariant: f221, f222, f223, f224 and d37 each exist exactly once across their genre pair with status and index layer agreeing with the holding file — no fixed expectation of which file that is",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const liveFindingsXml = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+      const retiredFindingsXml = readFileSync(path.join(recordDir, "findings-retired.xml"), "utf8");
+      const liveRulingsXml = readFileSync(path.join(recordDir, "rulings.xml"), "utf8");
+      const retiredRulingsXml = readFileSync(path.join(recordDir, "rulings-retired.xml"), "utf8");
+      const indexXml = readFileSync(path.join(recordDir, "decisions.xml"), "utf8");
+      const liveFindings = [...walkNodes(parseGraceXmlArtifact("findings.xml", liveFindingsXml).root!)].filter((n) => n.tag === "Finding");
+      const retiredFindings = [...walkNodes(parseGraceXmlArtifact("findings-retired.xml", retiredFindingsXml).root!)].filter((n) => n.tag === "Finding");
+      const liveDecisions = childNodes(parseGraceXmlArtifact("rulings.xml", liveRulingsXml).root!, "Decision");
+      const retiredDecisions = childNodes(parseGraceXmlArtifact("rulings-retired.xml", retiredRulingsXml).root!, "Decision");
+      const entries = childNodes(parseGraceXmlArtifact("decisions.xml", indexXml).root!, "Entry");
+      const agree = (
+        id: string,
+        inLive: typeof liveFindings,
+        inRetired: typeof retiredFindings,
+        token: string,
+        genre: string,
+      ) => {
+        expect(
+          inLive.length + inRetired.length,
+          `${id}: exactly one element across the genre pair — the walk is the duplicate check`,
+        ).toBe(1);
+        const holder = inLive.length === 1 ? inLive[0]! : inRetired[0]!;
+        expect(holder.attributes.status, `${id}: status agrees with the holding file`).toBe(
+          inLive.length === 1 ? "live" : "retired",
+        );
+        expect(holder.attributes.token, `${id}: token matches`).toBe(token);
+        const entry = entries.filter((e) => e.attributes.id === id);
+        expect(entry.length, `${id}: exactly one matching decisions.xml Entry`).toBe(1);
+        expect(entry[0]!.attributes.layer, `${id}: index layer agrees with the holding file`).toBe(
+          inLive.length === 1 ? "live" : "retired",
+        );
+        expect(entry[0]!.attributes.genre, `${id}: index genre agrees`).toBe(genre);
+      };
+      for (const id of ["f221", "f222", "f223", "f224"]) {
+        agree(
+          id,
+          liveFindings.filter((n) => n.attributes.id === id),
+          retiredFindings.filter((n) => n.attributes.id === id),
+          id.toUpperCase(),
+          "finding",
+        );
+      }
+      agree(
+        "d37",
+        liveDecisions.filter((n) => n.attributes.id === "d37"),
+        retiredDecisions.filter((n) => n.attributes.id === "d37"),
+        "D37",
+        "decision",
+      );
+      // read-back arithmetic: the written base comes from the file's newlineCount
+      const findingsRoot = parseGraceXmlArtifact("findings.xml", liveFindingsXml).root!;
+      const findingsBase = newlineCount(liveFindingsXml);
+      expect(Number(findingsRoot.attributes.base), "findings base equals the file's newlineCount read back").toBe(findingsBase);
+      expect(
+        Number(findingsRoot.attributes.headroom),
+        "findings headroom equals ceiling minus base",
+      ).toBe(Number(findingsRoot.attributes.ceiling) - findingsBase);
+      const rulingsRoot = parseGraceXmlArtifact("rulings.xml", liveRulingsXml).root!;
+      const rulingsBase = newlineCount(liveRulingsXml);
+      expect(Number(rulingsRoot.attributes.base), "rulings base equals the file's newlineCount read back").toBe(rulingsBase);
+      expect(
+        Number(rulingsRoot.attributes.headroom),
+        "rulings headroom equals ceiling minus base",
+      ).toBe(Number(rulingsRoot.attributes.ceiling) - rulingsBase);
+    },
+    60_000,
+  );
+
+  it(
+    "C-FLUSH-AND-REPAIR payment absence: the shipped derivePayerMap over the real archive and both registry layers mints none of the staged tokens, and the same derivation mints a planted token over an isolated archive root",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const stagedTokens = ["F221", "F222", "F223", "F224", "D37"];
+      const productionRows: Array<{ name: string; pays: string; statusText: string }> = [];
+      for (const file of ["registry.xml", "registry-retired.xml"]) {
+        const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+        for (const candidate of childNodes(parsed.root!, "Row")) {
+          const kind = candidate.attributes.kind ?? "chartered";
+          if (kind !== "chartered" && kind !== "historical") {
+            continue;
+          }
+          productionRows.push({
+            name: candidate.attributes.name ?? "",
+            pays: childText(candidate, "Pays") ?? "",
+            statusText: childText(candidate, "StatusText") ?? "",
+          });
+        }
+      }
+      const productionMap = derivePayerMap(REPO_ROOT, productionRows);
+      expect(
+        stagedTokens.filter((token) => productionMap.has(token)),
+        "the production payer map mints none of the staged tokens — the payment set of this bundle is exactly empty",
+      ).toEqual([]);
+      // the read-only production run of the shipped validator, folded in:
+      const findingsBefore = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+      const production = validateRecordRetirement({ repoRoot: REPO_ROOT, recordDir });
+      expect(production, "the shipped validator returns zero findings on the production record").toEqual([]);
+      expect(readFileSync(path.join(recordDir, "findings.xml"), "utf8"), "the call is read-only over production").toBe(findingsBefore);
+      // the discriminating direction: a planted row over an isolated archive root mints its token
+      const isolatedRepo = isolatedRoot();
+      mkdirSync(path.join(isolatedRepo, ".ngrace", "changes", "archive", "C-FLUSH-PROBE-ROW"), { recursive: true });
+      const isolatedMap = derivePayerMap(isolatedRepo, [{ name: "C-FLUSH-PROBE-ROW", pays: "F222", statusText: "" }]);
+      expect(
+        stagedTokens.filter((token) => isolatedMap.has(token)),
+        "the planted row's token mints over the isolated archive root — the derivation is not vacuously empty",
+      ).toEqual(["F222"]);
     },
     60_000,
   );

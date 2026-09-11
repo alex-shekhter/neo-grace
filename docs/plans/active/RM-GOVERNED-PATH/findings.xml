@@ -1,4 +1,4 @@
-<Findings base="7673" headroom="173" ceiling="7846">
+<Findings base="7841" headroom="5" ceiling="7846">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7669,5 +7669,173 @@ Cost: one supersede, at depth 1.
 
 Owner: the authority's review procedure. Neighbours [F219](#f219) (an inspection's coverage is only as
 wide as the passes it ran) and [F213](#f213) (evidence that cannot fail).</Body>
+  </Finding>
+  <Finding id="f221" token="F221" status="live">
+    <Title>### F221 — byte-identity is not a holdable contract on a document nothing serializes canonically. **[verified]**</Title>
+    <Body>
+Measured **2026-09-10** at `299fc5c`, while verifying `C-FLUSH-AND-PAY`'s delivery.
+
+The record is written by at least three paths that treat surrounding whitespace differently: the
+flush render, `persistSnapshot`'s root-line splice, and `--retire`'s element moves, whose span cut
+starts at the `&amp;lt;` and so does not carry a close tag's leading indent. Delivery drifted
+`&amp;lt;/Findings&amp;gt;` from eight spaces to zero and `&amp;lt;/Registry&amp;gt;` from thirty to thirty-two.
+Both files still parse; no element, attribute or text node moved.
+
+**This is [F204](#f204)'s shape, and F204 blamed the wrong party.** There the drift came from
+`--retire` re-indenting structural lines and was recorded as bytes escaping a criterion's protection.
+The deeper fact is that **no writer canonicalizes**, so no two writers agree on whitespace, and a
+byte-level criterion is therefore a bet on which writer touched the file last.
+
+**The remedy is a canonical serializer on every write, and the scalability argument settles it.**
+The alternative — preservation criteria that compare parsed trees instead of bytes — materializes
+both sides, and `parseGraceXmlArtifact` already buffers a whole document, so it costs O(2 x doc) on
+a record whose entire premise is unbounded growth. A canonical serializer is O(depth): read,
+normalize, emit. And once every writer routes through it, the identity check becomes a **hash** —
+streaming, constant memory, the cheapest check available rather than the most expensive.
+
+A structural comparison could in principle stream too, two parsers walked in lockstep at O(depth).
+That does not rescue the alternative: it is more to build than a serializer, and it still only
+*detects* drift after it lands, where the serializer prevents it. The authority first recommended
+the tree comparison as &quot;cheaper&quot;, meaning cheaper to implement, having never priced the runtime.
+
+**Until the serializer lands, the standing rule:** a criterion asserting a file is unchanged says
+*structurally* unchanged and is answered by a parse, not by `git diff --exit-code`. Whitespace
+restored by hand to satisfy a byte check is a human doing a formatter's job, and it will drift again
+on the next write. The one-time cost the serializer carries is a single reflow of the record and the
+regeneration of every byte-pinned fixture; that is bounded, and the drift it removes is not.
+
+Owner: a chartered bundle. Neighbour to [F204](#f204) (the symptom) and [F206](#f206) (a text metric
+over a structured document — the same category error, measured on volume instead of identity).
+</Body>
+  </Finding>
+  <Finding id="f222" token="F222" status="live">
+    <Title>### F222 — the anti-occupancy guard is a ratchet against drift, not an adversarial control, and no artifact says which. **[verified]**</Title>
+    <Body>
+`C-FLUSH-AND-PAY-3` rebuilt the guard over the TypeScript parser and closed the three failures its
+charter named: a number hidden behind an internal semicolon, a false red on an `async` reformat, and
+blindness to destructured and non-first declarators. It conforms to that charter exactly. Eight
+other ways to put a number back are silent, and the charter never claimed otherwise.
+
+**Measured 2026-09-10 against the delivered `src/artifact/xml.test.ts`, on a throwaway copy of the
+repository, each mutation driven through `bun test src/artifact/xml.test.ts` with the exit code read
+directly.** The suite is 35 pass / 0 fail — the guard silent — for every one of: a module-scope
+alias (`const A = 195; const B = A;` with `B` referenced from the body, so no binding both carries
+the literal and is referenced); a module-scope `function` returning the number; a `class` static
+property; an `enum` member; a BigInt literal (`195n`, a `BigIntLiteral` node, not a
+`NumericLiteral`) inside the guarded body; a field typed through an alias (`type Num = number`); a
+computed property name (`[&quot;expected&quot;]`); and a union-typed field (`expected: number | undefined`).
+The control discriminates: a plain `expected: number` interface member fires, 34 pass / 1 fail. The
+silences are the guard's real behaviour, not a broken probe.
+
+**None of the eight is a defect against the delivered work.** The spec's Goal R3 enumerates the
+duties by shape — duty (iii) is scoped to &quot;every declarator of a **module-scope variable statement**
+… the initializer examined in full as an expression node&quot;, and an aliased binding has no numeric
+initializer while a `function`, `class` or `enum` is not a variable statement; duty (ii) is scoped
+to &quot;a member named `expected` typed `number`&quot;, and an alias is not the `number` keyword; duty (i)
+reads &quot;the parser's numeric-literal nodes&quot;, which a BigInt is not. The implementation matches its
+charter shape for shape. The gap is in the charter.
+
+**Deferred, with the conflict D11 requires.** The duties are enumerated in an approved, frozen spec,
+so widening them means a third `ngrace supersede` in this lineage, at depth 3 — and every one of the
+eight paths requires a deliberate, unusual construction. None is a drift path: the next flush that
+wants to re-pin a count writes `toBe(211)` (duty i), restores the table (duty ii), or adds
+`const EXPECTED = 211` (duty iii), and the guard holds against all three. Superseding a conformant
+bundle to harden against intent is disproportionate, and the alternative — quietly widening a duty
+because the fix is small — is the failure mode [F25](#f25) names and the contract exists to prevent.
+
+**The follow-on must decide the question before it writes any code.** If the guard is a ratchet
+against accidental drift, it is already correct and what is owed is one sentence in the artifact
+saying so, in the house &quot;known boundary, stated rather than hidden&quot; form the same spec already uses
+for its over-approximate reference semantics — the boundary is currently unstated, which is the only
+part a future reader could mistake. If it is meant to resist intent, it needs a different design:
+alias chains of arbitrary depth, every declaration form and every type spelling put it in an arms
+race a scan over source text cannot win, and the honest instrument would be a check on the values
+the test compares rather than the syntax it is written in. Choosing the second without saying so is
+how a guard acquires a reputation it cannot support.
+
+**The absence is searched, not assumed.** `adversar|evasion|evade|arms race|deliberate construction`
+over this bundle's spec and plan, over all six record genre files live and retired, and over the
+delivered `src/artifact/xml.test.ts`, on 2026-09-10: two hits, both in the spec, and both the word
+&quot;evasion&quot; used as the label of the R3-a probe rather than a statement of what the guard is for.
+`adversar` and `arms race` appear nowhere in the record. The word &quot;ratchet&quot; appears there eight
+times, all of them about the citation index's one-way ceiling that `C-INDEX-METRIC-2` broke, none
+about this guard. No artifact states the guard's threat model in either direction.
+
+Disposition: **first item of the follow-on queue**, ahead of [F216](#f216) and [F221](#f221), and it
+takes the same file as `C-FLUSH-AND-PAY-3`, so it is sequential rather than file-disjoint — it
+cannot ride alongside. Owner: a chartered bundle. Neighbour to [F25](#f25) (the deferral form this
+entry follows) and [F220](#f220) (a design ratified on principle and never driven).
+</Body>
+  </Finding>
+  <Finding id="f223" token="F223" status="live">
+    <Title>### F223 — the guard's subtree walk has no early exit and keeps traversing after it has found the node. **[verified]**</Title>
+    <Body>
+`visitSubtree` recurses through `ts.forEachChild` unconditionally, so the callback-locating walk
+continues over every remaining node in the file after the target has already been bound. The match
+logic short-circuits on `found !== undefined`, so no second match can overwrite the first and there
+is no behavioural difference — this is wasted traversal only, on a file that is currently 959 lines
+and grows with every synthetic direction added. Read from the recursion structure, not driven: there
+is no observable behaviour to construct a fixture around, which is also why it is cosmetic.
+
+Owner: the same chartered bundle as [F222](#f222) — same file, same functions, and no reason to open
+the file twice.
+</Body>
+  </Finding>
+  <Finding id="f224" token="F224" status="live">
+    <Title>### F224 — the lifecycle's two most consequential transitions are hand-edits, and the tool ships a lint rule for the half-done state instead of a verb that cannot half-do it. **[verified]**</Title>
+    <Body>
+`ngrace gate approve` writes `draft` to `approved` and fingerprints those bytes. `ngrace supersede`
+writes `superseded` onto spec **and** plan and renames the bundle directory, rolling both writes back
+on failure (`src/gates/ledger.ts:1449`-1470). Between them sits the transition neither owns: nothing
+in the CLI writes `applied`, and nothing moves an applied bundle to `archive/`.
+
+**Measured 2026-09-10 at `8bfa3b7`.** The complete verb surface is `context cursor doctor file gate
+graph lint module plan review scaffold spec status supersede verification` (`ngrace --help`). Every
+occurrence of the token `applied` in non-test source under `src/` and `scripts/` is a **read** — the
+status checks in `lint/core.ts`, `review/core.ts`, `grace-status.ts`, `artifact/scope.ts`,
+`artifact/grammar.ts`, `gates/ledger.ts:468` — and not one is a write. `gate` states the refusal in
+its own usage text: *&quot;Does not set status=applied and does not move bundles (invariant 8)&quot;*
+(`src/gates/command.ts:492`). The shipped procedure prescribes the hand-edit:
+`skills/ngrace/ngrace-execute/SKILL.md:42` — *&quot;The gate does not itself author `status` or archive
+paths&quot;* — and `:43` — *&quot;Only after both gates permit, set spec and plan to `applied` and archive the
+complete bundle.&quot;*
+
+**What the hand-edit costs, item by item.** No fingerprint is taken of the applied bytes, so the one
+state the record treats as final is the only one never bound to its content. No `Decision` records
+that the write happened, so `run-ledger.xml` shows the gates permitting and nothing performing. No
+instrument checks that the write landed on the root element. And the status write and the directory
+move are separate acts with nothing joining them, so an interruption between them leaves a bundle
+applied in `active/` or archived while still `approved`.
+
+**The tool already expects this to go wrong.** `src/lint/core.ts:161` ships
+`change.applied-plan-missing` — *&quot;An applied archived bundle requires an applied plan.xml&quot;* — a
+diagnostic whose only cause is a hand-edit that reached the spec and stopped. A verb writing both
+artifacts in one call cannot produce that state at all.
+
+**Driven this session, the near-miss that makes it concrete.** In `C-FLUSH-AND-PAY-3`'s plan the
+token `status=&quot;applied&quot;` occurs **three** times: once as the root attribute and twice inside prose
+describing the close ceremony. A substitution over the file corrupts two sentences instead of
+transitioning the artifact. The close survived only because the edit was pinned to line 1 and then
+verified by position — which is a human doing an instrument's job, and the same category error as
+[F216](#f216), where the record's root attributes are hand-maintained on every write and the only
+tool that rewrites them refuses to run unless something moves.
+
+**What this overturns, named.** Not `invariant 8`: its requirement is that a state-changing write
+needs an explicit trigger rather than an implicit one, and `gate approve` already writes status and
+fingerprints under that same invariant. A dedicated verb *is* an explicit trigger; what the invariant
+forbids is `gate apply` mutating as a side effect of evaluating a gate, and a separate verb preserves
+that separation exactly. What it does overturn is the procedural sentence in `ngrace-execute`
+(`:42`-43) that assigns the write to the operator, and that sentence has no recorded argument behind
+it — searched at this commit: `invariant 8` appears in `src/grace-cursor.ts:863`,
+`src/gates/command.ts:492` and the `RM-AGENT-RELIABILITY` plan, and states only the explicit-trigger
+requirement.
+
+Owner: a chartered bundle, governed by [D37](#d37), which rules that status transitions belong to
+`ngrace` because that is where the sanctioned path is instrumented — `ngrace apply --change C-*`, writing
+`applied` to spec and plan after the apply gate permits, fingerprinting those bytes and recording the write in `run-ledger.xml`; and the
+archive move performed with `supersede`'s existing write-then-rename-with-rollback shape rather than
+by hand. Neighbour to [F216](#f216) (hand-maintained XML metadata with no owning verb) and
+[F214](#f214) (the ledger records that a command ran, never who ran it).
+</Body>
   </Finding>
         </Findings>

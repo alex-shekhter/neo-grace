@@ -1,4 +1,4 @@
-<Rulings base="1697" headroom="186" ceiling="1883">
+<Rulings base="1776" headroom="107" ceiling="1883">
   <Decision id="d1" token="D1" status="live">
     <Title>## D1 — The tool is the only sanctioned writer of `approved → applied`</Title>
     <Body>
@@ -1693,5 +1693,84 @@ by every entry a session adds. Four arrived in the session that ratified this.
 `C-CI-CLAIM-PIN` at 8, `C-APPROVE-TARGET-DISCOVERY` at 9, `C-EFFORT-DEPTH` at 10 and
 `C-FUNCTION-CONTRACT-SURFACE` at 11. Each is one later from here. [D34](#d34)'s enumerated order is
 superseded by this one and stands as the dated record of what was true before.</Body>
+  </Decision>
+  <Decision id="d37" token="D37" status="live">
+    <Title>## D37 — `applied` and the archive move belong to `ngrace`, for the reason `approve` already does. **[maintainer's direction; reconciled against RM-VERIFIED-APPROVAL]**</Title>
+    <Body>
+**Decision.** Every change to a governed artifact's `status` is performed by an `ngrace` verb. That
+now holds for `draft`→`approved` and for `superseded`; it does not hold for `approved`→`applied` or
+for the archive move, which [F224](#f224) measures as hand-edits. Extend the verb surface to cover
+them, and amend `skills/ngrace/ngrace-execute/SKILL.md:42`-43 accordingly.
+
+**This is the completion of a change the repository has already made once.** `C-APPROVAL-FINGERPRINT`
+(PR #62, 2026-08-31) made `gate approve` the sanctioned `draft`→`approved` writer and had it record a
+fingerprint of the bytes it wrote (`src/gates/command.ts:114`). Before that, approve was &quot;authored&quot; by
+the operator on `D1` / `A29.2`'s reasoning — *that transition is a human's, so the tool does not make
+it*. That reasoning was not discarded, it was **relocated**: the tool performs the write, the human
+supplies the ratification, and the record binds the two. `applied` is simply the transition that did
+not get the same treatment. **A correction to an earlier draft of this entry: the claim that the
+operator-writes-status procedure &quot;carries no recorded argument&quot; was false — `D1` / `A29.2` is that
+argument. It was found by searching `invariant 8` and not `D1`, a pattern narrower than the claim.**
+
+**The structural argument, unchanged and still load-bearing.** A status transition is where a bundle
+acquires or loses authority, so it is where one asks whether *this* actor may make *this* transition
+from *this* state. Such a check sees only what passes through the tool, so a hand-edited attribute is
+a hole by construction: no actor to authorize, no state machine to consult, no call to make. More
+careful instructions cannot close it, because the instruction addresses the party the check exists to
+constrain.
+
+**Two design constraints on the verb.** It must be **atomic with the move it implies**, in
+`supersede`'s existing write-then-rename-with-rollback shape (`src/gates/ledger.ts:1449`-1470), so no
+interruption leaves a half-applied bundle — today the status write and the move are separate manual
+acts, and `src/lint/core.ts:161` ships `change.applied-plan-missing` to catch the state where one
+happened without the other. And it must **fingerprint the bytes it transitions**, as approve already
+does. Recovery follows `D1.5`'s shipped precedent — a sanctioned `--force` carrying an operator reason
+into the ledger, on the reasoning recorded there that *without a sanctioned exit people hand-write
+anyway and the record becomes worse than before*.
+
+**The authorization half is not this entry's, and must not be rebuilt here.**
+[`RM-VERIFIED-APPROVAL`](../RM-VERIFIED-APPROVAL/review.md) already holds it, recorded 2026-08-14
+and current to 2026-08-31, and holds it better: the service the agent cannot write to, the one-time
+code bound to a fingerprint with the artifact shown in the service's own surface, the detection half
+that no code replaces, typed absence for offline runs rather than silent permissiveness, habituation
+as the likeliest failure, and the tension with `RM-PILOT-APPROVAL` over how many ratifications a
+bundle carries. Everything this entry might have said about availability, determinism, byte-binding
+and detection is already there. **This entry defers to it and contributes only the verb.**
+
+**What the maintainer's direction adds to that entry, and the ruling it must answer.**
+`RM-GOVERNED-PATH` `D4` rejected signed status transitions — *&quot;real threat model, wrong phase, and the
+party who would forge a signature is the agent holding the key&quot;* — with the disposition &quot;standalone
+exploration&quot;. The direction here is a **third-party** authorization service issuing credentials to
+autonomous agents, which is precisely the shape `RM-VERIFIED-APPROVAL` §3 identifies as the first that
+closes fabrication rather than merely revealing it: the agent does not hold the key, so `D4`'s
+objection does not reach it. `D4` is therefore extended by its own named disposition, not overturned —
+but any bundle must say so explicitly, because a local signing key remains rejected on `D4`'s
+unchanged reasoning.
+
+**Two design points for that entry which appear nowhere in it, contributed here.** First,
+**signatures are plural and typed by purpose**: one act attracts distinct attestations with different
+signers, lifetimes and verification rules — an agent attesting authorship, a service attesting
+authorization, a maintainer attesting ratification, a build identity attesting that evidence came from
+a real run, a timestamp or transparency anchor attesting when. The record carries a collection, and
+verification is a per-purpose policy rather than one hardcoded check. Second, and the trap:
+**the purpose must be inside the signed statement, never merely beside it.** If the signed bytes do not
+bind the purpose, a signature obtained for one role can be replayed as another; it verifies correctly
+and fails silently. Sign over (purpose, principal, transition, prior status, subject digest, time). A
+corollary: the envelope must be issuer- and algorithm-agnostic, because an agent's short-lived
+credential, a human's hardware key and a CI attestation are three unrelated systems. And a naming
+caution — in this codebase `signature` already means `FailureSignature`, an unrelated diagnostic, so a
+`Signatures` collection would sit beside it on the same events.
+
+**Sequencing.** The verb is small, local, and shippable now; the credential model is a programme with
+its own board entry. They must not share a bundle. The verb ships first, designed so the record it
+writes can later carry attestations as fields.
+
+**Standing rule until the verb exists.** The hand-edit remains the prescribed procedure, so it is
+pinned to the root element and verified by position afterwards — `status=&quot;applied&quot;` occurs three times
+in one recent plan, twice as prose ([F224](#f224)).
+
+Owner: a chartered bundle for the verb, sequenced by the maintainer against [F222](#f222); the
+authorization half stays on the board as `RM-VERIFIED-APPROVAL`.
+</Body>
   </Decision>
 </Rulings>
