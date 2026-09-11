@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-ROOT-WINDOW>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-ROOT-WINDOW><Replacement>C-ROOT-WINDOW-2</Replacement>
     <Summary>
       One engine file, `scripts/validate-record-retirement.ts`, plus its suite
       `scripts/validate-record-retirement.test.ts`. The bundle pays four live findings —

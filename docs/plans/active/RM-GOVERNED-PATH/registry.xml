@@ -1,4 +1,4 @@
-<Registry base="13" headroom="13" ceiling="26">
+<Registry base="12" headroom="14" ceiling="26">
   <Row name="C-APPROVAL-SCOPE" status="live" kind="chartered">
     <Number>4</Number>
     <Charter>Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20).</Charter>
@@ -71,10 +71,4 @@
     <Pays>[F177](#f177).</Pays>
     <StatusText>**Position 4**, ratified 2026-09-06 by the maintainer. The insertion and the six positions it shifts are recorded in [D32](#d32); read the order from there, never from [D31](#d31), which this amends.</StatusText>
   </Row>
-  <Row name="C-ROOT-WINDOW" status="live" kind="chartered">
-    <Number></Number>
-    <Charter>**Name.** `C-ROOT-WINDOW`. **Searched before minting**, 2026-09-11 at `c1f4dae`, over `.ngrace/changes/archive/` and both registry layers for any prior row carrying the name: **zero rows in either layer**. No prior name covers this ground. **Charter.** The record engine's root-window bundle: charters the `--rewrite-roots` mode (holds every ceiling byte-for-byte, re-derives base from the shipped metric read back, refuses an exceeded or missing ceiling before any write), floors the headroom derivation at all four sites, persists the unmoved genre's opened window under the maintainer's resolution, and normalises the move writer's inter-element whitespace to the canonical house shape.</Charter>
-    <Pays>F216 F182 F193 F190 F225 F226</Pays>
-    <StatusText>**Ordered.** Ratified 2026-09-11 by the maintainer. The row is minted live by the plan and paid by the close's move.</StatusText>
-  </Row>
-                              </Registry>
+</Registry>

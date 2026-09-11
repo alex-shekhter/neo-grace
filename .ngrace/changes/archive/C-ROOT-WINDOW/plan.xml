@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-ROOT-WINDOW>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-ROOT-WINDOW><Replacement>C-ROOT-WINDOW-2</Replacement>
     <IntentSummary>
       Author the execution for the approved, fingerprinted spec
       `.ngrace/changes/active/C-ROOT-WINDOW/spec.xml` and only within it; the plan conforms to the

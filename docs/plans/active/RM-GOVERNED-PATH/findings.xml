@@ -1,4 +1,4 @@
-<Findings base="7841" headroom="5" ceiling="7846">
+<Findings base="7711" headroom="135" ceiling="7846">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -628,7 +628,7 @@ one later reads P0.10 as a guarantee that F9 cannot recur. **It cannot make that
 who wants the stronger property needs per-task scope, and that is a plan-schema change, not a check.
 </Body>
   </Finding>
-    <Finding id="f11.1" token="F11.1" status="live">
+  <Finding id="f11.1" token="F11.1" status="live">
     <Title>### F11.1 — One authorized scope exception, and the process note that goes with it</Title>
     <Body>
 `src/verification/localize.test.ts` pins `allReviewCodes().length` to a literal (`13`, now `14`) and
@@ -653,7 +653,7 @@ partition, not the count.
 ---
 </Body>
   </Finding>
-    <Finding id="f12.1" token="F12.1" status="live">
+  <Finding id="f12.1" token="F12.1" status="live">
     <Title>#### F12.1 — The acceptance test proved &quot;fold succeeds&quot; on a fixture more favourable than the artifact</Title>
     <Body>
 `AC-RECOVER-FIX-PRESERVES-ORPHAN` promises that after `--fix`, *&quot;fold succeeds for that valid
@@ -684,7 +684,7 @@ one before fold. The documentation gap goes to P1 (the authoring/execution surfa
 already the phase's subject.
 </Body>
   </Finding>
-    <Finding id="f13.1" token="F13.1" status="live">
+  <Finding id="f13.1" token="F13.1" status="live">
     <Title>#### F13.1 — What hid it, and what it costs</Title>
     <Body>
 **`seedF8Shape(..., { withTerminal: true })` places the terminal inside the pre-fix valid id set.**
@@ -784,7 +784,7 @@ Three of four blind. The check is worth having — it caught four real pairs acr
 its coverage claim is narrow and now written down.
 </Body>
   </Finding>
-        <Finding id="f9.8" token="F9.8" status="live">
+  <Finding id="f9.8" token="F9.8" status="live">
     <Title>#### F9.8 — A fourth cause of the red-first gap: batched tool calls</Title>
     <Body>
 `C-CALIBRATION-COMMAND-EVIDENCE` T-001 and T-002 both disclosed that the `fail` attempt was recorded
@@ -806,7 +806,7 @@ own round trip, before the edit that follows it — an ordering constraint the e
 states. That belongs with F12's documentation gap in P1.
 </Body>
   </Finding>
-    <Finding id="f12.2" token="F12.2" status="live">
+  <Finding id="f12.2" token="F12.2" status="live">
     <Title>#### F12.2 — The terminal-event count in F12 was invented, and the authority's error has a shape</Title>
     <Body>
 F12 claimed *&quot;six of six archived bundles carrying a `run-ledger.xml` have a terminal event.&quot;*
@@ -917,7 +917,7 @@ finding's message to say *&quot;no substantiating path exists in this bundle's s
 the author skipped a step — a wording change, and it belongs with `C-REPORT-HONESTY`'s family.
 </Body>
   </Finding>
-      <Finding id="f21" token="F21" status="live">
+  <Finding id="f21" token="F21" status="live">
     <Title>### F21 — The fix budget counts attempts; the execution contract says it counts failures. **[verified]**</Title>
     <Body>
 `countTaskAttemptEvents` (`grace-cursor.ts:1563`) filters `kind === &quot;attempt&quot;` with **no outcome
@@ -957,7 +957,7 @@ cycles on one task is worth a checkpoint whatever the outcomes were. But that is
 this is a finding, not a decision.
 </Body>
   </Finding>
-    <Finding id="f23" token="F23" status="live">
+  <Finding id="f23" token="F23" status="live">
     <Title>### F23 — A lower bound is not a count: the assertion was weaker than the claim under test. **[verified]**</Title>
     <Body>
 T-006's tests all pinned N with `toBeGreaterThanOrEqual` — `&gt;= 1` for one failing baseline
@@ -1322,7 +1322,7 @@ the criterion by name rather than paraphrasing it into a task.
 ---
 </Body>
   </Finding>
-    <Finding id="f28" token="F28" status="live">
+  <Finding id="f28" token="F28" status="live">
     <Title>### F28 — The agreement test's positive clause asserts a string that was already true. **[verified]**</Title>
     <Body>
 `C-ESCALATION-HONESTY` T-003 added a second agreement test titled *&quot;both skill trees document
@@ -1376,7 +1376,7 @@ defect is enforcement strength, and the file is in `ObservedWriteScope`.
 ---
 </Body>
   </Finding>
-    <Finding id="f30" token="F30" status="live">
+  <Finding id="f30" token="F30" status="live">
     <Title>### F30 — A commit-body criterion is unsatisfiable by the first commit in a multi-task change. **[verified]**</Title>
     <Body>
 `C-ESCALATION-HONESTY`'s `AC-COMMIT-BODY-PROTOCOL` says:
@@ -1438,7 +1438,7 @@ its failure mode is pressure to backdate a claim.
 ---
 </Body>
   </Finding>
-        <Finding id="f9.10.1" token="F9.10.1" status="live">
+  <Finding id="f9.10.1" token="F9.10.1" status="live">
     <Title>#### F9.10.1 — Amendment: the per-task deliverable declaration is rejected, on the executor's argument</Title>
     <Body>
 [F9.10](#f9.10)'s disposition said the rule *&quot;must learn the deliverable class before it may raise, and
@@ -1515,7 +1515,7 @@ and the verdict discloses it. This is authoring guidance, like F26's.
 ---
 </Body>
   </Finding>
-        <Finding id="f34" token="F34" status="live">
+  <Finding id="f34" token="F34" status="live">
     <Title>### F34 — D14 clause 4's premise is false on Bun, and the handler it mandates is a regression unless it beats the default. **[verified]**</Title>
     <Body>
 [D14](#d14) clause 4 justifies the process-fault handlers with this:
@@ -1708,7 +1708,7 @@ on it.
 ---
 </Body>
   </Finding>
-    <Finding id="f35.1" token="F35.1" status="live">
+  <Finding id="f35.1" token="F35.1" status="live">
     <Title>#### F35.1 — The same defect, one artifact down: a TargetAssertion that is already true at HEAD</Title>
     <Body>
 Found in the same pass, checking what would actually prove D14 clause (i) before dispatching T-003.
@@ -1785,7 +1785,7 @@ evidence generated by the tool constrains the agent, but only while the evidence
 Corrected above: the citations now name the surviving commits, whose bodies still read as F30 described.
 </Body>
   </Finding>
-      <Finding id="f39.1" token="F39.1" status="live">
+  <Finding id="f39.1" token="F39.1" status="live">
     <Title>#### F39.1 — The set is growing, and knowing the rule does not prevent it. **[verified, 2026-08-13]**</Title>
     <Body>
 Re-measured after `C-GRAMMAR-SEAM` archived: **9**, not 8. The new offender is that bundle's own
@@ -2947,7 +2947,7 @@ or widen it.
 fix-at-the-point-of-detection.
 </Body>
   </Finding>
-    <Finding id="f72" token="F72" status="live">
+  <Finding id="f72" token="F72" status="live">
     <Title>### F72 — an absence check that ORs two conditions ships one message for two causes. **[verified]**</Title>
     <Body>
 `C-ADAPTER-HONESTY` introduced `requireExistingFile` as
@@ -3086,7 +3086,7 @@ the exact defect [F74](#f74) records. The spec is approved and immutable, so it 
 `RM-AGENT-RELIABILITY` D5 correctly, and this entry is the record that the artifact does not.
 </Body>
   </Finding>
-      <Finding id="f74.1" token="F74.1" status="live">
+  <Finding id="f74.1" token="F74.1" status="live">
     <Title>### F74.1 correction — the audit list named the wrong tokens, and the real hazard is a number defined in *both* plans. **[verified]**</Title>
     <Body>
 [F74](#f74) recorded that bare `D&lt;n&gt;` citations are ambiguous and listed *&quot;`D3`, `D5.2`, `D5.5`,
@@ -3124,7 +3124,7 @@ the entry whose subject was citation precision. That is [F62](#f62)'s class insi
 accuracy — a list offered as a survey becomes an enumeration the moment it is written down.
 </Body>
   </Finding>
-    <Finding id="f78" token="F78" status="live">
+  <Finding id="f78" token="F78" status="live">
     <Title>### F78 — a parent-level argument check does not reject the command, it poisons the exit after the child already succeeded. **[verified]**</Title>
     <Body>
 Measured by the executor at `C-RECORDED-DEBT` by forcing the parent-run skip off, then restoring it.
@@ -3665,7 +3665,7 @@ be written down where the operator is watching the start, and not where the oper
 most need the skip to be visible.
 </Body>
   </Finding>
-    <Finding id="f91" token="F91" status="live">
+  <Finding id="f91" token="F91" status="live">
     <Title>### F91 — `scaffold` cannot create the first module; nothing else writes one. **[verified]**</Title>
     <Body>
 Runs 1–2 recorded that `scaffold` was not found. This run found it.
@@ -3728,7 +3728,7 @@ measured as insufficient for a different stop. Leave it on that entry. Not a new
 ---
 </Body>
   </Finding>
-    <Finding id="f93" token="F93" status="live">
+  <Finding id="f93" token="F93" status="live">
     <Title>### F93 — the archive gate permits a cursor that lint rejects. **[verified]**</Title>
     <Body>
 `evaluateArchiveGate` (`src/gates/core.ts:423–467`) carries one requirement,
@@ -4022,7 +4022,7 @@ install.
 installers of that version. Say so at the close that ships it.
 </Body>
   </Finding>
-              <Finding id="f106" token="F106" status="live">
+  <Finding id="f106" token="F106" status="live">
     <Title>### F106 — `missingApplyGateRecord` is dead code that reads as a working detector. **[verified]**</Title>
     <Body>
 `missingApplyGateRecord` (`src/gates/core.ts:507-510`) is exported, documented in the module-map
@@ -4312,7 +4312,7 @@ the tool reported a plausible number rather than failing.**
 count from `grep` over these files is evidence of nothing unless the phrase is a single token.
 </Body>
   </Finding>
-      <Finding id="f114" token="F114" status="live">
+  <Finding id="f114" token="F114" status="live">
     <Title>### F114 — the approve writer matches one quote style and no-ops silently on the other. **[verified]**</Title>
     <Body>
 `writeDraftRootToApproved` (`src/gates/ledger.ts:1004-1013`), shipped by
@@ -4495,7 +4495,7 @@ artifact shape, or cites the ledger entry that rules on the window, or says neit
 is no fourth form, and &quot;it will be green&quot; is not a stop condition — *&quot;report what it says&quot;* is.
 </Body>
   </Finding>
-    <Finding id="f120.1" token="F120.1" status="live">
+  <Finding id="f120.1" token="F120.1" status="live">
     <Title>### F120.1 correction — three wrong statements in F120 and in the recommendation it carried. **[verified]**</Title>
     <Body>
 **1. &quot;No mechanical consequence today&quot; is false.** F120 said the undeclared write has no mechanical
@@ -4587,7 +4587,7 @@ inventory. This adds the converse: an inventory that qualifies one of its own me
 has not enumerated it, it has deferred the question to whoever reads it next.
 </Body>
   </Finding>
-    <Finding id="f126" token="F126" status="live">
+  <Finding id="f126" token="F126" status="live">
     <Title>### F126 — the authority approved a completeness claim it had already measured to be false. **[verified]**</Title>
     <Body>
 `C-VERDICT-EVIDENCE`'s approved spec opens its forced-write inventory with *&quot;including every pin this
@@ -5150,7 +5150,7 @@ And after any write that adds an artifact to `.ngrace/`, run the whole validator
 validator that happens to be fast.
 </Body>
   </Finding>
-    <Finding id="f136.1" token="F136.1" status="live">
+  <Finding id="f136.1" token="F136.1" status="live">
     <Title>### F136.1 correction — the two horns are not symmetric, and the spec's defect is wider than its `AffectedAreas`. **[verified]**</Title>
     <Body>
 [F136](#f136) said the anchored and unanchored plans both &quot;fail the close&quot;. **That is imprecise, and
@@ -5597,7 +5597,7 @@ piece of evidence appears that could only exist if a background premise were fal
 signal to re-measure the premise, not merely as data about its own subject.
 </Body>
   </Finding>
-      <Finding id="f151" token="F151" status="live">
+  <Finding id="f151" token="F151" status="live">
     <Title>### F151 — the authority's brief contradicted itself on cursor commands, one bundle after writing F148. **[verified]**</Title>
     <Body>
 The plan brief for `C-EVIDENCE-DISCRIMINATION` required, in §2, the blocking precondition check:
@@ -5907,7 +5907,7 @@ bundle. Chartered as [`C-CONSTRAINT-DURABILITY`](#named-bundle-registry), **posi
 2026-09-04 order. The 24 archived specs are **not** rewritten: an archived artifact is a dated record.
 </Body>
   </Finding>
-      <Finding id="f158" token="F158" status="live">
+  <Finding id="f158" token="F158" status="live">
     <Title>### F158 — the supersede verb's contract, measured, and one non-atomic failure path. **[verified]**</Title>
     <Body>
 Probed **2026-09-04** on a throwaway project against the real CLI, because [D27](#d27) makes this verb the
@@ -5983,7 +5983,7 @@ is. The gap was in what the tests could see, and only a mutation showed it. Read
 test's discriminating power; only breaking the code can.
 </Body>
   </Finding>
-    <Finding id="f162" token="F162" status="live">
+  <Finding id="f162" token="F162" status="live">
     <Title>### F162 — what this repository's own source carries of GRACE's source-code conventions, measured, and the conditional-validator hole beneath it. **[verified]**</Title>
     <Body>
 Measured **2026-09-05** at `30dea04`, prompted by the maintainer asking why our own code does not follow
@@ -6410,7 +6410,7 @@ non-empty write scope; the authority restated a context-bound measurement as a u
 omit the file was still right, for a different and smaller reason: it is optional, and 8 of the 66
 archived bundles carry one. Caught by the executor's `WRONG` field.</Body>
   </Finding>
-    <Finding id="f173" token="F173" status="live">
+  <Finding id="f173" token="F173" status="live">
     <Title>### F173 — the genre set's resolution base is unspecified, and one reading couples the validator's unit tests to repository state. **[verified]**</Title>
     <Body>
 Measured **2026-09-06** at `11e2d51`, same verification pass.
@@ -6604,38 +6604,7 @@ exists before reporting the number.**
 Owner: the authority's `§9` sequence and handoff, corrected immediately; the teaching clause goes to
 `C-APPROVAL-SCOPE` under [D33](#d33).</Body>
   </Finding>
-      <Finding id="f182" token="F182" status="live">
-    <Title>### F182 — a 7 × median headroom persists a fractional line ceiling whenever the live count is even. **[verified]**</Title>
-    <Body>
-Measured **2026-09-06** at `26ce576`.
-
-`validate-record-retirement.ts:565-566` sizes headroom as a multiple of `median()`, and `median()`
-returns the mean of the two middle values on an even population — a `.5` whenever those two differ by
-an odd number. The multiplier decides whether that half survives: `2 ×` always clears it, `7 ×` never
-does. So `headroom` and `ceiling` are written as non-integers, and the record carries a line budget
-like `ceiling=&quot;1886.5&quot;`.
-
-**Reachable in the next rewrite, not hypothetically.** After `C-RETIRE-AND-CODIFY` retires the 44-line
-`D24`, the live H2 set is 23 entries with a median of 37 and an integer headroom of 259. **One** added
-decision of 38 lines or more makes it 24 entries with a median of 37.5, and the next `--retire` would
-persist `headroom=&quot;262.5&quot;` / `ceiling=&quot;1886.5&quot;`. If `D24` does **not** leave — `AC-FIRST-CODIFY` tags it
-only if the `C-REWORK-CIRCUIT` tests still pass — the very first rewrite persists 262.5 against base
-1668.
-
-**Not a correctness defect.** The read path is `Number(attrs.ceiling)`
-(`validate-record-retirement.ts:795`), not `parseInt`, so the comparison `liveSize &gt; ceiling` is exact
-and nothing truncates. The cost is that a public methodology repository states a size budget in half
-lines, and the `ceiling-exceeded` message reads *&quot;exceeds persisted ceiling 1886.5&quot;*.
-
-**Latent in shipped code, widened by this bundle.** The findings genre has shipped `7 ×` since the
-split; it has not fired only because its median is currently the integer 36. Moving rulings from `2 ×`
-to `7 ×` puts a second, smaller, parity-flipping population on the same path.
-
-Owner: a later bundle. Not grafted into `C-RETIRE-AND-CODIFY`, whose spec is approved and
-fingerprinted. The remedy is a rounding rule at the point of derivation, and the open question is which
-direction — rounding **down** is the only direction that cannot loosen a budget.</Body>
-  </Finding>
-    <Finding id="f184" token="F184" status="live">
+  <Finding id="f184" token="F184" status="live">
     <Title>### F184 — the approved plan's `T-001` verification command exits 1 as written. **[verified]**</Title>
     <Body>
 Measured **2026-09-06**, raised by the executor and confirmed.
@@ -6703,7 +6672,7 @@ as its own commit once the bundle was archived. The criterion's prose targets th
 writing a bundle that may need an incidental `src/` fix during close should scope that command to the
 files the prose actually names.</Body>
   </Finding>
-    <Finding id="f188" token="F188" status="live">
+  <Finding id="f188" token="F188" status="live">
     <Title>### F188 — a close-evidence pathspec that covers `.ngrace/changes/` without excluding its own bundle cannot pass. **[verified]**</Title>
     <Body>
 Measured **2026-09-06** at the close of `C-RETIREMENT-WINDOW`.
@@ -6735,7 +6704,7 @@ pathspecs rather than suites.
 Owner: a later bundle, as a rule that a `CloseEvidence` pathspec covering a bundle-bearing directory
 must exclude the bundle's own path.</Body>
   </Finding>
-    <Finding id="f191" token="F191" status="live">
+  <Finding id="f191" token="F191" status="live">
     <Title>### F191 — staged charter rows have no anchor, so every wrap projection folded them into the preceding decision. **[verified]**</Title>
     <Body>
 Measured **2026-09-07** on the staged buffer, after the authority staged a fifth charter row and the
@@ -6795,73 +6764,7 @@ and did not reconcile toward the brief.
 Related but distinct from [F182](#f182), which is about the same `7 × median` producing a fractional
 value on an even population. This one is about the median **moving**.</Body>
   </Finding>
-  <Finding id="f190" token="F190" status="live">
-    <Title>### F190 — `--retire`'s span removal leaves its neighbours' indent behind, and the drift compounds on every move. **[verified]**</Title>
-    <Body>
-Measured **2026-09-07** on the `C-PAYMENT-RECORD` working tree, before and after the production move.
-
-`removeSpans` deletes an element's span without consuming the leading indent of the line that
-follows, so every live element that sat after a removed sibling gains two spaces. Measured on
-`findings.xml` live `&amp;lt;Finding&amp;gt;` open tags — indent width to occurrence count:
-
-| | 2 | 4 | 6 | 14 |
-|---|---|---|---|---|
-| at `82775a06` | 192 | 3 | 3 | 1 |
-| after this move | 177 | 9 | 4 | 1 |
-
-The 4-space population tripled and the 6-space grew. The same pass left the retired sibling's appends
-at column 0, matching the previous `--retire`. The record already carried some drift before this
-bundle, which is how it went unnoticed.
-
-**It compounds.** Each move shifts another cohort of survivors one level deeper, and nothing ever
-normalises them back. Over enough retirements the live genre files become progressively less legible
-in a repository whose product is methodology artifacts other people are meant to read.
-
-**Not a correctness defect.** The XML stays well-formed, every validator exits 0, and entity counts
-are conserved across the move. It also does **not** show up in a byte-identity check of the file the
-move did not touch: `registry.xml`'s close tag drifted the same way and was restored by hand, which is
-why the live registry file is byte-identical to `HEAD` while `findings.xml` is not.
-
-**Deliberately not fixed by `C-PAYMENT-RECORD`.** `removeSpans` is the shipped writer, not that
-bundle's product change, and touching it would have put the bundle outside its approved Constraints.
-Owner: a later bundle, as a normalising pass in the writer rather than a hand edit at close — a hand
-edit is what happened to the registry close tag here, and it does not scale.</Body>
-  </Finding>
-        <Finding id="f193" token="F193" status="live">
-    <Title>### F193 — a genre that does not move has its window clamped back to `H`, so retirement's `Δ` survives only until the next `--retire`. **[verified]**</Title>
-    <Body>
-
-Measured **2026-09-07** on the `C-CODIFY-DECISIONS` working tree, before and after a decisions-only
-production move.
-
-`--retire` rewrites **all seven** genre roots on any successful move, not only the genre that moved.
-For a genre where nothing moved, `ceilingBase` equals `base`, so the persisted ceiling becomes
-`min(previousCeiling, base + H)` and the window becomes **`min(previous_window, H)`** — monotonically
-non-increasing toward `H`.
-
-Measured on `findings.xml`, where **no Finding moved**:
-
-| | base | headroom | ceiling | window |
-|---|---|---|---|---|
-| before | 7601 | 370 | 7971 | **370** |
-| after a decisions-only `--retire` | 7601 | 245 | 7846 | **245** |
-
-The 370 was the window that the preceding flush's retirement had opened. A move in an unrelated genre
-erased it and left `H = 7 × median = 245`.
-
-**This weakens `C-RETIREMENT-WINDOW` considerably.** That bundle's premise is that retirement creates
-room for a flush. It does — but the room survives only until the next successful `--retire` in **any**
-genre. Retire findings to make space, retire a decision before flushing, and the space is gone. To use
-a window you must flush immediately after the move that opened it, with no intervening retirement
-anywhere, and nothing in the product or the record says so.
-
-**Not the same as [F189](#f189)**, which is about `H` itself shrinking as the median moves. This is
-about the accumulated `Δ` above `H` being discarded whenever a different genre moves.
-
-Owner: a later bundle. The candidate remedies — persisting the opened window rather than re-deriving
-it, or re-deriving only the genre that moved — are a design question, not a patch.</Body>
-  </Finding>
-        <Finding id="f196" token="F196" status="live">
+  <Finding id="f196" token="F196" status="live">
     <Title>### F196 — `CloseEvidence` is evaluated only in the applied-archive state, and the skill that teaches criterion authoring never says so. **[verified]**</Title>
     <Body>
 
@@ -6890,7 +6793,7 @@ Owner: a later bundle, on the teaching surface. The remedy is one sentence in `n
 author that a close criterion is measured after the archive move, and to write it invariant under that
 move.</Body>
   </Finding>
-        <Finding id="f197" token="F197" status="live">
+  <Finding id="f197" token="F197" status="live">
     <Title>### F197 — a finding can be paid by a sentence: `derivePayerMap` mints payments from prose, not only from `Pays`. **[verified]**</Title>
     <Body>
 
@@ -6918,7 +6821,7 @@ Owner: a later bundle. The remedy is a design question — narrow the prose path
 declaration, or keep them and make the derivation report what it minted and from which sentence — and
 the authority has no position yet.</Body>
   </Finding>
-        <Finding id="f198" token="F198" status="live">
+  <Finding id="f198" token="F198" status="live">
     <Title>### F198 — `C-RECORD-RETIREMENT-2` archived without a registry row, so the finding it settled is still live and cannot be paid. **[verified]**</Title>
     <Body>
 
@@ -6955,7 +6858,7 @@ Owner: the next charter decision.
 behaviour, and the spec it produced repeated the claim in a Constraint until the executor measured it.
 A finding is never evidence of present state.</Body>
   </Finding>
-        <Finding id="f199" token="F199" status="live">
+  <Finding id="f199" token="F199" status="live">
     <Title>### F199 — `check-teaching-surface` refuses with zero bytes of output, and takes `validate:ci` red with it. **[verified]**</Title>
     <Body>
 
@@ -6978,7 +6881,7 @@ read is a refusal that gets worked around by deletion.
 Owner: a later bundle. The remedy is small — name the file, the rule, and the missing tokens on the
 refusal path — but it is a product change to a `validate:ci` member and belongs in a chartered bundle.</Body>
   </Finding>
-        <Finding id="f200" token="F200" status="live">
+  <Finding id="f200" token="F200" status="live">
     <Title>### F200 — the authority offered amend-and-re-ratify as its recommendation, which [D27](docs/plans/active/RM-GOVERNED-PATH/rulings.xml) forbids, because it never searched the record. **[verified]**</Title>
     <Body>
 
@@ -7008,7 +6911,7 @@ pilot is decided on. The defect it repairs was one sentence.
 Owner: no bundle. This is a working-practice entry: the approval read must be end to end and must hunt
 self-contradiction, and any proposal touching governance must cite the ruling it obeys or overturns.</Body>
   </Finding>
-        <Finding id="f201" token="F201" status="live">
+  <Finding id="f201" token="F201" status="live">
     <Title>### F201 — the approved `C-RECORD-TEST-ISOLATION-2` spec carries a payer census that does not reproduce, and it stands uncorrected by ruling. **[verified]**</Title>
     <Body>
 
@@ -7038,7 +6941,7 @@ the only correction that will ever attach to it.
 Owner: none. It is recorded so a future reader who cites that sentence finds the measurement that
 disproves it.</Body>
   </Finding>
-        <Finding id="f202" token="F202" status="live">
+  <Finding id="f202" token="F202" status="live">
     <Title>### F202 — `supersedeChainDepth`, the metric `D23` makes pilot's decider, records no cause and cannot see the cases that most inform pilot. **[verified]**</Title>
     <Body>
 
@@ -7075,7 +6978,7 @@ Owner: the maintainer, against `RM-PILOT-APPROVAL`. The cheap first step is not 
 instrument: record the cause on the supersede event, and record the declined-supersede outcome at all,
 so the number pilot rests on can answer the question pilot asks.</Body>
   </Finding>
-        <Finding id="f203" token="F203" status="live">
+  <Finding id="f203" token="F203" status="live">
     <Title>### F203 — a flush projection measured over buffer spans over-counts by one for every extra blank line, and the written base must come from `newlineCount`, not from the projection. **[verified]**</Title>
     <Body>
 
@@ -7106,7 +7009,7 @@ charter rows; here they are blank lines. **Ask what the rule attributes, not jus
 The buffer's doubled separator has been normalised, so the artifact that caused this no longer exists —
 which is precisely why the rule is recorded here rather than left to be rediscovered.</Body>
   </Finding>
-        <Finding id="f204" token="F204" status="live">
+  <Finding id="f204" token="F204" status="live">
     <Title>### F204 — a criterion placed before the only writer of the bytes it checks cannot fail, and one was accepted as evidence. **[verified]**</Title>
     <Body>
 
@@ -7136,7 +7039,7 @@ against the tree for no reason worth failing over.
 
 Owner: the ordering lesson binds every plan from now. The drift itself needs no bundle.</Body>
   </Finding>
-                        <Finding id="f206" token="F206" status="live">
+  <Finding id="f206" token="F206" status="live">
     <Title>### F206 — the record's volume budget is a text metric on a structured document, and every measurement error of this session came from that. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `b62698e`, from the session that produced `C-RECORD-TEST-ISOLATION-2` and
@@ -7176,7 +7079,7 @@ by lines — is its own later charter, and it depends on [F207](#f207): a struct
 something undefined until the record's shape is validated.
 </Body>
   </Finding>
-        <Finding id="f207" token="F207" status="live">
+  <Finding id="f207" token="F207" status="live">
     <Title>### F207 — the record has no schema: its shape and depth are convention, and nothing verifies them. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `b62698e`, when the authority claimed the record's depth was &quot;fixed by
@@ -7206,7 +7109,7 @@ Owner: a later bundle, and a prerequisite of the structural-metric charter rathe
 nicety.
 </Body>
   </Finding>
-        <Finding id="f208" token="F208" status="live">
+  <Finding id="f208" token="F208" status="live">
     <Title>### F208 — a spec that quotes the payer phrase pays by accident: `C-PAYMENT-RECORD-3` would retire `F21` at its own close, the token it explicitly refuses. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `c920415`, raised by the executor's `WRONG` field and reproduced end to end
@@ -7250,7 +7153,7 @@ reads derived **or** stored, so the stored stamp may already carry them.
 Owner: the maintainer's decision, and it gates this bundle's close.
 </Body>
   </Finding>
-        <Finding id="f209" token="F209" status="live">
+  <Finding id="f209" token="F209" status="live">
     <Title>### F209 — validate parses the record while the move engine matches it with regexes, so legal XML can put the record in a state no operator action resolves. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `49b4ebb`, after the maintainer objected that regex over XML is unsound and
@@ -7315,7 +7218,7 @@ parses, the **move** matches, and the real failure is the deadlock between them 
 the executor reproduced it and the authority reproduced it independently.
 </Body>
   </Finding>
-        <Finding id="f210" token="F210" status="live">
+  <Finding id="f210" token="F210" status="live">
     <Title>### F210 — a `git diff` close criterion with no baseline cannot fail, and one archived bundle shipped two. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `49b4ebb`, during the `C-RECORD-PARSE` spec review.
@@ -7359,7 +7262,7 @@ reported (12,939 → 12,945) were JavaScript string `.length`, which counts UTF-
 that answers the question is the error the argument was about.
 </Body>
   </Finding>
-        <Finding id="f211" token="F211" status="live">
+  <Finding id="f211" token="F211" status="live">
     <Title>### F211 — current-mode lint re-evaluates an active bundle's baseline assertions, so a conversion bundle's root lint is guaranteed red between its first write and its archive. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `f9fa8a7`, during `C-RECORD-PARSE`'s implementation, raised by the executor
@@ -7386,7 +7289,7 @@ a patch: current mode could skip the selected bundle's baseline, or the report c
 as baseline-of-an-active-bundle rather than plain errors.
 </Body>
   </Finding>
-        <Finding id="f212" token="F212" status="live">
+  <Finding id="f212" token="F212" status="live">
     <Title>### F212 — a payer-map measurement over a synthetic archive silently under-reports unless the archive mirrors real membership. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `f9fa8a7`, reported by the executor against its own intermediate work.
@@ -7411,7 +7314,7 @@ Same family as the count errors this record keeps recording: the instrument was 
 Owner: no bundle. It is a measurement rule for whoever next reasons about payments.
 </Body>
   </Finding>
-        <Finding id="f213" token="F213" status="live">
+  <Finding id="f213" token="F213" status="live">
     <Title>### F213 — a `CloseEvidence` command that does not exercise the claim cannot fail, and one draft spec shipped three. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `654b5a3` by the authority, reviewing the `C-PAYMENT-RECORD-4` draft spec
@@ -7463,7 +7366,7 @@ Owner: no bundle. It is an authoring and review rule, and belongs beside F204 an
 they are species of.
 </Body>
   </Finding>
-        <Finding id="f214" token="F214" status="live">
+  <Finding id="f214" token="F214" status="live">
     <Title>### F214 — the run ledger records that a command ran, never who ran it, so an authority's verification is indistinguishable from execution. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `9629ceb` by the authority, verifying `C-PAYMENT-RECORD-4`'s
@@ -7496,7 +7399,7 @@ Owner: no bundle. It belongs with the evidence-provenance rules ([F213](#f213) i
 evidence that cannot fail, this is evidence that cannot be attributed).
 </Body>
   </Finding>
-        <Finding id="f215" token="F215" status="live">
+  <Finding id="f215" token="F215" status="live">
     <Title>### F215 — a close criterion that pins a fixed base commit against a floating working-tree read stops describing its own bundle the moment a later bundle touches the same bytes. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `3ba0d77`, while scoping the index-ratchet charter.
@@ -7524,40 +7427,7 @@ range. A working-tree read is a claim about the present, and a closed bundle has
 Owner: the close-evidence rules. It belongs with [F213](#f213) and [F214](#f214).
 </Body>
   </Finding>
-        <Finding id="f216" token="F216" status="live">
-    <Title>### F216 — the record's root attributes are maintained by hand on every write, and the only tool that rewrites them refuses to run unless something moves. **[verified]**</Title>
-    <Body>
-Measured **2026-09-09** at `3ba0d77`, from `git log -L1,1` on the record roots.
-
-The production tripwire requires every live root to satisfy `base + headroom = ceiling` **and** for
-`base` to equal its shipped metric read back. Any write to the record therefore obliges a matching
-root rewrite. The only code that rewrites an *existing* record's roots is inside the `--retire` move, which
-returns early when nothing was eligible to move — so the tool cannot be used for the ordinary
-case. (`--split` also writes root attributes, but only onto a newly created record from a
-pre-split dump, never onto an existing record directory — corrected 2026-09-09 after the
-executor measured the broader claim false.)
-
-The consequence is visible in history. Every root change was hand-written by the bundle that wrote
-the record, ceiling held constant while headroom absorbed the delta:
-
-```
-registry.xml   11/15 -&gt; 13/13 -&gt; 12/14      (ceiling 26 throughout)
-decisions.xml  301/40 -&gt; 327/14 -&gt; 331/10 -&gt; 339/2 -&gt; 340/1   (ceiling 341 throughout)
-```
-
-**So &quot;ceilings are rewritten only by a move&quot; describes the ceiling, not the root.** Base and headroom
-are rewritten by hand, routinely, by every record-touching bundle — including the charter of a new
-bundle, since adding a registry row changes `liveRowCount` and the tripwire compares it to `base`.
-
-This also corrects an argument the authority made this session: M2 (a remeasure mode) was rejected on
-the ground that it would introduce a permanent new way to rewrite roots outside a move. The permanent
-path already exists and is unguarded; it is a pair of human hands.
-
-Owner: a later charter. The remedy is a mode that rewrites roots from the shipped formula without
-requiring a move; the symptom is that the tripwire's correctness depends on nobody miscounting.
-</Body>
-  </Finding>
-        <Finding id="f217" token="F217" status="live">
+  <Finding id="f217" token="F217" status="live">
     <Title>### F217 — close-evidence command shapes are token-based, not prefix-based, so a `bash -c` wrapper is shippable whenever its inner command matches a shape. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `3ba0d77`, against `src/artifact/grammar.ts:100-176,191-204`.
@@ -7581,7 +7451,7 @@ looking at how it starts.
 Owner: no bundle; it is a correction to the authority's own brief-writing rules.
 </Body>
   </Finding>
-        <Finding id="f218" token="F218" status="live">
+  <Finding id="f218" token="F218" status="live">
     <Title>### F218 — an executor that probes in a throwaway tree cites that tree's line numbers, and they point at unrelated code in the one that ships. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `3ba0d77`, auditing the `C-INDEX-METRIC` draft spec.
@@ -7609,7 +7479,7 @@ Owner: the brief-writing rules. Neighbour to [F213](#f213) — one is evidence t
 citation that cannot be followed.
 </Body>
   </Finding>
-        <Finding id="f219" token="F219" status="live">
+  <Finding id="f219" token="F219" status="live">
     <Title>### F219 — reading an artifact whole is not the same as verifying it, and the authority conflated them. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `3ba0d77`, across two review rounds of the same draft spec.
@@ -7636,7 +7506,7 @@ Owner: the authority's review procedure. Neighbour to [F218](#f218), which is th
 the same gap.
 </Body>
   </Finding>
-        <Finding id="f220" token="F220" status="live">
+  <Finding id="f220" token="F220" status="live">
     <Title>### F220 — the authority ratified a design addition on principle and never drove it against the shipped suite, and it was unsatisfiable. **[verified]**</Title>
     <Body>
 Measured **2026-09-09** at `3ba0d77`, when a plan brief stopped on an approved spec.
@@ -7838,4 +7708,4 @@ by hand. Neighbour to [F216](#f216) (hand-maintained XML metadata with no owning
 [F214](#f214) (the ledger records that a command ran, never who ran it).
 </Body>
   </Finding>
-        </Findings>
+</Findings>

@@ -2170,6 +2170,16 @@ const WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET: ReadonlyArray<readonly [string, stri
   // this same pin (F133). The bundle was superseded over it rather than
   // closed; the pair records what the archive holds. Recorded, not excused.
   ["C-LINT-PHASE-HONESTY", "src/test-support/token-accounting.test.ts"],
+  // C-ROOT-WINDOW: the spec chartered re-capturing the C-RECORD-PARSE golden
+  // fixtures against the new engine's bytes in a Goal, and its write-scope
+  // Constraint never listed them, so the ObservedWriteScope inherited the
+  // omission and AC-NO-SRC-OTHER could not pass on the tree the spec asked
+  // for (F227). The bundle was superseded over it rather than closed; the four
+  // pairs record what the archive holds. Recorded, not excused.
+  ["C-ROOT-WINDOW", "scripts/fixtures/record-parse/golden/findings-retired.xml"],
+  ["C-ROOT-WINDOW", "scripts/fixtures/record-parse/golden/findings.xml"],
+  ["C-ROOT-WINDOW", "scripts/fixtures/record-parse/golden/registry-retired.xml"],
+  ["C-ROOT-WINDOW", "scripts/fixtures/record-parse/golden/registry.xml"],
 ];
 
 describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
