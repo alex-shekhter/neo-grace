@@ -2858,14 +2858,20 @@ body of the decision.
       expect(/closed with/i.test(hit.statusText), "StatusText carries no Closed-with sentence").toBe(false);
       // the named red-making mutation, driven on a mutated copy — never
       // against the production record: a second row with the same name
-      // reddens the exactly-once clause (the walk reads 2 where the mint's
-      // own shape reads 1)
-      const liveXml = readFileSync(path.join(recordDir, "registry.xml"), "utf8");
-      const mutated = liveXml.replace(
+      // reddens the exactly-once clause. The duplicate is planted into
+      // whichever file the production walk found the row in, so the probe
+      // holds in the pre-close and the applied-archive state alike, and
+      // the mutated copy is expected to read the pre-mutation count plus
+      // one — the exactly-once clause above has already proven that count
+      // is 1, so the expectation is the pinned 2, and the probe still
+      // reds on a real second row even if the clause itself is neutered.
+      const holdingFile = hit.file;
+      const holdingXml = readFileSync(path.join(recordDir, holdingFile), "utf8");
+      const mutated = holdingXml.replace(
         "</Registry>",
         `  <Row name="C-ROOT-WINDOW" status="live" kind="chartered">\n    <Number></Number>\n    <Charter>duplicate</Charter>\n    <Pays>F216</Pays>\n    <StatusText>Ordered</StatusText>\n  </Row>\n</Registry>`,
       );
-      const mutatedParsed = parseGraceXmlArtifact("registry.xml", mutated);
+      const mutatedParsed = parseGraceXmlArtifact(holdingFile, mutated);
       const mutatedCount = childNodes(mutatedParsed.root!, "Row").filter(
         (row) => row.attributes.name === "C-ROOT-WINDOW",
       ).length;
