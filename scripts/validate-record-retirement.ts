@@ -593,8 +593,8 @@ export function splitFrozenRecord(repoRoot: string, recordDir = path.join(repoRo
     .filter((e) => e.headingLevel === 2)
     .map((e) => newlineCount(renderDecision(e, "live")) + 1);
 
-  const findingsHeadroom = 7 * median(findingMedians);
-  const rulingsHeadroom = 2 * median(h2DecisionMedians);
+  const findingsHeadroom = Math.floor(7 * median(findingMedians));
+  const rulingsHeadroom = Math.floor(2 * median(h2DecisionMedians));
   const registryHeadroom = 15;
   const indexHeadroom = INDEX_HEADROOM_ENTRIES;
 
@@ -947,6 +947,105 @@ function withRootSnapshot(
   return `${nextOpenTag}${xml.slice(span.openEnd)}`;
 }
 
+/**
+ * The --rewrite-roots mode's root splice: the same prefix splice the move's
+ * withRootSnapshot uses, with the persisted ceiling's raw attribute bytes
+ * passed through untouched — never recomputed and never re-serialised.
+ */
+function withRootSnapshotHeld(
+  xml: string,
+  root: GraceXmlNode,
+  span: XmlElementSpan,
+  base: number,
+  headroom: number,
+  ceilingRaw: string,
+): string {
+  const nextOpenTag = `<${root.tag} base="${base}" headroom="${headroom}" ceiling="${ceilingRaw}">`;
+  return `${nextOpenTag}${xml.slice(span.openEnd)}`;
+}
+
+/**
+ * The move writer's normalising pass (C-ROOT-WINDOW, F190). Rewrites only the
+ * inter-element whitespace of one file the move wrote, to the canonical house
+ * shape the split renderer produces: <newline><two spaces> before each
+ * top-level unit, <newline> before the root close tag, and the tail after
+ * the root close preserved verbatim. Every element's own bytes — the
+ * parser-derived spans — pass through untouched; the root open tag is
+ * preserved verbatim too, so a later withRootSnapshot splice against the
+ * pre-pass span stays valid. A top-level comment is neither whitespace nor
+ * an element and is not a gap: its bytes pass through in place (the shipped
+ * clamp drive pads a rulings fixture with top-level comments whose bytes are
+ * load-bearing), while any other non-whitespace content in the inter-element
+ * region refuses the pass loudly before any write — it is not a gap and must
+ * not be dropped.
+ */
+function normaliseGaps(xml: string, file: string): string {
+  const parsed = parseGraceXmlArtifact(file, xml);
+  if (!parsed.root) {
+    throw new Error(`record engine: the normalising pass could not parse ${file}`);
+  }
+  const spans = computeElementSpans(xml, parsed);
+  const rootSpan = spans.get(parsed.root)!;
+  if (rootSpan.closeStart === null || rootSpan.closeEnd === null) {
+    throw new Error(`record engine: the normalising pass requires a close-tag root; ${file} has a self-closing root`);
+  }
+  const units: Array<{ start: number; end: number }> = [];
+  for (const child of parsed.root.children) {
+    const span = spans.get(child);
+    if (!span) {
+      throw new Error(`record engine: the normalising pass could not span a top-level element of ${file}`);
+    }
+    units.push({ start: span.openStart, end: span.closeEnd ?? span.openEnd });
+  }
+  const regionStart = rootSpan.openEnd;
+  const regionEnd = rootSpan.closeStart;
+  for (const match of xml.matchAll(/<!--[\s\S]*?-->/g)) {
+    const start = match.index;
+    const end = start + match[0]!.length;
+    const insideElement = units.some((unit) => start < unit.end && unit.start < end);
+    if (insideElement) {
+      continue;
+    }
+    if (start < regionStart || end > regionEnd) {
+      continue;
+    }
+    units.push({ start, end });
+  }
+  units.sort((a, b) => a.start - b.start);
+  let cursor = regionStart;
+  for (const unit of units) {
+    if (xml.slice(cursor, unit.start).trim() !== "") {
+      throw new Error(`record engine: the normalising pass found non-whitespace bytes between top-level units of ${file}; refusing to drop them`);
+    }
+    cursor = unit.end;
+  }
+  if (xml.slice(cursor, regionEnd).trim() !== "") {
+    throw new Error(`record engine: the normalising pass found non-whitespace content before the root close tag of ${file}; refusing to drop it`);
+  }
+  const parts: string[] = [xml.slice(0, regionStart)];
+  for (const unit of units) {
+    parts.push(`\n  ${xml.slice(unit.start, unit.end)}`);
+  }
+  parts.push(`\n</${parsed.root.tag}>`);
+  parts.push(xml.slice(rootSpan.closeEnd));
+  return parts.join("");
+}
+
+/**
+ * The unmoved-genre hold (C-ROOT-WINDOW, INV-ROOT-WINDOW-UNMOVED, maintainer's
+ * resolution): a genre the move did not change keeps its persisted ceiling
+ * while its base is re-derived from the shipped metric read back and headroom
+ * becomes the remainder. One rule, shared by the move and the
+ * --rewrite-roots mode; at any tripwire-consistent record the held splice is
+ * byte-identical to the persisted bytes.
+ */
+function holdSnapshot(
+  previous: { base: number; headroom: number; ceiling: number },
+  base: number,
+): { base: number; headroom: number; ceiling: number } {
+  return { base, headroom: previous.ceiling - base, ceiling: previous.ceiling };
+}
+
 function persistSnapshot(
   previous: { base: number; headroom: number; ceiling: number },
   base: number,
@@ -1195,6 +1294,7 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   const indexSpans = indexParse.root
     ? computeElementSpans(files.index, indexParse)
     : new Map<GraceXmlNode, XmlElementSpan>();
+  let indexLayerFlips = 0;
   if (indexParse.root) {
     const layerEdits: XmlElementSpan[] = [];
     for (const item of [...moveFindings, ...moveDecisions]) {
@@ -1209,9 +1309,32 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
     // distinct Entries, non-overlapping open tags: splice back-to-front so
     // earlier spans stay valid
     layerEdits.sort((a, b) => b.openStart - a.openStart);
+    indexLayerFlips = layerEdits.length;
     for (const span of layerEdits) {
       indexXml = setEntryLayer(indexXml, span, "retired");
     }
+  }
+
+  // The normalising pass (C-ROOT-WINDOW, F190): every file the move wrote —
+  // a genre with removals, its retired sibling with appends, and the index
+  // when its layers flipped — has its inter-element whitespace rewritten to
+  // the canonical house shape. Element bytes pass through from the
+  // parser-derived spans; a genre with zero moved elements keeps its bytes,
+  // so pre-existing drift there stays until its own move normalises it.
+  if (moveFindings.length > 0) {
+    findingsLive = normaliseGaps(findingsLive, paths.findings);
+    findingsRetired = normaliseGaps(findingsRetired, paths.findingsRetired);
+  }
+  if (moveDecisions.length > 0) {
+    rulingsLive = normaliseGaps(rulingsLive, paths.rulings);
+    rulingsRetired = normaliseGaps(rulingsRetired, paths.rulingsRetired);
+  }
+  if (moveRows.length > 0) {
+    registryLive = normaliseGaps(registryLive, paths.registry);
+    registryRetired = normaliseGaps(registryRetired, paths.registryRetired);
+  }
+  if (indexLayerFlips > 0) {
+    indexXml = normaliseGaps(indexXml, paths.index);
   }
 
   const findingsPrev = readRootSnapshot(findingsParse.root);
@@ -1221,43 +1344,51 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   const registryPrev = readRootSnapshot(registryParse.root);
   const indexPrev = readRootSnapshot(indexParse.root);
 
-  const findingsHeadroom = 7 * median(findingLineCounts(findingsLive));
-  const rulingsHeadroom = 7 * median(liveH2DecisionLineCounts(rulingsLive));
+  const findingsHeadroom = Math.floor(7 * median(findingLineCounts(findingsLive)));
+  const rulingsHeadroom = Math.floor(7 * median(liveH2DecisionLineCounts(rulingsLive)));
   findingsLive = withRootSnapshot(
     findingsLive,
     findingsParse.root!,
     findingSpans.get(findingsParse.root!)!,
-    persistSnapshot(
-      findingsPrev,
-      newlineCount(findingsLive),
-      findingsHeadroom,
-      true,
-      findingsBaseRead,
-    ),
+    moveFindings.length > 0
+      ? persistSnapshot(
+        findingsPrev,
+        newlineCount(findingsLive),
+        findingsHeadroom,
+        true,
+        findingsBaseRead,
+      )
+      : holdSnapshot(findingsPrev, newlineCount(findingsLive)),
   );
   rulingsLive = withRootSnapshot(
     rulingsLive,
     rulingsParse.root!,
     decisionSpans.get(rulingsParse.root!)!,
-    persistSnapshot(
-      rulingsPrev,
-      newlineCount(rulingsLive),
-      rulingsHeadroom,
-      true,
-      rulingsBaseRead,
-    ),
+    moveDecisions.length > 0
+      ? persistSnapshot(
+        rulingsPrev,
+        newlineCount(rulingsLive),
+        rulingsHeadroom,
+        true,
+        rulingsBaseRead,
+      )
+      : holdSnapshot(rulingsPrev, newlineCount(rulingsLive)),
   );
   registryLive = withRootSnapshot(
     registryLive,
     registryParse.root!,
     rowSpans.get(registryParse.root!)!,
-    persistSnapshot(registryPrev, liveRowCount(registryLive), 15, true),
+    moveRows.length > 0
+      ? persistSnapshot(registryPrev, liveRowCount(registryLive), 15, true)
+      : holdSnapshot(registryPrev, liveRowCount(registryLive)),
   );
   indexXml = withRootSnapshot(
     indexXml,
     indexParse.root!,
     indexSpans.get(indexParse.root!)!,
-    persistSnapshot(indexPrev, liveEntryCount(indexXml), INDEX_HEADROOM_ENTRIES, true),
+    indexLayerFlips > 0
+      ? persistSnapshot(indexPrev, liveEntryCount(indexXml), INDEX_HEADROOM_ENTRIES, true)
+      : holdSnapshot(indexPrev, liveEntryCount(indexXml)),
   );
 
   writeFileSync(paths.findings, findingsLive);
@@ -1268,6 +1399,114 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   writeFileSync(paths.registryRetired, registryRetired);
   writeFileSync(paths.index, indexXml);
   return { moved: movedCount };
+}
+
+/**
+ * The --rewrite-roots mode (C-ROOT-WINDOW, F216, INV-ROOT-WINDOW-MODE-CEILING
+ * maintainer's resolution): re-derives, for each of the four live genre
+ * roots, base from the shipped metric read back — newlineCount of the whole
+ * file for findings and rulings, the live Row count for the registry, the
+ * live Entry count for the index — holds the persisted ceiling byte-for-byte
+ * (the raw attribute value passes through, never recomputed and never
+ * re-serialised), and persists headroom = ceiling − base. It refuses, before
+ * any write, when any live genre's count exceeds its persisted ceiling — the
+ * one state whose only remedy is the move — and when a ceiling attribute is
+ * missing or unreadable. It re-derives all four live roots or none; retired
+ * siblings carry no root attributes and are not touched; the stub and the
+ * inventory are not touched. A hand-raised ceiling is held, never adopted
+ * and never recomputed — the laundering boundary stated in the spec's
+ * Known-boundary Constraint.
+ */
+export function rewriteRecordRoots(options: RetirementOptions): void {
+  const paths = recordPaths(options.recordDir);
+  const liveGenres: Array<{
+    part: string;
+    file: string;
+    xml: string;
+    unit: string;
+    remedy: string;
+    metric: (xml: string) => number;
+  }> = [
+    {
+      part: "findings",
+      file: paths.findings,
+      xml: readFileSync(paths.findings, "utf8"),
+      unit: "line",
+      remedy: "move the eligible entry to the retired sibling",
+      metric: (xml) => newlineCount(xml),
+    },
+    {
+      part: "rulings",
+      file: paths.rulings,
+      xml: readFileSync(paths.rulings, "utf8"),
+      unit: "line",
+      remedy: "move the eligible entry to the retired sibling",
+      metric: (xml) => newlineCount(xml),
+    },
+    {
+      part: "registry",
+      file: paths.registry,
+      xml: readFileSync(paths.registry, "utf8"),
+      unit: "live-row",
+      remedy: "move the eligible entry to the retired sibling",
+      metric: (xml) => liveRowCount(xml),
+    },
+    {
+      part: "index",
+      file: paths.index,
+      xml: readFileSync(paths.index, "utf8"),
+      unit: "live-entry",
+      remedy:
+        "the eligible entries flip their index Entry layer to retired in place; the index has no retired sibling and its Entry lines stay",
+      metric: (xml) => liveEntryCount(xml),
+    },
+  ];
+  // Every root is derived before any file is written: the mode re-derives
+  // all four live roots or none.
+  const rewrites: Array<{ file: string; next: string }> = [];
+  for (const genre of liveGenres) {
+    const parsed = parseGraceXmlArtifact(genre.file, genre.xml);
+    if (!parsed.root) {
+      throw new Error(
+        `missing-ceiling: ${genre.file}: live ${genre.part} has no readable root; --rewrite-roots holds the persisted ceiling and cannot re-derive one`,
+      );
+    }
+    let rootSpan: XmlElementSpan;
+    try {
+      rootSpan = computeElementSpans(genre.xml, parsed).get(parsed.root)!;
+    } catch (error) {
+      throw new Error(
+        `missing-ceiling: ${genre.file}: live ${genre.part} has no readable root open tag; --rewrite-roots holds the persisted ceiling and cannot re-derive one (${error instanceof Error ? error.message : String(error)})`,
+      );
+    }
+    const openTag = genre.xml.slice(rootSpan.openStart, rootSpan.openEnd);
+    const range = attributeValueRange(openTag, "ceiling");
+    const ceilingRaw = range ? openTag.slice(range.valueStart, range.valueEnd) : undefined;
+    if (ceilingRaw === undefined || ceilingRaw === "") {
+      throw new Error(
+        `missing-ceiling: ${genre.file}: live ${genre.part} has no persisted ceiling; --rewrite-roots holds ceilings and never derives one; --retire / ${genre.remedy} persists ceiling = base + headroom`,
+      );
+    }
+    const ceiling = Number(ceilingRaw);
+    if (!Number.isFinite(ceiling)) {
+      throw new Error(
+        `ceiling-unreadable: ${genre.file}: live ${genre.part} carries ceiling="${ceilingRaw}", which is not a readable number; --rewrite-roots holds the persisted ceiling and cannot re-derive around it`,
+      );
+    }
+    const base = genre.metric(genre.xml);
+    if (base > ceiling) {
+      throw new Error(
+        `ceiling-exceeded: ${genre.file}: live ${genre.part} ${genre.unit} count ${base} exceeds persisted ceiling ${ceiling}; --retire / ${genre.remedy}. Raising the persisted ceiling is not the remedy.`,
+      );
+    }
+    rewrites.push({
+      file: genre.file,
+      next: withRootSnapshotHeld(genre.xml, parsed.root, rootSpan, base, ceiling - base, ceilingRaw),
+    });
+  }
+  for (const rewrite of rewrites) {
+    writeFileSync(rewrite.file, rewrite.next);
+  }
 }
 
 function wellFormed(xml: string, file: string, findings: RetirementFinding[]): boolean {
@@ -1602,7 +1841,9 @@ function taughtResolvesCheck(
 }
 
 export function main(argv = process.argv.slice(2), cwd = process.cwd()): number {
-  const mode = argv.find((a) => a === "--split" || a === "--retire" || a === "--stamp-paid-by");
+  const mode = argv.find(
+    (a) => a === "--split" || a === "--retire" || a === "--stamp-paid-by" || a === "--rewrite-roots",
+  );
   const positional = argv.filter((a) => !a.startsWith("--"));
   if (mode === "--split") {
     try {
@@ -1624,6 +1865,16 @@ export function main(argv = process.argv.slice(2), cwd = process.cwd()): number 
     stampPaidBy({ repoRoot: cwd, recordDir });
     console.log(`record-retirement: stamp-paid-by ok (${recordDir})`);
     return 0;
+  }
+  if (mode === "--rewrite-roots") {
+    try {
+      rewriteRecordRoots({ repoRoot: cwd, recordDir });
+      console.log(`record-retirement: rewrite-roots ok (${recordDir})`);
+      return 0;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      return 1;
+    }
   }
   const findings = validateRecordRetirement({ repoRoot: cwd, recordDir });
   if (findings.length === 0) {

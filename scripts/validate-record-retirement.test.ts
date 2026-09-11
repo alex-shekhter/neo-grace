@@ -735,7 +735,13 @@ ${inner}
     expect(written.ceiling).toBeLessThan(baseLive + H);
   });
 
-  it("T-001 min not decorative: hand-shrunk findings persist ceiling = Base_live + H without a findings move", () => {
+  it("C-ROOT-WINDOW unmoved window: a genre with zero moved elements keeps its persisted ceiling with the base re-derived and headroom the remainder — the shipped clamp (C-RETIREMENT-WINDOW's min-not-decorative behaviour) is the named baseline this assertion overturns", () => {
+    // Same scenario the shipped min-not-decorative test drove: a decision-only
+    // move with a hand-shaped findings root. The shipped engine persisted
+    // min(persisted ceiling, Base_live + H) — the window an unrelated move
+    // opened was clamped back to H; that clamp is the behaviour this bundle
+    // overturns, and this test reddens if an unmoved genre's window shrinks
+    // across a move in another genre (the named mutation).
     const root = isolatedRoot();
     const parts = happyParts();
     plant(root, "tests/exists.test.ts", "export {}\n");
@@ -756,14 +762,230 @@ ${inner}
 `;
     writeHappy(root, parts);
     const asRead = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const persisted = rootAttrs(asRead);
     const baseLive = newlineCount(asRead);
     const result = runValidator(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const written = rootAttrs(after);
     const H = 7 * median(findingLineCounts(after));
-    expect(written.ceiling).toBe(baseLive + H);
+    // the shipped clamp would persist min(persisted, base + H) here — strictly
+    // below the held ceiling on this fixture, which is what reddens it
+    expect(baseLive + H).toBeLessThan(persisted.ceiling);
+    // the unmoved genre keeps its persisted ceiling; the base is re-derived
+    // from the shipped metric read back and headroom is the remainder
+    expect(written.ceiling, "the unmoved genre's window survives the unrelated move").toBe(persisted.ceiling);
+    expect(written.base).toBe(newlineCount(after));
+    expect(written.headroom).toBe(written.ceiling - written.base);
   });
+
+  it("C-ROOT-WINDOW rewrite-roots byte no-op: on a consistent record the mode re-derives all four live roots from the held ceilings and the metric read-backs and leaves every record file byte-identical, and a second run is again a byte no-op", () => {
+    const root = isolatedRoot();
+    writeHappy(root, consistentParts());
+    expect(runValidator(root).status, "the consistent fixture validates clean").toBe(0);
+    const before = snapshotRecord(root);
+    const result = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    expect(result.status, result.stderr).toBe(0);
+    for (const [name, text] of Object.entries(before)) {
+      expect(readFileSync(path.join(root, RECORD_REL, name), "utf8"), `${name}: byte-identical`).toBe(text);
+    }
+    const second = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    expect(second.status).toBe(0);
+    for (const [name, text] of Object.entries(before)) {
+      expect(readFileSync(path.join(root, RECORD_REL, name), "utf8"), `${name}: the second run is again a byte no-op`).toBe(text);
+    }
+  }, 60_000);
+
+  it("C-ROOT-WINDOW rewrite-roots refusal: an exceeded ceiling exits 1 with nothing written, naming the genre, both counts in their unit, and the move as the remedy", () => {
+    const root = isolatedRoot();
+    const parts = consistentParts();
+    const persisted = rootAttrs(parts.findings);
+    parts.findings = parts.findings.replace(
+      `ceiling="${persisted.ceiling}"`,
+      `ceiling="${persisted.base - 1}"`,
+    );
+    writeHappy(root, parts);
+    const before = snapshotRecord(root);
+    const result = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("ceiling-exceeded");
+    expect(result.stderr).toContain(
+      `live findings line count ${newlineCount(parts.findings)} exceeds persisted ceiling ${persisted.base - 1}`,
+    );
+    expect(result.stderr).toContain("--retire");
+    expect(result.stderr).toContain("move the eligible entry to the retired sibling");
+    expect(result.stderr).toContain("Raising the persisted ceiling is not the remedy");
+    for (const [name, text] of Object.entries(before)) {
+      expect(readFileSync(path.join(root, RECORD_REL, name), "utf8"), `${name}: nothing written`).toBe(text);
+    }
+  }, 60_000);
+
+  it("C-ROOT-WINDOW rewrite-roots refusal: a missing ceiling attribute exits 1 with nothing written", () => {
+    const root = isolatedRoot();
+    const parts = consistentParts();
+    parts.registry = parts.registry.replace(/ ceiling="[0-9]+">/, ">");
+    writeHappy(root, parts);
+    const before = snapshotRecord(root);
+    const result = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("missing-ceiling");
+    expect(result.stderr).toContain("has no persisted ceiling");
+    for (const [name, text] of Object.entries(before)) {
+      expect(readFileSync(path.join(root, RECORD_REL, name), "utf8"), `${name}: nothing written`).toBe(text);
+    }
+  }, 60_000);
+
+  it("C-ROOT-WINDOW rewrite-roots hold: a hand-raised ceiling passes through byte-for-byte — never recomputed and never adopted — while the base is repaired to the read-back", () => {
+    const root = isolatedRoot();
+    const parts = consistentParts();
+    parts.registry = parts.registry.replace(
+      /<Registry [^>]*>/,
+      '<Registry base="12" headroom="78" ceiling="90">',
+    );
+    writeHappy(root, parts);
+    const before = snapshotRecord(root);
+    const result = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    expect(result.status, result.stderr).toBe(0);
+    const after = readFileSync(path.join(root, RECORD_REL, "registry.xml"), "utf8");
+    expect(after, "the ceiling's raw bytes pass through untouched").toContain('ceiling="90"');
+    const written = rootAttrs(after);
+    expect(written.ceiling).toBe(rootAttrs(before["registry.xml"]).ceiling);
+    expect(written.base, "the hand-written base is repaired to the shipped metric read back").toBe(liveRowCount(after));
+    expect(written.headroom).toBe(written.ceiling - written.base);
+    for (const name of ["findings.xml", "rulings.xml", "decisions.xml", "findings-retired.xml", "rulings-retired.xml", "registry-retired.xml", "decisions.md", "record-inventory.json"]) {
+      expect(readFileSync(path.join(root, RECORD_REL, name), "utf8"), `${name}: untouched by the registry run`).toBe(before[name]);
+    }
+  }, 60_000);
+
+  it("C-ROOT-WINDOW floored derivation: an even post-move population with differing middles persists the floored integer where the shipped unfloored form persists the fractional value on the identical fixture", () => {
+    const root = isolatedRoot();
+    const parts = happyParts();
+    parts.registryRetired = `<Registry>
+  <Row name="C-OLD" status="retired" kind="chartered">
+    <Number>2</Number>
+    <Charter>old</Charter>
+    <Pays>F1</Pays>
+    <StatusText>Delivered</StatusText>
+  </Row>
+</Registry>
+`;
+    const grow = (n: number) => Array.from({ length: n }, (_, i) => `grow ${i + 1}`).join("\n");
+    const f = (id: string, token: string, extra: number) =>
+      `  <Finding id="${id}" token="${token}" status="live">\n` +
+      `    <Title>### ${token} — live</Title>\n` +
+      `    <Body>body\n${grow(extra)}</Body>\n` +
+      `  </Finding>`;
+    // after f1 moves, the surviving population is two elements with line
+    // counts 19 and 20 — the middles differ by an odd number, so the shipped
+    // 7 x median persists a .5
+    parts.findings = `<Findings base="20" headroom="70" ceiling="1000">\n${f("f1", "F1", 0)}\n${f("f2", "F2", 14)}\n${f("f3", "F3", 15)}\n</Findings>\n`;
+    writeHappy(root, parts);
+    const asRead = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const baseLive = newlineCount(asRead);
+    const result = runValidator(root, ["--retire"]);
+    expect(result.status).toBe(0);
+    const after = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const written = rootAttrs(after);
+    const unfloored = 7 * median(findingLineCounts(after));
+    expect(unfloored % 1, "the fixture discriminates: the shipped unfloored product is fractional").not.toBe(0);
+    expect(Number.isInteger(written.ceiling), "no fractional ceiling persists").toBe(true);
+    expect(Number.isInteger(written.headroom), "no fractional headroom persists").toBe(true);
+    expect(written.ceiling, "the persisted ceiling is the pre-move base plus the floored product").toBe(baseLive + Math.floor(unfloored));
+    expect(written.ceiling, "the shipped unfloored form would have persisted the fractional value on the identical fixture").not.toBe(baseLive + unfloored);
+    expect(written.headroom).toBe(written.ceiling - written.base);
+  }, 60_000);
+
+  it("C-ROOT-WINDOW unmoved window across two consecutive moves: the genre the moves did not change stays byte-identical through both and keeps its persisted ceiling", () => {
+    const root = isolatedRoot();
+    const parts = consistentParts();
+    parts.registryRetired = `<Registry>
+  <Row name="C-OLD" status="retired" kind="chartered">
+    <Number>2</Number>
+    <Charter>old</Charter>
+    <Pays>F1</Pays>
+    <StatusText>Delivered</StatusText>
+  </Row>
+</Registry>
+`;
+    writeHappy(root, parts);
+    const rulingsBefore = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    const first = runValidator(root, ["--retire"]);
+    expect(first.status, first.stderr).toBe(0);
+    const rulingsAfterFirst = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    expect(rulingsAfterFirst, "the unmoved rulings genre is byte-identical across the first move").toBe(rulingsBefore);
+    // re-arm a second unrelated retirement against a fresh archive dir
+    mkdirSync(path.join(root, ".ngrace/changes/archive/C-LATE"), { recursive: true });
+    const live = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const grown = live.replace(
+      "</Findings>",
+      `  <Finding id="f9" token="F9" status="live">\n    <Title>### F9 — paid</Title>\n    <Body>late body</Body>\n  </Finding>\n</Findings>`,
+    );
+    plant(root, `${RECORD_REL}/findings.xml`, grown);
+    const registryRetired = readFileSync(path.join(root, RECORD_REL, "registry-retired.xml"), "utf8");
+    const reg = registryRetired.replace(
+      "</Registry>",
+      `  <Row name="C-LATE" status="retired" kind="chartered">\n    <Number>3</Number>\n    <Charter>late</Charter>\n    <Pays>F9</Pays>\n    <StatusText>Delivered</StatusText>\n  </Row>\n</Registry>`,
+    );
+    plant(root, `${RECORD_REL}/registry-retired.xml`, reg);
+    const second = runValidator(root, ["--retire"]);
+    expect(second.status, second.stderr).toBe(0);
+    const rulingsAfterSecond = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
+    expect(rulingsAfterSecond, "the unmoved rulings genre is byte-identical through both moves").toBe(rulingsBefore);
+    const written = rootAttrs(rulingsAfterSecond);
+    expect(written.headroom).toBe(written.ceiling - written.base);
+    expect(written.base).toBe(newlineCount(rulingsAfterSecond));
+  }, 60_000);
+
+  it("C-ROOT-WINDOW normalising pass: after a move every surviving top-level element is byte-identical with canonical gaps, and a mutated element's own bytes redden the walk", () => {
+    const root = isolatedRoot();
+    const parts = happyParts();
+    parts.registryRetired = `<Registry>
+  <Row name="C-OLD" status="retired" kind="chartered">
+    <Number>2</Number>
+    <Charter>old</Charter>
+    <Pays>F1</Pays>
+    <StatusText>Delivered</StatusText>
+  </Row>
+</Registry>
+`;
+    parts.findingsRetired = `<Findings>\n  <Finding id="f9" token="F9" status="retired">\n    <PaidBy>C-OLD</PaidBy>\n    <Title>### F9 — retired</Title>\n    <Body>body nine</Body>\n  </Finding>\n</Findings>\n`;
+    const f = (id: string, token: string, body: string) =>
+      `  <Finding id="${id}" token="${token}" status="live">\n    <Title>### ${token} — live</Title>\n    <Body>${body}</Body>\n  </Finding>`;
+    // pre-existing drift: a blank line and a 4-space indent before f2 (F190's
+    // shape) — the move's pass must normalise it away without touching bytes
+    parts.findings = `<Findings base="20" headroom="70" ceiling="1000">\n${f("f1", "F1", "body one")}\n\n    ${f("f2", "F2", "body two")}\n${f("f3", "F3", "body three")}\n</Findings>\n`;
+    writeHappy(root, parts);
+    const beforeXml = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    expect(gapShapesCanonical(beforeXml), "the pre-move fixture carries non-canonical gaps (the drift the pass repairs)").toBe(false);
+    const result = runValidator(root, ["--retire"]);
+    expect(result.status).toBe(0);
+    const afterXml = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const beforeBytes = topElementBytes(beforeXml);
+    const afterBytes = topElementBytes(afterXml);
+    let changed = 0;
+    for (const [id, bytes] of beforeBytes) {
+      const survivor = afterBytes.get(id);
+      if (survivor === undefined) continue;
+      if (survivor !== bytes) changed += 1;
+    }
+    expect(changed, "every surviving element's own bytes are byte-identical across the move (changed 0)").toBe(0);
+    expect(gapShapesCanonical(afterXml), "every gap is the canonical house shape after the pass").toBe(true);
+    expect(afterXml.endsWith("\n</Findings>\n"), "the root close tag sits at column 0").toBe(true);
+    const retiredXml = readFileSync(path.join(root, RECORD_REL, "findings-retired.xml"), "utf8");
+    expect(retiredXml, "the appended retired-side element sits at 2-space indent").toMatch(/\n  <Finding id="f1" token="F1" status="retired">/);
+    expect(retiredXml.endsWith("\n</Findings>\n")).toBe(true);
+    // the named red: one surviving element's own bytes mutated — the walk
+    // reports changed 1 where the clean record reports changed 0
+    const mutated = afterXml.replace("body two", "body two mutated");
+    const mutatedBytes = topElementBytes(mutated);
+    let mutatedChanged = 0;
+    for (const [id, bytes] of beforeBytes) {
+      const survivor = mutatedBytes.get(id);
+      if (survivor === undefined) continue;
+      if (survivor !== bytes) mutatedChanged += 1;
+    }
+    expect(mutatedChanged, "the mutated copy reddens the walk (changed 1)").toBe(1);
+  }, 60_000);
 
   it("T-001 Delta = 0: a decision-only --retire leaves findings at window H when the snapshot sits at base + H", () => {
     const root = isolatedRoot();
@@ -1830,7 +2052,20 @@ ${names
       }
       // C-FLUSH-AND-PAY minted the C-INDEX-METRIC-2 row post-archive, so the production
       // derivation mints F205; the baseline map was captured before that row existed.
-      const bundleMinted: Record<string, string> = { F205: "C-INDEX-METRIC-2" };
+      // C-ROOT-WINDOW's row mints its six tokens to this bundle only once the
+      // bundle is archived (eligibility requires the payer's name to be an archive
+      // directory); the extension is consulted only for tokens the derivation
+      // actually mints, so the test stays green with the row live and in the
+      // applied-archive state.
+      const bundleMinted: Record<string, string> = {
+        F205: "C-INDEX-METRIC-2",
+        F216: "C-ROOT-WINDOW",
+        F182: "C-ROOT-WINDOW",
+        F193: "C-ROOT-WINDOW",
+        F190: "C-ROOT-WINDOW",
+        F225: "C-ROOT-WINDOW",
+        F226: "C-ROOT-WINDOW",
+      };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
       }
@@ -2584,6 +2819,115 @@ body of the decision.
     },
     60_000,
   );
+
+  it(
+    "C-ROOT-WINDOW row invariant: the C-ROOT-WINDOW row exists exactly once across the registry layers with its status agreeing with the holding file, kind chartered, Pays exactly F216, F182, F193, F190, F225, F226 in that order, and a StatusText carrying no F token and no Closed-with sentence — no fixed expectation of which file that is",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const layers: Array<[string, string]> = [
+        ["registry.xml", "live"],
+        ["registry-retired.xml", "retired"],
+      ];
+      const hits: Array<{ file: string; status: string; kind: string; pays: string; statusText: string }> = [];
+      for (const [file] of layers) {
+        const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+        expect(parsed.root, `${file} parses`).not.toBeNull();
+        for (const row of childNodes(parsed.root!, "Row")) {
+          if (row.attributes.name !== "C-ROOT-WINDOW") {
+            continue;
+          }
+          hits.push({
+            file,
+            status: row.attributes.status ?? "",
+            kind: row.attributes.kind ?? "",
+            pays: (childText(row, "Pays") ?? "").trim(),
+            statusText: childText(row, "StatusText") ?? "",
+          });
+        }
+      }
+      expect(
+        hits.length,
+        `the C-ROOT-WINDOW row exists exactly once across the registry layers — the walk is the duplicate check (got ${hits.length})`,
+      ).toBe(1);
+      const hit = hits[0]!;
+      const holding = hit.file === "registry.xml" ? "live" : "retired";
+      expect(hit.status, "the row's status agrees with the holding file").toBe(holding);
+      expect(hit.kind, "the row is chartered").toBe("chartered");
+      expect(hit.pays, "Pays names exactly the six tokens in that order").toBe("F216 F182 F193 F190 F225 F226");
+      expect(hit.statusText, "StatusText names no F token").not.toMatch(/\bF[0-9]/);
+      expect(/closed with/i.test(hit.statusText), "StatusText carries no Closed-with sentence").toBe(false);
+      // the named red-making mutation, driven on a mutated copy — never
+      // against the production record: a second row with the same name
+      // reddens the exactly-once clause (the walk reads 2 where the mint's
+      // own shape reads 1)
+      const liveXml = readFileSync(path.join(recordDir, "registry.xml"), "utf8");
+      const mutated = liveXml.replace(
+        "</Registry>",
+        `  <Row name="C-ROOT-WINDOW" status="live" kind="chartered">\n    <Number></Number>\n    <Charter>duplicate</Charter>\n    <Pays>F216</Pays>\n    <StatusText>Ordered</StatusText>\n  </Row>\n</Registry>`,
+      );
+      const mutatedParsed = parseGraceXmlArtifact("registry.xml", mutated);
+      const mutatedCount = childNodes(mutatedParsed.root!, "Row").filter(
+        (row) => row.attributes.name === "C-ROOT-WINDOW",
+      ).length;
+      expect(mutatedCount, "the mutated copy reddens the exactly-once clause").toBe(2);
+    },
+    60_000,
+  );
+
+  it(
+    "C-ROOT-WINDOW payment invariant: the derived payer map's C-ROOT-WINDOW entries, when any exist, are exactly within the row's six tokens, and zero Finding elements carry F225 or F226 in either findings file",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      const productionRows: Array<{ name: string; pays: string; statusText: string }> = [];
+      for (const file of ["registry.xml", "registry-retired.xml"]) {
+        const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+        for (const candidate of childNodes(parsed.root!, "Row")) {
+          const kind = candidate.attributes.kind ?? "chartered";
+          if (kind !== "chartered" && kind !== "historical") {
+            continue;
+          }
+          productionRows.push({
+            name: candidate.attributes.name ?? "",
+            pays: childText(candidate, "Pays") ?? "",
+            statusText: childText(candidate, "StatusText") ?? "",
+          });
+        }
+      }
+      const derived = derivePayerMap(REPO_ROOT, productionRows);
+      const six = ["F216", "F182", "F193", "F190", "F225", "F226"];
+      // every C-ROOT-WINDOW mint, when any exist, is within the row's six
+      // tokens — green with the row live (nothing minted) and in the
+      // applied-archive state (the six minted); each token, if minted at all,
+      // is minted by this row and no other
+      for (const token of six) {
+        const payer = derived.get(token);
+        if (payer !== undefined) {
+          expect(payer, `${token}: minted, if at all, by C-ROOT-WINDOW`).toBe("C-ROOT-WINDOW");
+        }
+      }
+      for (const [token, payer] of derived) {
+        if (payer === "C-ROOT-WINDOW") {
+          expect(six, `${token}: every C-ROOT-WINDOW mint is within the row's six tokens`).toContain(token);
+        }
+      }
+      // the pre-payment waits for the next flush: no Finding element in
+      // either findings file carries the staged tokens
+      for (const file of ["findings.xml", "findings-retired.xml"]) {
+        const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+        const carriers = [...walkNodes(parsed.root!)].filter(
+          (node) => node.tag === "Finding" && (node.attributes.token === "F225" || node.attributes.token === "F226"),
+        );
+        expect(carriers.length, `${file}: zero Finding elements carry F225 or F226 — the staged entries are pre-paid, not flushed`).toBe(0);
+      }
+      // the discriminating direction: the mechanism is not vacuously empty —
+      // a planted archived row over an isolated archive root mints its token
+      const isolatedRepo = isolatedRoot();
+      mkdirSync(path.join(isolatedRepo, ".ngrace", "changes", "archive", "C-ROOT-WINDOW"), { recursive: true });
+      const isolatedMap = derivePayerMap(isolatedRepo, [{ name: "C-ROOT-WINDOW", pays: "F226", statusText: "" }]);
+      expect(isolatedMap.get("F226"), "the archived row's token mints over the isolated archive root").toBe("C-ROOT-WINDOW");
+    },
+    60_000,
+  );
 });
 
 function rootAttrs(xml: string): { base: number; headroom: number; ceiling: number } {
@@ -2731,6 +3075,89 @@ ${decision}
   return parts;
 }
 
+/**
+ * A fixture whose live roots satisfy the shipped relations with base equal to
+ * each genre's shipped metric read back — the consistent record the
+ * --rewrite-roots byte no-op needs (the shipped happyParts roots are
+ * hand-shaped, not consistent).
+ */
+function consistentParts(): ReturnType<typeof happyParts> {
+  const parts = happyParts();
+  const f1 = `  <Finding id="f1" token="F1" status="live">\n    <Title>### F1 — live</Title>\n    <Body>body one</Body>\n  </Finding>`;
+  const d1 = `  <Decision id="d1" token="D1" status="live">\n    <Title>## D1 — live</Title>\n    <Body>ruling body</Body>\n  </Decision>`;
+  const row = `  <Row name="C-LIVE-ROW" status="live" kind="chartered">\n    <Number>1</Number>\n    <Charter>charter</Charter>\n    <Pays></Pays>\n    <StatusText>Ordered</StatusText>\n  </Row>`;
+  const entries = `  <Entry id="f1" token="F1" genre="finding" layer="live" />\n  <Entry id="f2" token="F2" genre="finding" layer="retired" />\n  <Entry id="d1" token="D1" genre="decision" layer="live" />`;
+  const findingsNoAttrs = `<Findings>\n${f1}\n</Findings>\n`;
+  const findingsBase = newlineCount(findingsNoAttrs);
+  const findingsHeadroom = 7 * median(findingLineCounts(findingsNoAttrs));
+  parts.findings = `<Findings base="${findingsBase}" headroom="${findingsHeadroom}" ceiling="${findingsBase + findingsHeadroom}">\n${f1}\n</Findings>\n`;
+  const rulingsNoAttrs = `<Rulings>\n${d1}\n</Rulings>\n`;
+  const rulingsBase = newlineCount(rulingsNoAttrs);
+  const rulingsHeadroom = 7 * median(h2LineCounts(rulingsNoAttrs));
+  parts.rulings = `<Rulings base="${rulingsBase}" headroom="${rulingsHeadroom}" ceiling="${rulingsBase + rulingsHeadroom}">\n${d1}\n</Rulings>\n`;
+  const registryNoAttrs = `<Registry>\n${row}\n</Registry>\n`;
+  const registryBase = liveRowCount(registryNoAttrs);
+  parts.registry = `<Registry base="${registryBase}" headroom="15" ceiling="${registryBase + 15}">\n${row}\n</Registry>\n`;
+  const indexNoAttrs = `<RecordIndex>\n${entries}\n</RecordIndex>\n`;
+  const indexParsed = parseGraceXmlArtifact("decisions.xml", indexNoAttrs);
+  const indexBase = childNodes(indexParsed.root!, "Entry").filter(
+    (entry) => entry.attributes.layer !== "retired",
+  ).length;
+  parts.index = `<RecordIndex base="${indexBase}" headroom="${INDEX_HEADROOM_ENTRIES}" ceiling="${indexBase + INDEX_HEADROOM_ENTRIES}">\n${entries}\n</RecordIndex>\n`;
+  return parts;
+}
+
+/** The nine record files, byte-identical checks run over this set. */
+function snapshotRecord(root: string): Record<string, string> {
+  const names = [
+    "findings.xml",
+    "findings-retired.xml",
+    "rulings.xml",
+    "rulings-retired.xml",
+    "registry.xml",
+    "registry-retired.xml",
+    "decisions.xml",
+    "decisions.md",
+    "record-inventory.json",
+  ];
+  const out: Record<string, string> = {};
+  for (const name of names) {
+    out[name] = readFileSync(path.join(root, RECORD_REL, name), "utf8");
+  }
+  return out;
+}
+
+/** The own bytes of each top-level element, keyed by id — the C-ROOT-WINDOW indent walk. */
+function topElementBytes(xml: string): Map<string, string> {
+  const parsed = parseGraceXmlArtifact("walk", xml);
+  const spans = computeElementSpans(xml, parsed);
+  const out = new Map<string, string>();
+  for (const child of parsed.root!.children) {
+    const span = spans.get(child)!;
+    out.set(child.attributes.id ?? "", xml.slice(span.openStart, span.closeEnd ?? span.openEnd));
+  }
+  return out;
+}
+
+/** Every gap is the canonical house shape: <newline><two spaces> before each top-level element, <newline> before the root close. */
+function gapShapesCanonical(xml: string): boolean {
+  const parsed = parseGraceXmlArtifact("gaps", xml);
+  const spans = computeElementSpans(xml, parsed);
+  const rootSpan = spans.get(parsed.root!)!;
+  if (rootSpan.closeStart === null) {
+    return false;
+  }
+  let cursor = rootSpan.openEnd;
+  for (const child of parsed.root!.children) {
+    const span = spans.get(child)!;
+    if (xml.slice(cursor, span.openStart) !== "\n  ") {
+      return false;
+    }
+    cursor = span.closeEnd ?? span.openEnd;
+  }
+  return xml.slice(cursor, rootSpan.closeStart) === "\n";
+}
+
 // =============================================================================
 // Regression guard (approved spec remedy item (4)), keyed on the arguments of
 // every validator spawn site rather than on a source string, so it survives
@@ -2746,7 +3173,7 @@ ${decision}
 
 type SpawnSiteVerdict = { index: number; site: string; production: boolean; mutating: boolean; unresolvable: boolean };
 
-const GUARD_FLAGS = ["--retire", "--stamp-paid-by", "--split"];
+const GUARD_FLAGS = ["--retire", "--stamp-paid-by", "--split", "--rewrite-roots"];
 
 function guardInitializerOf(source: string, name: string): string | undefined {
   const re = new RegExp(`(?:^|\\n)[ \\t]*(?:const|let)\\s+${name}\\s*=\\s*([^\\n]*)`);
