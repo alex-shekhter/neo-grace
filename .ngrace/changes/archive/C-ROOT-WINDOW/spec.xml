@@ -1,0 +1,754 @@
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-ROOT-WINDOW><Replacement>C-ROOT-WINDOW-2</Replacement>
+    <Summary>
+      One engine file, `scripts/validate-record-retirement.ts`, plus its suite
+      `scripts/validate-record-retirement.test.ts`. The bundle pays four live findings —
+      `F216`, `F182`, `F193`, `F190`, read by id from the parsed `findings.xml`, not from the brief —
+      whose owners name a later charter and whose remedy is, together, the record engine's root-window
+      arithmetic, and it pre-pays two staged findings (`F225`, `F226`) that are not in the record: the
+      findings genre has five lines of headroom at this commit (measured; expired the moment the
+      predecessor's flush merged), so neither staged entry can flush here, and this bundle's own
+      registry row names both in `&lt;Pays&gt;` anyway. The deliverables, each measured against the
+      shipped engine at this commit:
+
+      **The root-rewrite mode (`F216`).** The shipped engine rewrites an existing record's roots only
+      inside the `--retire` move, which returns early when nothing is eligible (`scripts/validate-record-retirement.ts:1150`),
+      so every ordinary record write obliges a hand-written root — `F216`'s recorded condition, verified
+      live at this commit. The bundle charters a `--rewrite-roots` mode that re-derives, for each of the
+      four live genre roots, `base` from its shipped metric read back (`newlineCount` for findings and
+      rulings, the live-`Entry` rule for the index, the live `Row` count for the registry) and `headroom`
+      as ceiling minus base, while **holding** the persisted ceiling — the ceiling attribute passes
+      through byte-for-byte, so the mode can neither raise a ceiling (`D28`) nor adopt or recompute one.
+      The mode refuses (exit non-zero, nothing written) when any live genre's count exceeds its
+      persisted ceiling — the one state whose only remedy is the move, which is the only shipped writer
+      that opens a window — and when a ceiling attribute is missing or unreadable (`AC-MODE-SHIPPED`).
+      Driven on throwaway copies at this commit: a byte no-op on a consistent record, refusal with an
+      untouched file in both refuse cases, and a held hand-raised ceiling left byte-identical rather
+      than adopted — the laundering boundary stated, not hidden (`Known boundary` below). The plan's
+      own row-mint task rewrites the registry roots with this mode, so the last hand-written root this
+      lineage records is a predecessor's, not this bundle's.
+
+      **The floored derivation (`F182`).** `7 × median` persists a fractional ceiling whenever the live
+      population is even and its two middles differ by an odd number — the shipped `median()` returns
+      that half (`scripts/validate-record-retirement.ts:124`) and the multiplier decides whether it
+      survives. The shipped engine carries the defect at all four derivation sites: `:596` and `:597`
+      (the `--split` path) and `:1224` and `:1225` (the `--retire` path). This bundle floors the
+      derivation at all four sites. Rounding **down** is argued in `F182` as the only direction that
+      cannot loosen a budget, and that argument is verified against the shipped clamp
+      (`persistSnapshot`, `scripts/validate-record-retirement.ts:950`): the clamp takes
+      `min(persisted ceiling, base + headroom)`, and headroom is ceiling minus base, so a larger
+      formula term can only hold or raise the persisted ceiling — equal-or-looser — and only rounding
+      down cannot loosen. Driven both directions on a synthetic record whose post-move population is
+      even with middles 19 and 20: the shipped engine persists `ceiling="269.5"` / `headroom="145.5"`,
+      the chartered engine persists `269` / `145`. Declared as a typed `Clarification`
+      (`INV-ROOT-WINDOW-ROUNDING`), not decided silently.
+
+      **The unmoved-genre window rule (`F193`).** On any successful move the shipped engine rewrites
+      all four live roots, and for a genre where nothing moved the clamp persists
+      `min(previous ceiling, base + H)` — the window a retirement opened is clamped back to `H` by the
+      next move in any other genre. Measured live today: the shipped engine, driven on a synthetic
+      record where the rulings genre's window (54 lines) exceeds its `H` (28), clamps the rulings
+      ceiling from 60 to 34 in response to a findings-only move — `F193`'s table, reproduced. The
+      remedy this bundle charters is **persisting the opened window**: a genre the move did not change
+      keeps its persisted ceiling while its base is re-derived from the shipped metric read back, so
+      the window survives every unrelated move and the whole record still leaves the move satisfying
+      the shipped all-roots tripwire (`base + headroom = ceiling`, `base` equals its metric) — the
+      invariant the shipped `T-001 window` test asserts at `scripts/validate-record-retirement.test.ts:692`
+      and the production roots invariant assert, which the runner-up candidate (re-deriving only the
+      genre that moved) would weaken, because the shipped validator has no base-versus-metric check
+      and a drifted unmoved genre would survive a legitimate move with the validator green. Driven
+      across two consecutive unrelated retirements on a throwaway copy: the rulings genre stays
+      byte-identical through both. Declared as a typed `Clarification`
+      (`INV-ROOT-WINDOW-UNMOVED`), with this recommendation in its text; it governs `AC-WINDOW-UNMOVED`
+      and `AC-RECORD-UNMOVED`, and the plan cannot be approved over it.
+
+      **The normalising pass (`F190`).** `--retire`'s span removal deletes an element's span without
+      consuming the removed element's leading indent, so every survivor after a removed sibling gains
+      two spaces and the drift compounds (`F190`, measured live: the production `rulings.xml` carries
+      five elements at 4-space indent today — `d5.2`, `d6`, `d9.1`, `d19`, `d25`). The bundle adds a
+      normalising pass to the move's writer: for each file the move wrote (a genre with removals, a
+      retired sibling with appends), the inter-element whitespace is rewritten to the canonical house
+      shape — `&lt;newline&gt;&lt;two spaces&gt;` before each top-level element, `&lt;newline&gt;` before the root
+      close tag — and every surviving element's own bytes pass through untouched. Driven at this
+      commit: after the close's move, all 210 surviving `&lt;Finding&gt;` elements are byte-identical to
+      their pre-close bytes by parse, only the gaps changed, the appended retired-side elements sit at
+      2-space indent with the root close at column 0, and the shipped preservation validator exits 0
+      (`AC-INDENT-NORMALISED`).
+
+      **The payment and the close.** The plan mints this bundle's registry row — `kind="chartered"`,
+      `&lt;Pays&gt;F216 F182 F193 F190 F225 F226&lt;/Pays&gt;`, a `&lt;StatusText&gt;` carrying no `F` token and no
+      `Closed with` sentence (`F197`'s law: the shipped `closedWithTokens` at
+      `scripts/validate-record-retirement.ts:338` mints payments from an archived row's `StatusText`
+      prose, and ordering cannot escape it) — and rewrites the registry roots with the new mode. At
+      the close, the ceremony's move runs for real, and its byte-move table is measured, not assumed:
+      exactly five of the seven record files change bytes — `findings.xml` (four elements removed,
+      roots rewritten, gaps normalised), `findings-retired.xml` (four appended, normalised),
+      `registry.xml` (the row removed, roots rewritten, normalised), `registry-retired.xml` (the row
+      appended, normalised), `decisions.xml` (four `&lt;Entry&gt;` layers flip, roots rewritten) — while
+      `rulings.xml` and `rulings-retired.xml` stay byte-identical (no ruling moves; under the chartered
+      engine the unmoved rulings root is re-spliced from the held ceiling and the read-back base, which
+      equals its persisted bytes at any tripwire-consistent record), and the stub `decisions.md` and
+      `record-inventory.json` are untouched by any shipped writer in the window. The pre-payment of
+      `F225` and `F226` is sound and verified from the shipped code before this spec relies on it:
+      `derivePayerMap` (`scripts/validate-record-retirement.ts:403`) keys its map by token with no
+      requirement that a matching `&lt;Finding&gt;` element exist, and eligibility requires only that the
+      payer name an archive directory (`scripts/validate-record-retirement.ts:1102`) — measured: the
+      shipped payer map at this commit mints none of the six tokens, so this bundle's row mints all
+      six; after the close the map mints `F225` and `F226` to `C-ROOT-WINDOW` while zero elements with
+      those tokens exist in either findings file, and a second `--retire` reports `moved 0`. The close
+      frees the findings genre: the driven post-close window is 135 lines against the two staged
+      entries' 37 and 69 rendered element lines, so the next flush can land both.
+    </Summary>
+    <Problem>
+      The four findings this bundle pays state, between them, the whole root arithmetic of the record
+      engine, and each names this bundle as owner in its own `Owner:` line. They are the payment
+      queue's head (`F216` first), and the suite's liveness pins were repaired to payment-invariance
+      in PR #86 precisely so that this payment could happen without reddening the shipped suite
+      (`F225`, measured: the shipped flush invariant no longer pins any named finding `live`).
+
+      **`F216` — roots are hand-maintained on every write.** The only code that rewrites an existing
+      record's roots sits inside the `--retire` move after its `movedCount === 0` early return
+      (`scripts/validate-record-retirement.ts:1150`); `--split` writes roots only onto a newly created
+      record. Every record-touching bundle since the split has hand-written its roots — the history
+      the finding records. The remedy is a mode that rewrites roots from the shipped relations without
+      requiring a move, so the tripwire's correctness stops depending on nobody miscounting.
+
+      **`F182` — the fractional ceiling.** The findings genre has shipped `7 × median` since the
+      split and its median is currently the integer 34 over 214 live elements (middles 34 and 34 —
+      measured at this commit), which is the only reason no fractional ceiling has persisted yet; the
+      rulings genre's retire-path formula became `7 × median` the same way (`:1225`), and its 27
+      H2-level live decisions give the odd-count median 37. One parity flip in either population
+      persists a half line into a public methodology record. The remedy is a rounding rule at the
+      point of derivation; the direction is a design question the finding itself flags, resolved here
+      as a typed `Clarification` with the rounding-down argument verified against the shipped clamp
+      rather than adopted from the finding's prose.
+
+      **`F193` — the evaporating window.** The shipped engine rewrites all four live roots on any
+      successful move, and the clamp (`persistSnapshot`, `:950`) takes the smaller of the persisted
+      ceiling and `pre-move base + H` — for a genre where nothing moved that is exactly
+      `min(previous window, H)`. The findings genre's post-close window (135 lines, driven) is what
+      makes the next flush of `F225` and `F226` possible; under the shipped engine, one unrelated
+      retirement anywhere would take it back down to `H`. The remedy candidates are the finding's own
+      two; this spec declares the hole typed (`INV-ROOT-WINDOW-UNMOVED`) with the measured
+      recommendation above, and the close-bound criteria are written to hold under the recommendation
+      while naming the file set the runner-up would leave untouched.
+
+      **`F190` — the compounding indent.** The live record already carries the drift: five
+      `rulings.xml` elements at 4-space indent, measured at this commit. The remedy is a normalising
+      pass in the writer — not the hand edit that restored `registry.xml`'s close tag during the
+      `C-PAYMENT-RECORD` close, and not the canonical serializer `F221` charters (a separate, larger
+      deliverable with its own owner).
+
+      **The timing constraint that makes this bundle the payment vehicle.** The findings genre has
+      five lines of headroom at this commit — the tightest a flush of the predecessor's flush set
+      could leave — so `F225` (37 rendered element lines) and `F226` (69) cannot flush until a
+      payment frees room, and the first payment the queue opens with is this bundle's own
+      `&lt;Pays&gt;` set. The pre-payment is what makes the next flush possible at all; that is why the
+      row names both staged tokens.
+    </Problem>
+    <Goals>
+      <Goal>
+        The mode. `scripts/validate-record-retirement.ts` gains a `--rewrite-roots` mode,
+        `rewriteRecordRoots`, wired beside `--retire` in `main()`. For each of the four live genre
+        roots it derives `base` from the shipped metric read back, holds the persisted ceiling — the
+        ceiling attribute passes through byte-for-byte, never recomputed — and persists
+        `headroom = ceiling − base` through the same `withRootSnapshot` splice the move uses. It
+        refuses, before any write, when any live genre's count exceeds its persisted ceiling (message
+        names the genre, both counts, and the move as the remedy) and when a ceiling attribute is
+        missing or unreadable; it re-derives all four live roots or none. Retired siblings carry no
+        root attributes and are not touched; the stub and the inventory are not touched. Driven at
+        this commit on throwaway copies, both directions: a byte no-op on the consistent production
+        record; exit 1 with the file untouched when the findings ceiling is set below its base; exit 1
+        when the registry ceiling attribute is removed; a hand-raised registry ceiling held
+        byte-identical (`Known boundary` below states what that does not repair). The plan's row-mint
+        task runs this mode on the production record to write the registry roots after minting the
+        row — the registry root's `base` moves from 12 to the read-back and `headroom` becomes the
+        remainder, with the other three live roots byte-identical — driven on a copy first, then
+        verified by the shipped relations on the record.
+      </Goal>
+      <Goal>
+        The floored derivation. All four headroom derivation sites floor their product:
+        `Math.floor(7 × median(...))` at the two findings sites and `Math.floor(…)` at the two
+        rulings sites (`--split` at `:596`–`:597`, `--retire` at `:1224`–`:1225` in the shipped file).
+        The registry (15) and index (40) headrooms are already integers and are not touched. Driven on
+        the synthetic even-population record: shipped `ceiling="269.5"`, chartered `269` — the same
+        drive discriminates, not a unit-only assertion.
+      </Goal>
+      <Goal>
+        The unmoved-genre window rule, under `INV-ROOT-WINDOW-UNMOVED`'s recommendation: on a
+        successful move, a genre with zero moved elements keeps its persisted ceiling and gets its
+        base re-derived from its shipped metric read back (`headroom` becomes the remainder); a genre
+        with moved elements keeps the shipped `persistSnapshot` arithmetic with the pre-move base as
+        the ceiling term and the floored headroom. The index is re-derived whenever its `&lt;Entry&gt;`
+        layers flip, and the retired siblings — which carry no root attributes — are written only
+        when the move appended to them. Driven: the findings-only close leaves the four live roots
+        tripwire-consistent with `rulings.xml` and `rulings-retired.xml` byte-identical; two
+        consecutive unrelated retirements leave `rulings.xml` byte-identical through both.
+      </Goal>
+      <Goal>
+        The normalising pass in the move's writer: `normaliseGaps` rewrites only the inter-element
+        whitespace of a file the move wrote, to the canonical house shape the split renderer produces
+        (`&lt;newline&gt;&lt;two spaces&gt;` before each top-level element, `&lt;newline&gt;` before the root close,
+        the tail after the root close preserved). Element bytes are passed through from the
+        parser-derived spans, so the pass changes no element's bytes — driven: every surviving
+        `&lt;Finding&gt;` element byte-identical across the close by parse, the appended retired-side
+        elements at 2-space indent, both root close tags at column 0, the shipped preservation
+        validator green on the moved record. The pass is scoped to the files the move wrote; a genre
+        with zero moved elements keeps its bytes untouched, so the five 4-space-indented
+        `rulings.xml` elements stay until a rulings move normalises them — measured, and stated rather
+        than hidden.
+      </Goal>
+      <Goal>
+        The row and the payment. The plan mints the row into the live registry exactly as the house
+        shape has it (`&lt;Row name="C-ROOT-WINDOW" status="live" kind="chartered"&gt;` with `&lt;Number /&gt;`,
+        `&lt;Charter&gt;` carrying the searched-before-minting statement, `&lt;Pays&gt;F216 F182 F193 F190
+        F225 F226&lt;/Pays&gt;`, `&lt;StatusText&gt;` carrying no `F` token and no `Closed with` sentence) and
+        rewrites the registry roots with the chartered mode. At the close the ceremony's move reports
+        five moves: the four named findings, each stamped `&lt;PaidBy&gt;C-ROOT-WINDOW&lt;/PaidBy&gt;` in the
+        retired sibling, and the row itself; four index `&lt;Entry&gt;` layers flip; and the six-token
+        payer map mints `F225` and `F226` to this bundle with zero matching elements in the record —
+        the pre-payment waiting for the next flush, measured sound from the shipped derivation and
+        eligibility code.
+      </Goal>
+      <Goal>
+        The suite. The plan rewrites the shipped assertions the engine change reddens — measured on a
+        throwaway copy at this commit: `T-001 min not decorative: hand-shrunk findings persist ceiling
+        = Base_live + H without a findings move` (it pins `F193`'s shipped clamp — the very behaviour
+        this bundle fixes — and is rewritten to assert window survival under
+        `INV-ROOT-WINDOW-UNMOVED`'s resolution), the `C-RECORD-PARSE golden` byte fixture (re-captured
+        against the chartered engine's bytes — the bounded one-time reflow `F221` prices), and the
+        `C-RECORD-PARSE payer derivation` baseline map (extended with the row's minted tokens exactly
+        as the shipped test extends it for `F205`/`C-INDEX-METRIC-2`). The `T-001 window` test's
+        moving-genre window arithmetic passes under the chartered engine unchanged (measured: 66 pass
+        / 3 fail on the prototype copy, only the three above red) and is kept. New assertions are
+        written in the payment-invariant form: no named finding pinned `live`, no ceiling pinned to a
+        number, every relation expressed as the shipped parser observes it, and every test that
+        measures the real repository carrying an explicit generous timeout (`F185`).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module-change shape): one engine file, `scripts/validate-record-retirement.ts`,
+        plus its suite `scripts/validate-record-retirement.test.ts`; no graph module is written.
+        Roadmap: `RM-GOVERNED-PATH` (record integrity). Binding live rulings: `D28` — no ceiling is
+        raised: the mode holds every ceiling byte-for-byte and the move's clamp persists
+        `min(persisted, pre-move base + headroom)`, so no shipped writer this bundle charters writes a
+        ceiling above the previously persisted value; `D28.1` — eligibility is the enforcement and the
+        ceiling the backstop: the record is valid (zero findings) at every committed point of this
+        bundle's life before the close, the close's move resolves the eligibility the archived row
+        mints, and the applied-archive state validates clean; `D30` — scoped, not skirted: the record
+        files are this bundle's payment surface, so the freeze applies to the execution windows that
+        read or rewrite them, and no hard `Constraint` here transcribes a scalar count of any file it
+        changes — every occupancy, margin, median and root figure lives in `Assumptions` and expires,
+        and every criterion below asserts a relation its instrument can observe; `D11` — nothing is
+        deferred here without an owner already named by the record (the canonical serializer belongs
+        to `F221`'s chartered owner; the raised-and-repaired detection boundary is re-assigned under
+        its own reason in `NonGoals`); `D27` — nothing is approved unread; ratification is the
+        maintainer's, approval writes are the authority's, and this bundle's artifacts are written at
+        `status="draft"` and stop. Name searched 2026-09-11 at this commit over `.ngrace/changes/archive/`
+        and both registry layers for any prior row carrying `C-ROOT-WINDOW`: zero rows in either
+        layer; the name is new.
+      </Constraint>
+      <Constraint>
+        The row's prose law (`F197`, still live and still true in its surviving half). The shipped
+        `derivePayerMap` mints payments from an archived row's `&lt;Pays&gt;` and from `Closed with`
+        sentences in its `&lt;StatusText&gt;` (`scripts/validate-record-retirement.ts:338`, gated on the row's
+        name being an archive directory; the archived-spec prose route `F197` described is absent from
+        the shipped engine at this commit — measured, and the shipped false-payment probe pins its
+        absence). The row's `&lt;StatusText&gt;` therefore names no `F` token outside `&lt;Pays&gt;` and contains
+        no `Closed with` sentence; `&lt;Pays&gt;` names exactly `F216 F182 F193 F190 F225 F226` and no other
+        token is paid by this bundle. The row's `&lt;Charter&gt;` carries the searched-before-minting
+        statement in the house form. `F225` and `F226` are pre-paid, not flushed: they are not in the
+        record at this commit (measured: zero `&lt;Finding&gt;` elements with those tokens in either
+        findings file, zero index `&lt;Entry&gt;` lines), nothing in this bundle flushes them, and the
+        buffer at `.ngrace/scratch/staged-findings.md` is read, never written.
+      </Constraint>
+      <Constraint>
+        Write scope, anchors, and imports — enumerated once (`F136.1`'s rule). Files this spec forces
+        into write scope: `scripts/validate-record-retirement.ts` (the mode, the floor, the window
+        rule, the normalising pass — the one engine file); `scripts/validate-record-retirement.test.ts`
+        (the rewritten shipped assertions plus the new payment-invariant assertions); the record file
+        `docs/plans/active/RM-GOVERNED-PATH/registry.xml` (the row the plan mints, and the roots the
+        mode rewrites); and the record files the close's move writes under the chartered engine —
+        `findings.xml`, `findings-retired.xml`, `rulings.xml` (root splice only, byte-identical at a
+        consistent record), `rulings-retired.xml` (unchanged bytes at this close), `registry.xml`,
+        `registry-retired.xml`, `decisions.xml` — plus this bundle's own artifacts under
+        `.ngrace/changes/active/C-ROOT-WINDOW/`. Neither the engine nor the suite carries a `LINKS:`
+        header (measured at this commit: zero occurrences in both files), `scripts/` is lint-ignored
+        (`.ngrace-lint.json` `ignoredDirs`), and no module in `.ngrace/graph/main.xml` owns any of
+        them — the module enumeration is empty and the plan's `DurableScope` will be
+        `&lt;None /&gt;`; do not mint a synthetic module, and do not repeat this list as a second module
+        list anywhere. Do not add a lint issue code. Escape markup as character data
+        (`&lt;`, `&gt;`, `&amp;`) in every artifact this bundle writes; never paraphrase brackets away.
+      </Constraint>
+      <Constraint>
+        Criterion mapping, stated plainly (the trap that has cost supersedes). Every `AC-*` below
+        except `AC-NO-CURRENT-MODE` is close-bound by its own `CloseEvidence` child, and a task
+        `Satisfies` that names any of them is the shipped error
+        (`change.close-evidence-and-satisfied`). Exactly one criterion — `AC-NO-CURRENT-MODE` —
+        carries no `CloseEvidence` and is mapped by exactly one task `Satisfies` in the later plan;
+        without that mapping it is an unmapped-criterion warning that `--fail-on warnings` turns into
+        an uncloseable bundle. Every `CloseEvidence` is evaluated only in the applied-archive state
+        (`F196`'s rule), after the close's move has run — which is why the byte-move table above is
+        measured before any criterion was written, and why every byte-invariance criterion names only
+        files the close provably does not change (`AC-RECORD-UNMOVED`).
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, settled lessons. The byte-invariance baseline for every `git diff
+        --exit-code` criterion is this spec's base commit `c1f4dae0d032ba1ccff86b9da8ac271cda900718`
+        (`F210`'s rule — the base-less form cannot fail); the bundle's own commits touch only
+        `.ngrace/changes/active/C-ROOT-WINDOW/` and later its archive arrival, so that base remains
+        valid for every named pathset. Every diff sees tracked paths only (`F174`) and the archive
+        pathspec excludes this bundle's own arrival with its reason (`F188` — the close renames the
+        bundle's directory itself). `CloseEvidence` commands match shipped discriminating shapes (the
+        bun-test shape, the named-baseline diff shape, the `--fail-on warnings` lint shape). No
+        criterion compares a fixed `git show` against a floating working-tree read (`F215`); no
+        criterion asserts a state the shipped engine will not produce (`F226` item 9); every probe
+        below was run in both directions on throwaway copies before this spec was written. Structural
+        counts come from the shipped parser, never `grep`, and exit codes are read directly, never
+        through a pipe. Any test the later plan adds that measures the real repository carries an
+        explicit generous timeout (`F185`); nothing the plan adds may pin a named finding `live` or a
+        ceiling to a number (the payment-invariant form the predecessor's repair established). Task
+        `Verification` and `TargetAssertions` contain no current-mode lint of this project root
+        (`F171` — by hand; the shipped detector misses the grace.ts form), which is the one
+        `Satisfies`-mapped criterion. The three typed `Clarifications` below block plan approval
+        until the maintainer resolves them; no plan is approved over an unresolved one.
+      </Constraint>
+      <Constraint>
+        Known boundary, stated rather than hidden. The mode holds ceilings and cannot repair a
+        hand-raised one: a ceiling above the formula's term is shape-identical to a window a
+        legitimate move opened, so no derivation can distinguish them, and the mode leaves it
+        byte-identical rather than adopting or recomputing it (driven). The raised-and-repaired
+        ceiling therefore survives the mode; it is lowered only by its own genre's next move, whose
+        clamp takes the smaller term. Detection beyond the shipped `RULINGS_PROVENANCE_CEILING` check
+        (`scripts/validate-record-retirement.ts:446`, which covers the rulings genre only) is a
+        distinct deliverable with no design paid for — re-assigned in `NonGoals` under `D11`'s rule,
+        with the mode's structural never-raise and never-adopt as the partial answer this bundle
+        ships. A hand-written base or headroom anywhere is repaired by the next move or the mode; a
+        hand-raised ceiling is not. Read-backs above a held ceiling stop the task and report; they
+        never raise a ceiling and never trim a body.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Flushing `F225` or `F226`, writing or pruning
+        `.ngrace/scratch/staged-findings.md`, or rendering any staged entry into the record. Owner:
+        the next flush bundle's charter; post-merge hygiene, the authority's. The findings genre's
+        post-close window (driven: 135 lines) fits both staged entries' rendered element sizes
+        (37 and 69, measured by the shipped parser rule over the buffer), which is the pre-payment's
+        point — but landing them is the next flush's act under the `D30` window, never this bundle's.
+      </NonGoal>
+      <NonGoal>
+        The canonical serializer `F221` charters, and any byte-invariance regime beyond what the
+        close's byte-move table measured: the normalising pass here is scoped to the move's writer,
+        not the serializer, and the record's remaining whitespace drift (the five 4-space-indented
+        `rulings.xml` elements) stays until a rulings move. Owner: `F221`'s chartered bundle.
+      </NonGoal>
+      <NonGoal>
+        A provenance or detection mechanism for hand-raised ceilings beyond the shipped
+        `RULINGS_PROVENANCE_CEILING`: the mode holds ceilings and does not adopt them, the move lowers
+        a hand-raised ceiling only in its own genre, and closing the raised-and-repaired detection gap
+        for the other three genres needs a design this spec does not charter. Owner: a later charter,
+        sequenced by the maintainer; the dependency is the mode's shipped hold semantics, and the
+        conflict is `D28`'s never-raise, which forbids the cheapest "remedy".
+      </NonGoal>
+      <NonGoal>
+        Changing the split path's rulings headroom multiplier, minting any other row, paying any
+        other token, or touching the eligibility scans, `INDEX_HEADROOM_ENTRIES`, the registry's
+        live-row budget, the provenance constant, or the `--split` mode's behaviour beyond the floor.
+        The split-path rulings formula (`2 × median`, `scripts/validate-record-retirement.ts:597`)
+        disagrees with the retire-path formula (`7 × median`, `:1225`) — measured at this commit and
+        staged for the authority with its evidence, not in this spec's scope: a root-rewrite surface
+        must use the retire path's `7 ×` because the retire path is the shipped writer of
+        existing-record ceilings and the provenance constant anchors the rulings ceiling to that
+        path's correction, while the split path writes a newly created record only. The bundle that
+        reunifies them owns the call; this one does not.
+      </NonGoal>
+      <NonGoal>
+        Editing `README.md`, `examples/`, `CLAUDE.md`, `docs/plans/README.md`, `skills/ngrace/`,
+        `plugins/ngrace/skills/ngrace/`, `docs/plans/archive/`, tracked paths under
+        `.ngrace/changes/archive/` except this bundle's own later arrival there, `package.json`,
+        `bun.lock`, `.ngrace-lint.json`, `CONTEXT_ARTIFACTS`, or any fixture under
+        `scripts/fixtures/record-parse/` other than the golden re-capture the suite goal names.
+        Owner: unchanged surfaces — no user-visible CLI token outside the new `--rewrite-roots`
+        mode, no config key, no ngrace command changes, and no teaching-surface change: the
+        `ngrace-*` skills are not this bundle's write scope.
+      </NonGoal>
+      <NonGoal>
+        Running `ngrace review`, any gate or cursor verb, or committing: authoring this bundle's
+        artifacts is the executor's act (`F84`); ratification is the maintainer's; approval writes
+        are the authority's. The spec is written at `status="draft"` and the bundle stops there.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-ROW-PAYS-SIX>
+        This bundle's registry row exists exactly once across `registry.xml` and
+        `registry-retired.xml`, with no fixed expectation of which file holds it: the `&lt;Row&gt;`'s
+        `status` agrees with the holding file, `kind="chartered"`, its `&lt;Pays&gt;` names exactly the six
+        tokens `F216`, `F182`, `F193`, `F190`, `F225`, `F226` in that order and no other `F` token, its
+        `&lt;StatusText&gt;` names no `F` token at all and contains no `Closed with` sentence, and the
+        relation survives the row's own retirement at the close. Content question. Failure: a second
+        row with the same name, a `Pays` token outside the six, a `StatusText` naming a token outside
+        `Pays` (the `F197` mint shape the shipped `closedWithTokens` implements), or a status
+        disagreeing with the holding file. The instrument is the production assertion the later plan
+        adds to `scripts/validate-record-retirement.test.ts`, parsed with the shipped parser over both
+        registry layers, payment-invariant by construction. Shown green on the post-close record and
+        shown failing on a mutated copy carrying a second row with the same name (driven).
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROW-PAYS-SIX>
+      <AC-MODE-SHIPPED>
+        The `--rewrite-roots` mode exists in `scripts/validate-record-retirement.ts` beside `--retire`
+        in `main()` and behaves as chartered: on a record whose live roots satisfy the shipped
+        relations it is a byte no-op (all four live roots re-spliced from the held ceilings and the
+        metric read-backs, which equal the persisted values); it refuses with exit 1 and no write when
+        any live genre's count exceeds its persisted ceiling, and when a live root's ceiling attribute
+        is missing or unreadable; it writes `headroom = ceiling − base` with `base` equal to the
+        shipped metric read back (`newlineCount` for findings and rulings, the live-`Entry` rule for
+        the index, the live `Row` count for the registry) and never writes a ceiling attribute
+        different from the one it read. Content question, answered by driving the real CLI on
+        throwaway copies in both directions (all four driven at this commit; the refusal message names
+        the genre, both counts, and the move as the remedy). Failure: the mode writing a ceiling
+        above the persisted one, a raise by recomputation, a silent clamp-and-continue on an exceeded
+        genre, or a refusal that fires on a consistent record. The instrument is the production
+        assertion the later plan adds, driving the mode against isolated records for the refuse cases
+        and the byte no-op, in the suite's house shape. This criterion is invariant under the close:
+        the close's ceremony does not run the mode, and the mode's presence and refusals are
+        observable in the applied-archive state by the suite.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-MODE-SHIPPED>
+      <AC-ROUNDING-FLOOR>
+        Every headroom derivation site in `scripts/validate-record-retirement.ts` floors its product
+        with `Math.floor` — the two findings sites and the two rulings sites, both the `--split` path
+        and the `--retire` path — so no persisted `headroom` or `ceiling` is fractional. The relation
+        is payment-invariant: on any fixture whose live population is even with differing middles, the
+        persisted ceiling is an integer equal to the pre-move base plus the floored product, and the
+        shipped unfloored form would persist the fractional value on the identical fixture (the
+        discriminating drive). Failure: any derivation site persisting `X.5`; the drive above
+        discriminates. The instrument is the production assertion the later plan adds, in the
+        `T-001`-fixture shape the shipped suite already uses, with both directions shown.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROUNDING-FLOOR>
+      <AC-WINDOW-UNMOVED>
+        On a successful `--retire` move, a genre with zero moved elements keeps its persisted ceiling
+        and has its base re-derived from its shipped metric read back, so its window survives moves in
+        unrelated genres; a genre with moved elements keeps the shipped moving-genre arithmetic
+        (persisted ceiling = `min(previous ceiling, pre-move base + floored headroom)`); the index is
+        re-derived when its `&lt;Entry&gt;` layers flip and held otherwise. This criterion is governed by
+        the typed `Clarification` targeting `&lt;INV-ROOT-WINDOW-UNMOVED /&gt;` and states the
+        recommendation's semantics; the maintainer's resolution at ratification decides the shipped
+        form. Under the recommendation the relation is: after any successful move, every live root
+        satisfies `base + headroom = ceiling` with `base` equal to its shipped metric read back, and a
+        genre whose bytes the move did not change keeps its persisted ceiling — driven across two
+        consecutive unrelated retirements on a throwaway copy, with the unmoved genre byte-identical
+        through both (the red direction: the shipped engine's clamp on the identical scenario, driven
+        and reproduced, is the baseline the assertion overturns — `C-RETIREMENT-WINDOW`'s
+        `min not decorative` behaviour, named here as the behaviour this criterion replaces and
+        answered in the `Clarification`). Failure: an unmoved genre's window shrinking across a
+        move in another genre, or a moved genre failing the shipped relations. The instrument is the
+        production assertion the later plan adds (the rewritten `min not decorative` test plus a
+        two-consecutive-moves drive on isolated records).
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-WINDOW-UNMOVED>
+      <AC-INDENT-NORMALISED>
+        The move's writer normalises the inter-element whitespace of every file it writes (a genre
+        with removals, a retired sibling with appends): after the pass, every top-level element's own
+        bytes — the parser-derived spans — are byte-identical to their pre-pass bytes, every gap is
+        the canonical `&lt;newline&gt;&lt;two spaces&gt;` before an element or `&lt;newline&gt;` before the root close
+        tag, and the shipped preservation validator exits 0 on the moved record. The pass touches no
+        file the move did not write, so a genre with zero moved elements keeps its bytes (its
+        pre-existing drift stays until its own move normalises it — measured, and stated in the
+        `Goal`). The instrument is the production assertion the later plan adds, parsing a fixture
+        record before and after a move and comparing element spans byte-for-byte plus the gap shapes;
+        shown green on the moved record and failing on a mutated copy where an element's own bytes
+        changed (driven).
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-INDENT-NORMALISED>
+      <AC-RECORD-VALID>
+        The record is valid at every committed point of this bundle's life and in the applied-archive
+        state: the shipped `validateRecordRetirement` returns zero findings on the production record
+        before the close (the live row names an unarchived bundle, so the payer map mints nothing from
+        it and no element is eligible — measured at this commit) and after the close (the archived row
+        mints the six tokens; the four findings and the row have moved; the four `&lt;Entry&gt;` layers
+        have flipped; `F225` and `F226` remain absent from the record with their tokens minted to
+        `C-ROOT-WINDOW`; the close's move moves exactly the four named findings plus this bundle's
+        row and a second `--retire` reports `moved 0`). The post-close live roots satisfy the shipped
+        relations with `base` equal to its shipped metric read back, observed by the shipped
+        roots-invariant tripwire. Content question, payment-invariant by construction. Failure: any
+        validator finding on the committed or applied record; an index layer disagreeing with its
+        holding file; a moved element duplicated across its genre pair. The instrument is the
+        read-only production run of the shipped validator plus the production tripwire plus the new
+        payment assertions.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-VALID>
+      <AC-RECORD-UNMOVED>
+        The record files the close provably does not change are byte-identical to this spec's base
+        commit `c1f4dae0d032ba1ccff86b9da8ac271cda900718`:
+        `docs/plans/active/RM-GOVERNED-PATH/rulings.xml` (no ruling moves; under the chartered engine
+        the unmoved rulings root is re-spliced from the held ceiling and the read-back base, which
+        equal its persisted bytes at any tripwire-consistent record — a drift there reddens this
+        criterion and stops the close, which is the honest outcome, not an expectation to design
+        around),
+        `docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml` (the move appends nothing to it),
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.md` (the stub — no shipped writer in this
+        bundle's window touches it), and `docs/plans/active/RM-GOVERNED-PATH/record-inventory.json`
+        (written only by `--split`). The window is this bundle's own diff (`F215`), over tracked paths
+        only (`F174`), evaluated in the applied-archive state (`F196`). The files the close does
+        change — `findings.xml`, `findings-retired.xml`, `registry.xml`, `registry-retired.xml`,
+        `decisions.xml` — are deliberately absent from this criterion; they are covered by the
+        parse-based relations in `AC-RECORD-VALID`, `AC-WINDOW-UNMOVED` and `AC-INDENT-NORMALISED`
+        (`F221`'s standing rule).
+        <CloseEvidence>
+          <Command>git diff --exit-code c1f4dae0d032ba1ccff86b9da8ac271cda900718 -- docs/plans/active/RM-GOVERNED-PATH/rulings.xml docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Command>
+        </CloseEvidence>
+      </AC-RECORD-UNMOVED>
+      <AC-NO-SRC-OTHER>
+        No file under `src/` or `scripts/` changes relative to this spec's base commit except
+        `scripts/validate-record-retirement.ts` and `scripts/validate-record-retirement.test.ts`,
+        named here and in the command's excludes. Prose and command name the same pathset. Failure:
+        any other `src/` or `scripts/` path differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code c1f4dae0d032ba1ccff86b9da8ac271cda900718 -- src/ scripts/ ':(exclude)scripts/validate-record-retirement.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-SRC-OTHER>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and `.ngrace/changes/archive/` are not modified;
+        this bundle's own later arrival under `.ngrace/changes/archive/C-ROOT-WINDOW/` is not a
+        modification — the close itself renames this bundle's directory into the archive (`F188`),
+        and the pathspec excludes that arrival so the close's own rename cannot redden the criterion.
+        The prose claims tracked paths only (`F174`). Probed in the post-close state.
+        <CloseEvidence>
+          <Command>git diff --exit-code c1f4dae0d032ba1ccff86b9da8ac271cda900718 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-ROOT-WINDOW'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-DOCS-EXAMPLES>
+        `README.md`, `examples/`, `CLAUDE.md`, `docs/plans/README.md`, `skills/ngrace/`,
+        `plugins/ngrace/skills/ngrace/`, `package.json`, and `bun.lock` are byte-identical to this
+        spec's base commit. Prose and command name the same pathset. The command sees tracked edits
+        and deletions only (`F174`).
+        <CloseEvidence>
+          <Command>git diff --exit-code c1f4dae0d032ba1ccff86b9da8ac271cda900718 -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task `Verification` commands and `TargetAssertions` contain no current-mode
+        lint of this project root, checked by the rule in the Evidence-hygiene `Constraint`, by hand
+        (`F171` — the shipped detector misses the grace.ts form). Failure: a `Command` whose text
+        contains `--assertions current`, or that invokes lint of this root and omits `--assertions`.
+        This is the spec's single `Satisfies`-mapped criterion; it carries no `CloseEvidence` and must
+        be mapped by exactly one task `Satisfies` in the later plan.
+      </AC-NO-CURRENT-MODE>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No graph module is written. Ceremony tier T1 names the same fact: the engine and its suite sit
+      under `scripts/`, which is lint-ignored (`.ngrace-lint.json` `ignoredDirs`), and the record
+      files under `docs/plans/active/RM-GOVERNED-PATH/` are owned by no module in
+      `.ngrace/graph/main.xml`. The module enumeration is empty and the later plan's `DurableScope`
+      will be `&lt;None /&gt;`; do not mint a synthetic module to fill this section. The write scope is
+      enumerated once, in the write-scope `Constraint` (`F136.1`'s rule — no second module list
+      anywhere).
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts --rewrite-roots</ExpectedCommand>
+      <ExpectedCommand>bash -c 'T=$(mktemp -d) &amp;&amp; cp -R docs/plans/active/RM-GOVERNED-PATH "$T/R" &amp;&amp; bun ./scripts/validate-record-retirement.ts --retire "$T/R" &amp;&amp; rm -rf "$T"'</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-ROOT-WINDOW --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes against the shipped product, every shape below driven at this commit
+        (`c1f4dae0d032ba1ccff86b9da8ac271cda900718`) on throwaway copies, both directions where a
+        failing direction exists. (1) The close, driven end to end on a pristine clone with a
+        prototype of the chartered engine (floored derivation, held unmoved ceilings, scoped
+        normalising pass, the mode): the row minted live with the six-token `&lt;Pays&gt;`, registry roots
+        rewritten by the mode to the read-back relations, the bundle archived, `--retire` reporting
+        `moved 5` — the four findings stamped `&lt;PaidBy&gt;C-ROOT-WINDOW&lt;/PaidBy&gt;` into the retired
+        sibling, the row moved, four `&lt;Entry&gt;` layers flipped — and the byte-move table measured:
+        five files changed, `rulings.xml` and `rulings-retired.xml` byte-identical, the stub and the
+        inventory untouched, the validator and the preservation validator both exit 0 on the moved
+        record. (2) The post-close roots, read back on the driven copy, satisfying the relations with
+        the findings window opened from 5 to 135 and the index window from 20 to 24 while the rulings
+        and registry windows held — figures in `Assumptions`, relations here. (3) `F182` both
+        directions on the synthetic even-population record (post-move population of six, middles 19
+        and 20): shipped `ceiling="269.5"`, chartered `269`. (4) `F193` both directions on the same
+        synthetic record (rulings window 54 above its `H` 28, findings-only move): shipped clamps the
+        rulings ceiling 60 → 34 (the window taken), chartered holds 60 with the base re-derived — and
+        on the production-shaped copy, `rulings.xml` byte-identical across two consecutive unrelated
+        retirements. (5) The mode: byte no-op on the consistent record; exit 1 with the file untouched
+        on an exceeded ceiling and on a missing ceiling; a hand-raised ceiling held byte-identical.
+        (6) `F190`: after the close, every surviving `&lt;Finding&gt;` element byte-identical by parse
+        (210 of 210 survivors), only gaps changed, retired-side appends at 2-space indent, root close
+        tags at column 0, preservation validator green. (7) The pre-payment: the shipped payer map
+        mints none of the six tokens at this commit; post-archive it mints `F225` and `F226` to
+        `C-ROOT-WINDOW` with zero matching `&lt;Finding&gt;` elements in either findings file; a second
+        `--retire` reports `moved 0`. (8) The shipped suite against the prototype: 66 pass / 3 fail,
+        the three named in `Goals` — the failure set the plan rewrites, each with the mutation that
+        turns it red stated in the assertion it replaces.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken 2026-09-11 at `c1f4dae0d032ba1ccff86b9da8ac271cda900718` (`git rev-parse
+        HEAD`), tracked tree clean, the staged buffer untracked as designed. All counts by the
+        shipped parser (`parseGraceXmlArtifact`, direct-children filtering, `computeElementSpans`),
+        never a grep, because every claim here is structural; exit codes read directly. Record roots
+        at this commit: findings `base="7841" headroom="5" ceiling="7846"` over 214 live
+        `&lt;Finding&gt;` elements with median element line count 34 (middles 34 and 34 — the even
+        population whose median is integral only by luck, `F182`'s precondition); rulings
+        `base="1776" headroom="107" ceiling="1883"` over 62 live `&lt;Decision&gt;` elements, 27 of them
+        `##`-level with median 37 (odd), the provenance ceiling holding 1883; index `base="276"
+        headroom="20" ceiling="296"` over 359 `&lt;Entry&gt;` children, 276 live; registry `base="12"
+        headroom="14" ceiling="26"` over 12 live rows. The shipped payer map over both registry layers
+        and the real archive mints none of the six tokens this bundle pays.
+      </Assumption>
+      <Assumption>
+        Element line counts by the shipped counting rule (`newlineCount` of the span plus one):
+        `F216` 33, `F182` 31, `F193` 34, `F190` 32 — 130 findings lines the close's move removes,
+        which is what makes the driven post-close findings base 7711 (7841 − 130, read back). The two
+        staged entries, parsed by the shipped `parseFrozenMarkdown` over the buffer: `F225` 34 body
+        lines / 37 rendered element lines, `F226` 66 body lines / 69 rendered element lines — both
+        fit the driven post-close findings window of 135, neither fit the pre-close window of 5,
+        which is the flush constraint this bundle's payment relieves. `F226`'s staged body measured
+        2026-09-11; the buffer is the authority's file and may change between dispatches, so these
+        figures expire with it.
+      </Assumption>
+      <Assumption>
+        The driven close (a prototype of the chartered engine: floored derivation at all four sites,
+        the held unmoved-genre ceilings, the normalising pass scoped to the files the move wrote, the
+        mode added) on a pristine clone at this commit, single pass: post-close roots findings
+        `base="7711" headroom="135" ceiling="7846"`, rulings `base="1776" headroom="107"
+        ceiling="1883"` (byte-identical file), registry `base="12" headroom="14" ceiling="26"`, index
+        `base="272" headroom="24" ceiling="296"`; the byte-move table exactly as the `Summary`
+        states; the validator, the preservation validator, and the citation validator all exit 0 on
+        the moved record. A second `--retire` after the close reports `moved 0` and writes nothing.
+        Two consecutive unrelated retirements (the second paying `F197` through a probe row) leave
+        `rulings.xml` byte-identical through both.
+      </Assumption>
+      <Assumption>
+        The synthetic-record drives, both engines on identical fixtures: shipped `--retire` persists
+        findings `headroom="145.5"` / `ceiling="269.5"` and clamps the unmoved rulings root to
+        `base="6" headroom="28" ceiling="34"` (window 54 → 28); the prototype persists `269` / `145`
+        and holds the rulings ceiling at 60 with the base re-derived to 6 and headroom 54 — both
+        defects reproduced on the shipped engine and absent under the charter, on the same fixture
+        bytes. The fixture's findings population is seven elements with span line counts 9 through 31
+        designed so the post-move population of six has middles 19 and 20.
+      </Assumption>
+      <Assumption>
+        The shipped suite against the prototype engine: 66 pass / 3 fail —
+        `T-001 min not decorative: hand-shrunk findings persist ceiling = Base_live + H without a
+        findings move` (pins the `F193` clamp this bundle overturns; its plan rewrites it),
+        `C-RECORD-PARSE payer derivation: F152 and F43 drop out and every other token's payer is
+        unchanged from the baseline map` (the minted row adds tokens; the plan extends the minted map
+        exactly as the shipped `F205`/`C-INDEX-METRIC-2` precedent does), and `C-RECORD-PARSE golden:
+        a fixture --retire writes byte-for-byte the files the shipped engine wrote at capture time`
+        (the chartered engine's bytes differ; the golden is re-captured). The shipped
+        `T-001 window: persisting the findings snapshot after a move uses the pre-move base + H` test
+        passes under the prototype unchanged — the moving-genre window arithmetic is kept, not
+        overturned.
+      </Assumption>
+      <Assumption>
+        The mode's four driven probes on a throwaway copy at this commit: byte no-op on the
+        consistent record; exit 1 with the file untouched when the findings ceiling is set to 7800
+        against a live count of 7841; exit 1 when the registry ceiling attribute is removed; exit 0
+        holding a hand-raised registry ceiling of 90 with base 12 and headroom 78 written around it —
+        the boundary the Known-boundary `Constraint` states. The mint drive: after the row is minted
+        live, the mode rewrites the registry root to `base="13" headroom="13" ceiling="26"` (read
+        back) with the other three live roots byte-identical, and the shipped validator exits 0.
+      </Assumption>
+      <Assumption>
+        The production `rulings.xml` carries five `&lt;Decision&gt;` elements at 4-space indent at this
+        commit (`d5.2`, `d6`, `d9.1`, `d19`, `d25`) — `F190`'s drift, live in the shipped record —
+        and the normalising pass is scoped to files the move writes, so they stay until a rulings
+        move normalises them (measured: the close's move touches no ruling). The shipped engine's
+        span geometry: a top-level element's span starts at its `&lt;` byte, so all first-line indent
+        lives in the inter-element gaps, which is what makes a gap-only normalising pass possible
+        without touching element bytes (driven: 210 of 210 surviving elements byte-identical).
+      </Assumption>
+    </Assumptions>
+    <Clarifications>
+      <Clarification resolved="true">
+        <INV-ROOT-WINDOW-UNMOVED />
+        Resolved 2026-09-11 by the maintainer, as recommended: a genre the move did not change keeps its persisted ceiling; `base` is re-derived from its shipped metric read back and `headroom` is the remainder. The moving genre keeps the shipped `persistSnapshot` arithmetic. One rule, shared by the move and the mode.
+        `F193`'s window semantics for a genre with zero moved elements. Two candidates were driven on
+        throwaway copies at this commit. **Recommendation — persist the opened window (hold the
+        ceiling, re-derive the base):** a genre the move did not change keeps its persisted ceiling
+        and gets `base` from its shipped metric read back, `headroom` as the remainder; the moving
+        genre keeps the shipped `persistSnapshot` arithmetic. Pros: the shipped all-roots tripwire
+        (`base + headroom = ceiling`, `base` equals its metric — asserted after every successful move
+        by the shipped `T-001 window` test at `scripts/validate-record-retirement.test.ts:692` and by
+        the production roots invariant) stays true without depending on anyone running the mode, so
+        the move remains self-healing for hand-drift in every genre; the fix is one rule shared with
+        the mode; only the one shipped test that pins the clamp (the `min not decorative` test) needs
+        rewriting, and the moving-genre window test passes unchanged. Cons: the unmoved genre's
+        open-tag splice makes its byte-identity empirical rather than structural (measured
+        byte-identical at any consistent record; a drifted record reddens the criterion and stops the
+        close — the honest outcome), and a hand-raised ceiling in an unmoved genre now survives
+        unrelated moves (it is lowered by its own genre's next move — stated in the Known-boundary
+        `Constraint`). **Runner-up — re-derive only the genre that moved:** pros: the unmoved genre is
+        structurally untouched, so its byte-invariance is structural; cons: it abandons the shipped
+        invariant that every live root satisfies the relations after any successful move — the
+        shipped validator has no base-versus-metric check, so a drifted unmoved genre would survive a
+        legitimate move with the validator green, and the drift would surface only later in the
+        production tripwire; three shipped tests need rewriting instead of one. The runner-up loses
+        because its only advantage (structural byte-invariance for one file) is bought by weakening a
+        shipped invariant the record's enforcement posture relies on, and the same cleanliness is
+        reachable under the recommendation by parse-based relations. Governs `AC-WINDOW-UNMOVED` and,
+        for the byte-invariance reasoning, `AC-RECORD-UNMOVED`.
+      </Clarification>
+      <Clarification resolved="true">
+        <INV-ROOT-WINDOW-ROUNDING />
+        Resolved 2026-09-11 by the maintainer, as recommended: round down (`Math.floor`) at every derivation site. On an integer median the floor is the identity; on a `.5` median it is the only direction that cannot loosen a budget.
+        `F182`'s rounding direction. **Recommendation — round down (`Math.floor`) at every
+        derivation site:** verified against the shipped clamp (`persistSnapshot`,
+        `scripts/validate-record-retirement.ts:950`): the persisted ceiling is
+        `min(persisted ceiling, base + headroom)` and headroom is ceiling minus base, so a larger
+        formula term can only hold or raise the persisted ceiling — equal-or-looser — and only
+        rounding down can never loosen a budget; on an integer median the floor is the identity, so
+        the fix changes nothing today. Pros: budgets tighten or hold, never loosen; the relation
+        survives every later move. Cons: the persisted window can be one line tighter than the
+        unfloored arithmetic would have given on a `.5` median — that is the point. **Runner-up —
+        round half up (`Math.round`):** on a `.5` it rounds away from the tighter budget, which is
+        exactly the direction `D28` forbids loosening in; **half-to-even** rounds down or up by
+        parity, so it can loosen and is refused by the same argument. The runner-ups lose on
+        direction, not on style. Governs `AC-ROUNDING-FLOOR`.
+      </Clarification>
+      <Clarification resolved="true">
+        <INV-ROOT-WINDOW-MODE-CEILING />
+        Resolved 2026-09-11 by the maintainer, as recommended: `--rewrite-roots` holds every ceiling byte-for-byte, re-derives `base` from the shipped metric and `headroom` as the remainder, and refuses (exit 1, nothing written) when a genre's count exceeds its persisted ceiling or a ceiling attribute is missing. Together with the resolution above this ratifies the record's invariant: a ceiling is written only by `--retire`, and only downward; every other writer holds it.
+        The mode's ceiling semantics. **Recommendation — hold (pass through):** `--rewrite-roots`
+        never writes a ceiling attribute different from the one it read; it re-derives `base` from
+        the shipped metric and `headroom` as ceiling minus base, and refuses (exit 1, nothing
+        written) when a genre's count exceeds its persisted ceiling or a ceiling attribute is
+        missing. Pros: structurally incapable of raising a ceiling (`D28`), incapable of adopting or
+        recomputing one, and it repairs exactly the hand-drift `F216` records — the post-write
+        registry state (base grown, ceiling held, headroom the remainder) is what every hand-write
+        has produced since the split, driven. Cons: it cannot lower a hand-raised ceiling — the
+        Known-boundary `Constraint` states what that leaves open. **Runner-up — formula with clamp
+        (re-derive the ceiling as `min(persisted, base + floored H)`):** pros: lowers hand-raises
+        back to the formula. Cons: it closes every window a retirement opened whenever the formula's
+        term has fallen below the persisted ceiling — `F193`'s defect reintroduced through the mode,
+        the exact behaviour this bundle exists to stop — and on a normal post-write record, where the
+        formula's term exceeds the held ceiling, the clamp reduces to the hold anyway. The runner-up
+        loses on the record's own design. Governs `AC-MODE-SHIPPED`.
+      </Clarification>
+    </Clarifications>
+  </C-ROOT-WINDOW>
+</NgraceChangeSpec>

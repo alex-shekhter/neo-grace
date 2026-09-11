@@ -1,0 +1,809 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-ROOT-WINDOW-3>
+    <Summary>
+      The supersede replacement for `C-ROOT-WINDOW-2` under `D27`. That bundle's spec was approved
+      against the base `1ec2db921e4196a848a27934cf32c9513e7395a2`, and the supersede commit that
+      archived its predecessor — this spec's baseline
+      `58e1d9e681b8bc7c794af586f7234f2c5dced3ef` — then did two things `-2` did not anticipate,
+      either of which alone makes `-2` unsatisfiable as approved. (a) The supersede commit added ten
+      lines to `src/review/core.test.ts` — the archive ratchet `WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET`
+      recording the four `C-ROOT-WINDOW` golden-file pairs — a `src/` edit after `-2`'s pinned
+      baseline, so `-2`'s `AC-NO-SRC-OTHER` command exits 1 on the tree its own window lives in
+      (measured at this commit: `-2`'s exact command exits 1 naming exactly
+      `src/review/core.test.ts`, 10 insertions). (b) The same commit ran the record move that `-2`'s
+      spec describes as its close's: archiving the predecessor minted its row's payments at once
+      (`F230`), the record was invalid for the whole window a successor would execute in, so
+      `--retire` ran there — `moved 5`, four findings stamped
+      `&lt;PaidBy&gt;C-ROOT-WINDOW&lt;/PaidBy&gt;` into the retired sibling, four index
+      `&lt;Entry&gt;` layers flipped, the row retired, every ceiling held — and `-2`'s close-facing
+      move table describes a move that is already history before this baseline. Under `D27` the
+      route is supersede; the maintainer has ruled it.
+
+      The end state asserted is the one at `58e1d9e` (correction 2): the `--rewrite-roots` mode, the
+      floored derivation, the unmoved-genre window rule, the normalising pass, the re-captured
+      golden fixtures, the row retired in `registry-retired.xml` with `kind="chartered"`, the four
+      findings retired with their `&lt;PaidBy&gt;` stamps, the four index layers flipped, and the
+      shipped suite at 78 pass, 0 fail — every one of them standing at the baseline, observed
+      through the shipped suite whose relevant assertions are payment-invariant. This bundle
+      performs no outward-facing act itself: it writes no engine, suite, fixture, registry or
+      record byte, and because the record already holds the post-move state at the baseline and
+      nothing is eligible, its close's move is a no-op — `--retire` reports `moved 0` and no record
+      byte changes (driven, correction 1). No criterion below asserts that the close moves
+      anything.
+
+      The five corrections `-2` carries, restated for this bundle: (1) the byte-invariance baseline
+      is `58e1d9e681b8bc7c794af586f7234f2c5dced3ef` and every byte-invariance command names it; at
+      that baseline the record already holds the post-move state, the ratchet already holds the
+      four pairs, and nothing is eligible, so the close moves nothing and the driven close proves
+      it. (2) The end state is the assertion, never the write. (3) `AC-NO-SRC-OTHER` carries no
+      exclusion at all — not even the `src/review/core.test.ts` exclusion `-2`'s successor would
+      otherwise have needed, because the ratchet edit is part of this baseline, and the same
+      reasoning removes the engine, suite and golden exclusions `-2` carried: at this baseline
+      every one of those paths is inside it, so any exclusion would only blind the criterion to a
+      write the Goals forbid. (4) `AC-NO-ARCHIVE-EDIT` excludes three arrivals, each named with its
+      reason: the predecessor's own archive home `C-ROOT-WINDOW` (already archived at the baseline,
+      so unchanged), `C-ROOT-WINDOW-2` (the supersede the authority performs after this spec is
+      ratified), and `C-ROOT-WINDOW-3` (this bundle's own close arrival). (5)
+      `AC-RECORD-UNMOVED` widens to all seven record files plus the stub and the inventory —
+      nothing moves at this close — derived from the driven close's measured byte table, not from
+      this sentence.
+
+      The one check done differently this time (`F231`): every `CloseEvidence` command **and the
+      full `bun run validate:ci`** are evaluated inside a **faithful** copy of the post-close state
+      — a working-tree copy made with `rsync` (untracked files under `.ngrace/changes/` included;
+      a `git clone` drops them, and the folded `WriteEvidence` the ratchet reads comes from them),
+      the supersede of `-2` performed inside the copy with the real `ngrace supersede` verb so its
+      epoch folds the way the real one will, `-3` archived with the statuses a real close writes —
+      and only then the commands run. All of it was driven before this spec was written; the tails
+      and exit codes are recorded in `VerificationIntent` and `Assumptions`.
+
+      Name searched 2026-09-11 at this commit over `.ngrace/changes/archive/` (86 directories
+      matching `^C-`) and both registry layers for any prior row carrying `C-ROOT-WINDOW-3`: zero
+      rows in either layer, no archive directory, and no file anywhere in the tree carries the
+      name; the name is new.
+    </Summary>
+    <Problem>
+      `C-ROOT-WINDOW-2` is unsatisfiable as approved, and the two grounds were both created by the
+      supersede commit `58e1d9e681b8bc7c794af586f7234f2c5dced3ef` that archived its predecessor —
+      the same commit at which `-2`'s own spec was first committed.
+
+      **The `src/` edit its criterion forbids.** The commit added the archive ratchet's four
+      `C-ROOT-WINDOW` pairs to `src/review/core.test.ts` (`WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET`,
+      10 insertions) — recorded, not excused, by the ratchet's own doc — but `-2`'s
+      `AC-NO-SRC-OTHER` pins the baseline `1ec2db921e4196a848a27934cf32c9513e7395a2` and excludes
+      only the engine, the suite and the golden directory. Measured at this commit in both
+      directions: `-2`'s exact command exits 1 naming exactly `src/review/core.test.ts` (10
+      insertions, `git diff --stat`), and the same pathset with `src/review/core.test.ts` excluded
+      exits 0. A spec that requires a tree its own criterion forbids is repaired only by `ngrace
+      supersede` (`D27`); this bundle is the replacement.
+
+      **The move it describes as its close's already happened.** `-2`'s `AC-RECORD-VALID` and its
+      byte-move table charter the close as the moment the ceremony's `--retire` moves five elements
+      — the four findings and the row. The authority ran that move at the supersede commit itself
+      (`F230`'s law, now measured on the record: the four findings retired with
+      `&lt;PaidBy&gt;C-ROOT-WINDOW&lt;/PaidBy&gt;` in `findings-retired.xml`, the row retired in
+      `registry-retired.xml`, four index `&lt;Entry&gt;` layers `layer="retired"` in place, roots
+      findings `7711/135/7846`, rulings `1776/107/1883` held byte-identical, registry `12/14/26`,
+      index `272/24/296`). At this baseline nothing is eligible: the shipped derivation over both
+      registry layers and the real archive mints the six tokens and no live element carries any of
+      them, so a `--retire` over a record copy reports `moved 0` and writes nothing (driven), and
+      the driven close inside a faithful copy of the post-supersede state reports the same with a
+      byte table of exactly none. `-2`'s spec asserts a move its close will never perform; the
+      successor asserts the state the move produced and proves its own close inert.
+
+      **The check that must be done differently (`F231`).** The review that approved `-2` ran every
+      `CloseEvidence` command inside a moved clone and never `validate:ci`, and the clone was made
+      with `git clone`, which drops the untracked run events whose folded `WriteEvidence` is what
+      the ratchet reads. A copy that skips any of those steps proved nothing. This spec's evidence
+      `Constraint` makes the faithful copy a hard rule of the close, and every probe below was run
+      inside such a copy before this spec was written — `rsync` of the working tree including
+      untracked files, the supersede of `-2` performed inside the copy with the real verb,
+      `-3` archived with the statuses a real close writes, and then every `CloseEvidence` command
+      and the full `bun run validate:ci` executed there, each tail recorded.
+
+      The authority supersedes `C-ROOT-WINDOW-2` once this spec is ratified — an outward-facing act
+      under `D27` that this spec requests but does not perform; `-2` stays under
+      `.ngrace/changes/active/` until then, and this bundle touches none of its paths.
+    </Problem>
+    <Goals>
+      <Goal>
+        The delivered engine end state at the baseline, asserted — never re-performed. The
+        `--rewrite-roots` mode (`rewriteRecordRoots`,
+        `scripts/validate-record-retirement.ts:1420`, wired beside `--retire` in `main()` at
+        `:1869`), the floored derivation at all four headroom sites (`:596`, `:597`, `:1347`,
+        `:1348`), the unmoved-genre window rule (`holdSnapshot`, `:1042`, under
+        `INV-ROOT-WINDOW-UNMOVED`'s resolution, with the moving genre keeping the shipped
+        `persistSnapshot` arithmetic at `:1049`), and the normalising pass scoped to the files the
+        move wrote (`:1322`–`:1339`) — each stands at `58e1d9e681b8bc7c794af586f7234f2c5dced3ef`
+        exactly as the predecessor chartered it, observed by the shipped suite and cited by its
+        shipped test names (`F213`'s law): the four `C-ROOT-WINDOW rewrite-roots` tests (byte
+        no-op, the exceeded-ceiling refusal, the missing-ceiling refusal, the hand-raised hold), the
+        `C-ROOT-WINDOW floored derivation` test, the `C-ROOT-WINDOW unmoved window` test — whose
+        title names the shipped clamp (`C-RETIREMENT-WINDOW`'s min-not-decorative behaviour) as the
+        named baseline it overturns — the `C-ROOT-WINDOW unmoved window across two consecutive
+        moves` test, the `C-ROOT-WINDOW normalising pass` test, and the `rulings window clamped`
+        test whose fixture's 1800 load-bearing top-level comments pass through. The suite is green
+        at the baseline — 78 pass, 0 fail, 1273 `expect()` calls, exit 0 (measured, read directly)
+        — and its relevant assertions are payment-invariant: the `C-ROOT-WINDOW row invariant`
+        test walks both registry layers with no fixed expectation of which file holds the row, and
+        the `C-ROOT-WINDOW payment invariant` is worded "when any exist" precisely so the same test
+        run holds in every record state the row's life cycle produces. This bundle writes no engine
+        or suite byte; if any probe shows one of these behaviours must be rewritten to hold, the
+        bundle stops and reports rather than widening its scope.
+      </Goal>
+      <Goal>
+        The row, the payment, and the inert close, asserted. The row `C-ROOT-WINDOW` stands retired
+        in `registry-retired.xml` exactly as the house shape has it (`kind="chartered"`,
+        `&lt;Pays&gt;F216 F182 F193 F190 F225 F226&lt;/Pays&gt;`, a `&lt;StatusText&gt;` carrying
+        no `F` token and no `Closed with` sentence, its `&lt;Charter&gt;` carrying the
+        searched-before-minting statement), with the registry roots the mode rewrote at
+        `base="12" headroom="14" ceiling="26"` satisfying the shipped relations at the baseline
+        (the shipped roots-invariant tripwire, the `C-PAYMENT-RECORD-4 roots invariant` test). The
+        payment is already minted: the row's name is an archive directory at the baseline, so the
+        shipped payer map (`derivePayerMap`, `scripts/validate-record-retirement.ts:403`, gated on
+        `archive.has(row.name)` at `:408`) names all six tokens `F216`, `F182`, `F193`, `F190`,
+        `F225`, `F226` to `C-ROOT-WINDOW` — measured with the shipped derivation over both registry
+        layers and the real archive — while `F225` and `F226` have zero matching
+        `&lt;Finding&gt;` elements in either findings file and zero index `&lt;Entry&gt;` lines:
+        the pre-payment waiting for the next flush. The four paid findings stand retired with
+        `&lt;PaidBy&gt;C-ROOT-WINDOW&lt;/PaidBy&gt;` and `status="retired"` in
+        `findings-retired.xml`; the four index `&lt;Entry&gt;` layers read `layer="retired"` in
+        place; zero live `&lt;Finding&gt;` carries any of the six tokens. Because the record
+        already holds this state at the baseline, this bundle's close moves nothing: the ceremony's
+        `--retire` reports `moved 0` and writes nothing — over a record copy at the baseline
+        (driven) and inside the driven close copy (driven) — and the shipped validator returns zero
+        findings both before and after. The eligibility answer is measured, not assumed: on a
+        throwaway copy of the baseline, `--retire` reports `moved 0` with no record byte changing
+        because no live element is eligible, which is exactly why every byte-invariance criterion
+        below can hold in the applied-archive state without a single record exclusion beyond the
+        unmoved set itself.
+      </Goal>
+      <Goal>
+        The supersede window, the faithful-copy law, and what this bundle does not perform. The
+        authority supersedes `C-ROOT-WINDOW-2` once this spec is ratified — an outward-facing act
+        under `D27` that this spec requests but does not perform; `-2` stays under
+        `.ngrace/changes/active/` until then, and this bundle touches none of its paths. The
+        supersede's arrival under `.ngrace/changes/archive/C-ROOT-WINDOW-2/` is guaranteed to move
+        those bytes, and this bundle's own close moves its directory into
+        `.ngrace/changes/archive/C-ROOT-WINDOW-3/`, so `AC-NO-ARCHIVE-EDIT` excludes both with
+        their reasons alongside the row's already-archived home `C-ROOT-WINDOW` (`F188`'s law,
+        three arrivals). Every `CloseEvidence` command below, and the full `bun run validate:ci`,
+        is evaluated only in the applied-archive state (`F196`) **inside a faithful copy of that
+        state built the way `F231` prescribes**: `rsync` of the working tree with untracked files
+        under `.ngrace/changes/` included, the supersede of `-2` performed inside the copy with the
+        real `ngrace supersede` verb (so its epoch folds the way the real one will), `-3` archived
+        with `status="applied"`, and the commands run there. The copy the authoring run drove
+        (measured, tails in `VerificationIntent`) reproduced every stated figure; the close
+        ceremony repeats the same build and run, and a copy that skips any of those steps proves
+        nothing.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module-change shape): no governed source file is written; the bundle's
+        writes are its own artifacts and its close's archive arrival. Roadmap: `RM-GOVERNED-PATH`
+        (record integrity). Binding live rulings: `D28` — no ceiling is raised: this bundle writes
+        no record byte, so no ceiling in its window changes at all, and the shipped mode holds every
+        ceiling byte-for-byte; `D28.1` — eligibility is the enforcement and the ceiling the
+        backstop: the record is valid (zero findings) at the baseline with the payer map already
+        minting the six tokens and nothing eligible, and the applied-archive state — byte-identical
+        for the record — validates clean; `D30` — scoped, not skirted: this bundle writes no record
+        file, so the freeze applies to the execution windows that read them, and no hard
+        `Constraint` here transcribes a scalar count of any file it changes — every occupancy,
+        margin, median and root figure lives in `Assumptions` and expires, and every criterion
+        below asserts a relation its instrument can observe; `D11` — nothing is deferred here
+        without an owner already named by the record (the staged findings' flush belongs to the
+        next flush bundle's charter; the canonical serializer belongs to `F221`'s chartered owner;
+        the raised-and-repaired detection boundary is re-assigned under its own reason in
+        `NonGoals`; the split-path formula disagreement is staged for the authority with its
+        evidence); `D27` — nothing is approved unread; ratification is the maintainer's, approval
+        writes are the authority's, and this bundle's artifacts are written at `status="draft"` and
+        stop. Name searched 2026-09-11 at this commit over `.ngrace/changes/archive/` (86
+        directories matching `^C-[A-Z0-9-]+$`) and both registry layers for any prior row carrying
+        `C-ROOT-WINDOW-3`: zero rows in either layer, no archive directory, no file in the tree
+        carries the name; the name is new.
+      </Constraint>
+      <Constraint>
+        The row's prose law (`F197`, still live and still true in its surviving half). The shipped
+        `derivePayerMap` mints payments from an archived row's `&lt;Pays&gt;` and from `Closed with`
+        sentences in its `&lt;StatusText&gt;` (`scripts/validate-record-retirement.ts:338`,
+        `:403`, gated on the row's name being an archive directory; the archived-spec prose route
+        `F197` described is absent from the shipped engine — measured, and the shipped false-payment
+        probe pins its absence). The row's `&lt;StatusText&gt;` therefore names no `F` token outside
+        `&lt;Pays&gt;` and contains no `Closed with` sentence; `&lt;Pays&gt;` names exactly
+        `F216 F182 F193 F190 F225 F226` and no other token is paid by this lineage's row. This
+        bundle mints no row and writes no record byte: the payer map at the baseline already names
+        the six tokens for `C-ROOT-WINDOW` (measured with the shipped derivation over both registry
+        layers and the real archive), the row's retirement already happened at the supersede
+        commit, and every payment-shape assertion is payment-invariant by construction. `F225` and
+        `F226` are pre-paid, not flushed: they are not in the record (measured: zero
+        `&lt;Finding&gt;` elements with those tokens in either findings file, zero index
+        `&lt;Entry&gt;` lines), nothing in this bundle flushes them, and the buffer at
+        `.ngrace/scratch/staged-findings.md` is read, never written. The findings window at the
+        baseline is 135 lines and the two staged entries need 37 and 87 rendered element lines —
+        124 jointly — so the flush is open for a later bundle; landing them is that bundle's act
+        under the `D30` window, never this one's.
+      </Constraint>
+      <Constraint>
+        Write scope, anchors, and imports — enumerated once (`F136.1`'s rule), and derived from
+        these `Goals`. The set is every write a Goal makes inevitable, and the Goals charter no
+        product write: they assert a delivered state and an inert close. This bundle's writes are
+        its own artifacts under `.ngrace/changes/active/C-ROOT-WINDOW-3/` and, at the close, that
+        directory's move into `.ngrace/changes/archive/C-ROOT-WINDOW-3/`; no engine, suite,
+        fixture, registry row or record file is written by any Goal here — every write the
+        predecessor's Goals chartered (the engine `scripts/validate-record-retirement.ts`, the
+        suite `scripts/validate-record-retirement.test.ts`, the registry row, the four golden files
+        `scripts/fixtures/record-parse/golden/` named `findings.xml`, `findings-retired.xml`,
+        `registry.xml`, `registry-retired.xml`, and the close's five record files) is already
+        delivered at the baseline commit, which is why the criteria observe the end state instead
+        of re-performing it. Neither the engine nor the suite carries a `LINKS:` header (measured at
+        this commit: zero occurrences in both files), `scripts/` is lint-ignored
+        (`.ngrace-lint.json` `ignoredDirs`), and no module in `.ngrace/graph/main.xml` owns any of
+        them — the module enumeration is empty and the plan's `DurableScope` will be
+        `&lt;None /&gt;`; do not mint a synthetic module, and do not repeat this list as a second
+        module list anywhere. Do not add a lint issue code. Escape markup as character data
+        (`&lt;`, `&gt;`, `&amp;`) in every artifact this bundle writes; never paraphrase brackets
+        away.
+      </Constraint>
+      <Constraint>
+        Criterion mapping, stated plainly (the trap that has cost supersedes). Every `AC-*` below
+        except `AC-NO-CURRENT-MODE` is close-bound by its own `CloseEvidence` child, and a task
+        `Satisfies` that names any of them is the shipped error
+        (`change.close-evidence-and-satisfied`). Exactly one criterion — `AC-NO-CURRENT-MODE` —
+        carries no `CloseEvidence` and is mapped by exactly one task `Satisfies` in the later plan;
+        that single mapping is the admissible mapping set, no other task carries `Satisfies`, and no
+        other criterion is unmapped (the corrected mapping clause `C-FLUSH-AND-PAY-3` recorded). Every
+        `CloseEvidence` is evaluated only in the applied-archive state (`F196`'s rule) — which for
+        this bundle is byte-equal to the baseline state for every path the byte-invariance criteria
+        name, because the close moves nothing — and every such command is additionally run inside
+        the faithful copy the `F231` law requires, before and after this spec's criteria were
+        written.
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, settled lessons — and the one check done differently. The byte-invariance
+        baseline for every `git diff --exit-code` criterion is this spec's base commit
+        `58e1d9e681b8bc7c794af586f7234f2c5dced3ef` (`F210`'s rule — the base-less form cannot
+        fail); the bundle's own commits touch only
+        `.ngrace/changes/active/C-ROOT-WINDOW-3/` and later its archive arrival, so that base
+        remains valid for every named pathset. Every diff sees tracked paths only (`F174`) and the
+        archive pathspec excludes three arrivals — the row's already-archived home
+        `C-ROOT-WINDOW`, the predecessor's sanctioned supersede arrival, and this bundle's own
+        close arrival, each named with its reason in `AC-NO-ARCHIVE-EDIT` (`F188`).
+        `CloseEvidence` commands match shipped discriminating shapes (the bun-test shape, the
+        named-baseline diff shape, the `--fail-on warnings` lint shape). No criterion compares a
+        fixed `git show` against a floating working-tree read (`F215`); no criterion asserts a
+        state the shipped engine will not produce (`F226` item 9); every probe below was run in
+        both directions on throwaway copies before this spec was written, and every byte-invariance
+        command was run to exit 0 in the applied-archive state of the faithful driven close copy.
+        Structural counts come from the shipped parser, never `grep`, and exit codes are read
+        directly, never through a pipe. Any test the later plan adds that measures the real
+        repository carries an explicit generous timeout (`F185`); nothing the plan adds may pin a
+        named finding `live` or a ceiling to a number (the payment-invariant form the delivered
+        suite establishes), and assertions are cited by their shipped test names (`F213`), never by
+        line numbers alone. Task `Verification` and `TargetAssertions` contain no current-mode lint
+        of this project root (`F171` — by hand; the shipped detector misses the grace.ts form),
+        which is the one `Satisfies`-mapped criterion. The three typed `Clarifications` below are
+        carried verbatim from the predecessor — they are the maintainer's rulings, dated and
+        attributed — and none blocks this bundle, being resolved. **The faithful-copy law
+        (`F231`), binding on the close ceremony:** every `CloseEvidence` command and the full
+        `bun run validate:ci` are evaluated inside a faithful copy of the post-close state — built
+        by `rsync` of the working tree with untracked files under `.ngrace/changes/` included (a
+        `git clone` drops them, and the folded `WriteEvidence` the ratchet reads comes from them),
+        with the supersede of `-2` performed inside the copy by the real `ngrace supersede` verb so
+        its epoch folds the way the real one will, with `-3` archived carrying the statuses a real
+        close writes (`status="applied"`), and only then the commands run — each command's exit
+        code read directly and the `validate:ci` tail pasted, never summarised. The driven close's
+        measured byte table — only the two `.ngrace/changes/` moves, zero record bytes, zero
+        `src/` or `scripts/` bytes — is the derivation behind `AC-RECORD-UNMOVED`'s widened pathset;
+        the criterion states what the table proved, not what this sentence hopes.
+      </Constraint>
+      <Constraint>
+        Known boundary, stated rather than hidden. The mode holds ceilings and cannot repair a
+        hand-raised one: a ceiling above the formula's term is shape-identical to a window a
+        legitimate move opened, so no derivation can distinguish them, and the mode leaves it
+        byte-identical rather than adopting or recomputing it (the shipped
+        `C-ROOT-WINDOW rewrite-roots hold` test asserts the pass-through). The raised-and-repaired
+        ceiling therefore survives the mode; it is lowered only by its own genre's next move, whose
+        clamp takes the smaller term. Detection beyond the shipped `RULINGS_PROVENANCE_CEILING` check
+        (`scripts/validate-record-retirement.ts:446`, which covers the rulings genre only) is a
+        distinct deliverable with no design paid for — re-assigned in `NonGoals` under `D11`'s rule,
+        with the mode's structural never-raise and never-adopt as the partial answer shipped by the
+        predecessor. A hand-written base or headroom anywhere is repaired by the next move or the
+        mode; a hand-raised ceiling is not. Read-backs above a held ceiling stop the task and
+        report; they never raise a ceiling and never trim a body.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Flushing `F225` or `F226`, writing or pruning
+        `.ngrace/scratch/staged-findings.md`, or rendering any staged entry into the record. Owner:
+        the next flush bundle's charter; post-merge hygiene, the authority's. The findings genre's
+        window at the baseline (135 lines, measured by the shipped parser's root relation) fits both
+        staged entries' rendered element sizes (37 and 87, measured 2026-09-11 by the shipped parse
+        rule over the buffer; 124 jointly) — which is the pre-payment's point — but landing them is
+        the next flush's act under the `D30` window, never this bundle's.
+      </NonGoal>
+      <NonGoal>
+        The canonical serializer `F221` charters, and any byte-normalisation beyond what the record
+        already carries: this bundle writes no record byte, so the record's remaining whitespace
+        drift (five `&lt;Decision&gt;` elements of `rulings.xml` at 4-space indent — `d5.2`, `d6`,
+        `d9.1`, `d19`, `d25`, carried byte-identically from the predecessor's baseline, which this
+        baseline's `rulings.xml` equals byte-for-byte) stays until a rulings move normalises it.
+        Owner: `F221`'s chartered bundle.
+      </NonGoal>
+      <NonGoal>
+        A provenance or detection mechanism for hand-raised ceilings beyond the shipped
+        `RULINGS_PROVENANCE_CEILING`: the mode holds ceilings and does not adopt them, the move
+        lowers a hand-raised ceiling only in its own genre, and closing the raised-and-repaired
+        detection gap for the other three genres needs a design this spec does not charter. Owner:
+        a later charter, sequenced by the maintainer; the dependency is the mode's shipped hold
+        semantics, and the conflict is `D28`'s never-raise, which forbids the cheapest "remedy".
+      </NonGoal>
+      <NonGoal>
+        Changing any shipped engine surface — `derivePayerMap`, `persistSnapshot`, `holdSnapshot`,
+        `normaliseGaps`, `rewriteRecordRoots`, the eligibility scans, `INDEX_HEADROOM_ENTRIES`, the
+        registry's live-row budget, the provenance constant, any CLI token — or touching the split
+        path's rulings headroom multiplier. The split-path rulings formula (`2 × median`,
+        `scripts/validate-record-retirement.ts:597`) still disagrees with the retire-path formula
+        (`7 × median`, `:1348`) — carried byte-identically from the predecessor's baseline, which
+        this baseline's engine file equals byte-for-byte — and is staged for the authority with its
+        evidence, not in this spec's scope: a root-rewrite surface must use the retire path's `7 ×`
+        because the retire path is the shipped writer of existing-record ceilings, while the split
+        path writes a newly created record only. The bundle that reunifies them owns the call; this
+        one does not.
+      </NonGoal>
+      <NonGoal>
+        Writing or re-capturing any fixture under `scripts/fixtures/`, editing either predecessor
+        bundle — `C-ROOT-WINDOW` under `.ngrace/changes/archive/` or `C-ROOT-WINDOW-2` under
+        `.ngrace/changes/active/` or its later archive home — or performing any supersede: the
+        golden fixtures stand re-captured at the baseline and the golden relation is asserted green
+        by the shipped suite, the predecessor `-2`'s supersede is the authority's outward-facing act
+        under `D27` performed after this spec is ratified, and this bundle performs no outward-facing
+        act. Owner: the authority.
+      </NonGoal>
+      <NonGoal>
+        Editing `README.md`, `examples/`, `CLAUDE.md`, `docs/plans/README.md`, `skills/ngrace/`,
+        `plugins/ngrace/skills/ngrace/`, `docs/plans/archive/`, tracked paths under
+        `.ngrace/changes/archive/` outside the three named arrivals, `package.json`, `bun.lock`,
+        `.ngrace-lint.json`, `CONTEXT_ARTIFACTS`, or any teaching surface. Owner: unchanged
+        surfaces — no user-visible CLI token changes, no config key, no ngrace command changes.
+      </NonGoal>
+      <NonGoal>
+        Running `ngrace review`, any gate or cursor verb, or committing: authoring this bundle's
+        artifacts is the executor's act (`F84`); ratification is the maintainer's; approval writes
+        are the authority's. The spec is written at `status="draft"` and the bundle stops there.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-ROW-PAYS-SIX>
+        The registry row `C-ROOT-WINDOW` exists exactly once across `registry.xml` and
+        `registry-retired.xml`, with no fixed expectation of which file holds it: the `&lt;Row&gt;`'s
+        `status` agrees with the holding file, `kind="chartered"`, its `&lt;Pays&gt;` names exactly
+        the six tokens `F216`, `F182`, `F193`, `F190`, `F225`, `F226` in that order and no other `F`
+        token, its `&lt;StatusText&gt;` names no `F` token at all and contains no `Closed with`
+        sentence. At this baseline the holding file is the retired layer and the row's
+        `status="retired"` agrees with it — the row's own retirement, already performed at the
+        supersede commit — and the relation is invariant under this bundle's close, whose move
+        touches no record byte. Content question. Failure: a second row with the same name, a
+        `Pays` token outside the six, a `StatusText` naming a token outside `Pays` (the `F197` mint
+        shape the shipped `closedWithTokens` implements), or a status disagreeing with the holding
+        file. The instrument is the shipped suite, which this bundle edits not at all: the
+        `C-ROOT-WINDOW row invariant` test walks both registry layers over the real record, and its
+        red direction — the probe the predecessor's bundle repaired at its own baseline — plants a
+        duplicate row into whichever file the walk found the row in and expects the pinned 2, so
+        the exactly-once clause discriminates in both the pre-close and the applied-archive state
+        (measured: the suite is green in both).
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROW-PAYS-SIX>
+      <AC-MODE-SHIPPED>
+        The `--rewrite-roots` mode stands in `scripts/validate-record-retirement.ts` beside
+        `--retire` in `main()` and behaves as chartered (`INV-ROOT-WINDOW-MODE-CEILING`'s
+        resolution): on a record whose live roots satisfy the shipped relations it is a byte no-op;
+        it refuses with exit 1 and no write when any live genre's count exceeds its persisted
+        ceiling (the message names the genre, both counts in their unit, and the move as the remedy)
+        and when a live root's ceiling attribute is missing or unreadable; it writes
+        `headroom = ceiling − base` with `base` equal to the shipped metric read back
+        (`newlineCount` for findings and rulings, the live-`Entry` rule for the index, the live
+        `Row` count for the registry) and holds the persisted ceiling byte-for-byte — never
+        recomputed, never adopted. Content question. Failure: the mode writing a ceiling above the
+        persisted one, a raise by recomputation, a silent clamp-and-continue on an exceeded genre,
+        or a refusal that fires on a consistent record. The instrument is the shipped suite: the
+        four `C-ROOT-WINDOW rewrite-roots` tests (byte no-op with a second-run no-op,
+        exceeded-ceiling refusal, missing-ceiling refusal, hand-raised hold) observe every clause,
+        and this criterion is invariant under the close — the close's ceremony does not run the mode
+        and writes no engine or suite byte.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-MODE-SHIPPED>
+      <AC-ROUNDING-FLOOR>
+        Every headroom derivation site in `scripts/validate-record-retirement.ts` floors its product
+        with `Math.floor` — the two findings sites and the two rulings sites, both the `--split`
+        path (`:596`, `:597`) and the `--retire` path (`:1347`, `:1348`) — so no persisted
+        `headroom` or `ceiling` is fractional. The relation is payment-invariant: on any fixture
+        whose live population is even with differing middles, the persisted ceiling is an integer
+        equal to the pre-move base plus the floored product, and the unfloored form would persist
+        the fractional value on the identical fixture. Failure: any derivation site persisting
+        `X.5`. The instrument is the shipped suite: the `C-ROOT-WINDOW floored derivation` test
+        drives both directions on the identical fixture, and the `C-FLUSH-AND-PAY clamp invariant`
+        holds the persisted headroom to the clamp's result.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROUNDING-FLOOR>
+      <AC-WINDOW-UNMOVED>
+        On a successful `--retire` move, a genre with zero moved elements keeps its persisted
+        ceiling and has its base re-derived from its shipped metric read back, so its window
+        survives moves in unrelated genres; a genre with moved elements keeps the shipped
+        moving-genre arithmetic (persisted ceiling = `min(previous ceiling, pre-move base + floored
+        headroom)`); the index is re-derived when its `&lt;Entry&gt;` layers flip and held
+        otherwise. This criterion is governed by the carried `Clarification` targeting
+        `&lt;INV-ROOT-WINDOW-UNMOVED /&gt;`, resolved by the maintainer as recommended, and states
+        the resolution's semantics. After any successful move, every live root satisfies
+        `base + headroom = ceiling` with `base` equal to its shipped metric read back, and a genre
+        whose bytes the move did not change keeps its persisted ceiling. The instrument is the
+        shipped suite: the `C-ROOT-WINDOW unmoved window` test (whose title names the shipped clamp
+        — `C-RETIREMENT-WINDOW`'s min-not-decorative behaviour — as the named baseline it
+        overturns), the `C-ROOT-WINDOW unmoved window across two consecutive moves` test, and the
+        moving-genre `T-001 window` tests that pass unchanged. Failure: an unmoved genre's window
+        shrinking across a move in another genre, or a moved genre failing the shipped relations.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-WINDOW-UNMOVED>
+      <AC-INDENT-NORMALISED>
+        The move's writer normalises the inter-element whitespace of every file it writes (a genre
+        with removals, a retired sibling with appends, the index when its layers flip), and treats
+        top-level comments as units — the semantic its predecessor stated for the first time: a
+        top-level comment's bytes pass through in place, the gaps around units are rewritten to the
+        canonical house shape (`&lt;newline&gt;&lt;two spaces&gt;` before a unit,
+        `&lt;newline&gt;` before the root close tag, the tail preserved), every surviving element's
+        own bytes are byte-identical to their pre-pass bytes, and any other non-whitespace content
+        in an inter-element gap refuses the pass loudly before any write. The pass touches no file
+        the move did not write, so a genre with zero moved elements keeps its bytes (its
+        pre-existing drift stays until its own move normalises it — measured, and stated in the
+        `Goal`). The instrument is the shipped suite: the `C-ROOT-WINDOW normalising pass` test
+        (element bytes byte-identical, canonical gaps, a mutated element's own bytes reddening the
+        walk) and the `rulings window clamped` test, whose fixture's 1800 load-bearing top-level
+        comments pass through a real move. The refuse direction is measured against the delivered
+        engine on a throwaway copy: exit 1 with `record engine: the normalising pass found
+        non-whitespace bytes between top-level units of &lt;file&gt;; refusing to drop them`
+        (`scripts/validate-record-retirement.ts:1018`), and the pass-through direction with a
+        planted gap comment surviving verbatim (driven).
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-INDENT-NORMALISED>
+      <AC-RECORD-VALID>
+        The record is valid in both states this bundle's window contains — and they are the same
+        record, because the close moves nothing. At the baseline the shipped
+        `validateRecordRetirement` returns zero findings on the production record (measured:
+        `record-retirement: ok`, exit 0; the shipped production invariant additionally reports
+        planted eligibility on a mutated copy, so the zero-findings claim discriminates), and the
+        shipped derivation mints the six tokens `F216`, `F182`, `F193`, `F190`, `F225`, `F226` to
+        `C-ROOT-WINDOW` over both registry layers and the real archive with nothing eligible — the
+        four paid findings are already retired with `&lt;PaidBy&gt;C-ROOT-WINDOW&lt;/PaidBy&gt;` and
+        `status="retired"` in `findings-retired.xml`, the row is retired in `registry-retired.xml`
+        with `kind="chartered"`, and the four index `&lt;Entry&gt;` layers read `layer="retired"` in
+        place. In the applied-archive state the shipped validator returns zero findings on the
+        same bytes — the close's `--retire` reports `moved 0` and writes nothing (driven, both over
+        a record copy and inside the driven close copy), a second `--retire` likewise, every live
+        root satisfies the shipped relations with `base` equal to its shipped metric read back, and
+        `F225`/`F226` remain absent from the record with their tokens minted to `C-ROOT-WINDOW`.
+        Content question, payment-invariant by construction; no clause of this criterion asserts
+        that the close moves anything (correction 2). Failure: any validator finding on the
+        committed or applied record; an index layer disagreeing with its holding file; a moved
+        element duplicated across its genre pair. The instrument is the shipped suite over the real
+        record — the `C-FLUSH-AND-PAY production invariant`, the `C-PAYMENT-RECORD-4 roots
+        invariant` and `retired-layer invariant`, the `C-ROOT-WINDOW row invariant` and `payment
+        invariant` — plus the measured drives in `VerificationIntent`.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-VALID>
+      <AC-RECORD-UNMOVED>
+        Every record file is byte-identical to this spec's base commit
+        `58e1d9e681b8bc7c794af586f7234f2c5dced3ef` — all seven record files
+        `docs/plans/active/RM-GOVERNED-PATH/findings.xml`, `findings-retired.xml`, `rulings.xml`,
+        `rulings-retired.xml`, `registry.xml`, `registry-retired.xml`, `decisions.xml`, plus the
+        stub `decisions.md` and the inventory `record-inventory.json` — because nothing moves at
+        this close: the driven close's measured byte table (derived before this criterion was
+        written, correction 5) is empty for every one of these paths, the close's `--retire`
+        reporting `moved 0` over a record copy and inside the driven close copy alike, so the
+        widened form costs nothing the narrower form protected. The window is this bundle's own
+        diff (`F215`), over tracked paths only (`F174`), evaluated in the applied-archive state
+        (`F196`). No record path is exempted and none is covered by a second, semantic copy of
+        this assertion elsewhere: the parse-based relations in `AC-RECORD-VALID`, `AC-ROW-PAYS-SIX`,
+        `AC-WINDOW-UNMOVED` and `AC-INDENT-NORMALISED` govern the record's content and its
+        consistency with the shipped engine, and this criterion governs its bytes (`F221`'s
+        standing rule, with the roles this close actually has). Failure: any record byte differing
+        from the baseline at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code 58e1d9e681b8bc7c794af586f7234f2c5dced3ef -- docs/plans/active/RM-GOVERNED-PATH/findings.xml docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml docs/plans/active/RM-GOVERNED-PATH/rulings.xml docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml docs/plans/active/RM-GOVERNED-PATH/registry.xml docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml docs/plans/active/RM-GOVERNED-PATH/decisions.xml docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Command>
+        </CloseEvidence>
+      </AC-RECORD-UNMOVED>
+      <AC-NO-SRC-OTHER>
+        No file under `src/` or `scripts/` changes relative to this spec's base commit
+        `58e1d9e681b8bc7c794af586f7234f2c5dced3ef` — no exclusions, and the absence of any
+        exclusion is itself the correction this bundle carries (correction 3): the predecessor's
+        command needed four excludes because its baseline predated the delivered engine, suite and
+        golden capture, and its successor would have needed a fifth for the archive ratchet's ten
+        lines in `src/review/core.test.ts`; every one of those paths is inside this baseline, so
+        there is nothing left to exclude — and keeping any exclusion would only blind this
+        criterion to exactly the writes the `Goals` forbid, the defect class `F227` names. A reader
+        looking for a `src/review/core.test.ts` exclusion should not find one: the ratchet edit is
+        part of the baseline, not a post-baseline edit. Prose and command name the same pathset.
+        Failure: any `src/` or `scripts/` path differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code 58e1d9e681b8bc7c794af586f7234f2c5dced3ef -- src/ scripts/</Command>
+        </CloseEvidence>
+      </AC-NO-SRC-OTHER>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and `.ngrace/changes/archive/` are not modified;
+        three arrivals are not modifications, each named with its reason (`F188`'s law): the row's
+        own archive home under `.ngrace/changes/archive/C-ROOT-WINDOW/` — already archived at this
+        baseline by the supersede commit, so unchanged and excluded so the criterion states its
+        state rather than stumbling over it — the predecessor's sanctioned supersede arrival under
+        `.ngrace/changes/archive/C-ROOT-WINDOW-2/` — the authority's `D27` route, performed outside
+        this bundle after ratification and guaranteed to move those bytes — and this bundle's own
+        later arrival under `.ngrace/changes/archive/C-ROOT-WINDOW-3/` — the close itself renames
+        this bundle's directory into the archive (correction 4). The prose claims tracked paths
+        only (`F174`) and is probed in the post-close state (`F196`). Failure: any tracked archive
+        byte outside the three named arrivals differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code 58e1d9e681b8bc7c794af586f7234f2c5dced3ef -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-ROOT-WINDOW-3' ':(exclude).ngrace/changes/archive/C-ROOT-WINDOW-2' ':(exclude).ngrace/changes/archive/C-ROOT-WINDOW'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-DOCS-EXAMPLES>
+        `README.md`, `examples/`, `CLAUDE.md`, `docs/plans/README.md`, `skills/ngrace/`,
+        `plugins/ngrace/skills/ngrace/`, `package.json`, and `bun.lock` are byte-identical to this
+        spec's base commit `58e1d9e681b8bc7c794af586f7234f2c5dced3ef`. Prose and command name the
+        same pathset. The command sees tracked edits and deletions only (`F174`). Failure: any
+        listed path differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code 58e1d9e681b8bc7c794af586f7234f2c5dced3ef -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task `Verification` commands and `TargetAssertions` contain no current-mode
+        lint of this project root, checked by the rule in the Evidence-hygiene `Constraint`, by hand
+        (`F171` — by hand; the shipped detector misses the grace.ts form). Failure: a `Command`
+        whose text contains `--assertions current`, or that invokes lint of this root and omits
+        `--assertions`. This is the spec's single `Satisfies`-mapped criterion; it carries no
+        `CloseEvidence` and must be mapped by exactly one task `Satisfies` in the later plan.
+      </AC-NO-CURRENT-MODE>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No graph module is written. Ceremony tier T1 names the same fact: the engine and its suite
+      sit under `scripts/`, which is lint-ignored (`.ngrace-lint.json` `ignoredDirs`), and the
+      record files under `docs/plans/active/RM-GOVERNED-PATH/` are owned by no module in
+      `.ngrace/graph/main.xml`. The module enumeration is empty and the later plan's `DurableScope`
+      will be `&lt;None /&gt;`; do not mint a synthetic module to fill this section. The write
+      scope is enumerated once, in the write-scope `Constraint` (`F136.1`'s rule — no second module
+      list anywhere).
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bash -c 'T=$(mktemp -d) &amp;&amp; cp -R docs/plans/active/RM-GOVERNED-PATH "$T/R" &amp;&amp; bun ./scripts/validate-record-retirement.ts --retire "$T/R" &amp;&amp; rm -rf "$T"'</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>git diff --exit-code 58e1d9e681b8bc7c794af586f7234f2c5dced3ef -- docs/plans/active/RM-GOVERNED-PATH/findings.xml docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml docs/plans/active/RM-GOVERNED-PATH/rulings.xml docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml docs/plans/active/RM-GOVERNED-PATH/registry.xml docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml docs/plans/active/RM-GOVERNED-PATH/decisions.xml docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-ROOT-WINDOW-3 --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes against the delivered product, driven 2026-09-11 at
+        `58e1d9e681b8bc7c794af586f7234f2c5dced3ef` (branch `c-root-window`) on throwaway copies of
+        the repository — never the committed tree — in both directions where a failing direction
+        exists. (1) The baseline suite: `bun test scripts/validate-record-retirement.test.ts`
+        exits 0 (read directly) with 78 pass, 0 fail, 1273 `expect()` calls, on the tree and again
+        inside the faithful driven close copy. (2) The inert close, on a record copy from the
+        baseline: `--retire` reports `moved 0` and no record byte changes (before/after hashes
+        equal). (3) The faithful driven close, every step measured: `rsync` of the working tree
+        including untracked files under `.ngrace/changes/`; the supersede of `-2` inside the copy
+        with the real verb (`bun ./src/grace.ts supersede --change C-ROOT-WINDOW-2 --replacement
+        C-ROOT-WINDOW-3`, exit 0; `-2`'s spec arrives at `status="superseded"` carrying
+        `&lt;Replacement&gt;C-ROOT-WINDOW-3&lt;/Replacement&gt;`, its run-ledger folding
+        byte-identically because it holds no open epoch); `-3` archived with `status="applied"`;
+        the close's `--retire` reporting `moved 0` with the record byte-identical. (4) The driven
+        close's byte table — derived before `AC-RECORD-UNMOVED` was written: exactly
+        `.ngrace/changes/active/C-ROOT-WINDOW-2/spec.xml` and `run-ledger.xml` removed by the
+        supersede, their byte-equal arrivals under `.ngrace/changes/archive/C-ROOT-WINDOW-2/` (the
+        ledger unchanged; the spec carrying superseded and `&lt;Replacement&gt;`), and
+        `.ngrace/changes/archive/C-ROOT-WINDOW-3/` as this bundle's own arrival — every record
+        file, every `src/` and `scripts/` path, every `docs/plans/` path, `README.md` and the
+        teaching surfaces byte-identical to the baseline. (5) Every `CloseEvidence` command of this
+        spec, run to exit 0 inside the faithful copy in the applied-archive state:
+        `AC-RECORD-UNMOVED`, `AC-NO-SRC-OTHER`, `AC-NO-ARCHIVE-EDIT` and `AC-DOCS-EXAMPLES` all
+        empty against the baseline; the suite green; the close lint green. (6) The full
+        `bun run validate:ci` exit 0 inside the faithful copy, tail recorded in `Assumptions`.
+        (7) The eligibility discrimination, both directions: with only this bundle's own arrival in
+        the archive, `--retire` reports `moved 0` — the row's name is `C-ROOT-WINDOW`, minted by
+        its own already-archived home, and no live element carries any of the six tokens, which is
+        why nothing moves at this close; the four payments' presence in the retired siblings and
+        the row's retirement are observed directly at the baseline by the shipped parser (four
+        `&lt;PaidBy&gt;C-ROOT-WINDOW&lt;/PaidBy&gt;` stamps naming `F182`, `F190`, `F193`, `F216`;
+        the row in `registry-retired.xml`; 87 retired index layers against 272 live). (8) The name
+        search: 86 archive directories matching `^C-` and none carries `C-ROOT-WINDOW-3`; both
+        registry layers parsed by the shipped parser list no `&lt;Row&gt;` with the name; no file
+        in the tree carries the name. (9) The staged buffer, by the shipped
+        `parseFrozenMarkdown` over `.ngrace/scratch/staged-findings.md` on 2026-09-11: `F225` 34
+        body lines / 37 rendered element lines, `F226` 84 body lines / 87 rendered element lines,
+        124 jointly, against the baseline findings window of 135. (10) The `-2`-breaking
+        measurement, both directions at this commit: `-2`'s exact `AC-NO-SRC-OTHER` command exits 1
+        naming exactly `src/review/core.test.ts` (10 insertions), and the same pathset with
+        `src/review/core.test.ts` excluded exits 0 — which is why correction 3 exists. (11) The
+        shipped suite's own discriminating directions run with every suite run: the row invariant's
+        duplicate-plant probe, the production invariant's planted-eligibility mutation, the
+        normalising walk's mutated-element red, and the golden relation's byte-for-byte comparison
+        over all seven golden files.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken 2026-09-11 at `58e1d9e681b8bc7c794af586f7234f2c5dced3ef` (`git rev-parse
+        HEAD`), branch `c-root-window`, tracked tree clean, no untracked files under
+        `.ngrace/changes/` before this bundle's artifacts were written. All counts by the shipped
+        parser (`parseGraceXmlArtifact`, direct-children filtering, `computeElementSpans`,
+        `newlineCount` of the span plus one), never a grep; exit codes read directly, never through
+        a pipe. Record roots at this commit: findings `base="7711" headroom="135" ceiling="7846"`
+        over 210 live `&lt;Finding&gt;` elements with median element line count 35 (the shipped
+        counting rule, `newlineCount` of the span plus one); rulings `base="1776" headroom="107"
+        ceiling="1883"` over 62 live `&lt;Decision&gt;` elements, 27 of them `##`-level (median
+        23.5), the provenance ceiling holding 1883; index `base="272" headroom="24" ceiling="296"`
+        over 359 `&lt;Entry&gt;` children, 272 live, 87 retired; registry `base="12" headroom="14"
+        ceiling="26"` over 12 live rows. The shipped payer map over both registry layers and the
+        real archive mints exactly the six tokens to `C-ROOT-WINDOW` — the row's name is an archive
+        directory — and no live element carries any of them.
+      </Assumption>
+      <Assumption>
+        The element line counts by the shipped counting rule (`newlineCount` of the span plus one):
+        the four paid findings are retired in `findings-retired.xml` with
+        `&lt;PaidBy&gt;C-ROOT-WINDOW&lt;/PaidBy&gt;` — tokens `F182`, `F190`, `F193`, `F216` (the
+        same four `-2`'s close would have moved; the supersede commit moved them instead, `F230`)
+        — and `registry-retired.xml` holds the row with `status="retired"` and
+        `kind="chartered"`. The two staged entries, parsed by the shipped `parseFrozenMarkdown`
+        over the buffer on 2026-09-11: `F225` 34 body lines / 37 rendered element lines, `F226` 84
+        body lines / 87 rendered element lines — both fit the baseline findings window of 135
+        individually and jointly (124); the buffer is the authority's file and may change between
+        dispatches, so these figures expire with it.
+      </Assumption>
+      <Assumption>
+        The driven close, measured 2026-09-11 on a faithful copy of the working tree built by
+        `rsync` (untracked files included; `node_modules` carried so the CLI resolves): the
+        supersede of `-2` performed with the real verb exits 0 and prints the archive destination;
+        `-2`'s spec arrives at `status="superseded"` with
+        `&lt;Replacement&gt;C-ROOT-WINDOW-3&lt;/Replacement&gt;` and its `run-ledger.xml`
+        byte-identical to the baseline's (the fold is a no-op — the ledger holds a spec-approve
+        permit and no open epoch); `-3` archived with `status="applied"`; the close's `--retire`
+        over the record reports `moved 0`, exit 0 (read directly); the byte table exactly as
+        `VerificationIntent` item (4) states; a second `--retire` reports `moved 0` and changes no
+        record byte; the shipped validator and the preservation validator both exit 0 on the
+        unchanged record. The full `bun run validate:ci` exits 0 inside the copy — its tail naming
+        every member green through `record-preservation: ok` — and the suite inside the copy runs
+        78 pass / 0 fail / 1273 `expect()` calls, exit 0, the same counts as on the tree (`F229`'s
+        rule — measured in the only state `CloseEvidence` is evaluated in, not assumed from the
+        baseline).
+      </Assumption>
+      <Assumption>
+        The ratchet, measured at this commit: `src/review/core.test.ts` carries
+        `WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET` with the four pairs
+        `["C-ROOT-WINDOW", "scripts/fixtures/record-parse/golden/findings-retired.xml"]`,
+        `[.., ..golden/findings.xml]`, `[.., ..golden/registry-retired.xml]`,
+        `[.., ..golden/registry.xml]` and its ten-line comment block naming `F227` — recorded, not
+        excused; the archived predecessor's folded `WriteEvidence` (the pass-attempt events of
+        `.ngrace/changes/archive/C-ROOT-WINDOW/run-ledger.xml`) names the four golden files among
+        its written paths, and the ratchet test's `runReview` walk over the real archive derives
+        exactly the recorded pairs. The ratchet edit is part of this baseline: `-2`'s
+        `AC-NO-SRC-OTHER` command, run at this commit, exits 1 naming exactly
+        `src/review/core.test.ts`, and the same pathset with that file excluded exits 0 — both
+        read directly — which is the measured reason `-2` cannot close and this bundle exists.
+      </Assumption>
+      <Assumption>
+        The name search, 2026-09-11 at this commit: `.ngrace/changes/archive/` holds 86 directories
+        matching `^C-[A-Z0-9-]+$` (85 at `-2`'s baseline plus the predecessor's own archive home
+        moved by the supersede commit) and none carries `C-ROOT-WINDOW-3`; both registry layers
+        parsed by the shipped parser list no `&lt;Row&gt;` whose `name` attribute carries the name
+        — 12 live rows and no retired row with it; and no file anywhere in the tree carries the
+        name (measured over `.xml`, `.md`, `.json`, `.ts`). `-2`'s bundle is under
+        `.ngrace/changes/active/` at this commit and stays there until the maintainer's supersede;
+        this spec touches none of its paths.
+      </Assumption>
+      <Assumption>
+        The production `rulings.xml` carries five `&lt;Decision&gt;` elements at non-2-space indent
+        at this commit (`d5.2`, `d6`, `d9.1`, `d19`, `d25`) — `F190`'s drift, still live — and
+        `rulings.xml` is byte-identical to the predecessor's baseline
+        `1ec2db921e4196a848a27934cf32c9513e7395a2` (the supersede commit's move touched it not at
+        all), so the figure carries; the normalising pass is scoped to files the move writes, and
+        this close's move writes nothing, so they stay until a rulings move normalises them. The
+        engine's span geometry: a top-level unit's span starts at its `&lt;` byte, so all
+        first-line indent lives in the inter-element gaps, which is what makes a gap-only
+        normalising pass possible without touching element or comment bytes.
+      </Assumption>
+      <Assumption>
+        The supersede of `-2` is the authority's act, expected as the act following this spec's
+        ratification: it edits only `.ngrace/changes/` paths (the `-2` spec and plan statuses,
+        `&lt;Replacement&gt;`, the epoch fold, and the directory move), writes no record file, no
+        `src/` path and no `docs/plans/` path, and is therefore covered by the named exclusions in
+        `AC-NO-ARCHIVE-EDIT` without weakening any criterion's intent. Neither this bundle's close
+        nor the supersede changes record bytes, so the byte-invariance criteria hold in the
+        applied-archive state where `CloseEvidence` is measured (`F196`), and the faithful-copy law
+        (`F231`) is what makes that claim measured rather than assumed.
+      </Assumption>
+    </Assumptions>
+    <Clarifications>
+      <Clarification resolved="true">
+        <INV-ROOT-WINDOW-UNMOVED />
+        Resolved 2026-09-11 by the maintainer, as recommended: a genre the move did not change keeps its persisted ceiling; `base` is re-derived from its shipped metric read back and `headroom` is the remainder. The moving genre keeps the shipped `persistSnapshot` arithmetic. One rule, shared by the move and the mode.
+        `F193`'s window semantics for a genre with zero moved elements. Two candidates were driven on
+        throwaway copies at this commit. **Recommendation — persist the opened window (hold the
+        ceiling, re-derive the base):** a genre the move did not change keeps its persisted ceiling
+        and gets `base` from its shipped metric read back, `headroom` as the remainder; the moving
+        genre keeps the shipped `persistSnapshot` arithmetic. Pros: the shipped all-roots tripwire
+        (`base + headroom = ceiling`, `base` equals its metric — asserted after every successful move
+        by the shipped `T-001 window` test at `scripts/validate-record-retirement.test.ts:692` and by
+        the production roots invariant) stays true without depending on anyone running the mode, so
+        the move remains self-healing for hand-drift in every genre; the fix is one rule shared with
+        the mode; only the one shipped test that pins the clamp (the `min not decorative` test) needs
+        rewriting, and the moving-genre window test passes unchanged. Cons: the unmoved genre's
+        open-tag splice makes its byte-identity empirical rather than structural (measured
+        byte-identical at any consistent record; a drifted record reddens the criterion and stops the
+        close — the honest outcome), and a hand-raised ceiling in an unmoved genre now survives
+        unrelated moves (it is lowered by its own genre's next move — stated in the Known-boundary
+        `Constraint`). **Runner-up — re-derive only the genre that moved:** pros: the unmoved genre is
+        structurally untouched, so its byte-invariance is structural; cons: it abandons the shipped
+        invariant that every live root satisfies the relations after any successful move — the
+        shipped validator has no base-versus-metric check, so a drifted unmoved genre would survive a
+        legitimate move with the validator green, and the drift would surface only later in the
+        production tripwire; three shipped tests need rewriting instead of one. The runner-up loses
+        because its only advantage (structural byte-invariance for one file) is bought by weakening a
+        shipped invariant the record's enforcement posture relies on, and the same cleanliness is
+        reachable under the recommendation by parse-based relations. Governs `AC-WINDOW-UNMOVED` and,
+        for the byte-invariance reasoning, `AC-RECORD-UNMOVED`.
+      </Clarification>
+      <Clarification resolved="true">
+        <INV-ROOT-WINDOW-ROUNDING />
+        Resolved 2026-09-11 by the maintainer, as recommended: round down (`Math.floor`) at every derivation site. On an integer median the floor is the identity; on a `.5` median it is the only direction that cannot loosen a budget.
+        `F182`'s rounding direction. **Recommendation — round down (`Math.floor`) at every
+        derivation site:** verified against the shipped clamp (`persistSnapshot`,
+        `scripts/validate-record-retirement.ts:950`): the persisted ceiling is
+        `min(persisted ceiling, base + headroom)` and headroom is ceiling minus base, so a larger
+        formula term can only hold or raise the persisted ceiling — equal-or-looser — and only
+        rounding down can never loosen a budget; on an integer median the floor is the identity, so
+        the fix changes nothing today. Pros: budgets tighten or hold, never loosen; the relation
+        survives every later move. Cons: the persisted window can be one line tighter than the
+        unfloored arithmetic would have given on a `.5` median — that is the point. **Runner-up —
+        round half up (`Math.round`):** on a `.5` it rounds away from the tighter budget, which is
+        exactly the direction `D28` forbids loosening in; **half-to-even** rounds down or up by
+        parity, so it can loosen and is refused by the same argument. The runner-ups lose on
+        direction, not on style. Governs `AC-ROUNDING-FLOOR`.
+      </Clarification>
+      <Clarification resolved="true">
+        <INV-ROOT-WINDOW-MODE-CEILING />
+        Resolved 2026-09-11 by the maintainer, as recommended: `--rewrite-roots` holds every ceiling byte-for-byte, re-derives `base` from the shipped metric and `headroom` as the remainder, and refuses (exit 1, nothing written) when a genre's count exceeds its persisted ceiling or a ceiling attribute is missing. Together with the resolution above this ratifies the record's invariant: a ceiling is written only by `--retire`, and only downward; every other writer holds it.
+        The mode's ceiling semantics. **Recommendation — hold (pass through):** `--rewrite-roots`
+        never writes a ceiling attribute different from the one it read; it re-derives `base` from
+        the shipped metric and `headroom` as ceiling minus base, and refuses (exit 1, nothing
+        written) when a genre's count exceeds its persisted ceiling or a ceiling attribute is
+        missing. Pros: structurally incapable of raising a ceiling (`D28`), incapable of adopting or
+        recomputing one, and it repairs exactly the hand-drift `F216` records — the post-write
+        registry state (base grown, ceiling held, headroom the remainder) is what every hand-write
+        has produced since the split, driven. Cons: it cannot lower a hand-raised ceiling — the
+        Known-boundary `Constraint` states what that leaves open. **Runner-up — formula with clamp
+        (re-derive the ceiling as `min(persisted, base + floored H)`):** pros: lowers hand-raises
+        back to the formula. Cons: it closes every window a retirement opened whenever the formula's
+        term has fallen below the persisted ceiling — `F193`'s defect reintroduced through the mode,
+        the exact behaviour this bundle exists to stop — and on a normal post-write record, where the
+        formula's term exceeds the held ceiling, the clamp reduces to the hold anyway. The runner-up
+        loses on the record's own design. Governs `AC-MODE-SHIPPED`.
+      </Clarification>
+    </Clarifications>
+  </C-ROOT-WINDOW-3>
+</NgraceChangeSpec>
