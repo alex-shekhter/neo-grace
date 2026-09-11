@@ -1,0 +1,300 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-ROOT-WINDOW-3>
+    <IntentSummary>
+      Author the execution for the approved, fingerprinted spec
+      `.ngrace/changes/active/C-ROOT-WINDOW-3/spec.xml` and only within it; the plan conforms to the
+      spec, it does not extend, narrow or reinterpret it. The three resolved `Clarifications`
+      (`INV-ROOT-WINDOW-UNMOVED`, `INV-ROOT-WINDOW-ROUNDING`, `INV-ROOT-WINDOW-MODE-CEILING`) are the
+      maintainer's rulings and stand as written; this bundle implements none of them — every
+      behaviour they resolved is already delivered at the spec's base
+      `58e1d9e681b8bc7c794af586f7234f2c5dced3ef`, and the plan's task is to verify that end state,
+      not to re-perform it. This bundle writes no engine, suite, fixture, registry or record byte;
+      its close's `--retire` is a no-op (`moved 0`, driven). Planned reds: none.
+
+      Why one task and not two. The bundle performs no write, so there is nothing to decompose: a
+      second task would be a decomposition of nothing. The single task `T-001` is verification-only
+      — it runs the shipped instruments, records its cursor events, and reaches a boundary where
+      every criterion the close will evaluate is already observed green. (The ngrace-plan skill does
+      not say a plan's tasks may be verification-only; this bundle's spec is the authority that
+      makes it so, and `C-CITATION-ANCHOR-REPAIR-2`'s archived plan is the house precedent for the
+      shape.)
+
+      The scopes, stated with their reasons and checked against the shipped predicate.
+      `DurableScope` is `&lt;None /&gt;`: the spec's `AffectedAreas` names no module (measured — its
+      section is prose), the engine and its suite sit under `scripts/`, which is lint-ignored
+      (`.ngrace-lint.json` `ignoredDirs`), and no module in `.ngrace/graph/main.xml` owns any record
+      file; do not mint a synthetic module. `ObservedWriteScope` is `&lt;None /&gt;` because the
+      task writes no file: the observed scope lists observed task writes, and no task below
+      performs any write. The executor's own cursor events and the CLI's command-run records live
+      under this bundle's own directory and are not task writes (the same reading the predecessor's
+      close passed under). The empty marker is the shipped accepted form — prose such as "none" is
+      invalid, the `&lt;None /&gt;` element is required, and the lint run at this plan's commit
+      accepts it (measured, exit 0). `isModuleOwnableWritePath` (`src/lint/core.ts:732`) returns
+      false for every path outside `src/`, so `change.graph-anchors-miss-write-scope` cannot fire
+      for an empty anchor set.
+
+      The mapping, fixed by the spec's own Constraint (the trap that has cost supersedes): exactly
+      one criterion — `AC-NO-CURRENT-MODE` — carries no `CloseEvidence` and is mapped by exactly one
+      task `Satisfies`, carried by `T-001` below; it is this plan's only `Satisfies`, and no other
+      task carries one (there is no other task). Measured basis at this plan's commit:
+      `validateSpecPlanCoverage` (`src/artifact/grammar.ts:1981`) warns
+      `change.acceptance-criterion-unmapped` for a criterion that is neither task-mapped nor
+      close-bound, `isCloseBoundCriterion` (`src/artifact/grammar.ts:2142`) counts a criterion
+      close-bound when it carries a complete `CloseEvidence` child, and
+      `change.close-evidence-and-satisfied` (`src/lint/catalog.ts:286`) errors on a `Satisfies` of a
+      close-bound criterion; eleven of this spec's twelve criteria are close-bound and
+      `AC-CLOSE-LINT`'s `CloseEvidence` runs `--fail-on warnings`, which fails on any issue, so an
+      unmapped `AC-NO-CURRENT-MODE` would make the bundle's own close unsatisfiable.
+      `AC-CLOSE-LINT` stays the close's: its command appears in no task `Verification` and in no
+      `TargetAssertions` entry. Every `CloseEvidence` is evaluated only in the applied-archive state
+      (F196's rule).
+
+      The fix budgets, stated because they bind the task (`FIX_SIGNATURE_REPEAT_BUDGET = 2`,
+      `FIX_DISTINCT_SIGNATURE_BUDGET = 4`, `src/grace-cursor.ts:187` and `:193`, re-read at this
+      plan's commit). With no write there is no fix loop: there is no file a fix could edit, so
+      neither budget can be exercised. A failed verification cycle here would mean a criterion that
+      is false at the baseline — the end state the spec asserts does not hold — and the only honest
+      response is a stop and a report, never a fix. The budgets are recorded so the accounting is
+      explicit, not because this bundle expects to spend them.
+
+      Why the assertions are what they are. `BaselineAssertions` pin the standing world with
+      existence and command pins only: the seven record files, the stub and the inventory, the
+      engine and its suite, the authorizing spec, and the four shipped instruments that are green
+      at the baseline — measured at this plan's commit, every one exit 0 (the suite 78 pass / 0
+      fail / 1273 `expect()` calls; the validator, the preservation validator and the citation
+      validator each `ok`, exit 0). `TargetAssertions` are the same set plus nothing — nothing new
+      lands, no test is added, and no byte pin exists on any record file because this bundle writes
+      no byte (the C-PAYMENT-RECORD-3 precedent against moving baseline byte pins). The four
+      instruments are executed at execution time by the selected target lint's `--run-commands`
+      path; the suite also runs directly as `T-001`'s first command. No
+      `TargetAssertions`-bound assertion depends on a later task, because there is no later task.
+
+      Every `Verification` command recorded below, measured at this plan's commit `b4c5772` (F184's
+      rule, refined): the suite exits 0 (78/0/1273); the four named-baseline diffs exit 0 (the tree
+      is byte-identical to the base for every pathset — the ratchet edit, the engine, the suite, the
+      golden capture and the record's post-move state are all inside the baseline); and the
+      selected `bun ./src/grace.ts lint --path . --change C-ROOT-WINDOW-3 --assertions target
+      --run-commands` command exits 1 at plan time (`assertion.change-not-approved`) because the
+      plan is draft — which is not a defect (F184's refined rule, the same reading the predecessor's
+      plan recorded): its meant stage is execution, after the maintainer's ratification and the
+      gate, when spec and plan are both approved and identity-matched; driven to exit 0 in the
+      faithful copy with the plan carried at the status that stage has. No recorded command contains
+      a current-mode lint of this project root (F171, by hand — the shipped detector misses the
+      `grace.ts` form): no command text contains `--assertions current`, and none invokes lint of
+      this root omitting `--assertions`; the target lint is a selected target lint, the form the
+      phase rules permit.
+
+      The faithful-copy law (F231), discharged at plan time. The brief's probe was driven on a
+      faithful copy of the working tree built by `rsync` with untracked files and `.git` included
+      (a `git clone` drops the untracked run events whose folded `WriteEvidence` the ratchet reads;
+      `node_modules` carried so the CLI resolves): the supersede of `-2` is already committed at
+      this HEAD, so there is nothing to supersede in the copy; `-3` archived with `status="applied"`
+      on spec and plan; the close's `--retire` probe reporting `moved 0`, exit 0; every
+      `CloseEvidence` command and the full `bun run validate:ci` exit 0 inside the copy in the
+      applied-archive state. The close's measured byte table is empty for every record path: only
+      the two `.ngrace/changes/` moves happen, and each is excluded by name in `AC-NO-ARCHIVE-EDIT`
+      (F188's three arrivals — the row's already-archived home `C-ROOT-WINDOW`, the predecessor's
+      supersede arrival `C-ROOT-WINDOW-2`, this bundle's own close arrival `C-ROOT-WINDOW-3`).
+
+      The close, stated once and never performed by a task. The executor emits its own
+      execution-time cursor events for `T-001` (opened with the epoch open at the task's start,
+      progress, attempt with signature kind and key on every failed verification cycle,
+      verification-unavailable when evidence cannot be collected, pause and resume around
+      interruptions) and does not omit them; command-run is produced by the CLI's `--run-commands`
+      path, never hand-invented. The terminal event, the cursor fold, every gate, the status write,
+      the archive move and the close's own record retirement move are close acts owned by the
+      authority; no task performs any of them, and no sentence in this plan implies execution does.
+      Do not hand-write any status. The byte-invariance baseline for every diff command is the
+      spec's base commit `58e1d9e681b8bc7c794af586f7234f2c5dced3ef` (F210's rule); every diff sees
+      tracked paths only (F174); no criterion compares a fixed `git show` against a floating
+      working-tree read (F215); no recorded command pins a named finding `live` or a ceiling to a
+      number, and this plan adds no test, so F185 and F213 have nothing to bind. When this plan
+      names a tag or attribute form it writes character data with entities (`&lt;`, `&gt;`,
+      `&amp;`) and never paraphrases the brackets away.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-ROOT-WINDOW-3/spec.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-ROOT-WINDOW-3/spec.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <None />
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Verify the delivered end state at the baseline — run the shipped instruments, hold every
+          byte-invariance command green, and stop at a boundary where every criterion the close will
+          evaluate is already observed green, writing no file
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The verification boundary. Run, in order, the six commands in `Verification` — the
+            shipped retirement suite (78 pass / 0 fail at this plan's commit, the counts the
+            close's `CloseEvidence` will evaluate again in the applied-archive state), the four
+            named-baseline diffs against `58e1d9e681b8bc7c794af586f7234f2c5dced3ef` (the record
+            files plus the stub and the inventory; `src/` and `scripts/` with no exclusions —
+            correction 3; the archive pathset with F188's three named arrivals excluded; the
+            README/examples/teaching/packaging surface), and the selected target lint with
+            `--run-commands`, which evaluates this plan's `TargetAssertions` and executes their four
+            `MustPassCommand` instruments. Every command exits 0 at the stage it runs (F184,
+            measured at this plan's commit and re-driven inside the faithful copy); the target
+            lint's plan-time exit 1 (`assertion.change-not-approved`, plan draft) is the refined
+            rule's plan-time shape, not a defect. This task performs no write of any kind: no
+            engine, suite, fixture, registry or record byte, no test added, no fixture touched, and
+            the buffer `.ngrace/scratch/staged-findings.md` is read by no task and written by none.
+            If any command exits non-zero at its stage, the end state is false at the baseline: stop
+            and report — a fix is impossible by construction, because the criterion's truth was
+            already the tree's state and no write is chartered to produce it.
+          </Criterion>
+          <Criterion>
+            The inert close and the byte-invariance boundary. This bundle's close moves its
+            directory into `.ngrace/changes/archive/C-ROOT-WINDOW-3/` and moves nothing else: the
+            close's `--retire` reports `moved 0` and no record byte changes (measured at this
+            plan's commit over a record copy and again inside the faithful copy, exit 0 both), a
+            second `--retire` likewise, and the shipped validator returns zero findings before and
+            after. The four diff commands above are the same bytes the close's `CloseEvidence`
+            evaluates in the applied-archive state (F196) — they are green at this plan's commit
+            and stay green through execution because the bundle writes nothing (F174: tracked
+            paths only; F210: the named base remains valid; F215: no fixed `git show` against a
+            floating read). The fix budgets (`FIX_SIGNATURE_REPEAT_BUDGET = 2`,
+            `FIX_DISTINCT_SIGNATURE_BUDGET = 4`, `src/grace-cursor.ts:187` and `:193`) bind this
+            task and cannot be exercised: with no write there is no fix loop, and a failed
+            verification cycle means a criterion false at the baseline — a stop and a report, never
+            a fix.
+          </Criterion>
+          <Criterion>
+            The by-hand rule, the mapping and the boundary. No current-mode lint of this project
+            root appears anywhere in this plan's task `Verification` commands or
+            `TargetAssertions`, checked by hand (F171, the shipped detector missing the `grace.ts`
+            form): no command text contains `--assertions current`, and none invokes lint of this
+            root omitting `--assertions`; current-mode lint of this root appears only as
+            `AC-CLOSE-LINT`'s post-archive `CloseEvidence`, owned by the authority. This task
+            carries the plan's single `Satisfies` (`AC-NO-CURRENT-MODE`) — the mapping the close's
+            `--fail-on warnings` requires (measured basis in IntentSummary); the close-bound
+            criteria stay unmapped, because a `Satisfies` of a close-bound criterion is the error
+            `change.close-evidence-and-satisfied` (`src/lint/catalog.ts:286`). The executor emits
+            its own execution-time cursor events for this task inside the open epoch (progress,
+            attempt with signature kind and key on fail, verification-unavailable when evidence
+            cannot be collected) and does not omit them; the terminal event, the cursor fold, the
+            gates, both gate verdicts, gate apply, the `status="applied"` write, gate archive, the
+            move to `.ngrace/changes/archive/C-ROOT-WINDOW-3/`, and the close's own record
+            retirement move are close acts owned by the authority; no task performs any of them and
+            no sentence in this plan implies execution does. Do not hand-write any status. T-001
+            writes nothing: no file, in any directory, at any stage.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>git diff --exit-code 58e1d9e681b8bc7c794af586f7234f2c5dced3ef -- docs/plans/active/RM-GOVERNED-PATH/findings.xml docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml docs/plans/active/RM-GOVERNED-PATH/rulings.xml docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml docs/plans/active/RM-GOVERNED-PATH/registry.xml docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml docs/plans/active/RM-GOVERNED-PATH/decisions.xml docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Command>
+          <Command>git diff --exit-code 58e1d9e681b8bc7c794af586f7234f2c5dced3ef -- src/ scripts/</Command>
+          <Command>git diff --exit-code 58e1d9e681b8bc7c794af586f7234f2c5dced3ef -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-ROOT-WINDOW-3' ':(exclude).ngrace/changes/archive/C-ROOT-WINDOW-2' ':(exclude).ngrace/changes/archive/C-ROOT-WINDOW'</Command>
+          <Command>git diff --exit-code 58e1d9e681b8bc7c794af586f7234f2c5dced3ef -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-ROOT-WINDOW-3 --assertions target --run-commands</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-001>
+    </ImplementationPlan>
+  </C-ROOT-WINDOW-3>
+</NgraceChangePlan>
