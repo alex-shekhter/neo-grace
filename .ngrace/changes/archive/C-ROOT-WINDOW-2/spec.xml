@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-ROOT-WINDOW-2>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-ROOT-WINDOW-2><Replacement>C-ROOT-WINDOW-3</Replacement>
     <Summary>
       The supersede replacement for `C-ROOT-WINDOW` under `D27`. That bundle's output is committed at
       `8eb5978` (the `--rewrite-roots` mode, the floored derivation, the unmoved-genre window rule, the
