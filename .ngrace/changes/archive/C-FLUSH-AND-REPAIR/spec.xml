@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-FLUSH-AND-REPAIR>
     <Summary>
       Two deliverables: the flush of the staged record buffer under the D30 window, and the repair of the
