@@ -3638,4 +3638,36 @@ across every later brief and every external user. Neighbour to [F196](#f196) (th
 entry generalises) and [F199](#f199) (the teaching-surface validator's silent refusal).
 </Body>
   </Finding>
+  <Finding id="f232" token="F232" status="retired">
+    <PaidBy>C-FLUSH-AND-UNPIN</PaidBy>
+    <Title>### F232 — the `C-ROOT-WINDOW` payment invariant pins the pre-flush state: zero `Finding` elements may carry `F225` or `F226`, so the first flush of either turns the shipped suite red. **[verified]**</Title>
+    <Body>
+`scripts/validate-record-retirement.test.ts:2884`-2927, shipped in PR #87 (`ed67f45`) with
+`C-ROOT-WINDOW-3`. After the two payer-map checks that do survive payment — each of the six tokens
+minted, if at all, by `C-ROOT-WINDOW`; every `C-ROOT-WINDOW` mint within the six — the test walks
+`findings.xml` and `findings-retired.xml` and asserts that no `Finding` carries `F225` or `F226`
+(`:2926`), under the comment *&quot;the pre-payment waits for the next flush&quot;*. The flush it waits for is
+what breaks it. **Driven 2026-09-11 on a faithful copy at `ed67f45`:** rendering the staged `F225` and
+`F226` into `findings.xml` with their index entries and running `--retire` moves both (`moved 2`,
+`PaidBy` `C-ROOT-WINDOW`, every root held at its persisted bytes, `record-retirement: ok`,
+`record-preservation: ok`) — and `validate:ci` exits 1 on this one assertion out of 1809
+(`Expected: 0 Received: 2`, on `findings-retired.xml`).
+
+**The class, third instance.** [F225](#f225) pinned fifteen findings `live`; [F229](#f229) planted a
+fixture into the live layer; this pins two tokens *absent*. All three are a check written against the
+state that existed at approval rather than the state the record's own rules produce next. This one
+was approved in the session that wrote &quot;assertions and probes must survive payment&quot; into its own
+handoff, and the review that approved it drove `validate:ci` in a faithful copy at the pre-flush
+state only — [F231](#f231)'s procedure, applied to the one state the next bundle is chartered to
+leave.
+
+**The payment-invariant form**, the PR #86 repair's shape: for each of `F225` and `F226`, if any
+`Finding` carries the token it exists exactly once across the two files, in `findings-retired.xml`,
+with `status=&quot;retired&quot;`, a `PaidBy` equal to `C-ROOT-WINDOW`, and an index `Entry` whose layer
+agrees; the absent case stays green. Zero carriers is one valid state of that relation, not a pin.
+
+Owner: the flush bundle that lands `F225` and `F226` — the repair is forced by the flush, so it is the
+`C-FLUSH-AND-REPAIR` shape (PR #86) a second time. Neighbour to [F225](#f225) and [F229](#f229).
+</Body>
+  </Finding>
 </Findings>
