@@ -90,6 +90,7 @@ const PACK_ALLOWED_EXACT = new Set([
   "src/project-utils.ts",
   "src/grace.ts",
   "src/grace-context.ts",
+  "src/grace-apply.ts",
   "src/grace-cursor.ts",
   "src/grace-doctor.ts",
   "src/grace-graph.ts",

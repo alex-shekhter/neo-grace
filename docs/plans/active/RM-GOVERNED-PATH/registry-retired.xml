@@ -290,4 +290,10 @@
     <Pays>F210 F196 F199 F188 F233 F234</Pays>
     <StatusText>Ordered; the row is minted live by the plan and paid by the close move.</StatusText>
   </Row>
+  <Row name="C-APPLY-VERB" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Name.** `C-APPLY-VERB`. **Searched before minting**, 2026-09-12, over `.ngrace/changes/archive/` (91 directories at the search) and both registry layers for any prior row carrying the name: **zero rows in either layer and zero prior archive directories**. No prior name covers this ground. **Charter.** The top-level `ngrace apply` verb: the sanctioned `approved` to `applied` close and the archive move, with surgical status writes on the active spec and plan, per-artifact SHA-256 fingerprints of the applied bytes, two gate=applied permitting Decisions in document order spec then plan, and a same-filesystem rename with rollback. The gate commands keep their evaluate-only contract; the verb replaces the two hand acts that closed a bundle.</Charter>
+    <Pays>F224</Pays>
+    <StatusText>Ordered. The row is minted live by the plan and paid by the close's move.</StatusText>
+  </Row>
 </Registry>

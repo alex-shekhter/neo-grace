@@ -8,7 +8,11 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   DecisionGateId
 //   DecisionListResult
+//   ApplyChangeBundleOptions
+//   applyChangeBundle
+//   validateApplyChangeBundle
 //   GateDecisionRecord
 //   GateDecisionValue
 //   GateId
@@ -154,6 +158,12 @@ export function computeVerdictSnapshotDigest(
 }
 
 export type GateId = "approve" | "apply" | "archive";
+/**
+ * Decision-record gate vocabulary: the three evaluation gates plus the applied
+ * close writer. The writer is not a gate subcommand (C-APPLY-VERB / D37); the
+ * wider parse set names the command-path event that wrote the status.
+ */
+export type DecisionGateId = GateId | "applied";
 export type GateDecisionValue = "permit" | "refuse";
 
 export type GateRequirementRecord = {
@@ -165,7 +175,7 @@ export type GateRequirementRecord = {
 };
 
 export type GateDecisionRecord = {
-  gate: GateId;
+  gate: DecisionGateId;
   decision: GateDecisionValue;
   requirements: GateRequirementRecord[];
   /** First observed HEAD object name on a permitting approve. Omitted when never observed. */
@@ -208,7 +218,7 @@ const LEDGER_BUNDLE_SECTIONS = new Set(["Verdicts", "Decisions"]);
 const VALID_OUTCOMES = new Set<string>(["pass", "fail", "unable-to-determine"]);
 const VALID_SCOPES = new Set<string>(["task", "wave", "bundle"]);
 const VALID_CLASSIFICATIONS = new Set<string>(["implementation", "plan"]);
-const VALID_GATES = new Set<string>(["approve", "apply", "archive"]);
+const VALID_GATES = new Set<string>(["approve", "apply", "archive", "applied"]);
 const VALID_DECISIONS = new Set<string>(["permit", "refuse"]);
 
 export function parseReviewVerdictScope(value: string): ReviewVerdictScope {
@@ -271,6 +281,19 @@ function ensureSection(wrapper: GraceXmlNode, sectionTag: "Verdicts" | "Decision
 }
 
 /**
+ * A31.5 restore: prior ledger bytes back, or remove a ledger this run created.
+ * The single unlinkSync call site in this module is this restore; shared by
+ * post-write verification and by the applied writer's rollback.
+ */
+function restorePriorLedgerBytes(ledgerPath: string, priorBytes: Buffer | null): void {
+  if (priorBytes !== null) {
+    writeFileSync(ledgerPath, priorBytes);
+  } else if (existsSync(ledgerPath)) {
+    unlinkSync(ledgerPath);
+  }
+}
+
+/**
  * Validate the constructed tree, write, re-read, verify; restore prior bytes on failure (A31.5).
  * Never leaves a failed write on disk. Does not delete a good prior file.
  */
@@ -298,11 +321,7 @@ function writeAndVerifyLedger(bundlePath: string, root: GraceXmlNode): void {
   const postValidation = validateRunLedgerArtifact(reRead);
   const postErrors = postValidation.issues.filter((issue) => issue.severity === "error");
   if (postErrors.length > 0) {
-    if (priorBytes !== null) {
-      writeFileSync(ledgerPath, priorBytes);
-    } else if (existsSync(ledgerPath)) {
-      unlinkSync(ledgerPath);
-    }
+    restorePriorLedgerBytes(ledgerPath, priorBytes);
     throw new GraceCommandError(
       "invalid-project",
       `run-ledger.xml failed verification after write; prior content restored: ${postErrors.map((e) => e.code).join(", ")}`,
@@ -533,17 +552,24 @@ export function recordGateDecision(
     gate: decision.gate,
     decision: decision.decision,
   };
-  if (decision.gate === "approve" && decision.decision === "permit") {
-    const stored = firstStoredBaseCommit(section);
-    const incoming = (decision.baseCommit ?? "").trim();
-    const value = stored ?? (incoming || undefined);
-    if (value) attributes.baseCommit = value;
-    if (decision.fingerprint) attributes.fingerprint = decision.fingerprint;
-    if (decision.artifact) attributes.artifact = decision.artifact;
-    if (decision.forced === true) {
-      attributes.forced = "true";
-      const reason = (decision.reason ?? "").trim();
-      if (reason) attributes.reason = reason;
+  if (decision.decision === "permit") {
+    if (decision.gate === "approve") {
+      const stored = firstStoredBaseCommit(section);
+      const incoming = (decision.baseCommit ?? "").trim();
+      const value = stored ?? (incoming || undefined);
+      if (value) attributes.baseCommit = value;
+    }
+    // Fingerprints, artifact names, and forced permits persist on approve and
+    // on applied (the write records); evaluation gates apply and archive never
+    // carry them (C-APPROVAL-FINGERPRINT), and applied never stores baseCommit.
+    if (decision.gate === "approve" || decision.gate === "applied") {
+      if (decision.fingerprint) attributes.fingerprint = decision.fingerprint;
+      if (decision.artifact) attributes.artifact = decision.artifact;
+      if (decision.forced === true) {
+        attributes.forced = "true";
+        const reason = (decision.reason ?? "").trim();
+        if (reason) attributes.reason = reason;
+      }
     }
   }
   section.children.push({
@@ -789,7 +815,7 @@ function parseDecisionNode(child: GraceXmlNode): GateDecisionRecord | { invalid:
     });
   }
   const record: GateDecisionRecord = {
-    gate: gate as GateId,
+    gate: gate as DecisionGateId,
     decision: decision as GateDecisionValue,
     requirements,
   };
@@ -1526,4 +1552,230 @@ export function stampApproveArtifact(
     artifact: target.artifact,
     fingerprint: createHash("sha256").update(readFileSync(target.filePath)).digest("hex"),
   };
+}
+
+/** Options for the sanctioned applied close (C-APPLY-VERB / F224). */
+export type ApplyChangeBundleOptions = {
+  /** Bypass only the missing apply/archive permit refusals; recorded on both write Decisions. */
+  force?: boolean;
+  /** Operator-supplied reason stored only with force true. */
+  reason?: string;
+  /** Test-only rename hook for the EXDEV refuse-after-rollback path. */
+  io?: { renameSync?: typeof renameSync };
+};
+
+/**
+ * One status refuse for the applied close, keyed on rootStatusFromFile.
+ * Locatable compact opening-tag, non-terminal, then approved-or-applied.
+ */
+function requireCloseableArtifactStatus(
+  filePath: string,
+  artifact: "spec" | "plan",
+  changeId: string,
+): string {
+  const status = rootStatusFromFile(filePath);
+  if (status === undefined) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Could not locate a compact opening-tag status attribute on ${artifact}.xml for ${changeId}; the applied write needs a locatable status.`,
+    );
+  }
+  if (status === "draft" || status === "superseded" || status === "rejected" || status === "cancelled") {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Cannot apply a ${status} ${artifact}.xml for ${changeId}; only an approved bundle can be written applied.`,
+    );
+  }
+  if (status !== "approved" && status !== "applied") {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Change ${changeId} ${artifact} status is ${status}; the applied write requires approved, or applied for a resume.`,
+    );
+  }
+  return status;
+}
+
+/** Surgical applied bytes: skip an already-applied artifact, swap an approved one. */
+function nextAppliedArtifactBytes(
+  filePath: string,
+  artifact: "spec" | "plan",
+  changeId: string,
+): string {
+  const text = readFileSync(filePath, "utf8");
+  const status = requireCloseableArtifactStatus(filePath, artifact, changeId);
+  if (status === "applied") {
+    // Resume: skip the matching status write; the on-disk bytes are the record.
+    return text;
+  }
+  const swapped = withOpeningTagStatus(text, "applied");
+  if (swapped === undefined) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `Could not locate a compact opening-tag status attribute to write on ${filePath}; grammar cannot relocate the status needle.`,
+    );
+  }
+  return swapped;
+}
+
+/** True when the ledger already holds the matching gate=applied fingerprint for that artifact. */
+function appliedFingerprintPresent(section: GraceXmlNode, artifact: "spec" | "plan", fingerprint: string): boolean {
+  for (const child of section.children) {
+    if (child.tag !== "Decision") continue;
+    if (child.attributes.gate !== "applied") continue;
+    if (child.attributes.decision !== "permit") continue;
+    if ((child.attributes.artifact ?? "") !== artifact) continue;
+    if ((child.attributes.fingerprint ?? "") === fingerprint) return true;
+  }
+  return false;
+}
+
+/**
+ * Validate the applied-close preconditions without writing. Shared by the
+ * command's --record=false path and by applyChangeBundle so there is one
+ * reader of root status (rootStatusFromFile) and one message per refuse.
+ */
+export function validateApplyChangeBundle(
+  projectRoot: string,
+  changeId: string,
+  options: Pick<ApplyChangeBundleOptions, "force"> = {},
+): { activeDir: string; archiveDir: string; specPath: string; planPath: string } {
+  if (!ANCHOR_PATTERNS.change.test(changeId)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Change id '${changeId}' does not match the accepted pattern C- then uppercase kebab.`,
+    );
+  }
+  const activeDir = changeLocationDir(projectRoot, "active", changeId);
+  const archiveDir = changeLocationDir(projectRoot, "archive", changeId);
+  if (!existsSync(activeDir) || !statSync(activeDir).isDirectory()) {
+    if (existsSync(archiveDir)) {
+      throw new GraceCommandError(
+        "invalid-arguments",
+        `Change ${changeId} is already applied and archived; apply is already done.`,
+      );
+    }
+    throw new GraceCommandError("not-found", `Change ${changeId} is not a directory under active/.`);
+  }
+  if (existsSync(archiveDir)) {
+    throw new GraceCommandError("invalid-arguments", `Archive destination already exists for ${changeId}.`);
+  }
+  const specPath = path.join(activeDir, "spec.xml");
+  const planPath = path.join(activeDir, "plan.xml");
+  if (!existsSync(specPath)) {
+    throw new GraceCommandError("not-found", `spec.xml not found in ${changeId}.`);
+  }
+  if (!existsSync(planPath)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `plan.xml is required for the applied close; change ${changeId} has no plan.xml to write.`,
+    );
+  }
+  requireCloseableArtifactStatus(specPath, "spec", changeId);
+  requireCloseableArtifactStatus(planPath, "plan", changeId);
+  // Permits are read, never re-evaluated; force bypasses only these refusals.
+  if (options.force !== true) {
+    if (!hasPermittingDecision(projectRoot, changeId, "apply")) {
+      throw new GraceCommandError(
+        "invalid-arguments",
+        `Apply permit missing: run \`ngrace gate apply --change ${changeId}\` before \`ngrace apply\`.`,
+      );
+    }
+    if (!hasPermittingDecision(projectRoot, changeId, "archive")) {
+      throw new GraceCommandError(
+        "invalid-arguments",
+        `Archive permit missing: run \`ngrace gate archive --change ${changeId}\` before \`ngrace apply\`.`,
+      );
+    }
+  }
+  return { activeDir, archiveDir, specPath, planPath };
+}
+
+/**
+ * Sanctioned approved-to-applied close and archive move (C-APPLY-VERB, D37).
+ * Surgical status writes on spec then plan, per-artifact fingerprints of the
+ * applied bytes, two gate=applied permitting Decisions (document order spec
+ * then plan), then a same-filesystem rename with rollback. Not a gate
+ * evaluation: permits are read, never re-evaluated. The `io` bag follows
+ * supersedeChangeBundle's EXDEV precedent.
+ */
+export function applyChangeBundle(
+  projectRoot: string,
+  changeId: string,
+  options: ApplyChangeBundleOptions = {},
+): { specFingerprint: string; planFingerprint: string; resumed: boolean } {
+  const { activeDir, archiveDir, specPath, planPath } = validateApplyChangeBundle(
+    projectRoot,
+    changeId,
+    { force: options.force },
+  );
+  // Validate fully, write nothing, then compute next bytes in memory.
+  const specBefore = readFileSync(specPath, "utf8");
+  const planBefore = readFileSync(planPath, "utf8");
+  const nextSpec = nextAppliedArtifactBytes(specPath, "spec", changeId);
+  const nextPlan = nextAppliedArtifactBytes(planPath, "plan", changeId);
+  const resumed = nextSpec === specBefore && nextPlan === planBefore;
+  const ledgerPath = path.join(activeDir, "run-ledger.xml");
+  const ledgerPrior = existsSync(ledgerPath) ? readFileSync(ledgerPath) : null;
+  const bundleRoot = loadOrCreateLedgerRoot(activeDir, changeId);
+  const wrapper = ensureWrapper(bundleRoot, changeId);
+  const decisionsSection = ensureSection(wrapper, "Decisions");
+  const forced = options.force === true;
+  const reason = (options.reason ?? "").trim();
+  let wroteSpec = false;
+  let wrotePlan = false;
+  let appended = false;
+  try {
+    if (nextSpec !== specBefore) {
+      writeFileSync(specPath, nextSpec);
+      wroteSpec = true;
+    }
+    if (nextPlan !== planBefore) {
+      writeFileSync(planPath, nextPlan);
+      wrotePlan = true;
+    }
+    // Hash the on-disk bytes after the status writes.
+    const specFingerprint = createHash("sha256").update(readFileSync(specPath)).digest("hex");
+    const planFingerprint = createHash("sha256").update(readFileSync(planPath)).digest("hex");
+    // Append Decision records (document order spec then plan) only when the
+    // matching gate=applied fingerprint for that artifact is absent.
+    for (const [artifact, fingerprint] of [["spec", specFingerprint], ["plan", planFingerprint]] as const) {
+      if (appliedFingerprintPresent(decisionsSection, artifact, fingerprint)) continue;
+      recordGateDecision(projectRoot, changeId, {
+        gate: "applied",
+        decision: "permit",
+        requirements: [],
+        fingerprint,
+        artifact,
+        ...(forced ? { forced: true, reason } : {}),
+      });
+      appended = true;
+    }
+    const archiveParent = path.dirname(archiveDir);
+    if (!existsSync(archiveParent)) {
+      mkdirSync(archiveParent, { recursive: true });
+    }
+    (options.io?.renameSync ?? renameSync)(activeDir, archiveDir);
+    return { specFingerprint, planFingerprint, resumed };
+  } catch (error) {
+    if (appended || ledgerPrior === null) {
+      restorePriorLedgerBytes(ledgerPath, ledgerPrior);
+    }
+    if (wrotePlan && existsSync(planPath)) {
+      writeFileSync(planPath, planBefore);
+    }
+    if (wroteSpec && existsSync(specPath)) {
+      writeFileSync(specPath, specBefore);
+    }
+    if (isExdev(error)) {
+      throw new GraceCommandError(
+        "invalid-project",
+        `Cross-device rename (EXDEV) is refused after rollback for ${changeId}.`,
+      );
+    }
+    if (error instanceof GraceCommandError) throw error;
+    throw new GraceCommandError(
+      "invalid-project",
+      `Apply failed after rollback: ${error instanceof Error ? error.message : String(error)}.`,
+    );
+  }
 }

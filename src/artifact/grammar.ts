@@ -908,7 +908,7 @@ export function validateRunLedgerArtifact(artifact: ParsedGraceXmlArtifact): Art
 }
 
 const REVIEW_VERDICT_OUTCOMES = new Set(["pass", "fail", "unable-to-determine"]);
-const GATE_DECISION_GATES = new Set(["approve", "apply", "archive"]);
+const GATE_DECISION_GATES = new Set(["approve", "apply", "archive", "applied"]);
 const GATE_DECISION_VALUES = new Set(["permit", "refuse"]);
 
 function validateLedgerVerdictsSection(file: string, wrapper: GraceXmlNode): NgraceIssue[] {
@@ -1013,7 +1013,7 @@ function validateLedgerDecisionsSection(file: string, wrapper: GraceXmlNode): Ng
             "error",
             "ledger.invalid-decision",
             file,
-            `Decision gate must be approve, apply, or archive; found '${gate || "(empty)"}'.`,
+            `Decision gate must be approve, apply, archive, or applied; found '${gate || "(empty)"}'.`,
           ),
         );
       }

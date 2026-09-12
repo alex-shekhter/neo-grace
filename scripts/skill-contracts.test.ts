@@ -590,3 +590,32 @@ describe("C-APPROVE-TIME-REVIEW T-003 ngrace-reviewer", () => {
 
 
 
+
+describe("C-APPLY-VERB T-005 skill-path", () => {
+  it("item 10 names ngrace apply with argv token change as the sanctioned applied write and archive move", () => {
+    const execute = read("skills/ngrace/ngrace-execute/SKILL.md");
+    const rules = execute.split("<execution_rules>")[1]?.split("</execution_rules>")[0] ?? "";
+    const rule10 = numberedItem(rules, 10);
+    expect(rule10).toContain("ngrace apply");
+    expect(rule10).toContain("--change");
+    expect(rule10).toMatch(/after both gates permit/i);
+    // Neither item teaches the hand-written applied or the hand move.
+    expect(rule10).not.toContain("set spec and plan to");
+    expect(rule10).not.toContain("archive the complete bundle");
+  });
+
+  it("item 9 keeps the review-and-gates ceremony and still denies the gate the write", () => {
+    const execute = read("skills/ngrace/ngrace-execute/SKILL.md");
+    const rules = execute.split("<execution_rules>")[1]?.split("</execution_rules>")[0] ?? "";
+    const rule9 = numberedItem(rules, 9);
+    expect(rule9).toContain("ngrace review");
+    expect(rule9).toContain("--change");
+    expect(rule9).toMatch(/\bstop\b/i);
+    expect(rule9).not.toContain("record with `ngrace gate verdict --change C-ID --outcome <token>`");
+    expect(rule9).toContain("gate apply");
+    expect(rule9).toContain("gate archive");
+    expect(rule9).toContain("does not itself author `status` or archive paths");
+    expect(rule9).not.toContain("set spec and plan to");
+    expect(rule9).not.toContain("archive the complete bundle");
+  });
+});

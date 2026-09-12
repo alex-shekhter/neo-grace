@@ -814,7 +814,7 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
   },
   "ledger.invalid-decision": {
     title: "Invalid Gate Decision Entry",
-    explanation: "A <Decision> must declare gate approve|apply|archive and decision permit|refuse; Requirements need id.",
+    explanation: "A <Decision> must declare gate approve|apply|archive|applied and decision permit|refuse; Requirements need id.",
     remediation: ["Use ngrace gate to record decisions.", "Do not invent Decision shapes by hand."],
     derivedFrom: "Invariant 4: Decisions grammar arrives with the validator (A30.2).",
     proposedBy: "unthreaded-construct",

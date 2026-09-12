@@ -1,0 +1,1013 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-APPLY-VERB>
+    <IntentSummary>
+      Convert the approved spec into the executable plan: land a
+      top-level ngrace apply root that is the sanctioned
+      approved-to-applied close and the archive move, with
+      surgical status writes, per-artifact fingerprints, two
+      gate-applied Decision records, and renameSync rollback;
+      keep gate apply, archive, and verdict evaluate-only; teach
+      ngrace-execute items 9 and 10 the verb; list the root in
+      README; mint the chartered row paying F224; leave the
+      CloseEvidence instrument in place. Tasks end at the row
+      minted live with every suite green pre-close. Which task
+      leaves each close-needed piece: T-001 leaves the live
+      root, the package.json files entry, PACK_ALLOWED_EXACT,
+      and the README CLI Overview row plus the ceremony and
+      gate-purity sentences; T-003 leaves the writer, the
+      DecisionGateId split, VALID_GATES and GATE_DECISION_GATES
+      including applied, the catalog four-token explanation,
+      regenerated docs/schema-reference.md, and
+      src/grace-apply.test.ts (the CodifiedIn witness); T-004
+      leaves the force hatch; T-005 leaves the execute skill
+      and its packaged mirror teaching ngrace apply after both
+      gates; T-006 leaves the live registry row, the
+      bundleMinted F224 mapping, and
+      src/test-support/c-apply-verb-close-evidence.ts; T-007
+      leaves the touched suites and validate:ci green. The
+      close is the authority's: bun ./src/grace.ts apply with
+      argv token change C-APPLY-VERB, a resolving CodifiedIn
+      kind test-suite on D37 pointing at
+      src/grace-apply.test.ts, --retire, every CloseEvidence
+      evaluation, and the post-archive verdict. No task
+      performs or depends on those acts. This bundle's
+      executor does not approve, run no review or gate or
+      supersede verb, and does not commit.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/command.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>docs/schema-reference.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>scripts/release-check.ts</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-APPLY-VERB/spec.xml</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustPassCommand>
+        <Command>bun test src/query/command.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-cursor.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/release-check.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:schema-reference</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:packed</Command>
+      </MustPassCommand>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-apply.ts</Value></MustExist>
+      <MustExist><Value>src/grace-apply.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/c-apply-verb-close-evidence.ts</Value></MustExist>
+      <MustExist><Value>src/grace.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/query/command.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>docs/schema-reference.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>scripts/release-check.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustContain>
+        <File>src/grace.ts</File>
+        <Text>from "./grace-apply"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/command.test.ts</File>
+        <Text>name: "apply"</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"src/grace-apply.ts"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/release-check.ts</File>
+        <Text>"src/grace-apply.ts"</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>ngrace apply</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>ngrace apply</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>ngrace apply</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>no declared task is in scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>pass-only cycle</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F224: "C-APPLY-VERB"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-apply.ts</File>
+        <Text>writeFileSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-apply.ts</File>
+        <Text>mkdirSync</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-generate.ts</File>
+        <Text>applyCommand</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun test src/grace-apply.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/query/command.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/grace-cursor.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/artifact/grammar.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test src/lint/catalog.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/release-check.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:schema-reference</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run ./scripts/validate-marketplace.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:packed</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-GATES />
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+        <M-GRAMMAR />
+        <M-LINT-CATALOG />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-GATES />
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+        <V-M-GRAMMAR />
+        <V-M-LINT-CATALOG />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace.ts</File>
+      <File>src/grace-apply.ts</File>
+      <File>src/grace-apply.test.ts</File>
+      <File>src/gates/ledger.ts</File>
+      <File>src/query/command.test.ts</File>
+      <File>src/test-support/c-apply-verb-close-evidence.ts</File>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>docs/schema-reference.md</File>
+      <File>package.json</File>
+      <File>scripts/release-check.ts</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>README.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Register ngrace apply, pack allowlist, and README row</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (root-command): before creating
+            src/grace-apply.ts or registering it, in its
+            own tool round trip, add a bun test in
+            src/query/command.test.ts. ngrace apply is a
+            live top-level root: defined in
+            src/grace-apply.ts, registered in src/grace.ts
+            by a static import of that module, present in
+            liveCommandRoots, branded with
+            BOOLEAN_SPACE_GUARD_BRAND. It is not under
+            gate, spec, or plan, and it is not exported
+            from src/grace-generate.ts. First assertion is
+            liveCommandRoots membership of name apply plus
+            the static import string in src/grace.ts. Do
+            not import src/grace-apply.ts from the
+            asserting test (the module does not exist
+            yet). Do not edit liveCommandRoots() in this
+            round trip. Do not assert README table text
+            in this case. Do not assert PACK_ALLOWED_EXACT
+            in this case. HEAD today: src/grace.ts
+            subCommands and liveCommandRoots have no such
+            name; bun ./src/grace.ts apply --help prints
+            the root usage. Record fail, signature kind
+            test key root-command. Run only this case. Do
+            not land the command in this round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (pack-allowlist): before editing
+            package.json or scripts/release-check.ts, in
+            its own tool round trip, add a bun test in
+            src/grace-apply.test.ts (create that test
+            file as the red vehicle). PACK_ALLOWED_EXACT
+            in scripts/release-check.ts contains
+            src/grace-apply.ts. First assertion is that
+            membership, read from the PACK_ALLOWED_EXACT
+            set literal in scripts/release-check.ts
+            bytes, not from package.json files. Do not
+            import src/grace-apply.ts in this case. Do
+            not edit scripts/release-check.test.ts. Do
+            not redden the correspondence test being
+            green at HEAD. HEAD today: neither list
+            contains that path. Record fail, signature
+            kind test key pack-allowlist. Run only this
+            case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (readme-row): before editing
+            README.md, in its own tool round trip, add a
+            bun test in src/query/command.test.ts.
+            README.md CLI Overview tables contain an
+            ngrace apply token that listLiveInvocations
+            accepts, whose row says the verb writes
+            applied and moves the bundle after both
+            gates permit; the new-project ceremony
+            sentence currently at README.md:137 names
+            the verb after gate apply and gate archive;
+            the gate-purity sentence currently at
+            README.md:194 still says gate apply,
+            archive, and verdict do not write status or
+            move, and now names the new root as the
+            writer. Gate apply and archive table rows
+            currently at README.md:199-200 stay
+            evaluate-and-record. Sibling it()s for the
+            three README sentences are the same
+            property, not extra recorded reds. Do not
+            assert liveCommandRoots membership in this
+            case. HEAD today: no ngrace apply token;
+            :137 ends at both gates; :194 is silent on
+            a writer. Record fail, signature kind test
+            key readme-row. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass: create
+            src/grace-apply.ts as the command def only,
+            branded with defineGraceCommand, with
+            MODULE_CONTRACT LINKS M-CLI (same shape as
+            src/grace-supersede.ts; no new graph
+            module). That LINKS set is what clears
+            change.graph-anchors-miss-write-scope once
+            the file exists. argv token change is a
+            required string; argv token path defaults as
+            the other roots do. Do not add a boolean
+            argv (listBooleanFlags sites.length stays
+            26). Register it in src/grace.ts by a static
+            import at the same site as the other roots;
+            liveCommandRoots imports it the same way.
+            Add one package.json files entry,
+            src/grace-apply.ts, next to the other
+            src/grace-*.ts paths; no other package.json
+            field; version stays 6.2.0. In the same
+            production, add that same path as a
+            two-space indented src/ member of
+            PACK_ALLOWED_EXACT in
+            scripts/release-check.ts, matching existing
+            exact-set members. Do not edit
+            PACK_ALLOWED_PREFIXES, PACK_FORBIDDEN, or
+            scripts/release-check.test.ts. Do not derive
+            PACK_ALLOWED_EXACT from package.json files.
+            Add the README.md CLI Overview row, the
+            ceremony sentence, and the gate-purity
+            disambiguation in the same production as
+            the liveCommandRoots edit so the existing
+            overview pin stays green. The new file must
+            not contain the identifiers writeFileSync,
+            mkdirSync, unlinkSync, rmSync, or git,
+            including in imports. run() throws a
+            GraceCommandError whose message does not
+            mention apply-permit, archive-permit, or
+            plan.xml (a not-implemented stub). Do not
+            call the ledger writer (it does not exist
+            yet). Do not write status, do not append a
+            Decision, do not rename. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-apply.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test scripts/release-check.test.ts</Command>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+          <Command>bun run validate:packed</Command>
+          <Command>git diff --exit-code a1d58298951ac734051159c45de38bf5042edb5f -- src/ ':(exclude)src/grace.ts' ':(exclude)src/grace-apply.ts' ':(exclude)src/grace-apply.test.ts' ':(exclude)src/query/command.test.ts'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-ROOT-COMMAND />
+          <AC-PACK-ALLOWLIST />
+          <AC-README-ROW />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Refuse missing preconditions, require plan.xml, isolate record false</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (preconditions): before replacing
+            the T-001 stub run(), in its own tool round
+            trip, add a bun test in
+            src/grace-apply.test.ts. The verb refuses
+            with a nonzero GraceCommandError and writes
+            nothing when any precondition is missing,
+            and the message names that precondition.
+            Planted missing apply permit: refuse naming
+            apply, bytes and location unchanged.
+            Planted missing archive permit: refuse
+            naming archive, bytes and location
+            unchanged. Planted dest already exists:
+            refuse naming already exists, source still
+            under active/. First assertion is the
+            thrown GraceCommandError message naming the
+            missing apply permit (string match on the
+            error message). Sibling it()s for missing
+            archive permit and dest already exists are
+            the same property, not extra recorded reds.
+            After T-001, run() throws a not-implemented
+            error that does not mention those
+            preconditions, so this message match is
+            false at task start. Record fail, signature
+            kind test key preconditions. Run only this
+            case. Do not land the refuse paths in this
+            round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (plan-required): before the same
+            production edit, in its own tool round
+            trip, add a bun test in
+            src/grace-apply.test.ts. A spec-only active
+            bundle is refused naming plan.xml and is
+            not moved; a plan.xml is not invented. This
+            is the opposite of supersede's spec-only
+            path. First assertion is the thrown
+            GraceCommandError message naming plan.xml.
+            Do not assert dest-exists in this case.
+            HEAD today: T-001's stub does not mention
+            plan.xml. Record fail, signature kind test
+            key plan-required. Run only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (record-false): before the same
+            production edit, in its own tool round
+            trip, add a bun test in
+            src/grace-apply.test.ts. argv token record
+            false validates and prints, writes no
+            Decision, no status, and no move. First
+            assertion is that status bytes and
+            directory location are unchanged after
+            argv token record false. Do not manufacture
+            a red for a dry-run that does not exist at
+            HEAD as a missing command; redden the
+            write-isolation half against T-001's stub
+            (the stub throws and does not print a
+            validation). Record fail, signature kind
+            test key record-false. Run only this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass: replace the
+            T-001 stub run() with the refuse paths this
+            task reddened. Validate argv token change
+            is a well-formed C-*; source is a directory
+            under active/ and not under archive/; dest
+            archive/C-* does not already exist;
+            spec.xml exists; plan.xml exists; root
+            status on spec and plan is approved (or
+            already applied on resume, which is T-003);
+            opening-tag status is locatable as either
+            quote style; hasPermittingDecision for
+            apply is permit; hasPermittingDecision for
+            archive is permit. A missing precondition
+            refuses with a message that names it,
+            writes nothing, exits nonzero. Spec without
+            plan: refuse naming plan.xml; do not invent
+            a plan. Draft, superseded, rejected, or
+            cancelled: refuse even under force (force
+            is T-004). Add argv token record defaulting
+            true; argv token record false validates and
+            prints, writes no status, appends no
+            Decision, takes no fingerprint, and does
+            not move. Boolean space form for record is
+            refused the same way other roots refuse it.
+            Adding the record boolean updates the
+            listBooleanFlags sites.length pin from 26
+            to 27 in the same production; do not
+            manufacture a red for the pin being 26 at
+            HEAD. Do not add argv token force yet
+            (T-004). A well-formed pair whose permits
+            are present still throws the
+            not-implemented GraceCommandError (happy
+            path is T-003). The command file still must
+            not contain writeFileSync, mkdirSync, or
+            git. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-apply.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+          <Command>git diff --exit-code a1d58298951ac734051159c45de38bf5042edb5f -- src/ ':(exclude)src/grace.ts' ':(exclude)src/grace-apply.ts' ':(exclude)src/grace-apply.test.ts' ':(exclude)src/query/command.test.ts'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-PRECONDITIONS />
+          <AC-PLAN-REQUIRED />
+          <AC-RECORD-FALSE />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>Surgical applied write, fingerprint records, move and rollback</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (surgical-write): before adding
+            the applied writer, in its own tool round
+            trip, add a bun test in
+            src/grace-apply.test.ts. A successful
+            invocation whose spec and plan root status
+            are approved writes applied onto those
+            root attributes surgically: opening-tag
+            attribute only, both quote styles,
+            preserving the quote character, no
+            serializeGraceXmlDocument of the spec or
+            plan. The rest of each file is
+            byte-identical to the pre-write bytes
+            aside from that attribute swap. First
+            assertion is the status attribute value
+            applied (read the file even if exit is
+            nonzero). Do not assert the Decision
+            attributes in this case. Do not assert the
+            directory move in this case. HEAD today:
+            stampApproveArtifact writes approved only;
+            T-002's command does not write applied.
+            Record fail, signature kind test key
+            surgical-write. Run only this case. Do not
+            land the writer in this round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (atomic-move): before the same
+            production edit, in its own tool round
+            trip, add a bun test in
+            src/grace-apply.test.ts. After the artifact
+            writes succeed, renameSync moves the
+            bundle directory from active/C-* to
+            archive/C-*. Companions move with it. On
+            plan-write failure, spec bytes under
+            active/ match the pre-write bytes and dest
+            does not exist. On EXDEV from the io bag,
+            the same rollback, and the error names
+            EXDEV. Resume of applied-under-active
+            skips matching status writes and does the
+            rename. A bundle already under archive/
+            and not under active/ refuses. Do not
+            introduce rmSync or unlinkSync of the
+            bundle directory. First assertion is the
+            directory location (active vs archive).
+            Sibling it()s for plan-write failure,
+            EXDEV, resume, and already archived are
+            the same property, not extra recorded
+            reds. HEAD today: T-002 does not move.
+            Record fail, signature kind test key
+            atomic-move. Run only this case.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (fingerprint-record): before
+            the same production edit, in its own tool
+            round trip, add bun tests in
+            src/grace-apply.test.ts. A successful
+            recorded invocation appends two Decision
+            elements, document order spec then plan,
+            each with attribute gate whose value is
+            applied, attribute decision permit,
+            attribute artifact spec or plan, and
+            attribute fingerprint whose value is
+            SHA-256 lowercase hex of that file's
+            bytes after the status write. A fixture
+            Decision with gate applied and no
+            non-Requirement child emits 0
+            ledger.invalid-decision after and emits
+            it at HEAD. bun test of
+            src/grace-apply.test.ts fails to typecheck
+            if applied does not extend DecisionGateId,
+            and fails if applied extends Parameters of
+            evaluateGate index 2. Sibling it()s for
+            parse, fingerprints, and assignability are
+            the same property, not extra recorded
+            reds. Do not assert the directory move in
+            this case. HEAD today: VALID_GATES and
+            GATE_DECISION_GATES are three-valued; a
+            Decision with gate applied is
+            ledger.invalid-decision; DecisionGateId
+            does not exist. Record fail, signature
+            kind test key fingerprint-record. Run only
+            this case.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass: new export
+            from src/gates/ledger.ts next to
+            stampApproveArtifact and
+            supersedeChangeBundle. Status needles are
+            both quote styles of approved (or already
+            applied on resume), preserving the quote
+            character. Validate, write nothing.
+            Compute next bytes in memory. writeFileSync
+            spec, then plan. Hash both on-disk files.
+            Append two Decision records (document
+            order spec then plan). renameSync the
+            directory from active/ to archive/. On
+            throw after the first artifact write,
+            restore original file bytes and, if a
+            Decision was appended, restore the
+            ledger's prior bytes, while the directory
+            is still under active/, and exit nonzero.
+            EXDEV on renameSync is refuse after that
+            rollback; do not implement
+            copy-then-delete. Dest already exists:
+            refuse before any write (T-002). Resume:
+            source under active/, spec and plan
+            already applied; skip matching status
+            writes; hash; append Decision records only
+            when the matching gate-applied
+            fingerprint for that artifact is absent;
+            do the rename. Already in archive as
+            applied: refuse, already done, nonzero.
+            DecisionGateId is GateId or applied;
+            GateDecisionRecord.gate takes that wider
+            type. VALID_GATES and GATE_DECISION_GATES
+            both gain applied; GATE_SUBCOMMANDS does
+            not; evaluation GateId stays approve,
+            apply, archive; evaluateGate does not grow
+            a case. The emitted grammar message and
+            catalog.ts ledger.invalid-decision
+            explanation name the four tokens.
+            recordGateDecision persists fingerprint,
+            artifact, forced, and reason on permitting
+            applied Decisions; it does not route
+            applied through the approve branch that
+            also stores baseCommit; applied Decisions
+            never carry baseCommit. MODULE_MAP on
+            ledger.ts gains DecisionGateId. Wire
+            src/grace-apply.ts to call that export;
+            the command file still must not contain
+            writeFileSync, mkdirSync, or git. Do not
+            serializeGraceXmlDocument the spec or
+            plan. Do not fold. Do not call
+            evaluateApplyGate or evaluateArchiveGate.
+            Do not add unlinkSync or rmSync call
+            sites. The io bag for EXDEV follows
+            supersedeChangeBundle. Regenerate
+            docs/schema-reference.md with bun run
+            ./scripts/generate-schema-reference.ts so
+            the gate-decision members include applied.
+            Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-apply.test.ts</Command>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts</Command>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+          <Command>bun run validate:schema-reference</Command>
+          <Command>git diff --exit-code a1d58298951ac734051159c45de38bf5042edb5f -- src/ ':(exclude)src/grace.ts' ':(exclude)src/grace-apply.ts' ':(exclude)src/grace-apply.test.ts' ':(exclude)src/query/command.test.ts' ':(exclude)src/gates/ledger.ts' ':(exclude)src/artifact/grammar.ts' ':(exclude)src/lint/catalog.ts'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SURGICAL-WRITE />
+          <AC-ATOMIC-MOVE />
+          <AC-FINGERPRINT-RECORD />
+        </Satisfies>
+      </T-003>
+      <T-004>
+        <Title>Force hatch and stay-true pins</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (force-hatch): before adding
+            argv token force, in its own tool round
+            trip, add a bun test in
+            src/grace-apply.test.ts. argv token force
+            with a non-empty argv token reason, when
+            apply or archive permit is missing,
+            records two permits with forced true and
+            that reason, writes applied, fingerprints,
+            and moves. Force with empty or missing
+            reason writes nothing and exits nonzero.
+            A permit without force omits the forced
+            attribute. Boolean space form for force is
+            refused the same way argv token record
+            space form is. Force does not write
+            applied onto draft, superseded, rejected,
+            or cancelled, and does not overwrite an
+            existing archive dest. First assertion is
+            forced true plus the supplied reason on
+            both write Decisions. Sibling it()s for
+            missing reason, omitted forced on a
+            ratified permit, and dest-exists under
+            force are the same property, not extra
+            recorded reds. HEAD today: T-003's command
+            has no force argv. Record fail, signature
+            kind test key force-hatch. Run only this
+            case. Do not land force in this round
+            trip.
+          </Criterion>
+          <Criterion>
+            Production then stay-true pins then pass:
+            add argv token force and argv token
+            reason. Force with a non-empty reason
+            bypasses only the missing apply-permit
+            and missing archive-permit refuses. It
+            still writes status, still fingerprints,
+            still moves, and records forced true and
+            that reason on both write Decisions.
+            Requirement of plan present, dest absent,
+            source under active/, and non-terminal
+            status still bind under force. Force
+            without a non-empty reason writes nothing
+            and exits nonzero. A permit without force
+            omits the forced attribute; do not write
+            forced false. Reason without force is not
+            stored. Adding the force boolean updates
+            the listBooleanFlags sites.length pin
+            from 27 to 28 in the same production; do
+            not manufacture a red for the pin being
+            27 after T-002. Stay-true, pass-only
+            cycle (T-001 already forbade the tokens;
+            do not stage a red to fill the pair):
+            src/grace-apply.ts contains no git token
+            and none of writeFileSync, mkdirSync,
+            unlinkSync, rmSync; the five-file
+            writeFileSync allowlist at
+            src/grace-cursor.test.ts does not grow to
+            include grace-apply.ts; GATE_SUBCOMMANDS
+            stays approve, apply, archive, verdict;
+            evaluation GateId stays three-valued; a
+            permitting recorded gate apply still
+            leaves spec and plan bytes identical and
+            the bundle under active/, and that
+            Decision still carries no fingerprint;
+            change.applied-plan-missing,
+            change.invalid-active-status,
+            change.invalid-archive-status, and
+            change.archive-status-mismatch still emit
+            on the fixtures that emit them at HEAD;
+            ngrace review with argv token change on
+            an applied spec or plan does not emit
+            review.approval-never-asked or
+            review.approved-fingerprint-mismatch.
+            Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-apply.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+          <Command>bun test src/gates/core.test.ts</Command>
+          <Command>git diff --exit-code a1d58298951ac734051159c45de38bf5042edb5f -- src/ ':(exclude)src/grace.ts' ':(exclude)src/grace-apply.ts' ':(exclude)src/grace-apply.test.ts' ':(exclude)src/query/command.test.ts' ':(exclude)src/gates/ledger.ts' ':(exclude)src/artifact/grammar.ts' ':(exclude)src/lint/catalog.ts'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-FORCE-HATCH />
+          <AC-NO-GIT />
+          <AC-WRITE-SURFACE />
+          <AC-GATE-PURITY />
+          <AC-LINT-STAYS />
+          <AC-APPLIED-SILENT />
+        </Satisfies>
+      </T-004>
+      <T-005>
+        <Title>Teach ngrace apply on execute items 9 and 10 and remeasure pins</Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (skill-path): before editing
+            ngrace-execute SKILL.md, in its own tool
+            round trip, add a bun test in
+            scripts/skill-contracts.test.ts.
+            execution_rules item 10 names ngrace apply
+            with argv token change as the sanctioned
+            applied write and archive move, after both
+            gates permit. Item 9 still runs ngrace
+            review with argv token change and stops,
+            still does not invoke gate verdict, still
+            runs gate apply and gate archive before
+            the verb, and still says the gate does
+            not itself author status or archive
+            paths. Neither item teaches a
+            hand-written applied or a hand move. Do
+            not assert README text in this case. Do
+            not add D19 or D20 sentences. HEAD today:
+            items 9-10 teach the hand-edit
+            (SKILL.md:42-43 both trees). Record fail,
+            signature kind test key skill-path. Run
+            only this case. Do not land the rewrite
+            in this round trip.
+          </Criterion>
+          <Criterion>
+            Production then remeasure then pass:
+            rewrite execution_rules items 9 and 10 as
+            the red requires. Copy the edited
+            canonical file onto its packaged mirror
+            so the files stay byte-identical.
+            checkTaughtRules tokens no declared task
+            is in scope and pass-only cycle remain in
+            execution_rules. bun ./scripts/check-teaching-surface.ts
+            check stays green (no F-token, no bare
+            D-token, no RM-GOVERNED-PATH, no record
+            file name). skill-contracts rule 9,
+            explicit apply confirmation, and
+            fold-before-archive pins still pass. After
+            the rewrites, run skillTextLines() and
+            update src/test-support/token-accounting.test.ts
+            pins and the README.md measurement cell
+            together (totalBytes, and total if the
+            line count moves). Do not record the
+            pre-remeasure token-accounting fail as a
+            planned signature. Do not edit the CLI
+            Overview apply row except as that
+            remeasure requires of the measurement
+            cell. Keep existing skill-contracts pin
+            strings that this rewrite does not
+            retire. Do not edit ngrace-plan,
+            ngrace-spec, ngrace-reviewer, ngrace-cli,
+            or ngrace-explainer. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 scripts/skill-contracts.test.ts</Command>
+          <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+          <Command>bun ./scripts/check-teaching-surface.ts check</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>git diff --exit-code a1d58298951ac734051159c45de38bf5042edb5f -- src/ skills/ plugins/ ':(exclude)src/grace.ts' ':(exclude)src/grace-apply.ts' ':(exclude)src/grace-apply.test.ts' ':(exclude)src/query/command.test.ts' ':(exclude)src/gates/ledger.ts' ':(exclude)src/artifact/grammar.ts' ':(exclude)src/lint/catalog.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SKILL-PATH />
+          <AC-PIN-REMEASURE />
+        </Satisfies>
+      </T-005>
+      <T-006>
+        <Title>Mint the chartered row live, extend bundleMinted, leave the CloseEvidence instrument</Title>
+        <DependsOn>
+          <Task>T-005</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (record-row): before minting,
+            in its own tool round trip, write the
+            row-walk assertion into
+            scripts/validate-record-retirement.test.ts
+            — the C-APPLY-VERB row exists exactly
+            once across registry.xml and
+            registry-retired.xml with its status
+            agreeing with the holding file,
+            kind="chartered", its Pays naming exactly
+            F224 and no other F-token, its Charter
+            carrying the searched-before-minting
+            statement and no F-token, and its
+            StatusText naming no F-token and no
+            Closed with sentence, no fixed
+            expectation of which file holds it —
+            parsed with the shipped parser over both
+            registry layers, with an explicit
+            generous timeout. Red direction, driven
+            on mutated copies that mutate whichever
+            layer holds the row, never a file named
+            in advance: a second row with the same
+            name, a Pays token other than F224, or a
+            StatusText naming a token outside Pays
+            each turn the assertion non-zero. The
+            row is absent at this state, so the
+            green assertion reds. Record fail,
+            signature kind test key
+            validate-record-retirement. Do not mint
+            in this round trip. Failure conditions:
+            this round trip also mints; the walk
+            hardcodes registry.xml as the holding
+            file; a red-direction fixture mutates
+            only registry.xml.
+          </Criterion>
+          <Criterion>
+            Production then pins then pass: mint the
+            row live into
+            docs/plans/active/RM-GOVERNED-PATH/registry.xml,
+            appended after the last live row in the
+            house shape — an empty Number, a Charter
+            carrying the name and the
+            searched-before-minting statement over
+            the archive and both registry layers
+            dated at this plan's authoring with zero
+            prior rows in either layer and no
+            F-token anywhere, a Pays naming exactly
+            F224, and a StatusText naming no F-token,
+            carrying no Closed with sentence. Then
+            run the shipped --rewrite-roots over the
+            record directory: the registry root base
+            equals the live-Row count read back
+            (thirteen), headroom the remainder,
+            ceiling held at 26. Extend the shipped
+            payer-derivation baseline
+            bundleMinted with F224: C-APPLY-VERB,
+            consulted only for tokens the derivation
+            actually mints. Create
+            src/test-support/c-apply-verb-close-evidence.ts
+            with MODULE_CONTRACT LINKS M-TEST-SUPPORT
+            so change.graph-anchors-miss-write-scope
+            clears once the file exists; the file is
+            not named .test.ts or .spec.ts; it
+            asserts that
+            .ngrace/changes/archive/C-APPLY-VERB/run-ledger.xml
+            parses with the shipped parser and
+            contains two Decision elements, document
+            order artifact spec then plan, each with
+            gate applied, decision permit, and
+            fingerprint equal to SHA-256 lowercase
+            hex of that artifact's on-disk applied
+            bytes; it does not skip, does not
+            early-return on absence, and does not
+            assert only that a file exists. While
+            the bundle is still active this file is
+            not CloseEvidence-evaluated; if invoked
+            it exits non-zero, and that red is the
+            in-flight state, not a task pair. Do not
+            write CodifiedIn on D37 (after a
+            resolving CodifiedIn a live Decision is
+            immediately decision-eligible;
+            decision-eligible-still-live fails a
+            task boundary that holds that tree; the
+            close writes the element and --retire
+            in one wave). Do not run --retire. Do
+            not set applied. Do not archive the
+            bundle. Do not touch
+            .ngrace/scratch/staged-findings.md.
+            Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>git diff --exit-code a1d58298951ac734051159c45de38bf5042edb5f -- src/ ':(exclude)src/grace.ts' ':(exclude)src/grace-apply.ts' ':(exclude)src/grace-apply.test.ts' ':(exclude)src/query/command.test.ts' ':(exclude)src/gates/ledger.ts' ':(exclude)src/artifact/grammar.ts' ':(exclude)src/lint/catalog.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)src/test-support/c-apply-verb-close-evidence.ts'</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Suite, packed ship proof, and CI</Title>
+        <DependsOn>
+          <Task>T-006</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Task-observable suite, not a red: bun
+            test is green for the touched packages
+            this deliverable forces (grace-apply,
+            gates ledger, query command,
+            skill-contracts, token-accounting,
+            release-check,
+            validate-record-retirement, grammar
+            GATE_DECISION_GATES, catalog
+            ledger.invalid-decision explanation,
+            schema-reference regeneration, and any
+            other test this deliverable forces).
+            bun run validate:schema-reference
+            exits 0. bun run
+            ./scripts/validate-marketplace.ts
+            exits 0. bun run validate:packed
+            exits 0 and is the command that proves
+            src/grace-apply.ts shipped. bun run
+            validate:ci exits 0. Do not manufacture
+            a red for those commands being green at
+            HEAD. Do not put a current-mode lint of
+            this project root in this task's
+            Verification. Do not claim post-archive
+            lint 0/0 at this task pass. Do not run
+            bun ./src/grace.ts apply against this
+            bundle. Then record pass.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-apply.test.ts</Command>
+          <Command>bun test src/query/command.test.ts</Command>
+          <Command>bun test src/grace-cursor.test.ts</Command>
+          <Command>bun test src/gates/core.test.ts</Command>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+          <Command>bun test src/lint/catalog.test.ts</Command>
+          <Command>bun test --timeout=30000 scripts/skill-contracts.test.ts</Command>
+          <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test scripts/release-check.test.ts</Command>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun run validate:schema-reference</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>bun run validate:packed</Command>
+          <Command>bun run validate:ci</Command>
+          <Command>git diff --exit-code a1d58298951ac734051159c45de38bf5042edb5f -- src/ ':(exclude)src/grace.ts' ':(exclude)src/grace-apply.ts' ':(exclude)src/gates/ledger.ts' ':(exclude)src/query/command.test.ts' ':(exclude)src/grace-apply.test.ts' ':(exclude)src/test-support/c-apply-verb-close-evidence.ts' ':(exclude)src/artifact/grammar.ts' ':(exclude)src/lint/catalog.ts' ':(exclude)src/test-support/token-accounting.test.ts'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SUITE-AND-CI />
+        </Satisfies>
+      </T-007>
+    </ImplementationPlan>
+  </C-APPLY-VERB>
+</NgraceChangePlan>
