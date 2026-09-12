@@ -2994,7 +2994,7 @@ body of the decision.
   );
 
   it(
-    "C-FLUSH-AND-REPAIR payment absence: the shipped derivePayerMap over the real archive and both registry layers mints none of the staged tokens, and the same derivation mints a planted token over an isolated archive root",
+    "C-FLUSH-AND-REPAIR payment absence: the shipped derivation mints nothing to C-FLUSH-AND-REPAIR (the bundle pays nothing), the production validator returns zero findings read-only, and a planted row over an isolated root mints its token",
     () => {
       const recordDir = path.join(REPO_ROOT, RECORD_REL);
       const stagedTokens = ["F221", "F222", "F223", "F224", "D37"];
@@ -3014,10 +3014,25 @@ body of the decision.
         }
       }
       const productionMap = derivePayerMap(REPO_ROOT, productionRows);
+      // payment-invariant: this bundle pays nothing; other bundles may later
+      // pay these tokens (F225's class, payer-map dimension)
+      const allRegistryRowNames: string[] = [];
+      for (const file of ["registry.xml", "registry-retired.xml"]) {
+        const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+        for (const candidate of childNodes(parsed.root!, "Row")) {
+          allRegistryRowNames.push(candidate.attributes.name ?? "");
+        }
+      }
       expect(
-        stagedTokens.filter((token) => productionMap.has(token)),
-        "the production payer map mints none of the staged tokens — the payment set of this bundle is exactly empty",
-      ).toEqual([]);
+        allRegistryRowNames,
+        'no Row in either registry layer carries name="C-FLUSH-AND-REPAIR"',
+      ).not.toContain("C-FLUSH-AND-REPAIR");
+      for (const [token, payer] of productionMap) {
+        expect(
+          payer,
+          `${token}: the production payer map does not name C-FLUSH-AND-REPAIR as payer`,
+        ).not.toBe("C-FLUSH-AND-REPAIR");
+      }
       // the read-only production run of the shipped validator, folded in:
       const findingsBefore = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
       const production = validateRecordRetirement({ repoRoot: REPO_ROOT, recordDir });
@@ -3882,6 +3897,203 @@ describe("C-TAUGHT-RULES row", () => {
           expect(derived.get(token), token).toBe(gapped[token]);
         }
       }).toThrow();
+    },
+    60_000,
+  );
+
+  it(
+    "C-FLUSH-TWO-WAVES flush invariant: every flushed id is exactly once across its genre's pair with its status agreeing with the holding file, its token and genre agreeing, its index Entry layer and genre agreeing, and the roots read back (generous timeout)",
+    () => {
+      // Read-only walk over the delivered record with the shipped parser.
+      // The walk over both whole trees is the duplicate check. No fixed
+      // expectation of which file holds a flushed id — the relation
+      // survives the record's own payment cycle by construction.
+      const flushedFindings = ["f230", "f235", "f236", "f237"];
+      const flushedDecisions = ["d38"];
+      const indexParsed = parseGraceXmlArtifact(
+        "decisions.xml",
+        readFileSync(path.join(REPO_ROOT, RECORD_REL, "decisions.xml"), "utf8"),
+      );
+      expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+      for (const id of flushedFindings) {
+        const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+          const parsed = parseGraceXmlArtifact(
+            file,
+            readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
+          );
+          expect(parsed.root, `${file} parses`).not.toBeNull();
+          return [...walkNodes(parsed.root!)]
+            .filter((node) => node.tag === "Finding" && node.attributes.id === id)
+            .map((node) => ({ file, node }));
+        });
+        expect(
+          carriers.length,
+          `${id}: exactly one Finding element across the findings pair (got ${carriers.length})`,
+        ).toBe(1);
+        const { file, node } = carriers[0]!;
+        const expectedStatus = file === "findings.xml" ? "live" : "retired";
+        expect(
+          node.attributes.status,
+          `${id}: the carrier's status agrees with the holding file (${file})`,
+        ).toBe(expectedStatus);
+        expect(node.attributes.token, `${id}: the carrier's token agrees with the id`).toBe(`F${id.slice(1)}`);
+        const entries = [...walkNodes(indexParsed.root!)].filter(
+          (entry) => entry.tag === "Entry" && entry.attributes.id === id,
+        );
+        expect(entries.length, `${id}: exactly one Entry for the id (a duplicate would walk two)`).toBe(1);
+        expect(entries[0]!.attributes.genre, `${id}: the Entry's genre agrees`).toBe("finding");
+        expect(
+          entries[0]!.attributes.layer,
+          `${id}: the Entry's layer agrees with the holding file`,
+        ).toBe(expectedStatus);
+      }
+      for (const id of flushedDecisions) {
+        const carriers = (["rulings.xml", "rulings-retired.xml"] as const).flatMap((file) => {
+          const parsed = parseGraceXmlArtifact(
+            file,
+            readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
+          );
+          expect(parsed.root, `${file} parses`).not.toBeNull();
+          return [...walkNodes(parsed.root!)]
+            .filter((node) => node.tag === "Decision" && node.attributes.id === id)
+            .map((node) => ({ file, node }));
+        });
+        expect(
+          carriers.length,
+          `${id}: exactly one Decision element across the rulings pair (got ${carriers.length})`,
+        ).toBe(1);
+        const { file, node } = carriers[0]!;
+        const expectedStatus = file === "rulings.xml" ? "live" : "retired";
+        expect(
+          node.attributes.status,
+          `${id}: the carrier's status agrees with the holding file (${file})`,
+        ).toBe(expectedStatus);
+        expect(node.attributes.token, `${id}: the carrier's token agrees with the id`).toBe(`D${id.slice(1)}`);
+        const entries = [...walkNodes(indexParsed.root!)].filter(
+          (entry) => entry.tag === "Entry" && entry.attributes.id === id,
+        );
+        expect(entries.length, `${id}: exactly one Entry for the id (a duplicate would walk two)`).toBe(1);
+        expect(entries[0]!.attributes.genre, `${id}: the Entry's genre agrees`).toBe("decision");
+        expect(
+          entries[0]!.attributes.layer,
+          `${id}: the Entry's layer agrees with the holding file`,
+        ).toBe(expectedStatus);
+      }
+      // The read-back arithmetic, exactly as the shipped roots-invariant test
+      // uses the exported newlineCount: base equals the whole-file line count
+      // read back, and base + headroom = ceiling — findings root and rulings
+      // root both.
+      const findingsText = readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings.xml"), "utf8");
+      const findingsRoot = parseGraceXmlArtifact("findings.xml", findingsText).root!;
+      const fBase = Number(findingsRoot.attributes.base);
+      const fHeadroom = Number(findingsRoot.attributes.headroom);
+      const fCeiling = Number(findingsRoot.attributes.ceiling);
+      expect(fBase, "findings.xml: base equals the file's newlineCount").toBe(newlineCount(findingsText));
+      expect(fBase + fHeadroom, "findings.xml: base + headroom = ceiling").toBe(fCeiling);
+      const rulingsText = readFileSync(path.join(REPO_ROOT, RECORD_REL, "rulings.xml"), "utf8");
+      const rulingsRoot = parseGraceXmlArtifact("rulings.xml", rulingsText).root!;
+      const rBase = Number(rulingsRoot.attributes.base);
+      const rHeadroom = Number(rulingsRoot.attributes.headroom);
+      const rCeiling = Number(rulingsRoot.attributes.ceiling);
+      expect(rBase, "rulings.xml: base equals the file's newlineCount").toBe(newlineCount(rulingsText));
+      expect(rBase + rHeadroom, "rulings.xml: base + headroom = ceiling").toBe(rCeiling);
+    },
+    60_000,
+  );
+
+  it(
+    "C-FLUSH-TWO-WAVES payment absence: the shipped derivation mints nothing to C-FLUSH-TWO-WAVES (the bundle pays nothing), the production validator returns zero findings read-only, and a planted row over an isolated root mints its tokens",
+    () => {
+      const staged = ["F230", "F235", "F236", "F237", "D38"];
+      // The real derivation over the real archive and both registry layers:
+      // the payment set of this bundle is exactly empty — none of the staged
+      // tokens is minted by any row.
+      const realRows: Array<{ name: string; pays: string; statusText: string }> = [];
+      for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+        const parsed = parseGraceXmlArtifact(
+          file,
+          readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
+        );
+        expect(parsed.root, `${file} parses`).not.toBeNull();
+        for (const candidate of parsed.root!.children.filter((child) => child.tag === "Row")) {
+          const kind = candidate.attributes.kind ?? "chartered";
+          if (kind !== "chartered" && kind !== "historical") {
+            continue;
+          }
+          realRows.push({
+            name: candidate.attributes.name ?? "",
+            pays: childText(candidate, "Pays") ?? "",
+            statusText: childText(candidate, "StatusText") ?? "",
+          });
+        }
+      }
+      const derived = derivePayerMap(REPO_ROOT, realRows);
+      // payment-invariant: this bundle pays nothing; other bundles may later
+      // pay these tokens (F225's class, payer-map dimension)
+      const allRegistryRowNames: string[] = [];
+      for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+        const parsed = parseGraceXmlArtifact(
+          file,
+          readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
+        );
+        for (const candidate of parsed.root!.children.filter((child) => child.tag === "Row")) {
+          allRegistryRowNames.push(candidate.attributes.name ?? "");
+        }
+      }
+      expect(
+        allRegistryRowNames,
+        'no Row in either registry layer carries name="C-FLUSH-TWO-WAVES"',
+      ).not.toContain("C-FLUSH-TWO-WAVES");
+      for (const [token, payer] of derived) {
+        expect(
+          payer,
+          `${token}: the production payer map does not name C-FLUSH-TWO-WAVES as payer`,
+        ).not.toBe("C-FLUSH-TWO-WAVES");
+      }
+      // A read-only production run of the shipped validator: zero findings
+      // on the production record, and every record byte unchanged by the call.
+      const recordFiles = [
+        "findings.xml",
+        "findings-retired.xml",
+        "rulings.xml",
+        "rulings-retired.xml",
+        "registry.xml",
+        "registry-retired.xml",
+        "decisions.xml",
+      ];
+      const before = new Map(
+        recordFiles.map((file) => [file, readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8")]),
+      );
+      const production = validateRecordRetirement({
+        repoRoot: REPO_ROOT,
+        recordDir: path.join(REPO_ROOT, RECORD_REL),
+      });
+      expect(production, "the shipped validator returns zero findings on the production record").toEqual([]);
+      for (const file of recordFiles) {
+        expect(
+          readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
+          `${file}: the production run is read-only`,
+        ).toBe(before.get(file));
+      }
+      // The discriminating direction, so the absence is not vacuously empty:
+      // the same derivation over an isolated archive root carrying a planted
+      // row mints the planted tokens. The fixture archive mirrors the real
+      // membership the claim needs; the production archive is never written
+      // by any test.
+      const isolatedRepo = isolatedRoot();
+      mkdirSync(path.join(isolatedRepo, ".ngrace", "changes", "archive", "C-FLUSH-TWO-WAVES"), { recursive: true });
+      const isolatedMap = derivePayerMap(isolatedRepo, [
+        { name: "C-FLUSH-TWO-WAVES", pays: "F230 F235 F236 F237", statusText: "" },
+      ]);
+      expect(
+        [...isolatedMap.entries()],
+        "the isolated derivation mints exactly the planted row's tokens for C-FLUSH-TWO-WAVES",
+      ).toEqual([
+        ["F230", "C-FLUSH-TWO-WAVES"],
+        ["F235", "C-FLUSH-TWO-WAVES"],
+        ["F236", "C-FLUSH-TWO-WAVES"],
+        ["F237", "C-FLUSH-TWO-WAVES"],
+      ]);
     },
     60_000,
   );
