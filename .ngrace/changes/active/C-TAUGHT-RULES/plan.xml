@@ -1,0 +1,996 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-TAUGHT-RULES>
+    <IntentSummary>
+      Convert the approved spec into the executable plan: land the
+      twenty-nine measured teaching rules at their named section homes in
+      `ngrace-spec`, `ngrace-plan`, `ngrace-execute` and `ngrace-reviewer`
+      and their packaged mirrors, stated generically in each skill's own
+      voice; extend `scripts/check-teaching-surface.ts` with
+      `checkTaughtRules` and `checkRecordTokens` plus readable refusals on
+      every refusal path of the runner; mint the chartered row paying
+      F210 F196 F199 F188 F233 F234 into the live registry and reconcile
+      every pin the teaching falsifies, including the skill-footprint
+      pair. Tasks end at the row minted live with every suite green
+      pre-close; the close (applied, the archive move, the close's
+      `--retire`, every `CloseEvidence`) is the authority's act and no
+      task performs or depends on it. This bundle's executor does not
+      approve, run no review or gate or supersede verb, and does not
+      commit (F84).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-TAUGHT-RULES/spec.xml</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:marketplace</Command>
+      </MustPassCommand>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>named baseline commit</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>archive arrival</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>applied-archive state</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>every module list</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>shipped parser</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>through a pipe</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>explicit generous timeout</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>shipped engine</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>both directions</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>only against an active</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>declared nowhere else</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>stand in for the interview</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>rewritten wholesale</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>revised in place</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>placeholders</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>re-home</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>on a prototype</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>other than the author</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>uncloseable bundle</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>stage the task runs</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>no declared task is in scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>pass-only cycle</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>report evidence</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>artifact whole</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>is a claim</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>forced-file set</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>both directions</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>faithful copy</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>life cycle produces next</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>review_judgment</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>review_judgment</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>F9.8</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>F9.8</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkTaughtRules</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkRecordTokens</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>refuseDiagnostic</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>C-TAUGHT-RULES</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F210: "C-TAUGHT-RULES"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F196: "C-TAUGHT-RULES"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F199: "C-TAUGHT-RULES"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F188: "C-TAUGHT-RULES"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F233: "C-TAUGHT-RULES"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F234: "C-TAUGHT-RULES"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>Searched before minting</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>"version": "6.2.0"</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>ngrace gate approve --change C-ID</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>the gate writes status and records the fingerprint</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>review.write-evidence-outside-scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>approved_plan_immutability</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>decisions.md</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>decisions.md</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>decisions.md</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>2 failed attempts of the same signature</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>4 distinct failing signatures</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>argv token run-commands requires a declared task in scope</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>mechanized_first</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>review_checklist</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>ceremony_tier_review</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkApprovalLexicon</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkPolyglotDefault</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkTemplateFill</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkClaimedShapes</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkDocsAndExamplesDecision</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F232: "C-FLUSH-AND-UNPIN"</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>RM-GOVERNED-PATH</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>decisions.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>findings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>findings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>rulings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>rulings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>registry.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>registry-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>RM-GOVERNED-PATH</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>decisions.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>findings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>findings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>rulings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>rulings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>registry.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>registry-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>RM-GOVERNED-PATH</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>decisions.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>findings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>findings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>rulings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>rulings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>registry.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>registry-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>RM-GOVERNED-PATH</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>decisions.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>findings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>findings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>rulings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>rulings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>registry.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>registry-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>RM-GOVERNED-PATH</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>decisions.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>findings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>findings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>rulings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>rulings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>registry.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>registry-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>RM-GOVERNED-PATH</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>decisions.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>findings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>findings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>rulings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>rulings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>registry.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>registry-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>RM-GOVERNED-PATH</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>decisions.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>findings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>findings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>rulings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>rulings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>registry.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>registry-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>RM-GOVERNED-PATH</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>decisions.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>findings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>findings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>rulings.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>rulings-retired.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>registry.xml</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>registry-retired.xml</Text>
+      </MustNotContain>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 scripts/skill-contracts.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:marketplace</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Land the record-token scan's isolated contract</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip: write the
+            `checkRecordTokens` failing tests into
+            `scripts/check-teaching-surface.test.ts` — isolated roots, with
+            files planted at `path.join(root, tree, skill, "SKILL.md")`
+            never at process-relative paths — asserting: a planted
+            `F`-token turns the scan non-zero with a refusal naming the
+            file and the token; a planted `RM-GOVERNED-PATH` needle and a
+            planted governed record file name (`decisions.xml`) each turn
+            the scan non-zero naming the file and the token; a `D`-token
+            immediately preceded by an `RM-` plan id stays green; the
+            carrier-absent clean fixture stays green; check mode writes
+            nothing. The two new exports are absent at this state, so the
+            suite reds on import. Record the cursor attempt with outcome
+            fail, signature-kind test, signature-key checkRecordTokens. Do
+            not land production in this round trip; never fail and pass in
+            one tool call; never a retrospective red via stash.
+            Measured at plan time on a faithful copy driven from inside it:
+            the planted scan reds on the shipped attempt-kind citation with
+            a refusal naming `skills/ngrace/ngrace-execute/SKILL.md` and
+            the token, reds on a planted token naming
+            `skills/ngrace/ngrace-reviewer/SKILL.md` and the token, and
+            greens on clean isolated fixtures — the tails are the
+            criterion's measured basis, and the plan-time measurement is
+            red at the spec's authoring commit and stated on
+            AC-RECORD-TOKEN-FREE's face. Failure conditions: this round
+            trip also lands production; the fixture files are planted
+            relative to the process cwd instead of the isolated root; the
+            needles are paraphrased away from the literal strings.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): land
+            `export function checkRecordTokens` into
+            `scripts/check-teaching-surface.ts` scanning the four governed
+            skills in both trees for `RM-GOVERNED-PATH`, the seven governed
+            record file names, any `F`-token, and any `D`-token not
+            immediately preceded by an `RM-` plan id, each refusal written
+            to stderr naming the file, the rule and the missing token; do
+            not compose it into `runTeachingSurfaceCheck` in this task (the
+            shipped attempt kind still carries the record citation, so the
+            composed runner would red `validate:teaching-surface` at this
+            task's end state), and do not edit any SKILL.md in this task.
+            The isolated tests pass. Failure conditions: the scan composed
+            into the runner before the rewrite lands; only one tree
+            scanned; the refusal silent; a governed record file name or
+            `decisions.md` treated as a violation where the shipped
+            exceptions keep it green.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun run validate:marketplace</Command>
+          <Command>git diff --exit-code 3f8a5ca8d1cc4ecc0ddd5a81f127b1a60be73016 -- skills/ plugins/ src/ scripts/ README.md ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts'</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Record the honest red on the shipped trees, land item 21, and compose the scan</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip — the honest red-first
+            AC-RECORD-TOKEN-FREE carries: write the real-repository
+            token-free assertion (checkRecordTokens returns zero over the
+            four governed skills in both trees, with an explicit generous
+            timeout) into `scripts/check-teaching-surface.test.ts`. The
+            shipped trees are not token-free at the spec's authoring commit,
+            so the assertion reds. Record the cursor attempt with outcome
+            fail, signature-kind test, signature-key checkRecordTokens,
+            pasting the refusal tail as report evidence — measured at plan
+            time: the scan reds naming
+            `skills/ngrace/ngrace-execute/SKILL.md` and the token inside the
+            attempt kind. Do not land the rewrite in this round trip.
+            Failure conditions: this round trip also lands the rewrite; the
+            assertion is bound to an isolated root only, so the shipped
+            state can never redden it; the citation is dropped in the same
+            trip that records the red.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): rewrite the
+            attempt kind's ordering sentence in
+            `skills/ngrace/ngrace-execute/SKILL.md` and its packaged mirror
+            — item 21: the failing run's output is pasted as report
+            evidence, a hand-written claim of red being the same
+            non-evidence as a hand-written claim of green; the ordering rule
+            is stated generically with the record citation dropped; the
+            budget substrings, the kind-id completeness, the resume-reason
+            teaching and the close-ownership sentences of steps 7 to 10 are
+            untouched. Compose `checkRecordTokens` into
+            `runTeachingSurfaceCheck` ahead of the shipped checks. Then
+            re-measure the skill-footprint pair from the tree and update
+            `src/test-support/token-accounting.test.ts` and the `README.md`
+            measurement cell to the new true values, never written toward
+            (the totals-moving exemption; the attempt-kind rewrite is
+            line-neutral and byte-moving). The token-free assertion turns
+            green; record the cursor attempt with outcome pass,
+            signature-kind test, signature-key checkRecordTokens.
+            Failure conditions: the citation paraphrased into another
+            token-bearing form rather than dropped; the close-ownership
+            sentences of steps 7 to 10 entered; only one tree rewritten; the
+            footprint left stale after the skill edits; the pin values
+            written toward instead of measured.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test --timeout=30000 scripts/skill-contracts.test.ts</Command>
+          <Command>bun test --timeout=30000 src/grace-cursor.test.ts</Command>
+          <Command>bun run validate:marketplace</Command>
+          <Command>git diff --exit-code 3f8a5ca8d1cc4ecc0ddd5a81f127b1a60be73016 -- skills/ plugins/ src/ scripts/ README.md ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)README.md'</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Teach the twenty-seven remaining rules in the four skills, both trees</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Land the taught rules at their named section homes, in each
+            skill's own voice and structure, woven into the passage an
+            author is already reading, never as an appended list, in both
+            trees together: `ngrace-spec` `acceptance_criteria_anchors`
+            carries the baseline-commit, archive-pathspec-exclusion,
+            applied-archive-state, module-enumeration, parsed-counts,
+            direct-exit-codes, generous-timeout, producible-criteria and
+            both-direction-probe rules, and amends the unmapped-warning
+            sentence in place with its firing precondition;
+            `ngrace-spec` `clarifications` carries the
+            declared-nowhere-else rule and the approve-gate filter rule;
+            `ngrace-spec` `workflow` carries the cold-dispatch carve-out;
+            `ngrace-spec` `shape_sources` carries the rewrite-wholesale
+            carve-out; `ngrace-spec` `status_rules` carries the
+            draft-revised-in-place rule; `ngrace-plan` `must_do` carries
+            the skeleton-seeds-are-placeholders rule as one appended row
+            carrying both facets, the prototype-probe obligation as a
+            further appended row, and the approval-write carve-out amended
+            into row 15 in place, with new rows appended after 17 and no
+            pinned row renumbered; `ngrace-plan` `spec_plan_traceability`
+            carries the uncloseable-bundle consequence;
+            `ngrace-plan` `command_phase_rules` carries the stage rule;
+            `ngrace-execute` `execution_rules` carries the
+            open-epoch-before-baseline ordering with its refusal and the
+            pass-only cycle; `ngrace-reviewer` gains the `review_judgment`
+            block between `mechanized_first` and `review_checklist`
+            carrying the reviewer rules. Every taught sentence is
+            universal: no token, sentence or example names this repository,
+            its record, a finding, a decision or a bundle; the two
+            carve-outs (an approval write may belong to a party other than
+            the author of the artifact; a brief may stand in for the
+            interview when the dispatch is cold and has no one to ask) are
+            stated as the product's model. Keep every shipped pin: row 15's
+            review-before-approve order, fingerprint sentence and
+            expected-findings sentences; row 6's forced-scope substance
+            phrases; the execute budget substrings, kind-id completeness and
+            resume-reason teaching; the clarification working-form example;
+            `mechanized_first`, `review_checklist`, `ceremony_tier_review`
+            and the verdict vocabulary. Re-measure the skill-footprint pair
+            from the tree and update
+            `src/test-support/token-accounting.test.ts` and the `README.md`
+            measurement cell to the new true values, never written toward.
+            Measured at plan time on a faithful copy with this task's drafted
+            text applied to all four skills in both trees:
+            `scripts/skill-contracts.test.ts`, `src/review/core.test.ts`,
+            `src/grace-cursor.test.ts` and `src/artifact/grammar.test.ts`
+            are all green against the drafted text, so no conditional
+            skill-contract repair fires; the falsified-pin set is empty and
+            the four conditional test files are written only if the executed
+            teaching falsifies a shipped pin. This task is a pass-only
+            cycle: no red direction is recordable before the write, because
+            the taught rules are new content the shipped checks do not see,
+            and the taught-rules check does not exist until T-004 — say so
+            in the report rather than manufacturing a red. Failure
+            conditions: an appended list instead of woven voice; a pinned
+            row renumbered; a taught sentence naming this repository, its
+            record or any bundle; only one tree updated; the footprint left
+            stale; a conditional repair made without its own recorded red.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 scripts/skill-contracts.test.ts</Command>
+          <Command>bun test --timeout=30000 src/review/core.test.ts</Command>
+          <Command>bun test --timeout=30000 src/grace-cursor.test.ts</Command>
+          <Command>bun test --timeout=30000 src/artifact/grammar.test.ts</Command>
+          <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run validate:marketplace</Command>
+          <Command>git diff --exit-code 3f8a5ca8d1cc4ecc0ddd5a81f127b1a60be73016 -- skills/ plugins/ src/ scripts/ README.md ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)skills/ngrace/ngrace-reviewer/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)README.md' ':(exclude)scripts/skill-contracts.test.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/artifact/grammar.test.ts'</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Add the taught-rules check and readable refusals, composed</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, two round trips. First (signature-kind test,
+            signature-key checkTaughtRules): write the `checkTaughtRules`
+            failing tests into `scripts/check-teaching-surface.test.ts` —
+            isolated roots carrying the twenty-nine taught tokens at their
+            named section homes stay green; deleting one taught rule's
+            sentence from one tree, or the whole `review_judgment` block
+            from one tree, turns the check non-zero with a refusal naming
+            that file, that section and that missing token. The exports are
+            absent at this state, so the suite reds on the import. Record
+            the cursor attempt with outcome fail, signature-kind test,
+            signature-key checkTaughtRules. Do not land production in this
+            round trip. Second (signature-kind test, signature-key
+            check-teaching-surface — the runner's own suite repair): write
+            the refusal-readability tests driving the shipped runner against
+            isolated refusal fixtures for at least one refusal per check
+            family, asserting the file, the rule and the missing tokens
+            appear in the output; the shipped runner's refusal is the
+            measured zero-byte form, so the assertions red. Record the
+            cursor attempt with outcome fail, signature-kind test,
+            signature-key check-teaching-surface. Failure conditions: this
+            round trip also lands production; a missing-file case uses this
+            repository root so it dies after the block is added; the
+            diagnostics are asserted on stdout; a refusal line omitting any
+            of the three named parts stays green.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the two reds): land
+            `export function checkTaughtRules` asserting, per rule and per
+            tree, that each taught rule's load-bearing token is present
+            inside its named section with the token list carried in this
+            task; add the refusal diagnostics so every refusal path of the
+            runner — the five shipped checks and the two new ones — writes a
+            stderr line naming the file, the rule and the missing tokens
+            before the non-zero exit, and the zero-byte refusal is gone;
+            compose both new checks into `runTeachingSurfaceCheck`; the
+            real-repository taught-rules assertions (all twenty-nine tokens
+            in both trees, with an explicit generous timeout) turn green
+            with the teaching landed. Failure conditions: a refusal path of
+            the seven checks left silent; the check composed while a taught
+            token is missing; the token list hardcoded away from the task's
+            derivation; check mode writing.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test --timeout=30000 scripts/skill-contracts.test.ts</Command>
+          <Command>bun run validate:marketplace</Command>
+          <Command>git diff --exit-code 3f8a5ca8d1cc4ecc0ddd5a81f127b1a60be73016 -- skills/ plugins/ src/ scripts/ README.md docs/plans/active/RM-GOVERNED-PATH/ ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)skills/ngrace/ngrace-reviewer/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)README.md' ':(exclude)scripts/skill-contracts.test.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/artifact/grammar.test.ts'</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Mint the chartered row live and extend the retirement suite</Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test,
+            signature-key validate-record-retirement): write the row-walk
+            assertion into `scripts/validate-record-retirement.test.ts` —
+            the `C-TAUGHT-RULES` row exists exactly once across
+            `registry.xml` and `registry-retired.xml` with its `status`
+            agreeing with the holding file, `kind="chartered"`, its
+            `&lt;Pays&gt;` naming exactly F210 F196 F199 F188 F233 F234 in
+            that order, its `&lt;Charter&gt;` carrying the
+            searched-before-minting statement and no `F` token, and its
+            `&lt;StatusText&gt;` naming no `F` token and no `Closed with`
+            sentence, no fixed expectation of which file holds it — parsed
+            with the shipped parser over both registry layers, with an
+            explicit generous timeout. The row is absent at this state, so
+            the assertion reds. Record the cursor attempt with outcome fail,
+            signature-kind test, signature-key validate-record-retirement.
+            Do not mint in this round trip. Failure conditions: this round
+            trip also mints; the walk hardcodes registry.xml as the holding
+            file; the red is recorded against a mutated copy instead of the
+            production record the row is absent from.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): mint the row
+            live into `docs/plans/active/RM-GOVERNED-PATH/registry.xml`,
+            appended after the last live row in the house shape — an empty
+            `&lt;Number&gt;`, a `&lt;Charter&gt;` carrying the name and the
+            searched-before-minting statement over the archive and both
+            registry layers dated at the spec's authoring commit with zero
+            prior rows in either layer and no `F` token anywhere, a
+            `&lt;Pays&gt;` naming exactly F210 F196 F199 F188 F233 F234 in
+            that order, and a `&lt;StatusText&gt;` naming no `F` token,
+            carrying no `Closed with` sentence and no `replaced by` or
+            `delivered as` phrase naming another bundle. Then run the
+            shipped `--rewrite-roots` over the record directory: the
+            registry root base equals the live-`Row` count read back,
+            headroom the remainder, ceiling held (the shipped roots
+            invariant demands base equal its shipped metric read back, and
+            the mint turns twelve live rows into thirteen — measured at plan
+            time on a faithful copy: rewrite-roots exit zero, base 13,
+            headroom 13, ceiling held 26, and the close's own move returns
+            the file to its persisted bytes). Extend the shipped
+            payer-derivation baseline in
+            `scripts/validate-record-retirement.test.ts` with the row's six
+            minted tokens and land the six-token carrier relation beside it:
+            each of the six tokens, when a `Finding` carries it, exists
+            exactly once across both findings files, its `status` agreeing
+            with the holding file, `PaidBy` equal to `C-TAUGHT-RULES` if
+            retired, its index `Entry` layer agreeing with its holding file,
+            and the carrier-absent case green — payment-invariant by
+            construction, green pre-close and post-close alike. The named
+            red directions are driven on mutated copies, never against the
+            production record: a second row with the same name reddens the
+            exactly-once clause; a `Pays` token outside the six reddens the
+            exact-set clause; a `StatusText` naming a token outside
+            `&lt;Pays&gt;` reddens the row's prose law; a duplicated carrier
+            reddens the at-most-once clause; a minted token missing from the
+            extended baseline reddens the payer-derivation baseline (the
+            shipped baseline's own red on the post-close record without the
+            extension). While the bundle is active the row's name matches no
+            archive directory, so the derivation mints nothing from it and
+            the shipped validator returns zero findings. Failure
+            conditions: a task runs `--retire` or sets `applied` or archives
+            the bundle (the close is the authority's act, never a task); the
+            row minted into `registry-retired.xml` directly; a `Pays` token
+            outside the six; the `StatusText` naming a token; the ceiling
+            raised; the rewrite-roots skipped; the extension written toward
+            a frozen number; only one tree of the record touched.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun run validate:marketplace</Command>
+          <Command>git diff --exit-code 3f8a5ca8d1cc4ecc0ddd5a81f127b1a60be73016 -- src/ scripts/ skills/ plugins/ README.md docs/plans/active/RM-GOVERNED-PATH/ ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)skills/ngrace/ngrace-reviewer/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)README.md' ':(exclude)scripts/skill-contracts.test.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/artifact/grammar.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml'</Command>
+          <Command>bun run validate:ci</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-TAUGHT-RULES>
+</NgraceChangePlan>
