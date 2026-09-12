@@ -37,6 +37,17 @@ unrelated blank-line edits. Use those IDs in your report; do not invent parallel
 At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve `review.scope-outside-write-scope` on the bundle's own spec.xml, plan.xml, and (when that file changed) decisions.md is expected; do not add those paths to ObservedWriteScope. Other findings are not expected-clean.
 </mechanized_first>
 
+<review_judgment>
+Form the judgment from what you read and drove, not from what was reported to you:
+
+- Read the artifact whole before a verdict: a brief's conformance summary is not the artifact, and a verdict formed from the brief approves prose the artifact may not match. The artifact whole is the reviewed thing; the report about it is a claim.
+- An implementer's report is a claim — drive the product on a throwaway copy before accepting delivered work: the happy path, each refuse path, and a byte-level diff where the change claims to be surgical. A passing suite the implementer owns is a precondition, never the evidence.
+- Derive the forced-file set from the artifact's Goals before reading its write scope, and reconcile the two: a forced file missing from a write-scope list is a spec no plan can satisfy, and the Goals are where the omission shows.
+- Every criterion is probed in both directions on a throwaway copy before approval: a guard that cannot redden is decoration, and a green direction that was never driven is not evidence of a pass.
+- The full CI runs in a faithful copy of the post-close state — the plan at `applied`, the bundle archived, the close's own move run — never only the CloseEvidence commands: the copy without the plan reds on a missing applied plan, which is the state the close actually leaves.
+- Check an assertion or probe against the state the artifact's own life cycle produces next, never only the state at approval: a relation true at approval and false after the next lawful move was never true.
+</review_judgment>
+
 <review_checklist>
 - `.ngrace/context` artifacts are present and relevant.
 - `.ngrace/graph/index.xml` routes every graph anchor to the correct graph document.
