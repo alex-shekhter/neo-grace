@@ -31,8 +31,12 @@ describe("token-accounting (D15)", () => {
     // C-APPROVE-TIME-REVIEW T-005: approve-time review, F152 lexicon, and XML-escape
     // teaching in ngrace-spec, ngrace-plan, and ngrace-reviewer moved
     // 823 → 832 lines and 60545 → 64021 bytes.
+    // C-TAUGHT-RULES T-002: ngrace-execute attempt-kind item-21 rewrite
+    // (line-neutral, byte-moving) measured 832 → 832 lines and 64021 → 64155 bytes.
+    // C-TAUGHT-RULES T-003: the twenty-seven taught rules landed in the four
+    // skills, both trees (measured): 832 → 861 lines and 64155 → 71505 bytes.
     const measured = skillTextLines();
-    expect(measured.total).toBe(832);
+    expect(measured.total).toBe(861);
     expect(measured.perSkill["ngrace-fix"]).toBe(32);
     expect(Object.keys(measured.perSkill).length).toBe(16);
     // Sanity: known skills present
@@ -65,9 +69,13 @@ describe("token-accounting (D15)", () => {
     // C-APPROVE-TIME-REVIEW T-005: approve-time review, F152 lexicon, and XML-escape
     // teaching in ngrace-spec, ngrace-plan, and ngrace-reviewer moved
     // 823 → 832 lines and 60545 → 64021 bytes.
+    // C-TAUGHT-RULES T-002: ngrace-execute attempt-kind item-21 rewrite
+    // (line-neutral, byte-moving) measured 832 → 832 lines and 64021 → 64155 bytes.
+    // C-TAUGHT-RULES T-003: the twenty-seven taught rules landed in the four
+    // skills, both trees (measured): 832 → 861 lines and 64155 → 71505 bytes.
     const measured = skillTextLines();
-    expect(measured.total).toBe(832);
-    expect(measured.totalBytes).toBe(64021);
+    expect(measured.total).toBe(861);
+    expect(measured.totalBytes).toBe(71505);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

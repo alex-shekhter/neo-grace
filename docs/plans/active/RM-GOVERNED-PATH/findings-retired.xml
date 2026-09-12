@@ -3670,4 +3670,136 @@ Owner: the flush bundle that lands `F225` and `F226` — the repair is forced by
 `C-FLUSH-AND-REPAIR` shape (PR #86) a second time. Neighbour to [F225](#f225) and [F229](#f229).
 </Body>
   </Finding>
+  <Finding id="f188" token="F188" status="retired">
+    <PaidBy>C-TAUGHT-RULES</PaidBy>
+    <Title>### F188 — a close-evidence pathspec that covers `.ngrace/changes/` without excluding its own bundle cannot pass. **[verified]**</Title>
+    <Body>
+Measured **2026-09-06** at the close of `C-RETIREMENT-WINDOW`.
+
+`AC-RECORD-FROZEN` pins `git diff --exit-code &amp;lt;base&amp;gt; -- docs/plans/active/RM-GOVERNED-PATH/
+.ngrace/changes/`. Every bundle writes its own directory under `.ngrace/changes/`, and its spec and
+plan are committed after the base commit, so that diff is **never** empty at close. The criterion is
+unsatisfiable by construction, not by anything the bundle did.
+
+**Measured, not inferred:** the diff contained exactly four files — the bundle's own `spec.xml`,
+`plan.xml`, `run.xml` and `run-ledger.xml` — and **zero** files outside its directory. The record
+subtree the criterion exists to protect is byte-identical to the base commit, so the criterion's
+**intent** was satisfied while its **command** could not be.
+
+Its sibling `AC-NO-ARCHIVE-WRITE` carries exactly the term that would have fixed it:
+`':(exclude).ngrace/changes/archive/C-RETIREMENT-WINDOW'`. The two criteria were written together and
+only one got the exclusion.
+
+**Consequence at close.** `gate verdict --outcome pass` refuses while any `CloseEvidence` command
+exits non-zero, so the second verdict was recorded as `unable-to-determine` with reason
+`close-evidence-command-unsatisfiable`. Nine of the ten close-bound criteria passed post-archive.
+
+**The authority missed it at approval.** Two of the five pinned commands were probed in both
+directions before approving; this one was not, and no probe was run in the state that matters — after
+the bundle's own artifacts exist under a pinned path. **A close-evidence pathspec must be probed in
+the post-close state, not the pre-close one**, which is the same lesson as [F100](#f100) applied to
+pathspecs rather than suites.
+
+Owner: a later bundle, as a rule that a `CloseEvidence` pathspec covering a bundle-bearing directory
+must exclude the bundle's own path.</Body>
+  </Finding>
+  <Finding id="f196" token="F196" status="retired">
+    <PaidBy>C-TAUGHT-RULES</PaidBy>
+    <Title>### F196 — `CloseEvidence` is evaluated only in the applied-archive state, and the skill that teaches criterion authoring never says so. **[verified]**</Title>
+    <Body>
+
+Measured **2026-09-08** at `54e26d9`, during review of `C-RECORD-TEST-ISOLATION`'s draft spec.
+
+`isAppliedArchiveBundle` (`src/gates/ledger.ts`) requires **both** that the bundle path contain
+`/changes/archive/` **and** that the spec's `status` be `applied`; `evaluateCloseEvidenceChildren`
+returns an empty list otherwise. So every `CloseEvidence` command is measured in the **post-archive**
+state and in no other. A criterion whose truth depends on the pre-archive state is never evaluated in
+the state it describes.
+
+**The instance.** That draft's `AC-CHARTER` asserted a live `registry.xml` row named for the bundle,
+absent from `registry-retired.xml`, whose name was absent from `.ngrace/changes/archive/`. All three
+clauses are **false** in the only state where the criterion is ever evaluated: the close creates that
+archive directory, which raises `registry-eligible-still-live`, and the retirement move puts the row
+in the retired sibling. `AC-FLUSH` had the same shape. The author was not careless — nothing told it
+which state its criterion would be measured in.
+
+**Searched, not assumed.** `grep -rn 'CloseEvidence' skills/ngrace/`: the coupling appears **once**,
+at `ngrace-reviewer/SKILL.md:51` — *"An applied-archive `CloseEvidence` `AC-*` must have a recorded
+evaluation on a Verdict"* — as a rule about verdicts, in the reviewer's skill. `ngrace-spec/SKILL.md`,
+which teaches how to write the criterion, carries only an example at `:98` and never states the
+evaluation state.
+
+Owner: a later bundle, on the teaching surface. The remedy is one sentence in `ngrace-spec` telling an
+author that a close criterion is measured after the archive move, and to write it invariant under that
+move.</Body>
+  </Finding>
+  <Finding id="f199" token="F199" status="retired">
+    <PaidBy>C-TAUGHT-RULES</PaidBy>
+    <Title>### F199 — `check-teaching-surface` refuses with zero bytes of output, and takes `validate:ci` red with it. **[verified]**</Title>
+    <Body>
+
+Measured **2026-09-08** at `8345933`.
+
+`bun run ./scripts/check-teaching-surface.ts check` exits **1** while writing **0 bytes** to stdout and
+0 to stderr. It names neither the file that failed, nor the rule, nor the missing text. It is a member
+of `validate:ci`, so the whole gate goes red with no message at all.
+
+**Isolated by bisection, not inferred.** With a generated spec scaffold present under
+`.ngrace/changes/active/`, exit 1; with that one directory moved aside, exit 0; moved back, exit 1
+again. The rule is `checkDocsAndExamplesDecision`: every **active** spec must mention `README.md` and
+`examples/` somewhere in a `Goal`, `Constraint` or `NonGoal`, and a freshly generated scaffold does
+not. Diagnosing this required reading the script, because the product said nothing.
+
+**The cost is paid by every author of a new bundle**, since the window between `spec new` and a
+finished spec is exactly when the check fires — the moment a scaffold exists. A refusal that cannot be
+read is a refusal that gets worked around by deletion.
+
+Owner: a later bundle. The remedy is small — name the file, the rule, and the missing tokens on the
+refusal path — but it is a product change to a `validate:ci` member and belongs in a chartered bundle.</Body>
+  </Finding>
+  <Finding id="f210" token="F210" status="retired">
+    <PaidBy>C-TAUGHT-RULES</PaidBy>
+    <Title>### F210 — a `git diff` close criterion with no baseline cannot fail, and one archived bundle shipped two. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `49b4ebb`, during the `C-RECORD-PARSE` spec review.
+
+`git diff --exit-code -- &amp;lt;paths&amp;gt;` compares the working tree to the **index**. Once a bundle's work
+is committed — which it is by close — the form is always clean, so a criterion using it passes
+regardless of what the bundle did. Demonstrated: on the branch that rewrote every record file, the
+base-less form over those exact paths exits **0**; the same paths with a base commit exit **1**.
+
+**Population, measured rather than sampled:** of the archived specs carrying a `git diff --exit-code`
+criterion, **17** have one, **16** name a baseline commit, and **1** does not —
+`C-CITATION-ANCHOR-REPAIR`, whose prose says &quot;pre-change tree&quot; while its commands name no commit. Its
+criteria were therefore satisfied by construction at its close.
+
+**Lint is not the gap.** `change.close-evidence-undiscriminating` states its own limit in its
+explanation: *&quot;The rule catches only the cheap class: it does not prove the command can fail…
+`git diff --exit-code` over the wrong paths still exit 0.&quot;* It never claimed this class. **The check is
+human**, and it failed once in the archive and once in a draft — the draft caught in review only
+because the authority ran the command against a branch that had actually changed the paths.
+
+**The rule for authors:** every diff-based criterion names a baseline commit, and the author shows it
+**failing** as well as passing before the artifact is approved. A criterion demonstrated only in the
+passing direction carries no information — the same principle as [F204](#f204), where a check sat
+before the only writer of the bytes it checked.
+
+**A related trap, recorded because it bit the authority in the same review:** a byte diff answers &quot;did
+these bytes change&quot;, not &quot;did this document change&quot;. Valid XML documents differ in bytes while parsing
+identically — measured on the real `registry.xml`: single-quoting one attribute and spacing one `=`
+gives 12,985 bytes against 12,983, `diff` exits 1, and the parsed trees are **identical**. Byte
+instruments are right for &quot;this bundle modified nothing&quot; and for a golden-output promise; they are the
+wrong instrument for &quot;the content is unchanged&quot;.
+
+Owner: no bundle. The archived instance is immutable and closed; this entry exists so the rule is
+written down where the next author will find it.
+
+**Method note against the authority.** Two errors in one review, both of the kind this record keeps
+recording. &quot;Every prior bundle used the base-commit form&quot; was a population claim made from the specs
+the authority happened to have read — the measurement above says 16 of 17. And the byte figures first
+reported (12,939 → 12,945) were JavaScript string `.length`, which counts UTF-16 code units, not bytes;
+`wc -c` gives 12,983. Reporting code units as bytes inside an argument about choosing the instrument
+that answers the question is the error the argument was about.
+</Body>
+  </Finding>
 </Findings>

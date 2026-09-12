@@ -15,13 +15,15 @@ description: Interview the user and create an approved neo-grace NgraceChangeSpe
 <shape_sources>
 Registered change-spec shape: `docs/schema-reference.md` (heading change-spec). That document is not a complete grammar — it excludes imperative validators and file-local markup.
 Explain a shape or code: argv token `explain`.
-Primary write path: `ngrace spec new`.
+Primary write path: `ngrace spec new`. The minted skeleton is a starting shape, not a verdict: when a rich, precedent-shaped artifact does not fit it, the skeleton is rewritten wholesale after the mint — the command is the write path, never the source of the final section shape.
 Optional-section teaching source: `references/change-spec-template.xml`.
 Optional design-context copy-source: `references/design-context-template.xml`.
 </shape_sources>
 
 <status_rules>
 Create `spec.xml` as `status="draft"`. After a sufficient phrase from `approval_lexicon`, run `ngrace review --path . --change C-ID` (does not record a verdict), then `ngrace gate approve --change C-ID`; that command writes status. Do not hand-write `status="approved"`. Rejected or cancelled specs move to archive with terminal status. Do not create or edit `plan.xml` in this skill.
+
+A draft `spec.xml` is revised in place: before approval the draft is corrected — never forked, never duplicated — and create → review → gate is the path an approved artifact takes. Only an approved artifact is immutable; repair an approved artifact by supersede, never by editing it.
 
 At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve `review.scope-outside-write-scope` on the bundle's own spec.xml, plan.xml, and (when that file changed) decisions.md is expected; do not add those paths to ObservedWriteScope.
 </status_rules>
@@ -86,6 +88,7 @@ Rules:
 - Unresolved clarifications on `AC-*` that a task `Satisfies` block apply.
 - `Assumptions` remain presence with weak provenance and never block a gate.
 - Do **not** write `[NEEDS CLARIFICATION: …]` in free text — lint and gates cannot verify prose markers.
+- An unknown contract, invariant, or criterion is declared here and declared nowhere else: not in prose, not in a comment, not in a report after approval. The approve gate filters on these — an unresolved `IC-*` / `INV-*` hole refuses `ngrace gate approve` — so a hole carried anywhere but a `Clarification` is a gap the gate never sees.
 </clarifications>
 
 <acceptance_criteria_anchors>
@@ -102,10 +105,19 @@ Prefer addressable `AC-*` tags under `AcceptanceCriteria` so `ngrace-plan` can m
 Rules:
 - `AC-*` ids are uppercase kebab (`AC-[A-Z0-9]+(?:-[A-Z0-9]+)*`).
 - Each `AC-*` id is unique within the spec and must contain non-empty text.
-- A close-bound `AC-*` is a child `CloseEvidence` that contains at least one non-empty `Command`. CloseEvidence is a child of `AC-*`, never an attribute. Forgotten `AC-*` (no Satisfies, no complete CloseEvidence) still warn unmapped.
+- A close-bound `AC-*` is a child `CloseEvidence` that contains at least one non-empty `Command`. CloseEvidence is a child of `AC-*`, never an attribute. Forgotten `AC-*` (no Satisfies, no complete CloseEvidence) still warn unmapped — and the warning is produced only against an active `plan.xml`: while a draft spec is authored no plan exists, so an author reading this passage takes silence for a mapped criterion. Do not read a clean draft-state lint as a mapping check; the check exists only when the plan that maps does.
 - A non-empty `Command` is necessary but not sufficient: the Command must match a discriminating shape or a configured prefix. `ngrace lint --explain change.close-evidence-undiscriminating` states the cheap-class limit.
 - Legacy free-text or `<Criterion>` children remain valid; when no `AC-*` is present, criteria mapping is skipped for backward compatibility.
 - `AffectedAreas` should name real `M-*` / `DF-*` / `IC-*` anchors (not prose alone) so plan DurableScope coverage can be validated.
+- Name the baseline a committed-point or byte-invariance criterion is measured against as a named baseline commit — the full hash in the criterion text. The base-less diff form cannot fail, and a criterion whose baseline cannot fail was never a guard.
+- An archive-edit criterion excludes the change's own archive arrival with its reason: the close itself renames the bundle's directory into the archive, so without the exclusion the close's own rename reddens the criterion it wrote.
+- A CloseEvidence criterion is evaluated in the applied-archive state, after the close's own move has run. Write it against the state the ceremony produces, never the pre-close tree: an assertion true only pre-close exits non-zero at the close and is uncloseable by construction.
+- Enumerate modules in every place the artifact enumerates modules, and confirm each forced file's owner against every module list: a module list that appears twice can be wrong twice, and fixing the copy you happened to look at leaves the other.
+- Structural counts come from the shipped parser, never `grep -c`: the grep form counts lines, not occurrences, and these artifacts wrap one phrase across lines — flatten whitespace first, and prefer parsing the artifact when the claim is about structure.
+- Read exit codes directly, never through a pipe: `cmd | tail` reports tail's status, not cmd's, and a criterion that names an exit code names the code of the command that produced the verdict.
+- Any test driven against a real repository carries an explicit generous timeout: a suite that builds fixtures or copies trees dies inside a default timeout, and that death is indistinguishable from the red it was meant to measure.
+- A criterion is producible: it asserts no state the shipped engine will not produce, requires no change another criterion forbids, and names no probe that cannot be run — an unsatisfiable criterion is a refusal the close discovers.
+- Probe every guard in both directions on a throwaway copy: the clean direction proves it can pass, a planted violation proves it can redden, and a guard whose red direction was never driven may be vacuously green.
 </acceptance_criteria_anchors>
 
 <design_references>
@@ -113,7 +125,7 @@ Optional `DesignReferences` under the `C-*` wrapper. Children and their validato
 </design_references>
 
 <workflow>
-1. Ask one focused question at a time until goal, scope, constraints, non-goals, acceptance criteria, affected areas, verification expectations, and ceremony tier are clear.
+1. Ask one focused question at a time until goal, scope, constraints, non-goals, acceptance criteria, affected areas, verification expectations, and ceremony tier are clear. When the dispatch is cold and has no one to ask, a brief may stand in for the interview: read the brief's named artifacts, answer its questions from them, and declare what it leaves unanswered as an unknown rather than inventing it.
 2. Propose a concise design summary and explicit assumptions. Ask for approval before writing an approved spec. Only a sufficient phrase from `approval_lexicon` is approval. This pre-write ask is not lexicon ratification of a written spec: do not run the approve gate, do not combine it with the ratification request in the same message, and do not treat a lexicon phrase as permission to skip approve-time review of the written artifact.
 3. Create a deterministic uppercase-kebab `C-*` change id.
 4. Write `spec.xml` with `ngrace spec new` as the primary write path. Use `references/change-spec-template.xml` as the teaching source for optional sections. Prefer `AC-*` acceptance criteria. Add `DesignReferences` when design sources exist.

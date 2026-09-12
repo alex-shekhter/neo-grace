@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -2074,6 +2074,17 @@ ${names
         F225: "C-ROOT-WINDOW",
         F226: "C-ROOT-WINDOW",
         F232: "C-FLUSH-AND-UNPIN",
+        // C-TAUGHT-RULES T-005: the chartered row's six minted tokens. The
+        // extension is consulted only for tokens the derivation actually mints,
+        // so the walk is green with the row live (nothing minted — the row's
+        // name is not an archive directory while the bundle is active) and
+        // green in the applied-archive state (the close's mint).
+        F210: "C-TAUGHT-RULES",
+        F196: "C-TAUGHT-RULES",
+        F199: "C-TAUGHT-RULES",
+        F188: "C-TAUGHT-RULES",
+        F233: "C-TAUGHT-RULES",
+        F234: "C-TAUGHT-RULES",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
@@ -3636,3 +3647,242 @@ function guardScanSites(source: string): SpawnSiteVerdict[] {
 function guardFailures(source: string): SpawnSiteVerdict[] {
   return guardScanSites(source).filter((v) => v.unresolvable || (v.production && v.mutating));
 }
+
+// ---------------------------------------------------------------------------
+// C-TAUGHT-RULES T-005: the chartered row's walk, carrier relations, and the
+// named red directions. The walk was written red-first (the row absent, the
+// assertion red) and greens with the mint landed; the red directions are
+// driven on mutated copies, never against the production record.
+// ---------------------------------------------------------------------------
+
+const TAUGHT_ROW_SIX = ["F210", "F196", "F199", "F188", "F233", "F234"] as const;
+
+type TaughtRowHit = {
+  file: string;
+  status: string;
+  kind: string;
+  pays: string;
+  charter: string;
+  statusText: string;
+};
+
+function walkTaughtRow(recordDir: string): TaughtRowHit[] {
+  const hits: TaughtRowHit[] = [];
+  for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+    const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+    expect(parsed.root, `${file} parses`).not.toBeNull();
+    for (const row of childNodes(parsed.root!, "Row")) {
+      if (row.attributes.name !== "C-TAUGHT-RULES") {
+        continue;
+      }
+      hits.push({
+        file,
+        status: row.attributes.status ?? "",
+        kind: row.attributes.kind ?? "",
+        pays: (childText(row, "Pays") ?? "").trim(),
+        charter: childText(row, "Charter") ?? "",
+        statusText: childText(row, "StatusText") ?? "",
+      });
+    }
+  }
+  return hits;
+}
+
+function expectTaughtRowInvariants(hits: TaughtRowHit[]): void {
+  expect(
+    hits.length,
+    `the C-TAUGHT-RULES row exists exactly once across the registry layers (got ${hits.length})`,
+  ).toBe(1);
+  const hit = hits[0]!;
+  const holding = hit.file === "registry.xml" ? "live" : "retired";
+  expect(hit.status, "the row's status agrees with the holding file").toBe(holding);
+  expect(hit.kind, "the row is chartered").toBe("chartered");
+  expect(hit.pays, "Pays names exactly the six tokens in that order").toBe(
+    "F210 F196 F199 F188 F233 F234",
+  );
+  expect(hit.charter, "the Charter records the mint search").toContain("Searched before minting");
+  expect(hit.charter.match(/\bF[0-9]/g), "the Charter names no F token").toBeNull();
+  expect(hit.statusText.match(/\bF[0-9]/), "the StatusText names no F token").toBeNull();
+  expect(/closed with/i.test(hit.statusText), "the StatusText carries no Closed-with sentence").toBe(
+    false,
+  );
+}
+
+function expectTaughtCarrierRelations(recordDir: string): void {
+  const indexParsed = parseGraceXmlArtifact(
+    "decisions.xml",
+    readFileSync(path.join(recordDir, "decisions.xml"), "utf8"),
+  );
+  expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+  for (const token of TAUGHT_ROW_SIX) {
+    const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      return [...walkNodes(parsed.root!)]
+        .filter((node) => node.tag === "Finding" && node.attributes.token === token)
+        .map((node) => ({ file, node }));
+    });
+    expect(
+      carriers.length,
+      `${token}: at most one Finding element carries the token across the two findings files (got ${carriers.length})`,
+    ).toBeLessThanOrEqual(1);
+    for (const carrier of carriers) {
+      const expectedStatus = carrier.file === "findings.xml" ? "live" : "retired";
+      expect(
+        carrier.node.attributes.status,
+        `${token}: the carrier's status agrees with the holding file (${carrier.file})`,
+      ).toBe(expectedStatus);
+      if (carrier.file === "findings-retired.xml") {
+        expect(
+          childText(carrier.node, "PaidBy"),
+          `${token}: a retired carrier carries PaidBy C-TAUGHT-RULES`,
+        ).toBe("C-TAUGHT-RULES");
+      }
+      const entries = [...walkNodes(indexParsed.root!)].filter(
+        (node) => node.tag === "Entry" && node.attributes.id === carrier.node.attributes.id,
+      );
+      expect(entries.length, `${token}: the index carries exactly one Entry for the carrier's id`).toBe(1);
+      expect(
+        entries[0]!.attributes.layer,
+        `${token}: the carrier's index Entry layer agrees with the holding file`,
+      ).toBe(expectedStatus);
+    }
+  }
+}
+
+/** Isolated copy of the two registry layers, optionally mutated, never the production record. */
+// The mutation lands on whichever layer holds the row (F229's state-independent
+// form): the row is live before the close and retired after it, and a red
+// direction pinned to registry.xml stops landing the moment the close moves it.
+function plantedTaughtRegistry(mutateHolder?: (xml: string) => string): string {
+  const root = isolatedRoot();
+  const recordDir = path.join(root, RECORD_REL);
+  mkdirSync(recordDir, { recursive: true });
+  for (const file of ["registry.xml", "registry-retired.xml"]) {
+    const source = readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8");
+    const holdsRow = source.includes('name="C-TAUGHT-RULES"');
+    writeFileSync(path.join(recordDir, file), holdsRow ? (mutateHolder?.(source) ?? source) : source);
+  }
+  return recordDir;
+}
+
+describe("C-TAUGHT-RULES row", () => {
+  it(
+    "row invariant: exactly once across the registry layers, status agreeing with the holding file, kind chartered, Pays exactly F210 F196 F199 F188 F233 F234 in that order, Charter carrying the searched-before-minting statement with no F token, StatusText naming no F token and no Closed-with sentence (generous timeout)",
+    () => {
+      expectTaughtRowInvariants(walkTaughtRow(path.join(REPO_ROOT, RECORD_REL)));
+    },
+    60_000,
+  );
+
+  it(
+    "carrier relations: each of the six tokens, when a Finding carries it, exists exactly once across both findings files, its status agreeing with the holding file, PaidBy C-TAUGHT-RULES if retired, its index Entry layer agreeing with the holding file — and the carrier-absent case is green; the shipped validator returns zero findings on the production record, read-only (generous timeout)",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      expectTaughtCarrierRelations(recordDir);
+      const recordFiles = [
+        "findings.xml",
+        "findings-retired.xml",
+        "rulings.xml",
+        "rulings-retired.xml",
+        "registry.xml",
+        "registry-retired.xml",
+        "decisions.xml",
+      ];
+      const before = new Map(
+        recordFiles.map((file) => [file, readFileSync(path.join(recordDir, file), "utf8")]),
+      );
+      const production = validateRecordRetirement({ repoRoot: REPO_ROOT, recordDir });
+      expect(production, "the shipped validator returns zero findings with the row minted live").toEqual([]);
+      for (const file of recordFiles) {
+        expect(
+          readFileSync(path.join(recordDir, file), "utf8"),
+          `${file}: the production run is read-only`,
+        ).toBe(before.get(file));
+      }
+    },
+    60_000,
+  );
+
+  it("red direction — a second row with the same name reddens the exactly-once clause", () => {
+    const recordDir = plantedTaughtRegistry((xml) =>
+      xml.replace(
+        "</Registry>",
+        `  <Row name="C-TAUGHT-RULES" status="live" kind="chartered">\n    <Number></Number>\n    <Charter>duplicate</Charter>\n    <Pays>F210</Pays>\n    <StatusText>Ordered</StatusText>\n  </Row>\n</Registry>`,
+      ),
+    );
+    expect(() => expectTaughtRowInvariants(walkTaughtRow(recordDir))).toThrow(/exactly once across the registry layers/);
+  });
+
+  it("red direction — a Pays token outside the six reddens the exact-set clause", () => {
+    const recordDir = plantedTaughtRegistry((xml) =>
+      xml.replace("<Pays>F210 F196 F199 F188 F233 F234</Pays>", "<Pays>F210 F196 F199 F188 F233 F234 F205</Pays>"),
+    );
+    expect(() => expectTaughtRowInvariants(walkTaughtRow(recordDir))).toThrow(/exactly the six tokens/);
+  });
+
+  it("red direction — a StatusText naming a token outside Pays reddens the row's prose law", () => {
+    const recordDir = plantedTaughtRegistry((xml) =>
+      xml.replace(
+        "Ordered; the row is minted live by the plan and paid by the close move.",
+        "Ordered. Closed with F205.",
+      ),
+    );
+    expect(() => expectTaughtRowInvariants(walkTaughtRow(recordDir))).toThrow(/no F token|Closed-with/);
+  });
+
+  it("red direction — a duplicated carrier reddens the at-most-once clause", () => {
+    const root = isolatedRoot();
+    const recordDir = path.join(root, RECORD_REL);
+    mkdirSync(recordDir, { recursive: true });
+    for (const file of ["registry.xml", "registry-retired.xml", "findings.xml", "findings-retired.xml", "decisions.xml"]) {
+      copyFileSync(path.join(REPO_ROOT, RECORD_REL, file), path.join(recordDir, file));
+    }
+    const live = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+    writeFileSync(
+      path.join(recordDir, "findings.xml"),
+      live.replace(
+        "</Findings>",
+        `  <Finding id="f210-duplicate" token="F210" status="live">\n    <Title>### F210 duplicate</Title>\n    <Body>duplicated carrier</Body>\n  </Finding>\n</Findings>`,
+      ),
+    );
+    const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      return [...walkNodes(parsed.root!)].filter((node) => node.tag === "Finding" && node.attributes.token === "F210");
+    });
+    expect(carriers.length, "the duplicated copy carries F210 twice").toBe(2);
+    expect(() => expectTaughtCarrierRelations(recordDir)).toThrow(/at most one Finding element carries the token/);
+  });
+
+  it(
+    "red direction — a minted token missing from the extended baseline reddens the payer-derivation baseline; the shipped extension with all six greens over the same derivation (generous timeout)",
+    () => {
+      const isolated = isolatedRoot();
+      mkdirSync(path.join(isolated, ".ngrace", "changes", "archive", "C-TAUGHT-RULES"), { recursive: true });
+      const derived = derivePayerMap(isolated, [
+        {
+          name: "C-TAUGHT-RULES",
+          pays: "F210 F196 F199 F188 F233 F234",
+          statusText: "Ordered; the row is minted live by the plan and paid by the close move.",
+        },
+      ]);
+      expect(
+        [...derived.keys()],
+        "the derivation over the isolated archive root mints exactly the row's six tokens in order",
+      ).toEqual(["F210", "F196", "F199", "F188", "F233", "F234"]);
+      const gapped: Record<string, string | undefined> = {
+        F210: "C-TAUGHT-RULES",
+        F196: "C-TAUGHT-RULES",
+        F188: "C-TAUGHT-RULES",
+        F233: "C-TAUGHT-RULES",
+        F234: "C-TAUGHT-RULES",
+        F199: undefined,
+      };
+      expect(() => {
+        for (const [token] of derived) {
+          expect(derived.get(token), token).toBe(gapped[token]);
+        }
+      }).toThrow();
+    },
+    60_000,
+  );
+});
