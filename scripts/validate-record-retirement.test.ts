@@ -7,6 +7,7 @@ import { childNodes, childText, computeElementSpans, parseGraceXmlArtifact, walk
 import {
   INDEX_HEADROOM_ENTRIES,
   RULINGS_PROVENANCE_CEILING,
+  closedWithTokens,
   derivePayerMap,
   listArchiveNames,
   liveH2DecisionLineCounts,
@@ -2057,6 +2058,13 @@ ${names
       // directory); the extension is consulted only for tokens the derivation
       // actually mints, so the test stays green with the row live and in the
       // applied-archive state.
+      // C-FLUSH-AND-UNPIN minted this row live by its own plan, so the close's
+      // move derives F232 from the row's Pays cell once the bundle's directory
+      // is in the archive. The derivation is first-row-wins, so a paid token's
+      // payer never changes — a paid state is durable, a live one is not — and
+      // the extension is consulted only for tokens the derivation actually
+      // mints, so the walk is inert (green) with the row live and green in the
+      // applied-archive state.
       const bundleMinted: Record<string, string> = {
         F205: "C-INDEX-METRIC-2",
         F216: "C-ROOT-WINDOW",
@@ -2065,6 +2073,7 @@ ${names
         F190: "C-ROOT-WINDOW",
         F225: "C-ROOT-WINDOW",
         F226: "C-ROOT-WINDOW",
+        F232: "C-FLUSH-AND-UNPIN",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
@@ -2353,6 +2362,232 @@ ${names
           archiveNames.has(paidBy!),
           `${token}: PaidBy names a real archive directory`,
         ).toBe(true);
+      }
+    },
+    60_000,
+  );
+
+  it(
+    "C-FLUSH-AND-UNPIN flush invariant: every flushed id is exactly once across the findings pair with its status agreeing with the holding file and its index Entry layer and genre agreeing",
+    () => {
+      // The walk over both whole trees is the duplicate check: a second
+      // id anywhere in either tree makes the walk return two. No fixed
+      // expectation of which file holds a flushed id — the relation
+      // survives the record's own payment cycle by construction.
+      const flushed = ["f225", "f226", "f227", "f228", "f229", "f231", "f232"];
+      const liveParsed = parseGraceXmlArtifact(
+        "findings.xml",
+        readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings.xml"), "utf8"),
+      );
+      const retiredParsed = parseGraceXmlArtifact(
+        "findings-retired.xml",
+        readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings-retired.xml"), "utf8"),
+      );
+      const indexParsed = parseGraceXmlArtifact(
+        "decisions.xml",
+        readFileSync(path.join(REPO_ROOT, RECORD_REL, "decisions.xml"), "utf8"),
+      );
+      expect(liveParsed.root, "findings.xml parses").not.toBeNull();
+      expect(retiredParsed.root, "findings-retired.xml parses").not.toBeNull();
+      expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+      for (const id of flushed) {
+        const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+          const parsed = file === "findings.xml" ? liveParsed : retiredParsed;
+          return [...walkNodes(parsed.root!)]
+            .filter((node) => node.tag === "Finding" && node.attributes.id === id)
+            .map((node) => ({ file, node }));
+        });
+        expect(
+          carriers.length,
+          `${id}: exactly one Finding element across the findings pair (got ${carriers.length})`,
+        ).toBe(1);
+        const { file, node } = carriers[0]!;
+        const expectedStatus = file === "findings.xml" ? "live" : "retired";
+        expect(
+          node.attributes.status,
+          `${id}: the carrier's status agrees with the holding file (${file})`,
+        ).toBe(expectedStatus);
+        expect(node.attributes.token, `${id}: the carrier's token agrees with the id`).toBe(`F${id.slice(1)}`);
+        const entries = [...walkNodes(indexParsed.root!)].filter(
+          (entry) => entry.tag === "Entry" && entry.attributes.id === id,
+        );
+        expect(entries.length, `${id}: exactly one Entry for the id (duplicate would walk two)`).toBe(1);
+        expect(entries[0]!.attributes.genre, `${id}: the Entry's genre agrees`).toBe("finding");
+        expect(
+          entries[0]!.attributes.layer,
+          `${id}: the Entry's layer agrees with the holding file`,
+        ).toBe(expectedStatus);
+      }
+      // The read-back arithmetic, exactly as the shipped roots-invariant
+      // test uses the exported newlineCount: base equals the whole-file
+      // line count read back, and base + headroom = ceiling.
+      const findingsText = readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings.xml"), "utf8");
+      const findingsRoot = parseGraceXmlArtifact("findings.xml", findingsText).root!;
+      const base = Number(findingsRoot.attributes.base);
+      const headroom = Number(findingsRoot.attributes.headroom);
+      const ceiling = Number(findingsRoot.attributes.ceiling);
+      expect(base, "findings.xml: base equals the file's newlineCount").toBe(newlineCount(findingsText));
+      expect(base + headroom, "findings.xml: base + headroom = ceiling").toBe(ceiling);
+    },
+    60_000,
+  );
+
+  it(
+    "C-FLUSH-AND-UNPIN payment invariant: the row is exactly once across the registry layers with its derived payment set exactly F232, and an F232 carrier, when one exists, is a single element consistent with its holding file",
+    () => {
+      const tokenRe = /\bF\d+(?:\.\d+)*\b/g;
+      // Exactly once across both registry layers (the walk over both whole
+      // trees is the duplicate check), kind="chartered", with the row's
+      // status agreeing with the holding file — no fixed expectation of
+      // which file that is; the relation survives the close's move.
+      const rows: Array<{ file: string; node: ReturnType<typeof parseGraceXmlArtifact>["root"] extends (infer T) | null ? T : never }> = [];
+      for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+        const parsed = parseGraceXmlArtifact(
+          file,
+          readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
+        );
+        expect(parsed.root, `${file} parses`).not.toBeNull();
+        for (const row of [...walkNodes(parsed.root!)].filter(
+          (node) => node.tag === "Row" && node.attributes.name === "C-FLUSH-AND-UNPIN",
+        )) {
+          rows.push({ file, node: row });
+        }
+      }
+      expect(
+        rows.length,
+        `exactly one Row named C-FLUSH-AND-UNPIN across the registry layers (got ${rows.length})`,
+      ).toBe(1);
+      const row = rows[0]!;
+      expect(row.node.attributes.kind, `the row is kind="chartered"`).toBe("chartered");
+      expect(
+        row.node.attributes.status,
+        `the row's status agrees with the holding file (${row.file})`,
+      ).toBe(row.file === "registry.xml" ? "live" : "retired");
+      // The Pays cell names exactly F232 and no other token.
+      const pays = childText(row.node, "Pays") ?? "";
+      const paysTokens = [...new Set(pays.match(tokenRe) ?? [])];
+      expect(paysTokens, "the row's Pays cell names exactly F232 and no other token").toEqual(["F232"]);
+      // The StatusText carries no F token at all and mints nothing through
+      // the Closed-with channel — the shipped closedWithTokens returns the
+      // empty list over the delivered text.
+      const statusText = childText(row.node, "StatusText") ?? "";
+      expect(
+        statusText.match(tokenRe) ?? [],
+        `the row's StatusText carries no F token at all`,
+      ).toEqual([]);
+      expect(closedWithTokens(statusText), "closedWithTokens over the delivered StatusText is empty").toEqual([]);
+      // The isolated fixture mirrors the real membership the claim needs:
+      // an archive root containing only the row's name, with the row's own
+      // Pays and StatusText — the derivation mints exactly F232 for this
+      // payer. The production archive is never written by any test.
+      const isolatedRepo = isolatedRoot();
+      mkdirSync(path.join(isolatedRepo, ".ngrace", "changes", "archive", "C-FLUSH-AND-UNPIN"), { recursive: true });
+      const isolatedMap = derivePayerMap(isolatedRepo, [
+        { name: "C-FLUSH-AND-UNPIN", pays, statusText },
+      ]);
+      expect([...isolatedMap.entries()], "the isolated derivation mints exactly F232 for C-FLUSH-AND-UNPIN").toEqual([
+        ["F232", "C-FLUSH-AND-UNPIN"],
+      ]);
+      // The real derivation over the real archive and both registry layers:
+      // F232, if minted at all, is minted by C-FLUSH-AND-UNPIN — green
+      // with the row live (nothing minted) and in the applied-archive
+      // state (the close's mint); the row is this payer's only mint.
+      const realRows: Array<{ name: string; pays: string; statusText: string }> = [];
+      for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+        const parsed = parseGraceXmlArtifact(
+          file,
+          readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
+        );
+        for (const candidate of parsed.root!.children.filter((child) => child.tag === "Row")) {
+          const kind = candidate.attributes.kind ?? "chartered";
+          if (kind !== "chartered" && kind !== "historical") {
+            continue;
+          }
+          realRows.push({
+            name: candidate.attributes.name ?? "",
+            pays: childText(candidate, "Pays") ?? "",
+            statusText: childText(candidate, "StatusText") ?? "",
+          });
+        }
+      }
+      const derived = derivePayerMap(REPO_ROOT, realRows);
+      const payer = derived.get("F232");
+      if (payer !== undefined) {
+        expect(payer, `F232: minted, if at all, by C-FLUSH-AND-UNPIN`).toBe("C-FLUSH-AND-UNPIN");
+      }
+      for (const [minted, mintPayer] of derived) {
+        if (mintPayer === "C-FLUSH-AND-UNPIN") {
+          expect(minted, `every C-FLUSH-AND-UNPIN mint is F232`).toBe("F232");
+        }
+      }
+      // An F232 carrier, when one exists, exists at most once across the
+      // findings pair; a carrier held by the retired file is status="retired"
+      // with a PaidBy C-FLUSH-AND-UNPIN child and its index Entry layer
+      // agreeing with the holding file. The live pre-close case stays green —
+      // the clause pins nothing live and asserts nothing absent.
+      const indexParsed = parseGraceXmlArtifact(
+        "decisions.xml",
+        readFileSync(path.join(REPO_ROOT, RECORD_REL, "decisions.xml"), "utf8"),
+      );
+      expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+      const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+        const parsed = parseGraceXmlArtifact(
+          file,
+          readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
+        );
+        return [...walkNodes(parsed.root!)]
+          .filter((node) => node.tag === "Finding" && node.attributes.token === "F232")
+          .map((node) => ({ file, node }));
+      });
+      expect(
+        carriers.length,
+        `at most one Finding element carries F232 across the two findings files (got ${carriers.length})`,
+      ).toBeLessThanOrEqual(1);
+      for (const carrier of carriers) {
+        const expectedStatus = carrier.file === "findings.xml" ? "live" : "retired";
+        expect(
+          carrier.node.attributes.status,
+          `F232: the carrier's status agrees with the holding file (${carrier.file})`,
+        ).toBe(expectedStatus);
+        if (carrier.file === "findings-retired.xml") {
+          expect(
+            childText(carrier.node, "PaidBy"),
+            `F232: a retired carrier carries PaidBy C-FLUSH-AND-UNPIN`,
+          ).toBe("C-FLUSH-AND-UNPIN");
+        }
+        const entries = [...walkNodes(indexParsed.root!)].filter(
+          (node) => node.tag === "Entry" && node.attributes.id === carrier.node.attributes.id,
+        );
+        expect(entries.length, `F232: the index carries exactly one Entry for the carrier's id`).toBe(1);
+        expect(
+          entries[0]!.attributes.layer,
+          `F232: the carrier's index Entry layer agrees with the holding file`,
+        ).toBe(expectedStatus);
+      }
+      // A read-only production run of the shipped validator: zero findings
+      // on the production record, and every record byte unchanged by the call.
+      const recordFiles = [
+        "findings.xml",
+        "findings-retired.xml",
+        "rulings.xml",
+        "rulings-retired.xml",
+        "registry.xml",
+        "registry-retired.xml",
+        "decisions.xml",
+      ];
+      const before = new Map(
+        recordFiles.map((file) => [file, readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8")]),
+      );
+      const production = validateRecordRetirement({
+        repoRoot: REPO_ROOT,
+        recordDir: path.join(REPO_ROOT, RECORD_REL),
+      });
+      expect(production, "the shipped validator returns zero findings on the production record").toEqual([]);
+      for (const file of recordFiles) {
+        expect(
+          readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
+          `${file}: the production run is read-only`,
+        ).toBe(before.get(file));
       }
     },
     60_000,
@@ -2881,7 +3116,7 @@ body of the decision.
   );
 
   it(
-    "C-ROOT-WINDOW payment invariant: the derived payer map's C-ROOT-WINDOW entries, when any exist, are exactly within the row's six tokens, and zero Finding elements carry F225 or F226 in either findings file",
+    "C-ROOT-WINDOW payment invariant: the derived payer map's C-ROOT-WINDOW entries, when any exist, are exactly within the row's six tokens, and each F225/F226 carrier, when one exists, is a single retired C-ROOT-WINDOW-stamped Finding whose index Entry layer agrees with its holding file",
     () => {
       const recordDir = path.join(REPO_ROOT, RECORD_REL);
       const productionRows: Array<{ name: string; pays: string; statusText: string }> = [];
@@ -2916,14 +3151,44 @@ body of the decision.
           expect(six, `${token}: every C-ROOT-WINDOW mint is within the row's six tokens`).toContain(token);
         }
       }
-      // the pre-payment waits for the next flush: no Finding element in
-      // either findings file carries the staged tokens
-      for (const file of ["findings.xml", "findings-retired.xml"]) {
-        const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
-        const carriers = [...walkNodes(parsed.root!)].filter(
-          (node) => node.tag === "Finding" && (node.attributes.token === "F225" || node.attributes.token === "F226"),
-        );
-        expect(carriers.length, `${file}: zero Finding elements carry F225 or F226 — the staged entries are pre-paid, not flushed`).toBe(0);
+      // The payment-invariant relation the record's own cycle keeps true:
+      // a carrier of F225 or F226, when one exists, exists at most once
+      // across the two findings files, is held by the retired file, is
+      // status="retired", carries PaidBy C-ROOT-WINDOW, and its index
+      // Entry layer agrees with the holding file; the absent case stays
+      // green — the relation survives the flush and every later move.
+      const indexForCarriers = parseGraceXmlArtifact(
+        "decisions.xml",
+        readFileSync(path.join(recordDir, "decisions.xml"), "utf8"),
+      );
+      for (const token of ["F225", "F226"]) {
+        const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+          const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+          return [...walkNodes(parsed.root!)]
+            .filter((node) => node.tag === "Finding" && node.attributes.token === token)
+            .map((node) => ({ file, node }));
+        });
+        expect(
+          carriers.length,
+          `${token}: at most one Finding element carries the token across the two findings files (got ${carriers.length})`,
+        ).toBeLessThanOrEqual(1);
+        for (const carrier of carriers) {
+          expect(carrier.file, `${token}: a carrier is held by the retired file`).toBe("findings-retired.xml");
+          expect(carrier.node.attributes.status, `${token}: a carrier is status="retired"`).toBe("retired");
+          expect(
+            childText(carrier.node, "PaidBy"),
+            `${token}: a carrier carries PaidBy C-ROOT-WINDOW`,
+          ).toBe("C-ROOT-WINDOW");
+          const entries = [...walkNodes(indexForCarriers.root!)].filter(
+            (node) => node.tag === "Entry" && node.attributes.id === carrier.node.attributes.id,
+          );
+          expect(entries.length, `${token}: the index carries exactly one Entry for the carrier's id`).toBe(1);
+          const holdingLayer = carrier.file === "findings.xml" ? "live" : "retired";
+          expect(
+            entries[0]!.attributes.layer,
+            `${token}: the carrier's index Entry layer agrees with the holding file`,
+          ).toBe(holdingLayer);
+        }
       }
       // the discriminating direction: the mechanism is not vacuously empty —
       // a planted archived row over an isolated archive root mints its token

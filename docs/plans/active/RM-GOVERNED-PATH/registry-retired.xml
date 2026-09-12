@@ -278,4 +278,10 @@
     <Pays>F216 F182 F193 F190 F225 F226</Pays>
     <StatusText>**Ordered.** Ratified 2026-09-11 by the maintainer. The row is minted live by the plan and paid by the close's move.</StatusText>
   </Row>
+  <Row name="C-FLUSH-AND-UNPIN" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Name.** `C-FLUSH-AND-UNPIN`. **Searched before minting**, 2026-09-11 at `8a1a3cd`, over `.ngrace/changes/archive/` and both registry layers for any prior row carrying the name: **zero rows in either layer**. No prior name covers this ground. **Charter.** The staged-record flush bundle: two waves land the staged findings the record's own rules force into the live record, the first wave's move retires the two already-minted entries under the shipped writer's stamp, the expired zero-carriers pin in the payment invariant is rewritten to the at-most-once retired-carrier relation the record's own payment cycle keeps true, five more entries land inside the findings window, and this row is minted live so the close's own move can pay the suite-repair finding the rewritten invariant names.</Charter>
+    <Pays>[F232](#f232).</Pays>
+    <StatusText>**Delivered.** Minted live by the bundle's own plan so the close's own move pays the bundle's repair finding under the archive event this row names; the `Pays` cell above is the row's whole derived payment set.</StatusText>
+  </Row>
 </Registry>
