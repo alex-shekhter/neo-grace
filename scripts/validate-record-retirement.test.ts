@@ -3750,13 +3750,17 @@ function expectTaughtCarrierRelations(recordDir: string): void {
 }
 
 /** Isolated copy of the two registry layers, optionally mutated, never the production record. */
-function plantedTaughtRegistry(mutateLive?: (xml: string) => string): string {
+// The mutation lands on whichever layer holds the row (F229's state-independent
+// form): the row is live before the close and retired after it, and a red
+// direction pinned to registry.xml stops landing the moment the close moves it.
+function plantedTaughtRegistry(mutateHolder?: (xml: string) => string): string {
   const root = isolatedRoot();
   const recordDir = path.join(root, RECORD_REL);
   mkdirSync(recordDir, { recursive: true });
   for (const file of ["registry.xml", "registry-retired.xml"]) {
     const source = readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8");
-    writeFileSync(path.join(recordDir, file), file === "registry.xml" ? (mutateLive?.(source) ?? source) : source);
+    const holdsRow = source.includes('name="C-TAUGHT-RULES"');
+    writeFileSync(path.join(recordDir, file), holdsRow ? (mutateHolder?.(source) ?? source) : source);
   }
   return recordDir;
 }

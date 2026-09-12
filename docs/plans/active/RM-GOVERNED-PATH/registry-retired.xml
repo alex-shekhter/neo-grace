@@ -284,4 +284,10 @@
     <Pays>[F232](#f232).</Pays>
     <StatusText>**Delivered.** Minted live by the bundle's own plan so the close's own move pays the bundle's repair finding under the archive event this row names; the `Pays` cell above is the row's whole derived payment set.</StatusText>
   </Row>
+  <Row name="C-TAUGHT-RULES" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>Searched before minting, 2026-09-11 at 3f8a5ca: zero prior rows in either registry layer and zero prior archive directories carrying the name — searched over `.ngrace/changes/archive/` (89 directories at the search) and both registry layers by listing and parse, not by spot-check.</Charter>
+    <Pays>F210 F196 F199 F188 F233 F234</Pays>
+    <StatusText>Ordered; the row is minted live by the plan and paid by the close move.</StatusText>
+  </Row>
 </Registry>
