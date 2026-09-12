@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-APPLY-VERB>
     <Summary>
       Add a top-level ngrace apply verb that

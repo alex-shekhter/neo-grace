@@ -1,4 +1,4 @@
-<Findings base="7803" headroom="43" ceiling="7846">
+<Findings base="7746" headroom="100" ceiling="7846">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7521,63 +7521,6 @@ is no observable behaviour to construct a fixture around, which is also why it i
 
 Owner: the same chartered bundle as [F222](#f222) — same file, same functions, and no reason to open
 the file twice.
-</Body>
-  </Finding>
-  <Finding id="f224" token="F224" status="live">
-    <Title>### F224 — the lifecycle's two most consequential transitions are hand-edits, and the tool ships a lint rule for the half-done state instead of a verb that cannot half-do it. **[verified]**</Title>
-    <Body>
-`ngrace gate approve` writes `draft` to `approved` and fingerprints those bytes. `ngrace supersede`
-writes `superseded` onto spec **and** plan and renames the bundle directory, rolling both writes back
-on failure (`src/gates/ledger.ts:1449`-1470). Between them sits the transition neither owns: nothing
-in the CLI writes `applied`, and nothing moves an applied bundle to `archive/`.
-
-**Measured 2026-09-10 at `8bfa3b7`.** The complete verb surface is `context cursor doctor file gate
-graph lint module plan review scaffold spec status supersede verification` (`ngrace --help`). Every
-occurrence of the token `applied` in non-test source under `src/` and `scripts/` is a **read** — the
-status checks in `lint/core.ts`, `review/core.ts`, `grace-status.ts`, `artifact/scope.ts`,
-`artifact/grammar.ts`, `gates/ledger.ts:468` — and not one is a write. `gate` states the refusal in
-its own usage text: *&quot;Does not set status=applied and does not move bundles (invariant 8)&quot;*
-(`src/gates/command.ts:492`). The shipped procedure prescribes the hand-edit:
-`skills/ngrace/ngrace-execute/SKILL.md:42` — *&quot;The gate does not itself author `status` or archive
-paths&quot;* — and `:43` — *&quot;Only after both gates permit, set spec and plan to `applied` and archive the
-complete bundle.&quot;*
-
-**What the hand-edit costs, item by item.** No fingerprint is taken of the applied bytes, so the one
-state the record treats as final is the only one never bound to its content. No `Decision` records
-that the write happened, so `run-ledger.xml` shows the gates permitting and nothing performing. No
-instrument checks that the write landed on the root element. And the status write and the directory
-move are separate acts with nothing joining them, so an interruption between them leaves a bundle
-applied in `active/` or archived while still `approved`.
-
-**The tool already expects this to go wrong.** `src/lint/core.ts:161` ships
-`change.applied-plan-missing` — *&quot;An applied archived bundle requires an applied plan.xml&quot;* — a
-diagnostic whose only cause is a hand-edit that reached the spec and stopped. A verb writing both
-artifacts in one call cannot produce that state at all.
-
-**Driven this session, the near-miss that makes it concrete.** In `C-FLUSH-AND-PAY-3`'s plan the
-token `status=&quot;applied&quot;` occurs **three** times: once as the root attribute and twice inside prose
-describing the close ceremony. A substitution over the file corrupts two sentences instead of
-transitioning the artifact. The close survived only because the edit was pinned to line 1 and then
-verified by position — which is a human doing an instrument's job, and the same category error as
-[F216](#f216), where the record's root attributes are hand-maintained on every write and the only
-tool that rewrites them refuses to run unless something moves.
-
-**What this overturns, named.** Not `invariant 8`: its requirement is that a state-changing write
-needs an explicit trigger rather than an implicit one, and `gate approve` already writes status and
-fingerprints under that same invariant. A dedicated verb *is* an explicit trigger; what the invariant
-forbids is `gate apply` mutating as a side effect of evaluating a gate, and a separate verb preserves
-that separation exactly. What it does overturn is the procedural sentence in `ngrace-execute`
-(`:42`-43) that assigns the write to the operator, and that sentence has no recorded argument behind
-it — searched at this commit: `invariant 8` appears in `src/grace-cursor.ts:863`,
-`src/gates/command.ts:492` and the `RM-AGENT-RELIABILITY` plan, and states only the explicit-trigger
-requirement.
-
-Owner: a chartered bundle, governed by [D37](#d37), which rules that status transitions belong to
-`ngrace` because that is where the sanctioned path is instrumented — `ngrace apply --change C-*`, writing
-`applied` to spec and plan after the apply gate permits, fingerprinting those bytes and recording the write in `run-ledger.xml`; and the
-archive move performed with `supersede`'s existing write-then-rename-with-rollback shape rather than
-by hand. Neighbour to [F216](#f216) (hand-maintained XML metadata with no owning verb) and
-[F214](#f214) (the ledger records that a command ran, never who ran it).
 </Body>
   </Finding>
   <Finding id="f227" token="F227" status="live">
