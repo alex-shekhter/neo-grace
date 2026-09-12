@@ -2085,6 +2085,12 @@ ${names
         F188: "C-TAUGHT-RULES",
         F233: "C-TAUGHT-RULES",
         F234: "C-TAUGHT-RULES",
+        // C-APPLY-VERB T-006: the chartered row's one minted token. The
+        // extension is consulted only for tokens the derivation actually
+        // mints, so the walk is green with the row live (the row's name is
+        // not an archive directory while the bundle is active) and green in
+        // the applied-archive state (the close's mint).
+        F224: "C-APPLY-VERB",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
@@ -4097,4 +4103,124 @@ describe("C-TAUGHT-RULES row", () => {
     },
     60_000,
   );
+});
+
+/**
+ * C-APPLY-VERB row invariant (AC-RECORD-ROW). The walk reads both registry
+ * layers at test time and expects the row exactly once — no fixed expectation
+ * of which file holds it, so the relation survives the close's own move.
+ */
+function cApplyVerbRowViolations(layers: Array<{ file: string; xml: string }>): string[] {
+  const holdingStatus = (file: string): "live" | "retired" => (file === "registry.xml" ? "live" : "retired");
+  const rows: Array<{ file: string; status: string; kind: string; pays: string; charter: string; statusText: string }> = [];
+  for (const { file, xml } of layers) {
+    const parsed = parseGraceXmlArtifact(file, xml);
+    if (!parsed.root) return [`${file}: unparsable`];
+    for (const row of parsed.root.children.filter((child) => child.tag === "Row")) {
+      if ((row.attributes.name ?? "") !== "C-APPLY-VERB") continue;
+      rows.push({
+        file,
+        status: row.attributes.status ?? "",
+        kind: row.attributes.kind ?? "",
+        pays: childText(row, "Pays") ?? "",
+        charter: childText(row, "Charter") ?? "",
+        statusText: childText(row, "StatusText") ?? "",
+      });
+    }
+  }
+  const violations: string[] = [];
+  if (rows.length !== 1) {
+    violations.push(`expected exactly one C-APPLY-VERB row across both registry layers, found ${rows.length}`);
+    return violations;
+  }
+  const row = rows[0]!;
+  if (row.status !== holdingStatus(row.file)) {
+    violations.push(`${row.file}: row status ${row.status} disagrees with the holding file`);
+  }
+  if (row.kind !== "chartered") {
+    violations.push(`${row.file}: row kind ${row.kind} is not chartered`);
+  }
+  const paysTokens = [...row.pays.matchAll(/F\d+(?:\.\d+)*/g)].map((match) => match[0]);
+  if (paysTokens.join(",") !== "F224") {
+    violations.push(`${row.file}: Pays names ${paysTokens.join(", ") || "(nothing)"}, not exactly F224`);
+  }
+  if (!/searched before minting/i.test(row.charter)) {
+    violations.push(`${row.file}: Charter lacks the searched-before-minting statement`);
+  }
+  if (/F\d+/.test(row.charter)) {
+    violations.push(`${row.file}: Charter names an F-token`);
+  }
+  if (/F\d+/.test(row.statusText)) {
+    violations.push(`${row.file}: StatusText names an F-token`);
+  }
+  if (/Closed with/i.test(row.statusText)) {
+    violations.push(`${row.file}: StatusText contains a Closed-with sentence`);
+  }
+  return violations;
+}
+
+function parseRegistryLayers(recordDir: string): Array<{ file: string; xml: string }> {
+  return ["registry.xml", "registry-retired.xml"].map((file) => ({
+    file,
+    xml: readFileSync(path.join(recordDir, file), "utf8"),
+  }));
+}
+
+describe("C-APPLY-VERB T-006 record-row", () => {
+  it(
+    "the chartered row exists exactly once across both registry layers with its status agreeing with the holding file and its payment cells naming exactly F224",
+    () => {
+      const violations = cApplyVerbRowViolations(parseRegistryLayers(path.join(REPO_ROOT, RECORD_REL)));
+      expect(violations, violations.join("; ")).toEqual([]);
+    },
+    60_000,
+  );
+});
+
+describe("C-APPLY-VERB T-006 record-row red direction", () => {
+  it("a second row with the same name reddens the walk on a mutated copy of whichever layer holds the row", () => {
+    const layers = parseRegistryLayers(path.join(REPO_ROOT, RECORD_REL));
+    const holding = layers.find(({ xml }) => /<Row name="C-APPLY-VERB"/.test(xml));
+    expect(holding, "the holding layer is found at test time").toBeDefined();
+    const status = holding!.file === "registry.xml" ? "live" : "retired";
+    const mutatedXml = holding!.xml.replace(
+      "</Registry>",
+      `  <Row name="C-APPLY-VERB" status="${status}" kind="chartered"><Number></Number><Charter>Probe copy only.</Charter><Pays>F224</Pays><StatusText>Probe copy only.</StatusText></Row>\n</Registry>`,
+    );
+    const violations = cApplyVerbRowViolations([
+      { file: holding!.file, xml: mutatedXml },
+      ...layers.filter((layer) => layer.file !== holding!.file),
+    ]);
+    expect(violations.length, violations.join("; ")).toBeGreaterThan(0);
+    expect(violations.join("; ")).toMatch(/exactly one/);
+  });
+
+  it("a Pays token other than F224 reddens the walk on a mutated copy", () => {
+    const layers = parseRegistryLayers(path.join(REPO_ROOT, RECORD_REL));
+    const holding = layers.find(({ xml }) => /<Row name="C-APPLY-VERB"/.test(xml));
+    expect(holding).toBeDefined();
+    const mutatedXml = holding!.xml.replace("<Pays>F224</Pays>", "<Pays>F225</Pays>");
+    expect(mutatedXml, "the mutation landed").not.toBe(holding!.xml);
+    const violations = cApplyVerbRowViolations([
+      { file: holding!.file, xml: mutatedXml },
+      ...layers.filter((layer) => layer.file !== holding!.file),
+    ]);
+    expect(violations.join("; ")).toMatch(/not exactly F224/);
+  });
+
+  it("a StatusText naming a token outside Pays reddens the walk on a mutated copy", () => {
+    const layers = parseRegistryLayers(path.join(REPO_ROOT, RECORD_REL));
+    const holding = layers.find(({ xml }) => /<Row name="C-APPLY-VERB"/.test(xml));
+    expect(holding).toBeDefined();
+    const mutatedXml = holding!.xml.replace(
+      /(<Row name="C-APPLY-VERB"[\s\S]*?)<StatusText>[^<]*<\/StatusText>/,
+      "$1<StatusText>Ordered; the row is minted live by the plan and paid by the close's move, and a probe names F210 here.</StatusText>",
+    );
+    expect(mutatedXml, "the mutation landed").not.toBe(holding!.xml);
+    const violations = cApplyVerbRowViolations([
+      { file: holding!.file, xml: mutatedXml },
+      ...layers.filter((layer) => layer.file !== holding!.file),
+    ]);
+    expect(violations.join("; ")).toMatch(/StatusText names an F-token/);
+  });
 });

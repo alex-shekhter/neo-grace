@@ -152,6 +152,7 @@ Whole-segment ** matches zero or more path segments, so web/js/**/*.js matches w
 - approve
 - apply
 - archive
+- applied
 - permit
 - refuse
 ## clarification

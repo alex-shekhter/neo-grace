@@ -7,6 +7,7 @@ import { renderUsage, type ArgsDef } from "citty";
 import { writeMinimalNgraceProject } from "../artifact/test-fixtures";
 
 import { contextCommand } from "../grace-context";
+import { applyCommand } from "../grace-apply";
 import { cursorCommand } from "../grace-cursor";
 import { doctorCommand } from "../grace-doctor";
 import { fileCommand } from "../grace-file";
@@ -768,7 +769,7 @@ describe("listBooleanFlags live inventory (anti-F10)", () => {
 
     // Re-measured at execute via this walker. Plan-authoring HEAD 4bf483c: 24.
     // F23: exact pin, not a lower bound. F12.2: this run's number is the source of truth.
-    expect(sites.length).toBe(26);
+    expect(sites.length).toBe(28);
 
     // review and doctor included in the walk (0 booleans today).
     expect(sites.some((s) => s.path.startsWith("review"))).toBe(false);
@@ -839,6 +840,7 @@ function liveCommandRoots() {
     { name: "cursor", command: cursorCommand },
     { name: "status", command: statusCommand },
     { name: "supersede", command: supersedeCommand },
+    { name: "apply", command: applyCommand },
     { name: "lint", command: lintCommand },
     { name: "module", command: moduleCommand },
     { name: "file", command: fileCommand },
@@ -993,7 +995,7 @@ describe("AC-CLASS-COVERAGE (T-003)", () => {
     const roots = liveCommandRoots();
     const sites = listBooleanFlags([...roots]);
     // Re-measure at execute (F12.2). Plan authoring: 24. F23: exact pin.
-    expect(sites.length).toBe(26);
+    expect(sites.length).toBe(28);
 
     for (const site of sites) {
       const node = commandAtPath(roots as never, site.path);
@@ -1006,7 +1008,7 @@ describe("AC-CLASS-COVERAGE (T-003)", () => {
 
   it("pure refuse covers every collected live flag name for space true and space false", () => {
     const sites = listBooleanFlags([...liveCommandRoots()]);
-    expect(sites.length).toBe(26);
+    expect(sites.length).toBe(28);
     const names = [...new Set(sites.map((s) => s.name))];
     for (const name of names) {
       const long = `--${name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/_/g, "-").toLowerCase()}`;
@@ -1379,5 +1381,57 @@ describe("C-BOUND-VERDICT T-007 README bound form", () => {
       return /\bverdict\b/.test(cell) && /\[?--ack-finding(?:\s|>|\]|\||$)/.test(cell);
     });
     expect(verdictRow).toBeDefined();
+  });
+});
+
+describe("C-APPLY-VERB T-001", () => {
+  it("root-command: liveCommandRoots includes apply and grace.ts statically imports it", () => {
+    const names = liveCommandRoots().map((root) => root.name);
+    expect(names).toContain("apply");
+    const graceSrc = readFileSync(path.resolve(import.meta.dir, "../grace.ts"), "utf8");
+    expect(graceSrc).toContain('from "./grace-apply"');
+    const generateSrc = readFileSync(path.resolve(import.meta.dir, "../grace-generate.ts"), "utf8");
+    expect(generateSrc).not.toContain("applyCommand");
+    // Registered at top level in grace.ts subCommands, not nested under gate.
+    // gate apply stays an evaluation gate (GATE_SUBCOMMANDS unchanged).
+    const registered = /subCommands: \{[\s\S]*?\n    apply: applyCommand,/.test(graceSrc);
+    expect(registered).toBe(true);
+    // Branded command root carries the boolean space-form guard.
+    const applyNode = commandAtPath(liveCommandRoots() as never, "apply");
+    expect((applyNode as Record<symbol, unknown>)[BOOLEAN_SPACE_GUARD_BRAND]).toBe(true);
+  });
+
+  it("readme-row: CLI Overview contains an ngrace apply row that listLiveInvocations accepts", () => {
+    const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");
+    const afterHeading = readme.split("## CLI Overview\n")[1];
+    expect(afterHeading).toBeDefined();
+    const overview = afterHeading!.split(/^## /m)[0] ?? "";
+    const rows = overview.split("\n").filter((line) => line.startsWith("| `ngrace apply "));
+    expect(rows.length).toBeGreaterThan(0);
+    const applyRow = rows[0]!;
+    // The row says the verb writes applied and moves the bundle after both gates permit.
+    expect(applyRow).toMatch(/applied/);
+    expect(applyRow).toMatch(/both gates/);
+    expect(applyRow).toMatch(/move/);
+  });
+
+  it("readme-ceremony: the new-project ceremony names the verb after gate apply and gate archive", () => {
+    const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");
+    const afterHeading = readme.split("## neo-grace Quick Start\n")[1];
+    expect(afterHeading).toBeDefined();
+    const ceremony = afterHeading!.split(/^## /m)[0] ?? "";
+    const step10 = ceremony.split("\n").find((line) => line.startsWith("10. ")) ?? "";
+    expect(step10).toContain("ngrace gate apply");
+    expect(step10).toContain("ngrace gate archive");
+    expect(step10).toContain("ngrace apply");
+    expect(step10).not.toContain("set spec and plan to `applied`");
+  });
+
+  it("readme-gate-purity: the gate-purity sentence names the new root as the writer", () => {
+    const readme = readFileSync(path.resolve(import.meta.dir, "../../README.md"), "utf8");
+    const lifecycle = readme.split("### Change lifecycle: gates, run ledger, and review\n")[1] ?? "";
+    const prose = lifecycle.split(/\n\|/)[0] ?? "";
+    expect(prose).toContain("Apply, archive, and verdict still do not write status and never move a bundle");
+    expect(prose).toContain("ngrace apply");
   });
 });

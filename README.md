@@ -134,7 +134,7 @@ For a new neo-grace project:
 7. Run `ngrace status --path /path/to/project --json`.
 8. Run `$ngrace-execute` and choose sequential or parallel-safe mode. Parallel-safe mode additionally requires `ngrace lint --path /path/to/project --parallel-preflight`. Per task, `ngrace context --task T-NNN --change C-ID` emits the slice; each verification cycle is recorded with `ngrace cursor attempt` (or `ngrace cursor verification-unavailable` when it could not run), and each epoch is closed with `ngrace cursor fold`.
 9. Before apply/archive, run `ngrace lint --path /path/to/project --change C-ID --assertions final`; add `--run-commands` when the target declares `MustPassCommand`.
-10. Run `ngrace review --path /path/to/project --change C-ID` for mechanized findings, form judgment (detached where the host allows it), and record a bound verdict with `ngrace gate verdict` and `--ack-finding` once per displayed findingId. Then `ngrace gate apply --change C-ID` and `ngrace gate archive --change C-ID`. Apply refuses `fail` and an unbound pass. Pass requires `--ack-finding` matching the displayed set (omit when empty). It is never silently green.
+10. Run `ngrace review --path /path/to/project --change C-ID` for mechanized findings, form judgment (detached where the host allows it), and record a bound verdict with `ngrace gate verdict` and `--ack-finding` once per displayed findingId. Then `ngrace gate apply --change C-ID` and `ngrace gate archive --change C-ID`. Apply refuses `fail` and an unbound pass. Pass requires `--ack-finding` matching the displayed set (omit when empty). It is never silently green. After both gates permit, run `ngrace apply --change C-ID` to write `applied` and move the bundle into archive.
 
 Existing GRACE 3 projects should run `$ngrace-migrate` and review the migration report before writing `.ngrace` artifacts.
 
@@ -188,10 +188,11 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | `ngrace spec new C-ID --path <root>` | Write a draft `NgraceChangeSpec` skeleton at `.ngrace/changes/active/C-ID/spec.xml`; refuses if the file already exists |
 | `ngrace plan new C-ID --path <root>` | Write a draft `NgraceChangePlan` skeleton beside an approved spec; refuses if the spec is missing or not approved |
 | `ngrace scaffold --module M-X --path <root>` | Print the production `MODULE_CONTRACT` and `MODULE_MAP` block for that module to stdout; does not write the Path file |
+| `ngrace apply --change C-ID --path <root>` | Sanctioned applied close: after both gates permit, write `applied` onto the active spec and plan, record per-artifact fingerprints, and move the bundle into archive. Not a gate subcommand |
 
 ### Change lifecycle: gates, run ledger, and review
 
-These carry the execute lifecycle. A permitting recorded approve writes approved onto the targeted spec or plan and records a fingerprint. Apply, archive, and verdict still do not write status and never move a bundle. `ngrace review` never records a verdict. The separation is the point.
+These carry the execute lifecycle. A permitting recorded approve writes approved onto the targeted spec or plan and records a fingerprint. Apply, archive, and verdict still do not write status and never move a bundle; the dedicated `ngrace apply` verb is the writer that sets `applied` and moves the bundle after both gates permit. `ngrace review` never records a verdict. The separation is the point.
 
 | Command | What It Does |
 | --- | --- |
@@ -300,7 +301,7 @@ skip depth (adversarial probe, mutation audit, checklist volume).
 
 | What | Subject / state | Normalized stdout bytes | Commit |
 |---|---|---|---|
-| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **861 lines** / **71505 UTF-8 bytes** | pin in `token-accounting.test.ts` |
+| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **861 lines** / **71927 UTF-8 bytes** | pin in `token-accounting.test.ts` |
 | `skillTextLines().referencesTotal` | package root | **1435 lines** (includes recovery.md) | same instrument |
 | `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `f641334` (the squashed Phase 11 merge; release cut updates) |
 | `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |

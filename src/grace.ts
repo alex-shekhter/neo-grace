@@ -15,6 +15,7 @@
 
 import { type CommandDef, runMain } from "citty";
 
+import { applyCommand } from "./grace-apply";
 import { defineGraceCommand } from "./query/command";
 
 import { contextCommand } from "./grace-context";
@@ -40,6 +41,7 @@ const main = defineGraceCommand({
     description: `neo-grace CLI for ${ARTIFACT_DIR} linting, transition gates, run ledger and cursor, mechanized review, task-scoped context slices, status snapshots, module health, verification queries, and semantic markup navigation.`,
   },
   subCommands: {
+    apply: applyCommand,
     context: contextCommand,
     cursor: cursorCommand,
     doctor: doctorCommand,
