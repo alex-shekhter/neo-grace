@@ -1,0 +1,632 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-FLUSH-TWO-WAVES>
+    <IntentSummary>
+      Author the execution for the approved, fingerprinted spec
+      `.ngrace/changes/active/C-FLUSH-TWO-WAVES/spec.xml` and only within it; the plan conforms to the
+      spec, it does not extend, narrow or reinterpret it. The spec fixes the flush set closed by
+      anchor id, the two waves and the reason the payment machinery and the window arithmetic force
+      the split, the committed sequence, the write scope, the mapping clause, and the one walk
+      assertion the plan adds — this plan takes all of that from the spec, not from itself. Two
+      tasks carry the committed sequence: T-001 is wave 1 (the flush of f233 and f234, the shipped
+      `--rewrite-roots`, the declared mid-state whose two eligibility findings are the D28.1
+      enforcement saying the move is due, one `--retire` in the same execution wave reporting
+      `moved 2`, validation exits 0), T-002 is wave 2 (the flush of f230, f235, f236, f237 and d38,
+      the shipped `--rewrite-roots`, the plan's suite work, validation exits 0). The close is the
+      authority's act and this plan's tasks end before it: no task writes `status="applied"` on spec
+      or plan, no task renames the bundle into `.ngrace/changes/archive/`, no task runs the close's
+      own `--retire` (which reports `moved 0` here — the bundle mints no row and pays nothing), and
+      no task evaluates any `CloseEvidence`. No task `Verification` depends on the archived state.
+
+      Why two tasks and not fewer or more. The fix budgets bind per task
+      (`src/grace-cursor.ts:187` `FIX_SIGNATURE_REPEAT_BUDGET = 2`;
+      `src/grace-cursor.ts:193` `FIX_DISTINCT_SIGNATURE_BUDGET = 4`, both re-read at this plan's
+      commit), and the spec's sequence has two failure-signature families — record writes (render
+      shape, buffer cut, index text anchor, root read-backs, the move's report) and suite edits
+      (flush-invariant assertion authoring). Folding both waves into one task would spend one task's
+      distinct-signature budget on two independent flushes' record-write causes — the reason the
+      two-wave precedent C-FLUSH-AND-UNPIN split its waves across tasks. Not three: the precedent's
+      third task carried the registry-row mint and its suite extensions; this spec mints no row and
+      charters no payment (the payer map names none of the wave-2 ids, so the close's move reports
+      `moved 0` and writes nothing — driven end to end), so a third task would have nothing to
+      land. Not a separate suite task: the spec's Goal lands the walk assertion with the wave-2
+      commit, and separating it from the flush whose verification reads it (and whose commit must
+      carry a suite consistent with its own record) buys no budget window — the precedent folded
+      exactly this pair into its wave-2 task. Each task carries one dominant family — T-001 the
+      wave-1 record write (and no suite edit: the shipped `C-TAUGHT-RULES` carrier walk already
+      covers f233 and f234 in the payment-invariant form and survives the move — driven 87 pass /
+      0 fail at this task's boundary), T-002 the wave-2 record write plus the two suite additions
+      that observe it.
+
+      `.ngrace/scratch/staged-findings.md` is nobody's to write: untracked, `.gitignore`d, exactly
+      one copy, and pruning the flushed entries is post-merge hygiene owned by the authority, never
+      a task here. The buffer is re-measured at this plan's commit with the shipped
+      `parseFrozenMarkdown` (`scripts/validate-record-retirement.ts:150`): exactly seven entries —
+      f230, f233, f234, d38, f235, f236, f237 in buffer order (the two `###`-adjacent findings
+      f233/f234 sit second and third; d38 on a `##` heading sits fourth), no registry heading
+      (`registryHeadingIndex -1`), zero staged charter rows. Per-entry measurements by the shipped
+      rule (an element's line count is the `newlineCount` of its rendered element span plus one):
+      f230 body 23 / element 26, f233 38 / 41, f234 52 / 55, d38 33 / 36, f235 20 / 23, f236 33 /
+      36, f237 28 / 31. The spec's expiring figures held for every entry except f236, whose body
+      grew by six lines after the spec was drafted (27 → 33, element 30 → 36) — the spec's
+      Assumptions mark every figure expiring, and the re-measurement is what this plan records. Wave
+      1 renders 96 findings element lines (41 + 55), exactly the spec's figure. Wave 2 renders 116
+      findings element lines (26 + 23 + 36 + 31) against the held 165-line window — margin 49 (the
+      spec's expiring 110 / margin 55 grew with f236); d38 renders 36 rulings lines, exactly the
+      spec's figure; the six findings together measure 212 against the 165-line window — over it,
+      so the all-six single write remains refused (driven: `--rewrite-roots` exits 1 with
+      `ceiling-exceeded` — 7893 &gt; 7846 with the grown figure — before any write, the root
+      unchanged after the refusal). The escape facts, re-measured per body: the decode round trip is
+      identity for every body (the record `&lt;Body&gt;` is `xmlEscape(bodyRaw)` and nothing else);
+      f235's body is byte-identical under escape(`xmlDecode`(`body`)) (its staged `&amp;lt;`-form
+      escapes are the house form); f230 carries 2 raw `"`, f233 carries 2 raw `&lt;`, 2 raw `&gt;`
+      and 12 raw `"`, f234 carries 8 raw `"`, d38 carries 3 raw `&lt;`, 3 raw `&gt;` and 10 raw `"`,
+      f236 carries 8 raw `"` (the spec's expiring figure said 6 — the growth carried it), f237
+      carries 8 raw `"`; zero bare `&amp;` outside house escapes in any body; zero `[[f…]]`-form
+      references. So the flush's only byte transform on the six non-identity bodies is the shipped
+      escape itself, and no render-time normalization exists.
+
+      The record roots at this plan's commit (`4fdcfa4c68e7c1b5c12b93b276fba46957e2ef3d`, the
+      approved spec's commit), read from the production tree: findings
+      `base="7681" headroom="165" ceiling="7846"`, rulings `base="1776" headroom="107"
+      ceiling="1883"`, index `base="272" headroom="24" ceiling="296"`, registry `base="12"
+      headroom="14" ceiling="26"` — all satisfying the shipped tripwire relations. Scalar figures
+      below expire: every criterion asserts a relation its instrument can observe, the written base
+      always comes from a read-back through the shipped `--rewrite-roots`, and the projection is
+      used only to pre-check a ceiling is not breached. A read-back above a held ceiling stops the
+      task and reports; it does not raise the ceiling, does not trim a staged body, and does not
+      reorder the waves to dodge the arithmetic — the honest outcomes are flush-as-specified or
+      stop.
+
+      The wave-1 mid-state is declared, and no task boundary sits inside it. Between T-001's flush
+      and its `--retire` the plain validator exits 1 naming exactly
+      `finding-eligible-still-live` for f233 and f234 (archive event `C-TAUGHT-RULES` — both tokens
+      are already minted to the archived row; the shipped `derivePayerMap` over the real archive and
+      both registry layers mints 87 tokens at this plan's commit and names both) — the D28.1
+      enforcement saying the move is due, a declared, verified working-tree state, never a commit
+      `validate:ci` can see. The move closes the window inside T-001; no task boundary and no commit
+      sits inside it, and no recorded `Verification` command runs inside it. At this bundle's close
+      there is no such window: nothing becomes eligible at the archive rename (the bundle's name
+      carries no row and mints nothing), the close's own `--retire` reports `moved 0` and writes
+      nothing, and the validator exits 0 at the archived state (all driven).
+
+      The flush set is closed by anchor id and never by position: an entry is flushed if and only
+      if its anchor id is one of f233, f234 (T-001) or f230, f235, f236, f237, d38 (T-002), matched
+      as `&lt;a id="…" name="…"&gt;&lt;/a&gt;` forms in the buffer, and nothing else in the buffer
+      is flushed — the buffer holds exactly the seven, so the two waves partition it completely and
+      anything staged after this plan was written is likewise not this bundle's flush set. Render
+      and embed by the house shape the shipped `renderFinding` renders
+      (`scripts/validate-record-retirement.ts:470-478`, not exported) and the shipped
+      `renderDecision` renders (`scripts/validate-record-retirement.ts:480-485`, not exported): a
+      two-space indent, the open tag `&lt;Finding id="…" token="…" status="live"&gt;` (respectively
+      `&lt;Decision id="…" token="…" status="live"&gt;`), a `&lt;Title&gt;` carrying the heading
+      line verbatim with the `### ` (respectively `## `) prefix riding, one
+      `&lt;Body&gt;…&lt;/Body&gt;` construct carrying the staged body embedded verbatim —
+      `&lt;/Body&gt;` closes inline after the body's last byte, so a body whose shipped cut ends at
+      the blank line before the next anchor renders `&lt;/Body&gt;` on its own line and a
+      last-entry body popped of its terminating newline keeps it inline — and the close tag. Cut
+      each body where the shipped parser cuts it and embed `parseFrozenMarkdown`'s `bodyRaw`
+      verbatim: no render-time normalization exists, no transform of a body byte exists, and any
+      non-identity transform of a body byte is a deviation. The rendering is driven, not hand-typed:
+      a throwaway inline script imports `parseFrozenMarkdown`, `xmlEscape` and `newlineCount` from
+      `scripts/validate-record-retirement.ts` and emits the elements, so ids, slugs, tokens and
+      bodies come from the shipped parser. If `parseFrozenMarkdown` throws
+      (`split: missing anchor for heading at line N`), or any staged fragment citation would not
+      resolve against the index once its wave lands (the shipped `validate-citation-anchors.ts` is
+      the check), stop and report — never normalize away. The staged entries' internal citations are
+      already written in the delimiter-preserving slug form (`F9.1` is `f9.1`, never `f91`; `F136.1`
+      is `f136.1`), and the flush must not repair them into any other form.
+
+      The index-append anchor is located by text position — immediately before the root close tag
+      `&lt;/RecordIndex&gt;` — because self-closing `&lt;Entry&gt;` lines have no close span
+      (`computeElementSpans` returns a null `closeEnd` for self-closed elements), and an anchor
+      computed from a null span corrupts the file. Each appended line is self-closing in the form
+      two spaces, `&lt;Entry id="…" token="…" genre="…" layer="live" /&gt;`, `genre="finding"` for
+      the four wave-2 findings and `genre="decision"` for d38, derived from the existing index (the
+      shipped index carries `genre="decision"` entries — d1, d1.1, d1.2 — measured at this plan's
+      commit), appended in buffer order. After each hand write the shipped writer
+      `bun ./scripts/validate-record-retirement.ts --rewrite-roots` runs: it re-derives all four
+      live roots from the shipped metrics read back, holds every persisted ceiling byte-for-byte,
+      and refuses an exceeded ceiling before any write (exit 1, nothing written, naming the genre,
+      both counts in their unit, and the move as the remedy — driven on the all-six single write:
+      `ceiling-exceeded: … live findings line count 7893 exceeds persisted ceiling 7846; --retire /
+      move the eligible entry to the retired sibling. Raising the persisted ceiling is not the
+      remedy.`).
+
+      The suite work is exactly two new assertions, both in
+      `scripts/validate-record-retirement.test.ts`, both landing with wave 2 (the wave-2 commit), so
+      every committed state of this bundle carries a suite consistent with its own record — and no
+      shipped assertion is rewritten, repaired or re-homed (the suite before the additions contains
+      zero occurrences of f230, f235, f236, f237 and d38 — measured: zero each — so the walk
+      assertion is new scope and not a repair, and the shipped `C-TAUGHT-RULES` carrier walk already
+      covers f233 and f234 in the payment-invariant form, so no assertion is invented twice). (1)
+      The flush walk, in the C-FLUSH-AND-REPAIR/C-FLUSH-AND-UNPIN flush-invariant house shape: a
+      read-only walk over the delivered record with the shipped `parseGraceXmlArtifact`,
+      `walkNodes` and `childNodes`, an invariant over parsed structure and never an occupancy count,
+      with an explicit generous timeout (F185), covering exactly f230, f235, f236, f237 and d38:
+      each exists exactly once across its genre's pair of files (`findings.xml` and
+      `findings-retired.xml` for the findings, `rulings.xml` and `rulings-retired.xml` for d38 —
+      the walk over the whole trees is the duplicate check), with no fixed expectation of which
+      file holds it, its `status` agreeing with the holding file, its token and genre agreeing, and
+      the single `&lt;Entry&gt;` the index carries for the id having the agreeing `genre` and a
+      `layer` that agrees with the holding file — the relation survives the record's own payment
+      cycle, which retires a finding, flips its index layer, and leaves every clause true — plus
+      the shipped read-back arithmetic at the test's end (the findings root's `base` equals the
+      file's `newlineCount` read back and `base + headroom = ceiling`, and the same for the rulings
+      root, using the exported `newlineCount` exactly as the shipped roots-invariant test does).
+      The relation is payment-invariant by construction — a later legitimate payment of any flushed
+      id retires the element, flips its index layer, and leaves every clause true — so the assertion
+      adds no new liveness pin. (2) The payment-absence assertion, in the shipped
+      `C-FLUSH-AND-REPAIR payment absence` house shape the suite already carries for that bundle's
+      own staged tokens: the shipped `derivePayerMap` over the real archive and both registry layers
+      mints none of the staged tokens `F230`, `F235`, `F236`, `F237`, `D38` (the payment set of this
+      bundle is exactly empty); the read-only production run of the shipped
+      `validateRecordRetirement` folded into the same test, asserting zero findings on the
+      production record and that the call is read-only (the findings root's bytes before and
+      after); and the discriminating direction, so the assertion is not vacuously empty — the same
+      derivation over an isolated archive root carrying a planted row mints the planted token
+      (F212: the fixture archive mirrors the real membership the claim needs; the production
+      archive never written by any task). This payment-absence test is the production assertion
+      `AC-ELIGIBLE-NONE` names as its second instrument. Its named red-making mutations, both
+      driven on mutated copies during execution — never against the production record: a
+      hand-stamped `&lt;PaidBy&gt;C-TAUGHT-RULES&lt;/PaidBy&gt;` on live f230 reddens the folded-in
+      validator run at `finding-eligible-still-live` naming the archive event (exit 1, driven);
+      f230's `status` flipped to `retired` in the live file reddens the shipped validator at
+      `status-file-mismatch` (exit 1, driven); a planted `](#f999)` citation inside f230's
+      `&lt;Body&gt;` reddens the citation validator at `unresolved-fragment` (exit 1, driven); the
+      walk's own red directions are the duplicated-element and flipped-index-layer mutations, both
+      driven (below).
+
+      The suite at the three driven states: 87 pass / 0 fail at the baseline (4fdcfa4, the shipped
+      suite unchanged), 87 pass / 0 fail after wave 1's move, 89 pass / 0 fail after wave 2 with
+      the two assertions landed (87 shipped + the walk + the payment absence) — no pin breaks and no
+      repair is chartered at any state. The shipped `bundleMinted` extension in the
+      `C-RECORD-PARSE payer derivation` test already carries `F233: "C-TAUGHT-RULES"` and
+      `F234: "C-TAUGHT-RULES"`, so no state of this bundle mints anything outside the baseline
+      union and no extension entry is owed.
+
+      DurableScope is `&lt;None /&gt;`, checked against the shipped predicate, not assumed:
+      `isModuleOwnableWritePath` (`src/lint/core.ts:724`) returns false for every path outside
+      `src/` (and for test paths under `src/`), so none of the write-scope files is module-ownable
+      and `change.graph-anchors-miss-write-scope` cannot fire for the empty anchor set. The spec's
+      write-scope Constraint (F136.1's rule, derived from the Goals) names no `LINKS:` owner for any
+      forced file — none of the record files carries a `LINKS:` header and the suite file carries
+      none (checked at this plan's commit) — and no module in `.ngrace/graph/main.xml` owns any of
+      them (the graph's path set is `src/`-only; the record and `scripts/` sit outside it, and
+      `.ngrace-lint.json` ignores `scripts/`). The spec's AffectedAreas names no module; no second
+      module list exists in this plan, and no synthetic module is minted.
+
+      ObservedWriteScope is the four RM-GOVERNED-PATH record files the spec's write-scope
+      Constraint enumerates plus the one suite file — the record is in execution's write scope here
+      (the flushes, the wave-1 move and the root rewrites are task work; the authority holds no
+      mid-execution write — its acts are approval, commit, the status writes, the archive move and
+      the close's own `--retire`). `findings-retired.xml` is listed despite no hand write: the
+      wave-1 move writes it through the shipped `--retire` inside T-001, the spec's write-scope
+      Constraint enumerates it as written only by the sanctioned writer, and an omitted path would
+      leave the archived bundle dirty under any later review against its recorded base.
+      `rulings-retired.xml` is deliberately not listed: nothing in this bundle retires any ruling
+      (d38's carrier is never moved — the close's `--retire` is a byte-level no-op), so no write
+      can land there, and the shipped `--retire` inside T-001 leaves it byte-identical (driven:
+      its sha256 is unchanged across the move on the faithful copy). The bundle's own
+      `spec.xml`/`plan.xml` are not listed (the reviewed-artifact exclusion,
+      `src/review/core.ts:1037`, names them), and the ledger's own `run-ledger.xml` is
+      tool-owned lifecycle (`isCliLifecyclePath`, F11), not a content path.
+
+      The mapping, fixed by the spec's own Constraint (the trap that has cost supersedes): exactly
+      one criterion — `AC-NO-CURRENT-MODE` — carries no `CloseEvidence` and is mapped by exactly
+      one task `Satisfies`, carried by T-002, whose verification completes the plan's command set;
+      it is this plan's only `Satisfies`, and no other task carries one. Measured basis at this
+      plan's commit: `validateSpecPlanCoverage` warns `change.acceptance-criterion-unmapped`
+      (`src/artifact/grammar.ts:2060`) for any criterion that is neither task-mapped nor
+      close-bound, and errors `change.close-evidence-and-satisfied`
+      (`src/artifact/grammar.ts:2087`, `src/lint/catalog.ts:286`) on a `Satisfies` of a close-bound
+      criterion; `isCloseBoundCriterion` (`src/artifact/grammar.ts:2142`) counts a criterion
+      close-bound when it carries a complete `CloseEvidence` child; nine of this spec's ten
+      criteria are close-bound and `AC-NO-CURRENT-MODE` is the only one without, and
+      `AC-CLOSE-LINT`'s `CloseEvidence` runs `--fail-on warnings`, which fails on any issue, so an
+      unmapped `AC-NO-CURRENT-MODE` would make the bundle's own close unsatisfiable. Every
+      `CloseEvidence` is evaluated only in the applied-archive state (F196's rule), so every
+      criterion is written to hold there.
+
+      The by-hand lint check (F171 — the shipped detector misses the `grace.ts` form, so the check
+      is by hand): no task `Verification` command below contains `--assertions current`, and none
+      invokes lint of this project root omitting `--assertions`; the one selected
+      `--assertions target --run-commands` command is the post-write evidence command, meant to run
+      during execution with an open cursor on a declared task after all writes land, and its exit 1
+      at plan time (`assertion.change-not-approved`) is not a defect (F184's refined rule). Every
+      other recorded `Verification` command exits 0 as written at recording time and stays green at
+      its task's boundary — each one was driven at this plan's commit in the drives named below
+      (F184), on the faithful copy at exactly the stage the task reaches.
+
+      The record's own move probe obeys the flushed F235's rule (the spec's Evidence-hygiene
+      Constraint): a copy-drive of the record runs from inside a whole-repository copy, because the
+      engine reads the archive from the process's cwd — a drive that copies only the record
+      directory and runs the move from the repository root reads the copy's registry and the real
+      archive (measured: it mechanically reports `moved 0` and exits 0, so the engine does not
+      detect the mixing, which is why the rule refuses it as an instrument here rather than relying
+      on an engine refusal). Each task's `Verification` therefore carries the whole-repository-copy
+      form: an rsync of the working tree excluding `node_modules` (a `git clone` drops the buffer
+      and the bundle and is not faithful — F231's rule), `node_modules` symlinked from the working
+      root (`fast-xml-parser` is external — the script's import graph needs it), the move run from
+      inside the copy, the temp tree removed. Both driven at this plan's commit on the faithful
+      copy at exactly the task's stage: `moved 0`, exit 0 (nothing left eligible at either
+      boundary — T-001's move already retired the wave's tokens; T-002 minted nothing).
+
+      Every `file:line` below was re-read at this plan's commit `4fdcfa4c68e7c1b5c12b93b276fba46957e2ef3d`
+      before this plan was written (F218's rule).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/scratch/staged-findings.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-FLUSH-TWO-WAVES/spec.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/scratch/staged-findings.md</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Flush f233 and f234 into findings.xml and decisions.xml, run the wave's one --retire, and
+          leave the tree validating clean with every root held
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Flush mechanics, by anchor id and never by position. This task's flush set is closed by
+            anchor id: an entry is flushed if and only if its anchor id is one of `f233` or `f234`,
+            matched as `&lt;a id="…" name="…"&gt;&lt;/a&gt;` forms in
+            `.ngrace/scratch/staged-findings.md`, and nothing else in the buffer is flushed —
+            `F230`, `D38`, `F235`, `F236` and `F237` are present and excluded by name (this task
+            flushes two; T-002 flushes the remaining five), and anything staged after this plan was
+            written is likewise not this bundle's flush set. Render each entry by driving the
+            shipped `parseFrozenMarkdown` (`scripts/validate-record-retirement.ts:150`) over the
+            buffer as staged — it parses the buffer with no normalization (driven at this plan's
+            commit: seven entries in buffer order f230, f233, f234, d38, f235, f236, f237, no
+            registry heading, zero charter rows; per-entry facts below expire, re-measure at
+            execution) — and emit one landed element per entry in the house shape the shipped
+            `renderFinding` renders (`scripts/validate-record-retirement.ts:470-478`, not
+            exported): a two-space indent, the open tag `&lt;Finding id="…" token="…"
+            status="live"&gt;`, a `&lt;Title&gt;` carrying the heading line verbatim with the
+            `### ` prefix riding, one `&lt;Body&gt;…&lt;/Body&gt;` construct carrying the staged
+            body embedded verbatim — `&lt;/Body&gt;` closes inline after the body's last byte, so a
+            body whose shipped cut ends at the blank line before the next anchor renders
+            `&lt;/Body&gt;` on its own line and a body popped of its terminating newline keeps it
+            inline — and the close tag. Cut each body where the shipped parser cuts it and embed
+            `parseFrozenMarkdown`'s `bodyRaw` verbatim: no render-time normalization exists, no
+            transform of a body byte exists, and any non-identity transform of a body byte is a
+            deviation. The rendering is driven, not hand-typed: a throwaway inline script imports
+            `parseFrozenMarkdown`, `xmlEscape` and `newlineCount` from
+            `scripts/validate-record-retirement.ts` and emits the elements, so ids, slugs, tokens
+            and bodies come from the shipped parser. If `parseFrozenMarkdown` throws
+            (`split: missing anchor for heading at line N`), or any staged fragment citation would
+            not resolve against the index once this wave lands (the shipped
+            `validate-citation-anchors.ts` is the check), stop and report — never normalize away.
+            Append the two `&lt;Finding&gt;` elements after the last live `Finding` in findings.xml
+            (the shipped predecessor is f231 at this plan's commit — re-read at execution, never
+            trust a plan-time figure), keeping the root close tag's position, and append two
+            `&lt;Entry id="…" token="…" genre="finding" layer="live" /&gt;` lines immediately
+            before the root close tag `&lt;/RecordIndex&gt;` in buffer order — the index-append
+            anchor is located by text position, because self-closing `&lt;Entry&gt;` lines have no
+            close span to anchor on. Plan-time measured facts, expiring: f233 element 41 lines,
+            f234 element 55 (the shipped rule: `newlineCount` of the rendered element span plus
+            one) — 96 findings element lines; wave-1 mid-state roots read back findings
+            `7777 / 69 / 7846` and index `274 / 22 / 296` (driven on the faithful copy via
+            `--rewrite-roots`; rulings and registry untouched); every figure re-reads at execution.
+          </Criterion>
+          <Criterion>
+            The shipped root writer, the declared mid-state, and the wave's move, one task. After
+            the flush write, run the shipped writer `bun
+            ./scripts/validate-record-retirement.ts --rewrite-roots` — it re-derives all four live
+            roots from the shipped metrics read back, holds every persisted ceiling byte-for-byte,
+            and refuses an exceeded ceiling before any write (exit 1, nothing written, naming the
+            genre, both counts in their unit, and the move as the remedy — driven on the all-six
+            single write: `ceiling-exceeded: … live findings line count 7893 exceeds persisted
+            ceiling 7846; --retire / move the eligible entry to the retired sibling. Raising the
+            persisted ceiling is not the remedy.`); a read-back above a held ceiling stops the task
+            and reports, and does not raise the ceiling, trim a staged body, or reorder the waves
+            to dodge the arithmetic — the honest outcomes are flush-as-specified or stop. Then the
+            declared mid-state: the plain validator exits 1 naming exactly
+            `finding-eligible-still-live` for f233 and f234 (archive event `C-TAUGHT-RULES`) — a
+            declared, verified working-tree state, never a commit (D28.1: the enforcement saying
+            the move is due), and no recorded `Verification` command runs inside this window. The
+            same task then invokes exactly one `bun ./scripts/validate-record-retirement.ts
+            --retire` against the production record, expected `moved 2`; a third element, a
+            missing element, or any byte outside the expected files is a stop-and-report, not a
+            number to adopt. The move writes `findings-retired.xml` (both elements landed
+            `status="retired"` stamped `&lt;PaidBy&gt;C-TAUGHT-RULES&lt;/PaidBy&gt;` by the shipped
+            writer — derived from the payer map, not this bundle's payment; six retired carriers of
+            that event in total: f188, f196, f199, f210 from the close, plus the two new) and flips
+            the two index `&lt;Entry&gt;` layers to `retired` in place; `findings.xml` is
+            byte-identical to its pre-bundle bytes after the move (driven: the sha256 is unchanged
+            across the move), and every live root is held byte-identical by the shipped writer
+            (findings `7681 / 165 / 7846`, rulings `1776 / 107 / 1883`, registry `12 / 14 / 26`,
+            index `272 / 24 / 296` — driven); `rulings.xml`, `rulings-retired.xml`,
+            `registry.xml`, `registry-retired.xml`, `decisions.md` and `record-inventory.json` are
+            byte-identical throughout the move (driven). After the move the validator exits 0. Do
+            not hand-write `&lt;PaidBy&gt;`; do not run a second `--retire` against the production
+            record (the close's own move is the authority's act; a probe on a throwaway whole-
+            repository copy is the evidence shape in this task's `Verification`).
+          </Criterion>
+          <Criterion>
+            No suite edit belongs to this task, checked rather than assumed. The shipped
+            `C-TAUGHT-RULES` carrier walk already covers f233 and f234 in the payment-invariant
+            form (exactly once across the findings pair when a carrier exists, status agreeing with
+            the holding file, `&lt;PaidBy&gt;C-TAUGHT-RULES&lt;/PaidBy&gt;` when retired, the index
+            `&lt;Entry&gt;` layer agreeing, the carrier-absent case green) and survives this wave's
+            move on the production record: the shipped suite is 87 pass / 0 fail at this task's
+            boundary with the file unchanged from its baseline bytes (driven at this plan's commit
+            on the faithful copy at exactly this stage). The suite contains zero occurrences of
+            f233 and f234 in the walk-assertion form this plan adds (measured: zero each at this
+            plan's commit — F213's law), so no assertion is invented twice. The plan-time buffer
+            measurement named f236's six-line growth after the spec was drafted; it touches only
+            wave 2's projection, never this task's 96-line write.
+          </Criterion>
+          <Criterion>
+            This task's `Verification` commands and the plan's `TargetAssertions` contain no
+            current-mode lint of this project root, checked by the rule in the spec's
+            evidence-hygiene Constraint, by hand (F171 — the shipped detector misses the
+            `grace.ts` form): no command text contains `--assertions current`, and none invokes
+            lint of this root omitting `--assertions`. Each recorded command exits 0 at this task's
+            boundary (F184), driven at this plan's commit on the faithful copy at exactly this
+            stage. The executor emits its own execution-time cursor events for this task (opened
+            with the epoch open at this task's start, progress, attempt with signature kind and key
+            on every failed verification cycle, verification-unavailable when evidence cannot be
+            collected, pause and resume around interruptions) and does not omit them; the terminal
+            event and the cursor fold are close acts owned by the authority, together with every
+            gate, both status writes, the archive move, the close's own `--retire` (a byte-level
+            no-op here — `moved 0`, nothing eligible, driven) and the `CloseEvidence` evaluations —
+            no task performs any of them and no sentence in this plan implies execution does. Do
+            not hand-write any status. The buffer is not written by this or any task, and findings
+            raised while this bundle is open go to `.ngrace/scratch/staged-findings.md` under the
+            next staged number, never into the record under edit (D30, scoped to the record-writing
+            window: no other dispatch touches the record while this task is in flight, and no brief
+            promises a frozen base across one).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>git diff --exit-code 673c21f7de284caa4fb6b18ba240ed2a85c410f2 -- src/ scripts/</Command>
+          <Command>git diff --exit-code 673c21f7de284caa4fb6b18ba240ed2a85c410f2 -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+          <Command>git diff --exit-code 673c21f7de284caa4fb6b18ba240ed2a85c410f2 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-FLUSH-TWO-WAVES'</Command>
+          <Command>git diff --exit-code 673c21f7de284caa4fb6b18ba240ed2a85c410f2 -- docs/plans/active/RM-GOVERNED-PATH/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml'</Command>
+          <Command>bash -c 'T=$(mktemp -d) &amp;&amp; rsync -a --exclude node_modules ./ "$T/repo/" &amp;&amp; ln -s "$PWD/node_modules" "$T/repo/node_modules" &amp;&amp; cd "$T/repo" &amp;&amp; bun ./scripts/validate-record-retirement.ts --retire &amp;&amp; rm -rf "$T"'</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>
+          Flush f230, f235, f236, f237 and d38 into findings.xml, rulings.xml and decisions.xml with
+          both roots read back through the shipped --rewrite-roots, land the flush walk and the
+          payment-absence assertion in the suite, and leave the close to the authority
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Wave-2 flush mechanics, the same anchor-id rule. This task's flush set is closed by
+            anchor id: exactly `f230`, `f235`, `f236` and `f237` (findings) and `d38` (decision),
+            matched as anchor forms in the buffer — `F233` and `F234` were flushed and moved by
+            T-001 and are excluded by name. Render and embed by the same house shape and the same
+            shipped cut as T-001, driven from the shipped `parseFrozenMarkdown`, bodies verbatim
+            through the shipped `xmlEscape` and no other transform, stop and report on a parser
+            throw or an unresolvable staged citation — never normalize away. The four
+            `&lt;Finding&gt;` elements append after the last live `Finding` (the wave-1 elements
+            were moved to the retired sibling, so the last live element is the shipped
+            predecessor's — re-read at execution, never trust a plan-time figure); d38 renders as
+            one `&lt;Decision&gt;` element in the shipped `renderDecision` shape
+            (`scripts/validate-record-retirement.ts:480`, not exported) appending after the last
+            live `&lt;Decision&gt;` in rulings.xml, before the root close tag. Five
+            `&lt;Entry id="…" token="…" genre="…" layer="live" /&gt;` lines append immediately
+            before the root close tag `&lt;/RecordIndex&gt;` in buffer order —
+            `genre="finding"` for the four findings, `genre="decision"` for d38, derived from the
+            existing index (the shipped index carries `genre="decision"` entries — d1, d1.1,
+            d1.2 — measured), in the same text-anchored way T-001's criterion fixes (self-closing
+            `&lt;Entry&gt;` lines have no close span to anchor on). Then run the shipped
+            `--rewrite-roots`: the findings root base equals the file's `newlineCount` read back,
+            the index base equals its live-`&lt;Entry&gt;` count read back, the rulings base equals
+            its shipped metric read back, headroom the remainder, every ceiling held — driven at
+            this plan's commit on the faithful copy: findings `7797 / 49 / 7846`, rulings
+            `1812 / 71 / 1883`, index `277 / 19 / 296`, registry unchanged at `12 / 14 / 26`
+            (expiring figures; the spec's findings figure `7791 / 55` expired with f236's six-line
+            growth — re-read at execution). The projection (116 findings element lines at this
+            plan's commit against the 165-line window, margin 49) is used only to pre-check the
+            ceiling is not breached; the written base comes from the read-back alone. A read-back
+            above a held ceiling stops the task and reports; it does not raise the ceiling, does
+            not trim a staged body, and does not reorder the flush to dodge the arithmetic. After
+            the write: no duplicate id in either file — the shipped parser's walk over the trees is
+            the duplicate check; the plain validator exits 0 (none of the wave-2 tokens is minted
+            by any row — the shipped `derivePayerMap` over the real archive and both registry
+            layers mints 87 tokens at this plan's commit and names none of `F230`, `F235`, `F236`,
+            `F237`, `D38`; re-read at execution); the citation validator exits 0 (all seven flushed
+            bodies' fragment citations resolve against the index); the preservation validator exits
+            0.
+          </Criterion>
+          <Criterion>
+            The suite work this wave lands, exactly two additions and no rewrite. (1) The flush
+            walk in the shipped C-FLUSH-AND-REPAIR/C-FLUSH-AND-UNPIN flush-invariant house shape: a
+            read-only walk over the delivered record with the shipped `parseGraceXmlArtifact`,
+            `walkNodes` and `childNodes`, an invariant over parsed structure and never an occupancy
+            count, an explicit generous timeout (F185), covering exactly f230, f235, f236, f237
+            and d38 — closed by anchor id and never by position: each exists exactly once across
+            its genre's pair of files (`findings.xml` and `findings-retired.xml` for the findings,
+            `rulings.xml` and `rulings-retired.xml` for d38 — the walk over the whole trees is the
+            duplicate check), with no fixed expectation of which file holds it, its `status`
+            agreeing with the holding file, its token and genre agreeing, and the single
+            `&lt;Entry&gt;` the index carries for the id having the agreeing `genre` and a `layer`
+            that agrees with the holding file — the relation survives the record's own payment
+            cycle, which retires a finding, flips its index layer, and leaves every clause true —
+            plus the shipped read-back arithmetic at the test's end (the findings root's `base`
+            equals the file's `newlineCount` read back and `base + headroom = ceiling`, and the
+            same for the rulings root, using the exported `newlineCount` exactly as the shipped
+            roots-invariant test does). Payment-invariant by construction; it adds no new liveness
+            pin, pins no ceiling, plants no fixture into the live layer, and asserts no token
+            absent. The test's name names this bundle. (2) The payment-absence assertion, in the
+            shipped `C-FLUSH-AND-REPAIR payment absence` house shape, named for this bundle over
+            the staged tokens `F230`, `F235`, `F236`, `F237`, `D38`: the shipped `derivePayerMap`
+            over the real archive and both registry layers mints none of the staged tokens (the
+            payment set of this bundle is exactly empty); the read-only production run of the
+            shipped `validateRecordRetirement` folded into the same test, asserting zero findings
+            on the production record and that the call is read-only; and the discriminating
+            direction — the same derivation over an isolated archive root carrying a planted row
+            mints the planted token, so the derivation is not vacuously empty (F212: the fixture
+            archive mirrors the real archive membership the claim needs; the production archive is
+            never written by any task). No shipped assertion is rewritten: the suite before the
+            additions contains zero occurrences of f230, f235, f236, f237 and d38 (measured — zero
+            each at this plan's commit, F213's law), the shipped `C-TAUGHT-RULES` carrier walk
+            already covers f233 and f234 in the payment-invariant form (surviving wave 1's move —
+            driven), and the shipped `bundleMinted` extension already carries `F233:
+            "C-TAUGHT-RULES"` and `F234: "C-TAUGHT-RULES"`, so no extension entry is owed and no
+            suite repair is chartered. The suite is consistent with the record this task commits:
+            89 pass / 0 fail at this task's boundary (87 shipped, the walk landed, the
+            payment-absence landed — driven at this plan's commit on the faithful copy at exactly
+            this stage). Every committed state of this bundle carries a suite consistent with its
+            own record.
+          </Criterion>
+          <Criterion>
+            The by-hand rule, the mapping and the boundary. No current-mode lint of this project
+            root appears anywhere in this plan's task `Verification` commands or
+            `TargetAssertions`, checked by hand (F171 — the shipped detector misses the
+            `grace.ts` form): no `Command` text contains `--assertions current`, and none invokes
+            lint of this root omitting `--assertions`; current-mode lint appears only as
+            `AC-CLOSE-LINT`'s post-archive `CloseEvidence`, owned by the authority. This task
+            carries the plan's single `Satisfies` (`AC-NO-CURRENT-MODE`) — the mapping the close's
+            `--fail-on warnings` requires (measured basis in IntentSummary); the close-bound
+            criteria stay unmapped, because a `Satisfies` of a close-bound criterion is the error
+            `change.close-evidence-and-satisfied` (`src/lint/catalog.ts:286`). The selected
+            `bun ./src/grace.ts lint --path . --change C-FLUSH-TWO-WAVES --assertions target
+            --run-commands` command is the post-write evidence command, meant to run during
+            execution with an open cursor on a declared task after all writes land; its exit 1 at
+            plan time (`assertion.change-not-approved`) is not a defect (F184's refined rule). The
+            executor emits its own execution-time cursor events inside the open epoch (progress,
+            attempt with signature kind and key on fail, verification-unavailable when evidence
+            cannot be collected) and does not omit them; the terminal event, the cursor fold, every
+            gate, both status writes, the archive move and the close's own `--retire` (expected
+            `moved 0` — a byte-level no-op, the early return before any write, all nine record
+            files byte-identical across it, driven on the faithful copy) are close acts owned by
+            the authority; no task performs any of them and no sentence in this plan implies
+            execution does. Do not hand-write any status. The buffer is not written by this or any
+            task; findings raised while this bundle is open go to the staged buffer under the next
+            staged number (D30, scoped to the record-writing window: no other dispatch touches the
+            record while this task is in flight).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>git diff --exit-code 673c21f7de284caa4fb6b18ba240ed2a85c410f2 -- src/ scripts/ ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code 673c21f7de284caa4fb6b18ba240ed2a85c410f2 -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+          <Command>git diff --exit-code 673c21f7de284caa4fb6b18ba240ed2a85c410f2 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-FLUSH-TWO-WAVES'</Command>
+          <Command>git diff --exit-code 673c21f7de284caa4fb6b18ba240ed2a85c410f2 -- docs/plans/active/RM-GOVERNED-PATH/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/rulings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml'</Command>
+          <Command>bash -c 'T=$(mktemp -d) &amp;&amp; rsync -a --exclude node_modules ./ "$T/repo/" &amp;&amp; ln -s "$PWD/node_modules" "$T/repo/node_modules" &amp;&amp; cd "$T/repo" &amp;&amp; bun ./scripts/validate-record-retirement.ts --retire &amp;&amp; rm -rf "$T"'</Command>
+          <Command>bun ./src/grace.ts lint --path . --change C-FLUSH-TWO-WAVES --assertions target --run-commands</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-002>
+    </ImplementationPlan>
+  </C-FLUSH-TWO-WAVES>
+</NgraceChangePlan>
