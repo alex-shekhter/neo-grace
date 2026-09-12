@@ -1,4 +1,4 @@
-<Findings base="7681" headroom="165" ceiling="7846">
+<Findings base="7803" headroom="43" ceiling="7846">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7677,5 +7677,127 @@ Owner: the authority's procedure, from this entry forward. The fourth verificati
 in two days ([F225](#f225), [F227](#f227), [F229](#f229)): each time, the check ran against a
 narrower instrument or a more convenient state than the one that binds.
 </Body>
+  </Finding>
+  <Finding id="f230" token="F230" status="live">
+    <Title>### F230 — superseding a bundle that carries a payer row mints its payments at the supersede, not at the successor's close, and a successor that defers the move cannot be executed. **[verified]**</Title>
+    <Body>
+Eligibility keys on the payer's name being a directory under `archive/`
+(`scripts/validate-record-retirement.ts:136`, `:410`, `:1201`). `ngrace supersede` moves the
+superseded bundle into `archive/` — so the moment `C-ROOT-WINDOW` was superseded on 2026-09-11, its
+row's six tokens minted and four live findings became eligible. Measured on the real tree at that
+commit: the validator reported five findings, the retirement suite ran **74 pass / 4 fail**
+(`C-FLUSH-AND-PAY production invariant`, `C-FLUSH-AND-REPAIR payment absence`, `AC-PAYMENT-SET`,
+`AC-TAG-AND-RETIRE`), and `validate:ci` was red. The successor `C-ROOT-WINDOW-2`'s approved spec
+said &quot;the record is valid (zero findings) at the baseline before the close, [and] the close's move
+resolves the eligibility the archived row mints&quot; — true at the baseline, false at every commit after
+the supersede, and its plan was verification-only: every task `Verification` command would have run
+that suite and exited 1 (`F184`).
+
+**The rule.** When a superseded bundle carries a payer row, `--retire` belongs to the supersede
+commit, because that is where the eligibility arises; a successor's spec may not describe the move
+as its close's. Driven and applied at `58e1d9e`: `moved 5`, every ceiling held, the second `--retire`
+a no-op, suite 78 pass, `validate:ci` green. The successor's criteria all still hold with the move
+one commit earlier — the criteria were relations, not events.
+
+Owner: the authority's procedure, from this entry forward; the skill text that teaches supersede
+(`ngrace-plan` `approved_plan_immutability`) says nothing about payer rows and is the surface a later
+bundle amends. Neighbour to [F225](#f225) and [F229](#f229).
+</Body>
+  </Finding>
+  <Finding id="f235" token="F235" status="live">
+    <Title>### F235 — a `--retire` pointed at a copied record directory from the repository's cwd reads the real archive, so a copy-drive of the close reports `moved 0` by construction. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-11 at `3f8a5ca`** by the executor revising `C-TAUGHT-RULES`'s spec, then re-driven by the
+authority. Eligibility keys on `&amp;lt;cwd&amp;gt;/.ngrace/changes/archive`: `listArchiveNames(repoRoot)` with
+`repoRoot = process.cwd()` (`scripts/validate-record-retirement.ts:1843`-1863), while the record files are read
+from the directory argument. A drive that copies only `docs/plans/active/RM-GOVERNED-PATH` and runs the move
+from the repository root therefore sees the copy's registry and the *real* archive: a row minted only in the
+copy, or a bundle archived only in the copy, is invisible, and the move reports `moved 0` — the spec's own
+`ExpectedCommand` carried exactly that form and could never have produced the `moved 5` it described. The
+faithful form copies the whole repository and runs the move from inside the copy (driven: `moved 5`).
+
+**The class.** [F231](#f231) made the whole-repository copy the rule for `validate:ci`; this is the same rule
+for the record's own move, arrived at from the other side — the record-directory argument invites a partial
+copy that the engine silently half-honours. The remedy candidates: the engine takes the archive root from the
+record directory's own repository (walk up to `.ngrace/`), or refuses a record directory outside the cwd's
+repository. Either makes a partial copy loud.
+
+Owner: the record-engine bundle that next touches `scripts/validate-record-retirement.ts`'s root resolution
+(the schema-and-serializer bundle `F207`/`F221` charter, or a payment-integrity bundle). Neighbour to
+[F231](#f231) and [F230](#f230).
+</Body>
+  </Finding>
+  <Finding id="f236" token="F236" status="live">
+    <Title>### F236 — `ngrace-plan` has no baseline-polarity doctrine: nothing says a `BaselineAssertions` needle may not assert what the bundle changes, and the plan that repairs the skills shipped twenty-eight such needles. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-11 at `5507107`.** The first draft of `C-TAUGHT-RULES/plan.xml` carried 22 `MustContain` and
+6 `MustNotContain` content needles in `BaselineAssertions`, at least eight of which the bundle flips by design
+(`F9.8` must-contain in both `ngrace-execute` trees; `checkTaughtRules` must-not-contain in the runner). Driven
+by the authority on a faithful copy with the plan at `approved`: current-mode root lint exits 1 with three
+`assertion.MustContain`/`MustNotContain` errors — *&quot;Baseline assertion failures: 3. Current mode cannot tell
+whether writes have started&quot;* — the [F211](#f211) mechanism, which would have reddened every task boundary from
+the first write to the close. The executor's own boundary drives had run with the plan at `draft`, which
+current mode does not evaluate ([F231](#f231)'s lesson: drive the state that will exist). The revision
+restored the precedent's form — `MustExist`, `MustVerify`, `MustPassCommand` — and the same probe exits 0.
+
+**The gap.** `ngrace-plan` `must_do` row 4 demands &quot;non-empty machine-checkable baseline and target assertions&quot;
+and says nothing about polarity or stability: the rule that a baseline asserts only what the bundle leaves
+unchanged — and that token red-first belongs in tests and probes, not in baseline needles — is nowhere in the
+skill. A second half, from the same revision: row 15's &quot;do not add those paths to ObservedWriteScope&quot; states the
+rule without its ground (`src/review/core.ts:1037` `isReviewedChangeSpecOrPlanPath`, `:1013`-1025
+`isCliLifecyclePath` — the entries are structurally redundant, not merely disfavored), and the executor listed
+them on an older precedent's example.
+
+**A third, from the first dispatch under the taught skills (2026-09-12).** `ngrace-spec` `shape_sources` names
+`references/change-spec-template.xml` without saying what the path is relative to; a cold executor resolved it
+from the repository root, found nothing, and reported the teaching source as missing. It exists at
+`skills/ngrace/ngrace-spec/references/` — the skill's own directory. One clause (&quot;relative to this skill's
+directory&quot;) closes it.
+
+**A fourth, from the first plan authored under the taught skills (2026-09-12).** `ngrace-plan` `must_do` 19
+(&quot;drive every planned command on a prototype before the plan is approved&quot;) reads as the tasks' `Verification`
+commands; that the spec's `CloseEvidence` commands and the full CI are driven in a faithful post-close copy at
+plan time is taught in `ngrace-spec` (item 10) and `ngrace-reviewer` (item 26) but not where the plan author
+reads — one clause on row 19 closes it.
+
+**Why this is not in `C-TAUGHT-RULES`.** Its spec was approved at `5507107` enumerating twenty-nine rules;
+absorbing a thirtieth requires a supersede ([D27](#d27)), and a supersede for one doctrine sentence costs more
+than the sentence — the conflict `D11` requires for a deferral, stated as such.
+
+Owner: the next teaching-surface increment, chartered after `C-TAUGHT-RULES` closes, paying this entry with
+the baseline-polarity rule in `ngrace-plan` `must_do` and the exclusion's ground beside row 15. Neighbour to
+[F211](#f211), [F226](#f226) and [F234](#f234).
+</Body>
+  </Finding>
+  <Finding id="f237" token="F237" status="live">
+    <Title>### F237 — two red-direction fixtures mutated `registry.xml` by name, so the moment the close moved the row they mutated nothing and their `toThrow` failed: `F229`'s class on the red side, found by the close's own `CloseEvidence` run. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-12 at the `C-TAUGHT-RULES` close**, after `--retire` had moved the row and four findings.
+`bun test scripts/validate-record-retirement.test.ts` — the `CloseEvidence` command of `AC-ROW-PAYS` and
+`AC-RECORD-VALID`, run from the archived spec's bytes — exited 1: 85 pass / 2 fail, *&quot;red direction — a Pays
+token outside the six reddens the exact-set clause&quot;* and *&quot;red direction — a StatusText naming a token outside
+Pays reddens the row's prose law&quot;*, both `expect(received).toThrow(expected)`. The fixture helper
+`plantedTaughtRegistry(mutateLive)` applied its mutation to `registry.xml` only; post-close the row sits in
+`registry-retired.xml`, so the `String.replace` found nothing, the copy was unmutated, the walk stayed green,
+and the red direction proved nothing. The green production tests were correct at both states; only the reds
+were pinned to the live layer — the mirror image of [F229](#f229), whose fixture was *planted* into the live
+layer. Repaired at the close by the authority (disclosed in the close commit): the helper now mutates
+whichever layer holds the row; 87 pass / 0 fail post-close.
+
+**Who missed it, in order.** The executor's plan-time drive ran the suite post-close at 82 tests — the two
+reds did not yet exist; they were written at T-005 and driven pre-close only. The authority's pre-close
+verification ran the suite at 87 on the pre-close tree and drove the checker's reds on a copy, but never
+drove the *suite's own red fixtures* through the close — [F231](#f231)'s rule (&quot;drive the state the life
+cycle produces next&quot;) applied to green assertions and not to red fixtures, which are assertions too.
+
+**The rule, sharpened.** A red-direction fixture is a state-dependent artifact exactly as a green assertion
+is: it must locate its target by walking both layers and mutate the holder it finds, never a file named in
+advance; and the pre-close review drives the suite in the post-close copy, including its reds, before
+approving the plan that adds them. `ngrace-reviewer`'s new `review_judgment` block says &quot;check an assertion
+or probe against the state the artifact's own life cycle produces next&quot; — this entry is the first
+measurement that the sentence needs to say *fixture* too.
+
+Owner: the next teaching-surface increment (with [F236](#f236)), which sharpens the reviewer sentence and adds
+the fixture rule beside `ngrace-plan`'s probe row. Neighbour to [F229](#f229), [F231](#f231) and [F236](#f236).</Body>
   </Finding>
 </Findings>

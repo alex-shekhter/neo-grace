@@ -3802,4 +3802,102 @@ reported (12,939 → 12,945) were JavaScript string `.length`, which counts UTF-
 that answers the question is the error the argument was about.
 </Body>
   </Finding>
+  <Finding id="f233" token="F233" status="retired">
+    <PaidBy>C-TAUGHT-RULES</PaidBy>
+    <Title>### F233 — `C-ROOT-WINDOW` pays `F226` without delivering its remedy: pre-payment as a headroom device puts a false `PaidBy` on the record, and the ratification it rode on never mentioned the semantics. **[verified]**</Title>
+    <Body>
+The row: `registry-retired.xml:275`, `&lt;Pays&gt;F216 F182 F193 F190 F225 F226&lt;/Pays&gt;`. The reason the
+spec gives for the last two tokens is headroom and nothing else — *&quot;The pre-payment is what makes the
+next flush possible at all; that is why the row names both staged tokens&quot;*
+(`.ngrace/changes/archive/C-ROOT-WINDOW/spec.xml:144`-147), carried verbatim through `-2` and `-3`
+and ratified three times. What [F226](#f226) describes is the teaching surface: eighteen measured
+gaps in `skills/ngrace/*`, owner &quot;a chartered bundle on the teaching surface&quot;. **Measured 2026-09-11
+at `ed67f45`:** `git diff --stat 8bfa3b7..ed67f45 -- skills/ plugins/` is empty — PR #86 and PR #87
+between them changed no skill file. So the code `F226` describes still matches its description, and
+D28.1's findings rule has exactly that semantic half — a finding retires when *&quot;the code it describes
+no longer matches&quot;* (`C-RECORD-RETIREMENT-2/spec.xml:333`); `PaidBy` naming an archived bundle is the
+machine-checkable proxy for it, not a substitute. The moment `F226` flushes it is eligible, moves with
+`PaidBy` `C-ROOT-WINDOW`, and `derivePayerMap` is first-row-wins (`scripts/validate-record-retirement.ts:415`,
+`:425`), so no later row — including the one that actually delivers the remedy — can ever claim the
+token. `F225` is the milder neighbour: its remedy shipped in PR #86 (`C-FLUSH-AND-REPAIR`, a row-less
+bundle that &quot;pays nothing and retires nothing&quot;, its spec `:39`), so the attribution is wrong but the
+semantic half holds.
+
+**Whose error.** The authority's: it wrote the pre-payment into three specs, argued only the window,
+and put the row to the maintainer for ratification on that argument — the D28.1 half was never in
+front of him. The same session's handoff then listed &quot;the skills bundle (`F226`)&quot; as queued work
+beside &quot;`F225`/`F226` are pre-paid&quot;, and did not notice that the two lines contradict. **The rule this
+settles:** a `Pays` token names a finding whose described defect the bundle delivers; minting a token
+to relieve a ceiling is not a payment, and a ceiling that blocks a flush is paid by a remedy or by
+the two-wave sequencing the flush precedent already allows, never by a proxy row.
+
+**Disposition, decided 2026-09-11 with the maintainer** (variant chosen over renumbering the skills
+finding, which would leave every archived citation of `F226` dangling, and over accepting the
+attribute): `F226` flushes as-is and retires under the false `PaidBy`; this entry is the record's
+correction beside it; the teaching-surface bundle cites retired `F226` as its charter and pays
+`F233` by delivering `F226`'s remedy. The enforcement half — whether a validator can check the
+semantic rule at all, or only refuse `Pays` tokens absent from the record at the mint — belongs with
+[F197](#f197) and [F198](#f198), the payment-integrity bundle.
+
+Owner: the chartered bundle on the teaching surface, which pays this entry by delivering `F226`'s
+remedy. Neighbour to [F226](#f226), [F197](#f197) (payments minted from prose) and [F198](#f198) (a
+settled finding with no row to pay it — the inverse defect).
+</Body>
+  </Finding>
+  <Finding id="f234" token="F234" status="retired">
+    <PaidBy>C-TAUGHT-RULES</PaidBy>
+    <Title>### F234 — the teaching gaps measured after `F226`: five more in the authoring skills, and the reviewer skill teaches none of the checks the authority's own failures were about. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-11 at `3f8a5ca`**, by three executor dispatches' `SKILL GAPS` fields on `C-FLUSH-AND-UNPIN`
+(spec, plan, implementation) and by the authority reading `ngrace-reviewer/SKILL.md` whole; every absence
+searched with a pattern wider than the claim across all four skill trees, zero hits each. Skills unchanged since
+[F226](#f226)'s measurement (`git log 8bfa3b7..3f8a5ca -- skills/ngrace/`: no commits), so its eighteen stand as
+written; the five below are new, and the six reported this session that restate items 11, 13, 16 and 17 are
+not counted twice.
+
+**Authoring skills, new.** (19) `ngrace-spec` `shape_sources` names `ngrace spec new` as the primary write path
+with no carve-out for the case where the skeleton is wrong for the artifact — a rich, precedent-shaped spec is
+rewritten wholesale; the executor learned the answer from the archive, not the skill. (20) `ngrace-plan`
+`command_phase_rules` never states the stage rule: a recorded task `Verification` command exits 0 at the stage
+that task runs, and a target-mode lint's pre-approval exit 1 is not a defect (`F184`'s refinement). (21)
+`ngrace-execute`'s `attempt` kind teaches the red-first ordering but not that the red run's output is report
+evidence to paste — a hand-written &quot;it failed&quot; is the same non-evidence as a hand-written &quot;it passed&quot;.
+
+**Reviewer skill, the larger half.** `ngrace-reviewer`'s checklist is structural — artifacts present, indexes
+route, statuses valid, scopes explicit — and its `mechanized_first` block runs `ngrace review` at three moments.
+It teaches nothing of the checks whose absence this record has paid for on the reviewer's own side:
+(22) read the artifact whole before a verdict, not the brief's conformance (`D27`; [F136.1](#f136.1));
+(23) an implementer's report is a claim — drive the product on a copy before accepting it (this session: a
+plan approved on a read and a review run, re-driven only after the maintainer asked *&quot;do you empirically
+check reports?&quot;*); (24) derive the forced-file set from the Goals, not from the write-scope Constraint's own
+list ([F227](#f227)); (25) every criterion is probed in both directions on a throwaway copy before it is
+approved — the reviewer's half of `F226` item 10; (26) the full CI runs in a faithful copy of the post-close
+state, carrying the plan at `applied`, not only the `CloseEvidence` commands ([F231](#f231); the copy without the
+plan reds on `change.applied-plan-missing`, measured this session); (27) an assertion or probe is checked against
+the state the artifact's own life cycle produces next, never only the state at approval ([F225](#f225),
+[F229](#f229), [F232](#f232) — three instances, the third approved by a reviewer who had the rule in hand).
+
+**One more, measured by the executor that authored the repair's own spec (28).** `ngrace-spec`
+`acceptance_criteria_anchors` teaches that a forgotten `AC-*` &quot;still warn[s] unmapped&quot; without its firing
+precondition: the warning is produced only against an active `plan.xml`; a draft spec whose only unmapped
+non-`CloseEvidence` criterion is the one the plan will map lints 0/0 with no plan present (measured 2026-09-11
+at `3f8a5ca`). An author who reads the sentence expects a warning the tool cannot yet give, and takes silence
+for a mapped criterion. Adjacent to `F226` item 4, not a restatement of it.
+
+**And one from the revision of that same spec (29).** `ngrace-spec` teaches create → review → gate and
+never says what a *draft* is: that an unapproved `spec.xml` is revised in place, and only an approved artifact
+is immutable and repaired by supersede. The executor revising a draft had to be told by the brief that `D27`
+binds approved artifacts only; `ngrace-plan` carries the equivalent sentence for plans
+(`approved_plan_immutability`) and `ngrace-spec` carries none.
+
+**Universality, re-measured.** Zero occurrences of `RM-GOVERNED-PATH`, any record file name, or any `F`-token in
+the four skill trees at `3f8a5ca`; the rule for the repair is unchanged: the skill states the rule generically,
+the record keeps the provenance. `check-teaching-surface.ts` is the instrument that asserts skill text, and its
+refusal is still silent ([F199](#f199)).
+
+Owner: the chartered bundle on the teaching surface, with [F226](#f226)'s eighteen — one bundle, four skills and
+their packaged mirror, paying this entry, [F233](#f233), and the live findings whose remedy is the rule the skill
+lacks. Neighbour to [F226](#f226) and [F231](#f231).
+</Body>
+  </Finding>
 </Findings>

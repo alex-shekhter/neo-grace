@@ -1,4 +1,4 @@
-<Rulings base="1776" headroom="107" ceiling="1883">
+<Rulings base="1813" headroom="70" ceiling="1883">
   <Decision id="d1" token="D1" status="live">
     <Title>## D1 — The tool is the only sanctioned writer of `approved → applied`</Title>
     <Body>
@@ -1773,4 +1773,41 @@ Owner: a chartered bundle for the verb, sequenced by the maintainer against [F22
 authorization half stays on the board as `RM-VERIFIED-APPROVAL`.
 </Body>
   </Decision>
+  <Decision id="d38" token="D38" status="live">
+    <Title>## D38 — a bundle id is `C-&lt;SLUG&gt;[-&lt;N&gt;]-&lt;HASH&gt;`: the slug and lineage stay human and searchable, the hash makes the id unique by construction. **[maintainer's direction, 2026-09-11; not yet built]**</Title>
+    <Body>
+**The maintainer's direction, recorded verbatim in substance.** Bundle names collide only by accident and are
+searched by hand before every mint; the proposal is `PREFIX + one-way hash(branch + timestamp)`, where the prefix
+stays searchable and *&quot;there will be no time in name&quot;* — the timestamp feeds the hash and nothing else; and
+*&quot;lineage also can be part of the prefix&quot;*.
+
+**Decision.** A new bundle id has three parts. `&lt;SLUG&gt;` is the human name (`TAUGHT-RULES`), the part every
+search, `Pays` cell, ruling and PR title reads. `&lt;N&gt;` is lineage, in the prefix and human-readable: `ngrace
+supersede` mints the successor's prefix by incrementing it. `&lt;HASH&gt;` is short uppercase hex minted by `ngrace
+spec new` as a one-way hash of the branch name and a timestamp — entropy only, never text — so the id fits the
+existing `C-[A-Z0-9-]+` anchor pattern unchanged. `spec new` refuses a hand-typed id without a suffix. The
+*searched before minting* statement keeps its scope half (&quot;no prior prefix covers this ground&quot;); its collision
+half becomes the tool's.
+
+**Why the hash belongs in the product and not in house convention.** A refusal at `spec new` sees one working
+tree; two agents minting `C-FIX-LOGIN` on two branches collide at merge, and neither branch can see the other.
+Parallel-safe execution by several agents is the product's own story, so unique ids across concurrent authors
+are a product property, not repository tidiness. The slug keeps names legible where the name is the key; a bare
+hash would not.
+
+**Three edges, decided so the builder inherits decisions, not questions.** (1) Trailing digits are ambiguous
+(`C-OAUTH2-7K2Q`): lineage is **always present**, `-1` for a first mint — a parser rule beats an authoring
+rule. (2) Determinism: `ngrace-spec` says the id is deterministic and `validate:determinism` runs in CI, so
+`spec new` takes the timestamp as an input it can be handed and never reads the clock silently; the hash is
+deterministic given its inputs. (3) The legacy corpus keeps its hash-less names forever; lint and the registry
+accept both forms, and the rule is &quot;new mints carry the suffix&quot;, never &quot;every id has one&quot;.
+
+**Sequencing.** A `src/` change across `spec new`, `supersede`, the anchor validation, the skills, the schema
+reference and the README — its own chartered bundle when the maintainer sequences it, never folded into a
+bundle in flight; it earns its place when the parallel story is exercised, after the governed-path queue
+drains. Neighbour to [D37](#d37) (status transitions belong to `ngrace` verbs — the same principle applied to
+identity).
+</Body>
+  </Decision>
+
 </Rulings>
