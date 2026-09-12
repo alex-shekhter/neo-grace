@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="draft">
+<NgraceChangePlan graceVersion="1.0" status="approved">
   <C-APPLY-VERB>
     <IntentSummary>
       Convert the approved spec into the executable plan: land a
