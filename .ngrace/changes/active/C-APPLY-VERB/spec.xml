@@ -1,0 +1,2127 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-APPLY-VERB>
+    <Summary>
+      Add a top-level ngrace apply verb that
+      is the sanctioned writer of approved
+      to applied and of the archive move:
+      surgical status writes on the active
+      spec and on plan.xml (required), a
+      fingerprint of each file's bytes after
+      those writes, two append-only Decision
+      records with gate applied, and a
+      same-filesystem directory rename into
+      archive/. The verb is not a gate
+      subcommand. It reads permitting apply
+      and archive Decisions from the ledger
+      and does not re-evaluate those gates.
+      gate apply, archive, and verdict still
+      do not write status and never move a
+      bundle. Partial failure rolls bytes
+      and ledger writes back. A forced
+      permit records itself as forced with
+      an operator-supplied reason. This
+      bundle's own close runs the verb.
+    </Summary>
+    <Problem>
+      HEAD a1d58298951ac734051159c45de38bf5042edb5f
+      on c-apply-verb, packaged 6.2.0, tree
+      clean before this mint, lint 0/0,
+      validate:ci green. Those numbers and
+      that commit are a snapshot (F33), not
+      live HEAD.
+
+      RM-GOVERNED-PATH F224 is the finding
+      and D37 is the binding ruling. Every
+      change to a governed artifact's
+      status is performed by an ngrace
+      verb. That now holds for draft to
+      approved and for superseded; it does
+      not hold for approved to applied or
+      for the archive move. Extend the
+      verb surface to cover them.
+
+      ---
+
+      Measured verb surface, not inherited.
+      bun ./src/grace.ts --help lists
+      context cursor doctor file gate graph
+      lint module plan review scaffold spec
+      status supersede verification. There
+      is no top-level apply. bun ./src/grace.ts
+      apply --help exits 0 and prints that
+      same root usage (citty falls through).
+      liveCommandRoots
+      (src/query/command.test.ts:836-854)
+      is that set in a different order and
+      is the pin README CLI Overview must
+      match. GATE_SUBCOMMANDS
+      (src/gates/command.ts:39) is approve,
+      apply, archive, verdict. GateId
+      (src/gates/ledger.ts:156) and
+      VALID_GATES (:211) are approve, apply,
+      archive only; verdict is a sibling
+      recorder, not a GateId.
+      evaluateGate (src/gates/core.ts:522-530)
+      is if approve, then if apply, else
+      evaluateArchiveGate: archive is the
+      implicit default. VALID_GATES is the
+      parse set at parseDecisionNode
+      (:770), not the evaluation set.
+      GATE_DECISION_GATES
+      (src/artifact/grammar.ts:911) is the
+      lint set at :1010; the message at
+      :1016 names approve, apply, or
+      archive. catalog.ts
+      ledger.invalid-decision explanation
+      names the same three.
+      recordGateDecision (:536-547) writes
+      fingerprint, artifact, forced, and
+      reason only when gate is approve.
+      Widening GateId to include applied
+      would make evaluateGate("applied")
+      type-check and silently evaluate
+      the archive gate.
+
+      ---
+
+      Measured gate contract, at the
+      sentences D37 says to honour.
+      src/gates/command.ts:15-16: Approve
+      writes draft to approved and
+      fingerprints those bytes; apply,
+      archive, and verdict do not write
+      status (A29.2, A31.1). The gate
+      command description at :474 repeats
+      that apply, archive, and verdict do
+      not write status or move bundles.
+      gateSubCommand default description
+      at :220: Evaluate the gate and
+      record the decision (does not change
+      status). Parent usage at :492: Does
+      not set status=applied and does not
+      move bundles (invariant 8). Driven
+      this session on a throwaway fixture:
+      a permitting recorded gate apply
+      (bound pass planted, exit 0, Decision
+      gate apply decision permit present)
+      left spec and plan bytes identical
+      and the bundle under active/; that
+      Decision carried no fingerprint.
+      A refusing gate apply (no verdict)
+      named gate.apply.no-verdict and
+      wrote nothing. A permitting gate
+      archive (run/ empty) left status
+      approved and did not move. A refusing
+      gate archive with one loose event
+      named gate.archive.open-epoch and
+      did not move.
+
+      ---
+
+      Measured apply-gate preconditions
+      (src/gates/core.ts:385-474):
+      plan-present (plan status approved,
+      not existsSync), no unresolved
+      satisfied AC clarification, and a
+      bound review verdict (newest-governs;
+      fail, unbound pass, digest mismatch,
+      and ack mismatch refuse). Archive
+      gate (:476-519) is no-open-epoch
+      only; it does not require applied
+      status and does not require a
+      permitting apply Decision. Driven:
+      hasPermittingDecision after a
+      permitting apply is true for apply
+      and false for archive.
+      readPermittingDecision is any-permit
+      via some(), not newest-governs.
+
+      ---
+
+      Measured write path for applied.
+      Every occurrence of the token
+      applied in non-test source under
+      src/ is a read. stampApproveArtifact
+      (src/gates/ledger.ts:1518-1528)
+      writes approved only.
+      supersedeChangeBundle (:1383-1481)
+      writes superseded, then renameSync,
+      with file-byte rollback and EXDEV
+      refuse after rollback. It mints no
+      Decision. It does not spawn git
+      (src/grace-supersede.ts: 0 hits
+      for git). Driven: spec-only
+      supersede moves without inventing
+      a plan (grace-supersede.test.ts
+      spec-only source); dest already
+      existing refuses Archive destination
+      already exists and leaves the
+      source under active/; EXDEV on the
+      io.renameSync bag rolls status
+      bytes back under active/.
+
+      ---
+
+      Measured lint that exists to catch
+      the half-done hand-edit. Driven
+      both directions on throwaway
+      fixtures: an applied archived
+      spec without an applied plan.xml
+      emits change.applied-plan-missing
+      once as error, message An applied
+      archived bundle requires an applied
+      plan.xml; the same bundle with
+      both artifacts applied emits 0.
+      Applied status under active/
+      emits change.invalid-active-status
+      (two issues, spec and plan),
+      message Active change artifacts
+      cannot use status 'applied'.
+      change.invalid-archive-status and
+      change.archive-status-mismatch
+      remain catalogued. bun ./src/grace.ts
+      lint --explain of those four codes
+      classifies applied-plan-missing,
+      invalid-active-status,
+      invalid-archive-status, and
+      archive-status-mismatch as
+      emittable-uncatalogued (shared
+      lifecycle explanation).
+
+      ---
+
+      Measured detection on applied.
+      classifyApprovedArtifact
+      (src/gates/ledger.ts:1201-1231)
+      is consumed only when status is
+      approved (src/review/core.ts:1775
+      continue unless approved;
+      src/grace-status.ts collector
+      same). Driven: ngrace review
+      --change on an applied archive
+      fixture emitted 0 findings named
+      approval-never-asked or
+      approved-fingerprint-mismatch.
+      C-APPROVAL-FINGERPRINT
+      AC-REVIEW-DETECTS and
+      AC-ARCHIVE-SILENT chose that
+      silence because the fingerprint
+      taken at approved stops matching
+      the moment status becomes
+      applied, and widening the trigger
+      to applied would report every
+      archived bundle at once. D1.3's
+      applied-without-record finding
+      is not shipped (P3.7). This
+      bundle does not ship it.
+
+      ---
+
+      Measured teaching surface,
+      2026-09-12 at a1d5829. Scan of
+      73 files (canonical
+      skills/ngrace/** plus packaged
+      plugins/ngrace/skills/ngrace/**
+      plus README.md) for the needles
+      set spec and plan, archive the
+      complete bundle, does not itself
+      author, status=.applied,
+      status="applied", git mv,
+      hand-author, hand-edit, does not
+      change status, does not move,
+      move bundles, Only after both
+      gates permit: 7 hit lines.
+      In scope by name: execute skill
+      execution_rules items 9 and 10
+      at skills/ngrace/ngrace-execute/SKILL.md:42-43
+      and the packaged mirror at the
+      same lines (the prescribed
+      hand-edit and hand move);
+      README.md:137 (user-facing close
+      ceremony ends at both gates);
+      README.md:194 (Apply, archive,
+      and verdict still do not write
+      status and never move a bundle
+      — true of gate, silent on the
+      verb this bundle adds);
+      README.md:199-200 (gate apply
+      and gate archive table rows,
+      stay as evaluate; a new root
+      row is required). Out of scope
+      by name: skills/ngrace/ngrace-explainer/references/recovery.md:40
+      and its packaged mirror
+      (hand-editing run.xml, a
+      different artifact);
+      README.md:31 (never hand-author
+      the XML, general);
+      README.md:162 (ngrace-migrate
+      Agent-applied, unrelated sense);
+      README.md:340 (host-capability
+      matrix, still true of gate apply);
+      ngrace-plan Refuse draft,
+      rejected, cancelled, applied, or
+      superseded specs (status check,
+      not the close procedure);
+      ngrace-spec and ngrace-reviewer
+      applied-archive CloseEvidence
+      evaluation state (F196, stays).
+      bun ./scripts/check-teaching-surface.ts
+      check exits 0 at HEAD.
+      checkTaughtRules tokens in
+      ngrace-execute execution_rules
+      that must survive: no declared
+      task is in scope, pass-only cycle.
+      checkRecordTokens forbids F-tokens,
+      D-tokens (unless RM- pinned),
+      RM-GOVERNED-PATH, and the seven
+      record file names in that skill.
+      scripts/skill-contracts.test.ts
+      pins execute rule 9 (ngrace review,
+      --change, stop, does not invoke
+      gate verdict), explicit apply
+      confirmation, fold-before-archive,
+      and forbids D19 / D20.
+
+      ---
+
+      F66. This spec decides README.md
+      and examples/ in a Goal or NonGoal
+      body. F61. This spec names argv
+      tokens and exported functions in
+      any comment body and does not
+      write dashed CLI flags inside XML
+      comments. F43. This artifact binds
+      semantics; tests assert literal
+      bytes. F45 / F80 / F102 / F112.
+      A criterion may only order a red
+      for a property that is false at
+      HEAD. F33: do not freeze suite
+      counts, archive counts, or
+      skillTextLines figures this
+      change moves. F197: StatusText
+      closedWithTokens is a payment
+      path; this row's StatusText names
+      no F-token and contains no Closed
+      with sentence. F235: copy-drives
+      of the record run from inside a
+      whole-repository copy. F136.1:
+      every forced file's LINKS owner
+      is in every module list.
+    </Problem>
+    <Goals>
+      <Goal>
+        A new top-level ngrace root named
+        apply, defined in
+        src/grace-apply.ts, registered
+        in src/grace.ts alongside the
+        existing roots by a static import
+        of that module, branded with
+        defineGraceCommand so
+        BOOLEAN_SPACE_GUARD_BRAND holds,
+        listed in liveCommandRoots, and
+        present as an ngrace apply token
+        in a README.md CLI Overview
+        table row. It is not a gate
+        subcommand and not a spec or plan
+        subcommand. It is not an extra
+        root exported from
+        src/grace-generate.ts. argv
+        token change is required; argv
+        token path defaults as the other
+        roots do. F224's owner sentence
+        names this argv; D1's lifecycle
+        finish is the earlier name for
+        the same transition and is not
+        the command this bundle ships.
+      </Goal>
+      <Goal>
+        That verb is the sanctioned
+        approved-to-applied close and
+        the archive move. After
+        validation it surgically sets
+        the spec root status to applied,
+        does the same to plan.xml, takes
+        SHA-256 lowercase hex of each
+        file's on-disk bytes after those
+        writes, appends two permitting
+        Decision elements with gate
+        applied (artifact spec then
+        artifact plan, each carrying
+        fingerprint), and renameSyncs
+        the bundle directory from
+        active/ to archive/. Companions
+        move with the directory. It
+        does not fold. It does not run
+        evaluateApplyGate or
+        evaluateArchiveGate.
+      </Goal>
+      <Goal>
+        Gate purity is preserved. gate
+        apply, gate archive, and gate
+        verdict still do not write
+        status and never move a bundle.
+        The doc comment at
+        src/gates/command.ts:15-16, the
+        command description at :474, the
+        gateSubCommand default at :220,
+        and the parent usage at :492
+        stay true of gate. GATE_SUBCOMMANDS
+        stays approve, apply, archive,
+        verdict. Evaluation GateId stays
+        approve, apply, archive.
+        evaluateGate does not grow a
+        case. Those sentences now
+        point at this verb for the
+        applied write and the move, by
+        remaining true of gate and by
+        the new root existing.
+      </Goal>
+      <Goal>
+        Skill text this bundle owns
+        teaches that path:
+        ngrace-execute execution_rules
+        items 9 and 10, after both
+        gates permit, run ngrace apply
+        with argv token change; they
+        no longer teach a hand-written
+        applied or a hand move. Packaged
+        mirrors stay byte-identical.
+        Existing taught tokens and the
+        skill-contracts pins on rule 9,
+        explicit apply confirmation,
+        and fold-before-archive survive.
+      </Goal>
+      <Goal>
+        README.md is in scope for a CLI
+        Overview table row for the new
+        root (the listLiveInvocations
+        pin fails without it), for
+        README.md:137 (the close
+        ceremony names the verb after
+        both gates), and for README.md:194
+        (disambiguate: gate apply,
+        archive, and verdict still do
+        not write status or move; the
+        new root does). examples/ is
+        unchanged; no user-visible
+        surface. Silence would fail
+        checkDocsAndExamplesDecision.
+      </Goal>
+      <Goal>
+        src/grace-apply.ts is listed in
+        package.json files next to the
+        other src/grace-*.ts paths, and
+        in PACK_ALLOWED_EXACT in
+        scripts/release-check.ts. Packaged
+        version stays 6.2.0. bun run
+        validate:packed is the command
+        that proves the file shipped.
+      </Goal>
+      <Goal>
+        This bundle mints one chartered
+        registry row named C-APPLY-VERB
+        paying F224 only. D37 acquires
+        a resolving CodifiedIn of kind
+        test-suite pointing at
+        src/grace-apply.test.ts at the
+        close. The retirement suite's
+        payer-derivation baseline
+        bundleMinted extension names
+        F224 to C-APPLY-VERB. This
+        bundle's own close runs
+        bun ./src/grace.ts apply with
+        argv token change C-APPLY-VERB
+        after both gates permit.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting).
+        New command root, ledger write
+        path, Decision.gate vocabulary,
+        skill text, README lifecycle
+        prose, and a record row. Not T3:
+        this is the applied sibling of
+        the already-shipped approve
+        writer and supersede verb, not
+        a new subsystem or a contract
+        major bump. Tiers never skip
+        argv token assertions final.
+      </Constraint>
+      <Constraint>
+        Binding: F224 (finding), D37
+        (ruling), D1 / D1.1 / D1.2 /
+        D1.5 (tool is the sanctioned
+        writer; A29.2 constrains the
+        gate; a recorded force hatch is
+        required), D9 (append-only),
+        D5.2 / D5.5 (no
+        NGRACE_ARTIFACT_VERSION bump;
+        CHANGELOG.md is generated),
+        A29.2 / invariant 8 (explicit
+        trigger, not a gate side
+        effect), C-APPROVAL-FINGERPRINT
+        (attribute shape, applied
+        silence, apply Decisions never
+        carry fingerprint — preserved
+        by not putting fingerprints on
+        gate apply), C-SUPERSEDE-COMMAND
+        (write-then-rename-with-rollback,
+        packaging, no git, command def
+        as src/grace-*.ts). F43, F44,
+        F45, F56 / F67, F61, F66, F80,
+        F81, F83.1, F86 (honesty-gap
+        this verb must not reproduce),
+        F101 (no new review.* code, so
+        localize cardinality is
+        untouched), F114 (shared writer
+        already repaired; reuse it),
+        F136.1, F196, F197, F235, F33.
+      </Constraint>
+      <Constraint>
+        Decided here: command home is a
+        new top-level root, not a gate
+        subcommand. Putting a
+        status-writing directory move
+        under gate would punch a second
+        hole in A29.2, would make
+        invariant 8's usage text at
+        command.ts:492 a lie, and would
+        collapse evaluation into the
+        write. D37 is explicit that a
+        dedicated verb is the explicit
+        trigger and that what the
+        invariant forbids is gate apply
+        mutating as a side effect of
+        evaluating a gate. spec and
+        plan expose new only; an apply
+        under spec would also write
+        plan.xml and move the directory.
+        The README CLI Overview and
+        liveCommandRoots pins exist to
+        move when a root is added.
+      </Constraint>
+      <Constraint>
+        Decided here: the verb sits
+        after both gates. Today's
+        ceremony (execute skill items
+        9-10, README.md:137) is review,
+        bound verdict, gate apply, gate
+        archive, then two hand acts.
+        Archive evaluation is
+        no-open-epoch on the still-active
+        bundle; after the move
+        resolveChangeBundle still finds
+        the archive path, but that is
+        not today's order and is not
+        this verb's job. The verb
+        replaces only the two hand
+        acts. Operator sequence: both
+        gates permit, then ngrace apply.
+        The verb does not fold (archive
+        already required no-open-epoch;
+        supersede folds because it does
+        not run that gate).
+      </Constraint>
+      <Constraint>
+        Decided here: the verb reads
+        the ledger and does not
+        re-evaluate. Preconditions,
+        all checked before any write:
+        argv token change is a
+        well-formed C-*; source is a
+        directory under active/ and
+        not under archive/; dest
+        archive/C-* does not already
+        exist; spec.xml exists;
+        plan.xml exists (required;
+        change.applied-plan-missing
+        is why, and this is what the
+        supersede precedent does not
+        require); root status on spec
+        and plan is approved, or the
+        resume case below; opening-tag
+        status is locatable as either
+        quote style; hasPermittingDecision
+        for apply is permit;
+        hasPermittingDecision for
+        archive is permit. It does not
+        call evaluateApplyGate or
+        evaluateArchiveGate. A missing
+        precondition refuses with a
+        message that names it, writes
+        nothing, exits nonzero. Driven
+        discriminators: the clean
+        direction (both permits
+        present, both artifacts
+        approved, dest absent) writes
+        and moves; a planted missing
+        apply permit refuses naming
+        apply; a planted missing
+        archive permit refuses naming
+        archive; a planted missing
+        plan.xml refuses naming
+        plan.xml. The verb does not
+        re-check the bound verdict:
+        the apply permit already
+        encoded that check.
+      </Constraint>
+      <Constraint>
+        Decided here: atomicity reuses
+        supersede's write-then-rename
+        with rollback and adds a
+        required plan plus ledger
+        records. Validate, write
+        nothing. Compute next bytes in
+        memory (status applied;
+        surgical opening-tag attribute
+        only, both quote styles,
+        preserving the quote
+        character). writeFileSync spec,
+        then plan. Hash both on-disk
+        files. Append two Decision
+        records. renameSync the
+        directory from active/ to
+        archive/. On throw after the
+        first artifact write, restore
+        original file bytes and, if a
+        Decision was appended, restore
+        the ledger's prior bytes, while
+        the directory is still under
+        active/, and exit nonzero. Do
+        not serializeGraceXmlDocument
+        the spec or plan. EXDEV on
+        renameSync is refuse after that
+        rollback; this bundle does not
+        implement copy-then-delete
+        (rmSync would break the A15.1
+        pin). Dest already exists:
+        refuse before any write.
+        Resume: source under active/,
+        spec and plan already applied;
+        skip matching status writes;
+        hash; append Decision records
+        only when the matching
+        gate-applied fingerprint for
+        that artifact is absent; do
+        the rename. Already in archive
+        as applied: refuse, already
+        done, nonzero. Draft,
+        superseded, rejected, or
+        cancelled: refuse even under
+        force. Spec without plan:
+        refuse; do not invent a plan
+        (the supersede spec-only path
+        is not this verb's).
+      </Constraint>
+      <Constraint>
+        Decided here: Decision shape.
+        Evaluation GateId stays
+        approve, apply, archive
+        (ledger.ts:156). The ledger
+        Decision gate vocabulary is a
+        wider type DecisionGateId =
+        GateId or applied, and
+        GateDecisionRecord.gate takes
+        that wider type. VALID_GATES
+        (ledger.ts:211, the parse set
+        at parseDecisionNode :770)
+        and GATE_DECISION_GATES
+        (src/artifact/grammar.ts:911,
+        the lint set at :1010, exported
+        on GRAMMAR_INVENTORIES) both
+        gain applied. GATE_SUBCOMMANDS
+        does not. evaluateGate's
+        parameter stays GateId, so a
+        call evaluateGate("applied")
+        does not type-check;
+        evaluateGate does not grow a
+        case and does not throw on a
+        token it cannot be passed.
+        src/gates/core.ts is not
+        forced. A non-Requirement
+        child still raises
+        ledger.invalid-decision (F81).
+        Extra attributes already parse.
+        Each write Decision carries
+        attributes fingerprint
+        (SHA-256 lowercase hex of that
+        artifact's file bytes after
+        the status write) and artifact
+        (spec or plan), the same
+        attribute names C-APPROVAL-FINGERPRINT
+        chose for approve. Refuse,
+        apply, and archive Decisions
+        still never carry fingerprint
+        or artifact: that shipped
+        sentence stays true because
+        these records are gate
+        applied, not gate apply.
+        Expanding the parse
+        vocabulary (VALID_GATES and
+        GATE_DECISION_GATES) answers
+        C-SUPERSEDE-COMMAND's argument
+        against minting a Decision
+        with a new gate name: supersede
+        had a lint-checked status plus
+        Replacement as the record and
+        no F86-shaped gap to close;
+        applied-close folklore ends at
+        the archive gate Decision with
+        nothing recording the write
+        (F86 / F224). Naming the write
+        gate apply would mix the
+        evaluation permit with the
+        write and overturn
+        C-APPROVAL-FINGERPRINT's
+        apply-never-fingerprints
+        sentence. Widening evaluation
+        GateId instead of splitting
+        the type would make
+        evaluateGate("applied")
+        compile and silently evaluate
+        archive; throwing inside
+        evaluateGate is the rejected
+        alternative (it forces
+        src/gates/core.ts and is a
+        runtime assertion the split
+        type already prevents). The
+        attribute is historically
+        named gate because only gates
+        wrote Decisions; after approve
+        became a writer, Decision.gate
+        names the command-path event.
+        applied names this verb's
+        write. Consumers after this
+        change, the population of
+        GateId / VALID_GATES /
+        GATE_DECISION_GATES type and
+        parse uses at HEAD:
+        GateId stays three-valued at
+        ledger.ts:156 (definition),
+        command.ts:116 (runGate),
+        command.ts:213 (gateSubCommand),
+        core.ts:67 (GateEvaluation.gate
+        is GateId or attempt),
+        core.ts:525 (evaluateGate),
+        ledger.ts:1002
+        (readPermittingDecision),
+        ledger.ts:1028
+        (hasPermittingDecision).
+        DecisionGateId is new;
+        GateDecisionRecord.gate at
+        ledger.ts:168 takes it;
+        parseDecisionNode :792 casts
+        to it. VALID_GATES at :211
+        and the has() at :770 take
+        the wider parse set.
+        GATE_DECISION_GATES at
+        grammar.ts:911 and :1010 take
+        the wider parse set; the
+        emitted message at :1016 names
+        the four tokens; catalog.ts
+        ledger.invalid-decision
+        explanation names the same
+        four. grace-lint.ts:108 reads
+        GATE_DECISION_GATES after
+        CHANGE_STATUSES, so argv token
+        as applied stays a ChangeStatus
+        (do not reorder).
+        src/artifact/schema-reference.ts:54 reads
+        the inventory;
+        docs/schema-reference.md
+        regenerates. recordGateDecision
+        persists fingerprint, artifact,
+        forced, and reason on permitting
+        applied Decisions; it does not
+        route applied through the
+        approve branch that also stores
+        baseCommit. applied Decisions
+        never carry baseCommit.
+        MODULE_MAP on ledger.ts gains
+        DecisionGateId. Later
+        attestations (D37 sequencing)
+        are additional attributes on
+        those Decision elements, never
+        children, so they do not
+        require a schema break (extra
+        attributes already parse; a
+        child still invalidates the
+        event).
+      </Constraint>
+      <Constraint>
+        Decided here: force. argv
+        token force with a non-empty
+        argv token reason bypasses
+        only the missing apply-permit
+        and missing archive-permit
+        refuses (D1.5: without a
+        sanctioned exit people
+        hand-write anyway and the
+        record becomes worse). It
+        still writes status, still
+        fingerprints, still moves,
+        and records forced true and
+        that reason on both write
+        Decisions. Requirement of
+        plan present, dest absent,
+        source under active/, and
+        non-terminal status still
+        bind under force. Force
+        without a non-empty reason
+        writes nothing and exits
+        nonzero. A permit without
+        force omits the forced
+        attribute; do not write
+        forced false. Boolean space
+        form for force is refused
+        the same way argv token
+        record space form is (F18).
+        Reason without force is not
+        stored.
+      </Constraint>
+      <Constraint>
+        Decided here: argv token
+        record defaults true. argv
+        token record false validates
+        and prints, writes no status,
+        appends no Decision, takes
+        no fingerprint, and does not
+        move. D1.1's dry-run-by-default
+        from graph split does not
+        apply: the command invocation
+        is the explicit trigger
+        (invariant 8); a nested apply
+        flag on a command named apply
+        is theatre. Supersede writes
+        immediately; this verb does
+        too, with an opt-out that
+        matches gate's record false.
+      </Constraint>
+      <Constraint>
+        Decided here: no git. The
+        hand form was git mv. The
+        supersede precedent does not
+        spawn git; it renameSyncs and
+        the operator commits. This
+        verb does the same. The
+        porcelain spawn at
+        ledger.ts:1172-1173 belongs
+        to classifyApprovedArtifact
+        and is not this writer. Close
+        commits stay the operator's
+        after the verb returns.
+      </Constraint>
+      <Constraint>
+        Decided here: the status and
+        location lint rules stay.
+        change.applied-plan-missing,
+        change.invalid-active-status,
+        change.invalid-archive-status,
+        and change.archive-status-mismatch
+        exist to catch a hand-edit
+        that the verb cannot produce
+        on its happy path. The legacy
+        corpus was closed by hand;
+        mixed-version CLIs and
+        deliberate hand-edits remain
+        writers. Removing the rules
+        would silence those. The verb
+        satisfies the rules; it does
+        not replace them.
+      </Constraint>
+      <Constraint>
+        Decided here: detection on
+        applied stays silent. This
+        does not overturn
+        C-APPROVAL-FINGERPRINT
+        AC-REVIEW-DETECTS row three
+        or AC-ARCHIVE-SILENT. review
+        and status still skip
+        classifyApprovedArtifact
+        unless status is approved.
+        D1.3 / P3.7 (applied with no
+        corresponding ledger record)
+        is not this bundle. Answer to
+        D1.3's inert warning: the
+        write Decision is what makes
+        a later detector possible;
+        shipping it now against a
+        corpus whose every applied
+        archive is the pre-writer
+        shape would report every
+        archive at once, the outcome
+        C-APPROVAL-FINGERPRINT
+        forbade. Lint still catches
+        the half-done states. Full
+        hand-apply-and-move remains
+        indistinguishable from the
+        historical method, which is
+        D18's ceiling (tamper-evidence,
+        not enforcement) applied to
+        this transition. Owner of the
+        detector: P3.7.
+      </Constraint>
+      <Constraint>
+        Decided here: reuse the
+        surgical writer in
+        src/gates/ledger.ts next to
+        stampApproveArtifact and
+        supersedeChangeBundle. Status
+        needles are both quote styles
+        of approved (or already
+        applied on resume), preserving
+        the quote character. All
+        writeFileSync of spec/plan
+        bytes, ledger append, mkdirSync
+        if any, and renameSync stay in
+        ledger.ts. src/grace-apply.ts
+        must not contain the
+        identifiers writeFileSync or
+        mkdirSync, including in
+        imports (the allowlist grep
+        at src/grace-cursor.test.ts:518-547
+        matches those tokens). Do not
+        add unlinkSync or rmSync call
+        sites. The io bag for EXDEV
+        follows supersedeChangeBundle.
+      </Constraint>
+      <Constraint>
+        Decided here: command def is
+        src/grace-apply.ts on the
+        existing src/grace-*.ts
+        convention, plus one new
+        entry in package.json files,
+        plus the forced second edit of
+        PACK_ALLOWED_EXACT in
+        scripts/release-check.ts
+        (C-SUPERSEDE-COMMAND F120:
+        listing the path without that
+        second edit fails
+        validate:packed). Maintainer
+        ruling on supersede stands:
+        a new file and the files
+        entry, not an extra root from
+        src/grace-generate.ts and not
+        a file under src/gates/ (that
+        directory already ships as a
+        whole). package.json is in
+        scope for the files array
+        only; no other field; version
+        stays 6.2.0; no product
+        version bump. Do not derive
+        PACK_ALLOWED_EXACT from
+        package.json files. bun run
+        validate:packed is required
+        verification that the file
+        shipped.
+      </Constraint>
+      <Constraint>
+        Decided here: the record.
+        One chartered Row name
+        C-APPLY-VERB in
+        docs/plans/active/RM-GOVERNED-PATH/registry.xml,
+        Pays exactly F224 and no
+        other F-token, StatusText
+        names no F-token and contains
+        no Closed with sentence
+        (F197), Charter carries
+        searched-before-minting and
+        no F-token. Searched before
+        minting: zero prior rows in
+        either registry layer and
+        zero prior archive
+        directories named
+        C-APPLY-VERB. D37 at the
+        close receives a resolving
+        CodifiedIn kind test-suite
+        whose text is
+        src/grace-apply.test.ts
+        (the house form in
+        rulings-retired.xml: lint-rule
+        or test-suite; a resolving
+        CodifiedIn moves the
+        decision, a resolving TaughtIn
+        does not). --retire then
+        stamps PaidBy C-APPLY-VERB on
+        F224, moves F224 to
+        findings-retired.xml, moves
+        D37 to rulings-retired.xml,
+        flips their index Entry
+        layers in place, and moves
+        the row once the archive
+        directory exists. Ceiling
+        attributes are rewritten only
+        by that move. --rewrite-roots
+        follows any hand write of a
+        record file, never a hand
+        root. Copy-drives run from
+        inside a whole-repository
+        copy (F235). The staged
+        buffer
+        .ngrace/scratch/staged-findings.md
+        is one copy and is not this
+        bundle's to touch. The
+        payer-derivation baseline in
+        scripts/validate-record-retirement.test.ts
+        gains bundleMinted F224:
+        C-APPLY-VERB, consulted only
+        for tokens the derivation
+        actually mints, so the walk
+        stays green with the row live
+        and green in the
+        applied-archive state.
+      </Constraint>
+      <Constraint>
+        Decided here: this bundle's
+        own close runs the verb.
+        After both gates permit, the
+        close act is bun ./src/grace.ts
+        apply with argv token change
+        C-APPLY-VERB. CloseEvidence
+        commands are evaluated in the
+        applied-archive state after
+        that move (F196) and must not
+        assume the bundle is still
+        under active/, must not
+        require F224 to be live, and
+        must exclude this bundle's
+        own archive arrival from any
+        pathspec that would redden on
+        the close's rename. They do
+        not invoke the verb (it has
+        already run). A CloseEvidence
+        command that is true only
+        pre-close is uncloseable.
+      </Constraint>
+      <Constraint>
+        Decided here: every AC-* is
+        mapped. A later plan's task
+        Satisfies covers
+        AC-ROOT-COMMAND,
+        AC-GATE-PURITY,
+        AC-PRECONDITIONS,
+        AC-PLAN-REQUIRED,
+        AC-SURGICAL-WRITE,
+        AC-ATOMIC-MOVE,
+        AC-FINGERPRINT-RECORD,
+        AC-FORCE-HATCH,
+        AC-RECORD-FALSE, AC-NO-GIT,
+        AC-LINT-STAYS,
+        AC-APPLIED-SILENT,
+        AC-SKILL-PATH, AC-README-ROW,
+        AC-PACK-ALLOWLIST,
+        AC-WRITE-SURFACE,
+        AC-PIN-REMEASURE,
+        AC-SUITE-AND-CI. CloseEvidence
+        covers AC-RECORD-ROW,
+        AC-DOGFOOD, AC-NO-SRC-OTHER,
+        AC-CLOSE-LINT. No AC-* is
+        left forgotten:
+        change.acceptance-criterion-unmapped
+        is a warning, AC-CLOSE-LINT is
+        lint with argv token fail-on
+        warnings, and an unmapped
+        criterion reddens this
+        bundle's own close. A
+        criterion true only after the
+        close cannot be Satisfies-linked
+        honestly. A task must not
+        Satisfies a CloseEvidence
+        criterion
+        (change.close-evidence-and-satisfied).
+      </Constraint>
+      <Constraint>
+        Write scope, anchors, and
+        enumeration (F136.1). Files
+        the Goals force: src/grace.ts
+        (LINKS: M-CLI);
+        src/grace-apply.ts (new,
+        same M-CLI Path as
+        src/grace-supersede.ts);
+        src/gates/ledger.ts (LINKS:
+        M-GATES); src/query/command.test.ts
+        (liveCommandRoots pin; test
+        file, not module-ownable);
+        src/grace-apply.test.ts (new
+        test file, not
+        module-ownable);
+        src/test-support/c-apply-verb-close-evidence.ts
+        (new; not named .test.ts so
+        default bun test does not
+        collect it; CloseEvidence
+        only; under test-support so
+        the F10 issue-code scan
+        skips it);
+        src/artifact/grammar.ts
+        (LINKS: M-GRAMMAR;
+        GATE_DECISION_GATES and the
+        :1016 message);
+        src/lint/catalog.ts (LINKS:
+        M-LINT-CATALOG;
+        ledger.invalid-decision
+        explanation);
+        docs/schema-reference.md
+        (generated from
+        GATE_DECISION_GATES; no
+        LINKS);
+        package.json (files array
+        only); scripts/release-check.ts
+        (LINKS: M-RELEASE-AUTOMATION,
+        lint-ignored, not in GD-MAIN,
+        forced file without a graph
+        module, same as
+        C-SUPERSEDE-COMMAND);
+        skills/ngrace/ngrace-execute/SKILL.md
+        and
+        plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md;
+        README.md; scripts/validate-record-retirement.test.ts
+        (bundleMinted plus the row
+        assertion); docs/plans/active/RM-GOVERNED-PATH/registry.xml
+        (the row the plan mints);
+        this bundle's own artifacts
+        under
+        .ngrace/changes/active/C-APPLY-VERB/;
+        and the record files the
+        close's move writes
+        (findings.xml,
+        findings-retired.xml,
+        rulings.xml,
+        rulings-retired.xml,
+        registry.xml,
+        registry-retired.xml,
+        decisions.xml), which are
+        the authority's close acts,
+        listed so the close is
+        coverable. Conditional:
+        src/test-support/token-accounting.test.ts
+        and the README.md
+        skillTextLines cell if a
+        SKILL.md rewrite moves those
+        figures; scripts/skill-contracts.test.ts
+        only if the execute rewrite
+        falsifies a shipped pin (rule
+        9, explicit apply
+        confirmation, and
+        fold-before-archive must not).
+        src/gates/command.ts is not
+        forced: its sentences stay
+        true without amendment.
+        src/gates/core.ts is not
+        forced: evaluateGate's body
+        stays the approve / apply /
+        archive-default chain.
+        src/grace-lint.ts is not
+        forced: CHANGE_STATUSES is
+        checked before
+        GATE_DECISION_GATES, so argv
+        token as applied stays a
+        ChangeStatus. Module list,
+        stated once here and once in
+        AffectedAreas: M-CLI,
+        M-GATES, M-SKILLS,
+        M-TEST-SUPPORT, M-GRAMMAR,
+        M-LINT-CATALOG.
+        scripts/ is lint-ignored
+        (.ngrace-lint.json
+        ignoredDirs includes
+        scripts); src/ is not.
+      </Constraint>
+      <Constraint>
+        F61: no two adjacent hyphens
+        inside any XML comment body.
+        Name argv tokens. F66:
+        README.md and examples/ are
+        decided in Goals and NonGoals.
+        Do not edit docs/plans/**
+        except the record files named
+        above, the phase board,
+        CHANGELOG.md, any version
+        surface, or
+        .ngrace/changes/archive/**.
+        Packaged version at authoring:
+        6.2.0. No product version bump.
+        Named baseline commit for
+        byte-invariance:
+        a1d58298951ac734051159c45de38bf5042edb5f.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        RM-VERIFIED-APPROVAL, an
+        external second party, typed
+        attestations on the new
+        Decision records, or a local
+        signing key. D37 defers the
+        authorization half and
+        contributes only the verb.
+        D4's objection to a local
+        signing key is unchanged.
+        Owner: docs/plans/README.md
+        entry RM-VERIFIED-APPROVAL.
+      </NonGoal>
+      <NonGoal>
+        D1.3 / P3.7 applied-without-record
+        review finding, widening
+        classifyApprovedArtifact to
+        applied, or changing what
+        review or status say about an
+        applied bundle. Owner: P3.7.
+        C-APPROVAL-FINGERPRINT's
+        applied silence stands.
+      </NonGoal>
+      <NonGoal>
+        D38 hashed bundle ids. Owner:
+        a later chartered bundle when
+        the maintainer sequences it.
+      </NonGoal>
+      <NonGoal>
+        Product version bump,
+        CHANGELOG.md, NGRACE_ARTIFACT_VERSION,
+        docs/plans/** except the named
+        record files, or the record's
+        other open findings. Owner:
+        D5.5 for CHANGELOG; the
+        findings' own owners.
+      </NonGoal>
+      <NonGoal>
+        Rewriting ngrace-plan,
+        ngrace-spec, ngrace-reviewer,
+        ngrace-cli, or ngrace-explainer
+        except as named out of the
+        teaching-surface scan.
+        ngrace-execute items 9 and 10
+        and both trees of that skill
+        are in Goals. Owner of D19 /
+        D20 sentences: C-APPROVAL-SCOPE.
+      </NonGoal>
+      <NonGoal>
+        Copy-then-delete on EXDEV,
+        inventing a plan when absent,
+        folding the epoch, running
+        evaluateApplyGate or
+        evaluateArchiveGate inside
+        the verb, minting a Decision
+        with gate apply that carries
+        fingerprint, expanding
+        GATE_SUBCOMMANDS, widening
+        evaluation GateId to include
+        applied, adding a case or a
+        throw to evaluateGate, or
+        making evaluateGate("applied")
+        type-check. Owner: unchanged;
+        those are refused shapes.
+      </NonGoal>
+      <NonGoal>
+        examples/ unchanged; no
+        user-visible surface. Owner:
+        unchanged; no user-visible
+        surface.
+      </NonGoal>
+      <NonGoal>
+        README.md except the CLI
+        Overview table row the new
+        root forces, the ceremony
+        sentence at README.md:137,
+        the gate-purity sentence at
+        README.md:194, and the
+        skillTextLines cell if a
+        SKILL.md rewrite moves the
+        published figures.
+      </NonGoal>
+      <NonGoal>
+        The staged buffer
+        .ngrace/scratch/staged-findings.md.
+        Owner: unchanged; one copy;
+        read never write.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-ROOT-COMMAND>
+        ngrace apply is a live
+        top-level root: defined in
+        src/grace-apply.ts,
+        registered in src/grace.ts
+        by a static import of that
+        module, present in
+        liveCommandRoots, branded with
+        BOOLEAN_SPACE_GUARD_BRAND, and
+        listed as an ngrace apply
+        token in a README.md CLI
+        Overview table row.
+        listLiveInvocations includes
+        that invocation. It is not
+        under gate, spec, or plan,
+        and it is not exported from
+        src/grace-generate.ts.
+        argv token change is a
+        required string; argv token
+        path defaults as the other
+        roots do. HEAD today:
+        src/grace.ts:42-57 and
+        liveCommandRoots
+        (src/query/command.test.ts:836-854)
+        have no such name; bun
+        ./src/grace.ts apply --help
+        prints the root usage.
+        Failure conditions: the verb
+        is a gate subcommand; the
+        verb is spec apply or plan
+        apply; the def lives in
+        src/grace-generate.ts or
+        under src/gates/;
+        liveCommandRoots omits it;
+        README table omits it;
+        defineGraceCommand is skipped;
+        grace.ts does not statically
+        import src/grace-apply.ts;
+        the shipped argv is lifecycle
+        finish.
+      </AC-ROOT-COMMAND>
+      <AC-GATE-PURITY>
+        Stay-true of gate. After this
+        lands, gate apply, gate
+        archive, and gate verdict
+        still do not write status and
+        still do not move a bundle.
+        command.ts:15-16, :220, :474,
+        and :492 stay true of gate.
+        GATE_SUBCOMMANDS stays
+        approve, apply, archive,
+        verdict. Evaluation GateId
+        stays approve, apply, archive.
+        evaluateGate's parameter stays
+        GateId, so evaluateGate("applied")
+        does not type-check, and
+        evaluateGate does not grow a
+        case. A permitting recorded
+        gate apply still leaves spec
+        and plan bytes identical and
+        the bundle under active/, and
+        that Decision still carries
+        no fingerprint. HEAD today:
+        driven this session, all of
+        the above hold. Do not
+        manufacture a red for the
+        stay-true half (F45), including
+        evaluateGate's archive-default
+        on a lying as-GateId cast.
+        Redden only if gate apply
+        writes applied or moves, if
+        GATE_SUBCOMMANDS grows, or if
+        GateId includes applied (the
+        assignability check under
+        AC-FINGERPRINT-RECORD). Failure
+        conditions: gate apply writes
+        applied; gate archive moves;
+        :492 is deleted without a
+        replacement that still denies
+        the gate the write;
+        GATE_SUBCOMMANDS gains applied;
+        GateId includes applied;
+        evaluateGate grows a case or a
+        throw.
+      </AC-GATE-PURITY>
+      <AC-PRECONDITIONS>
+        The verb refuses with a
+        nonzero GraceCommandError and
+        writes nothing when any
+        precondition is missing, and
+        the message names that
+        precondition. Clean direction:
+        both permitting apply and
+        archive Decisions present,
+        spec and plan approved under
+        active/, dest absent: the
+        verb writes, records, and
+        moves, exit 0. Planted
+        missing apply permit: refuse
+        naming apply, bytes and
+        location unchanged. Planted
+        missing archive permit:
+        refuse naming archive, bytes
+        and location unchanged.
+        Planted missing plan.xml:
+        refuse naming plan.xml.
+        Planted dest already exists:
+        refuse naming already exists,
+        source still under active/.
+        HEAD today: no verb exists,
+        so the refuse path is new
+        (red that). Failure
+        conditions: missing apply
+        permit still writes; the
+        refuse message does not name
+        the missing permit; the verb
+        re-runs evaluateApplyGate
+        instead of reading the
+        ledger; dest exists is
+        overwritten.
+      </AC-PRECONDITIONS>
+      <AC-PLAN-REQUIRED>
+        plan.xml is required. A
+        spec-only active bundle is
+        refused and not moved. This
+        is the opposite of supersede's
+        spec-only path
+        (grace-supersede.test.ts
+        spec-only source moves
+        without inventing a plan).
+        HEAD today: that supersede
+        path exits 0 and leaves no
+        plan.xml in archive. Failure
+        conditions: spec-only apply
+        moves; a plan.xml is invented.
+      </AC-PLAN-REQUIRED>
+      <AC-SURGICAL-WRITE>
+        A successful invocation whose
+        spec and plan root status are
+        approved writes applied onto
+        those root attributes
+        surgically: opening-tag
+        attribute only, both quote
+        styles, preserving the quote
+        character, no
+        serializeGraceXmlDocument of
+        the spec or plan. The rest of
+        each file is byte-identical
+        to the pre-write bytes aside
+        from that attribute swap.
+        HEAD today: stampApproveArtifact
+        writes approved only;
+        supersedeChangeBundle writes
+        superseded; nothing writes
+        applied. Failure conditions:
+        round-trip serialize; plan
+        skipped when present;
+        single-quoted source left
+        unwritten; draft written to
+        applied without passing
+        through approved.
+      </AC-SURGICAL-WRITE>
+      <AC-ATOMIC-MOVE>
+        Write then renameSync with
+        rollback, dest-exists refuse,
+        EXDEV refuse after rollback,
+        resume of applied-under-active
+        by rename only. On plan-write
+        failure, spec bytes under
+        active/ match the pre-write
+        bytes and dest does not
+        exist. On EXDEV from the io
+        bag, the same rollback, and
+        the error names EXDEV. A
+        bundle already under archive/
+        and not under active/ refuses.
+        Do not introduce rmSync or
+        unlinkSync of the bundle
+        directory. HEAD today:
+        supersedeChangeBundle does
+        this for superseded
+        (driven: dest exists, EXDEV,
+        spec-only, plan-write
+        failure); nothing does it for
+        applied. Failure conditions:
+        dest exists is overwritten;
+        EXDEV leaves applied bytes
+        under active/ without
+        rollback; a half-applied
+        bundle (spec applied, plan
+        approved) is left in active/
+        or archive/; copy-then-delete.
+      </AC-ATOMIC-MOVE>
+      <AC-FINGERPRINT-RECORD>
+        A successful recorded
+        invocation appends two
+        Decision elements, document
+        order spec then plan, each
+        with attribute gate whose
+        value is applied, attribute
+        decision permit, attribute
+        artifact spec or plan, and
+        attribute fingerprint whose
+        value is SHA-256 lowercase
+        hex of that file's bytes
+        after the status write. Those
+        are attributes, never
+        children. A non-Requirement
+        child still raises
+        ledger.invalid-decision.
+        Historical Decisions without
+        the attributes stay valid.
+        gate apply Decisions still
+        never carry fingerprint or
+        artifact. Evaluation GateId
+        stays approve, apply, archive.
+        DecisionGateId is GateId or
+        applied. VALID_GATES and
+        GATE_DECISION_GATES include
+        applied; GATE_SUBCOMMANDS
+        does not. The Decision list
+        only grows (D9). HEAD today:
+        GateId is approve apply
+        archive (ledger.ts:156);
+        VALID_GATES and
+        GATE_DECISION_GATES are the
+        same three; a Decision with
+        gate applied is
+        ledger.invalid-decision
+        (grammar.ts:1010-1016 and
+        parseDecisionNode :770);
+        apply Decisions carry no
+        fingerprint (driven). Red
+        direction, each its own (F80):
+        a fixture Decision with gate
+        applied and no non-Requirement
+        child emits 0
+        ledger.invalid-decision after
+        and emits it at HEAD; a still
+        illegal token ship still
+        emits; bun run typecheck of
+        src/grace-apply.test.ts fails
+        if "applied" extends
+        Parameters of evaluateGate
+        index 2, and fails if
+        "applied" does not extend
+        DecisionGateId (compile-time
+        assignability, not a runtime
+        skip). Failure conditions: a
+        child element; a canonicalised
+        parse instead of file bytes;
+        fingerprints stored on gate
+        apply; first-observation-wins
+        copy of an approve
+        fingerprint; a single combined
+        digest instead of per-artifact;
+        GATE_SUBCOMMANDS gains applied;
+        GateId includes applied;
+        GATE_DECISION_GATES stays
+        three-valued so lint reddens
+        the write records
+        (uncloseable); catalog
+        explanation still lists only
+        three; recordGateDecision
+        drops fingerprint on applied.
+      </AC-FINGERPRINT-RECORD>
+      <AC-FORCE-HATCH>
+        argv token force with a
+        non-empty argv token reason,
+        when apply or archive permit
+        is missing, records two
+        permits with forced true and
+        that reason, writes applied,
+        fingerprints, and moves.
+        Force with empty or missing
+        reason writes nothing and
+        exits nonzero. A permit
+        without force omits the
+        forced attribute. Boolean
+        space form for force is
+        refused the same way argv
+        token record space form is
+        (F18). Force does not write
+        applied onto draft,
+        superseded, rejected, or
+        cancelled, and does not
+        overwrite an existing archive
+        dest. HEAD today: no force
+        argv exists on a top-level
+        apply (approve has it).
+        Failure conditions: force
+        without reason still writes;
+        forced permit drops the
+        fingerprint; ratified permits
+        carry forced false; force
+        writes applied onto draft;
+        force skips the move.
+      </AC-FORCE-HATCH>
+      <AC-RECORD-FALSE>
+        Stay-true plus write
+        isolation. argv token record
+        false validates and prints,
+        writes no Decision, no
+        status, and no move. HEAD
+        today: no such argv. Redden
+        the write-isolation half.
+        Do not manufacture a red for
+        a dry-run that does not exist
+        at HEAD (F45). Failure
+        conditions: record false
+        writes applied; record false
+        moves; record false takes a
+        fingerprint.
+      </AC-RECORD-FALSE>
+      <AC-NO-GIT>
+        The verb does not spawn git.
+        src/grace-apply.ts contains
+        no git token. The writer in
+        ledger.ts does not add a git
+        spawn beyond the existing
+        classifyApprovedArtifact
+        porcelain at :1172-1173.
+        HEAD today: grace-supersede.ts
+        has 0 git hits. Failure
+        conditions: the verb runs
+        git mv; the verb stages or
+        commits.
+      </AC-NO-GIT>
+      <AC-LINT-STAYS>
+        Stay-true. change.applied-plan-missing,
+        change.invalid-active-status,
+        change.invalid-archive-status,
+        and change.archive-status-mismatch
+        still emit on the fixtures
+        that emit them at HEAD
+        (driven: spec-only applied
+        archive emits
+        applied-plan-missing; both
+        applied is silent; applied
+        under active/ emits
+        invalid-active-status). The
+        verb's happy path produces
+        none of them. Do not
+        manufacture a red for the
+        stay-true half (F45). Failure
+        conditions: any of the four
+        codes is removed or silenced
+        on the fixtures that fire at
+        HEAD; the verb's happy path
+        produces applied-plan-missing.
+      </AC-LINT-STAYS>
+      <AC-APPLIED-SILENT>
+        Stay-true. ngrace review with
+        argv token change on an
+        applied spec or plan does not
+        emit review.approval-never-asked
+        or
+        review.approved-fingerprint-mismatch.
+        classifyApprovedArtifact is
+        still not consulted unless
+        status is approved. This does
+        not overturn
+        C-APPROVAL-FINGERPRINT
+        AC-REVIEW-DETECTS or
+        AC-ARCHIVE-SILENT. HEAD today:
+        driven, 0 such findings on an
+        applied archive fixture. Do
+        not manufacture a red (F45).
+        Failure conditions: applied
+        archives emit those findings;
+        a new review.* code for
+        applied-without-record ships
+        in this bundle.
+      </AC-APPLIED-SILENT>
+      <AC-SKILL-PATH>
+        After the skill rewrite,
+        ngrace-execute execution_rules
+        item 10 names ngrace apply
+        with argv token change as the
+        sanctioned applied write and
+        archive move, after both
+        gates permit. Item 9 still
+        runs ngrace review with
+        argv token change and stops,
+        still does not invoke gate
+        verdict, still runs gate
+        apply and gate archive before
+        the verb, and still says the
+        gate does not itself author
+        status or archive paths.
+        Neither item teaches a
+        hand-written applied or a
+        hand move. Packaged mirrors
+        match. checkTaughtRules
+        tokens no declared task is
+        in scope and pass-only cycle
+        remain in execution_rules.
+        checkRecordTokens remains
+        green (no F-token, no bare
+        D-token, no RM-GOVERNED-PATH,
+        no record file name).
+        skill-contracts rule 9,
+        explicit apply confirmation,
+        and fold-before-archive pins
+        still pass. HEAD today:
+        items 9-10 teach the
+        hand-edit (SKILL.md:42-43
+        both trees). Failure
+        conditions: skills still
+        teach set spec and plan to
+        applied as the sanctioned
+        write; D19 or D20 sentences
+        land here; a taught token is
+        dropped; mirrors drift.
+      </AC-SKILL-PATH>
+      <AC-README-ROW>
+        README.md CLI Overview tables
+        contain an ngrace apply token
+        whose row says the verb writes
+        applied and moves the bundle
+        after both gates permit.
+        README.md:137 names the verb
+        after gate apply and gate
+        archive. README.md:194 still
+        says gate apply, archive, and
+        verdict do not write status
+        or move, and now names the
+        new root as the writer.
+        Gate apply and archive table
+        rows at :199-200 stay
+        evaluate-and-record.
+        listLiveInvocations still has
+        matching rows. HEAD today:
+        no ngrace apply token; :137
+        ends at both gates; :194 is
+        silent on a writer. Failure
+        conditions: table omits the
+        root; :137 still ends at the
+        gates with a hand-edit;
+        :194 claims gate apply writes
+        applied; :199 claims a status
+        write.
+      </AC-README-ROW>
+      <AC-PACK-ALLOWLIST>
+        package.json files lists
+        src/grace-apply.ts next to
+        the other src/grace-*.ts
+        paths. PACK_ALLOWED_EXACT in
+        scripts/release-check.ts
+        contains the same path.
+        bun run validate:packed
+        exits 0. A missing files
+        entry fails the packed
+        install of a grace.ts that
+        statically imports it. HEAD
+        today: neither list contains
+        that path. Failure
+        conditions: files omits it;
+        PACK_ALLOWED_EXACT omits it;
+        the def is placed under
+        src/gates/ to hide the
+        files-list delta; version
+        field changes.
+      </AC-PACK-ALLOWLIST>
+      <AC-WRITE-SURFACE>
+        Stay-true plus new writer
+        location. writeFileSync and
+        mkdirSync production call
+        sites under src/ remain in
+        graph, cursor, gates/ledger,
+        dart, and generate only;
+        src/grace-apply.ts contains
+        none of those identifiers.
+        unlinkSync / rmSync /
+        rmdirSync pin at
+        src/grace-cursor.test.ts:549
+        is unchanged. HEAD today:
+        the five-file write allowlist
+        holds. Do not manufacture a
+        red for membership (F45).
+        Redden if grace-apply.ts
+        gains writeFileSync. Failure
+        conditions: the allowlist
+        grows to include
+        grace-apply.ts; ledger.ts
+        loses the writer; a new
+        rmSync of the bundle
+        directory.
+      </AC-WRITE-SURFACE>
+      <AC-RECORD-ROW>
+        This bundle's registry row
+        exists exactly once across
+        registry.xml and
+        registry-retired.xml, with
+        no fixed expectation of which
+        file holds it: the Row's
+        status agrees with the
+        holding file, kind chartered,
+        its Pays names exactly F224
+        and no other F-token, its
+        StatusText names no F-token
+        and contains no Closed with
+        sentence, and its Charter
+        carries the
+        searched-before-minting
+        statement and no F-token.
+        The relation survives the
+        row's own retirement at the
+        close. bundleMinted in
+        scripts/validate-record-retirement.test.ts
+        maps F224 to C-APPLY-VERB.
+        At the close, D37 carries a
+        resolving CodifiedIn kind
+        test-suite whose text is
+        src/grace-apply.test.ts, and
+        --retire moves F224, D37, and
+        the row. The instrument is
+        the production assertion the
+        later plan adds, parsed with
+        the shipped parser over both
+        registry layers,
+        payment-invariant by
+        construction. Red direction,
+        driven on mutated copies that
+        mutate whichever layer holds
+        the row (F229 / F237): a
+        second row with the same
+        name, a Pays token other than
+        F224, or a StatusText naming
+        a token outside Pays each
+        turn the assertion non-zero.
+        HEAD today: no such row.
+        Failure conditions: Pays
+        lists another F-token;
+        StatusText contains Closed
+        with; D37 is not moved
+        because CodifiedIn is missing
+        or is TaughtIn only;
+        bundleMinted omits F224 so
+        the baseline reddens at
+        close; a red-direction
+        fixture mutates only
+        registry.xml and expires
+        when the row retires.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-ROW>
+      <AC-DOGFOOD>
+        This bundle's own close runs
+        bun ./src/grace.ts apply with
+        argv token change
+        C-APPLY-VERB after both gates
+        permit. The instrument is
+        CloseEvidence, not a task
+        Satisfies: the property is
+        true only after the close, so
+        no task can honestly claim it
+        pre-close. Command:
+        bun test --timeout=30000
+        ./src/test-support/c-apply-verb-close-evidence.ts.
+        The file is not named .test.ts
+        or .spec.ts, so default bun
+        test and validate:ci do not
+        collect it (a collected test
+        that is red while the bundle
+        is still active would be a
+        red staged to fill a pair).
+        Applied-archive state (the
+        CloseEvidence evaluation
+        state, F196): the command
+        exits 0 iff
+        .ngrace/changes/archive/C-APPLY-VERB/run-ledger.xml
+        parses with the shipped
+        parser and contains two
+        Decision elements, document
+        order artifact spec then
+        plan, each with gate applied,
+        decision permit, and
+        fingerprint equal to SHA-256
+        lowercase hex of that
+        artifact's on-disk applied
+        bytes. Active state: this
+        command is not
+        CloseEvidence-evaluated; if
+        invoked while
+        archive/C-APPLY-VERB is
+        absent it exits non-zero.
+        That red is the in-flight
+        state, not a task pair (F45).
+        The command does not skip,
+        does not early-return on
+        absence, and does not assert
+        only that a file exists. Not
+        a tautology: a hand-applied
+        archive (status applied,
+        directory under archive/, no
+        gate-applied Decisions, or
+        fingerprints that do not
+        match file bytes) makes the
+        same command exit non-zero.
+        Red direction, driven on a
+        copy of the applied-archive
+        tree, never on the live
+        archive (F229 / F237: do not
+        plant into a path the close
+        relocates): delete either
+        Decision, or flip one
+        fingerprint hex digit; the
+        same command exits non-zero.
+        A named-bundle suite test
+        that mutated live
+        registry.xml expired when
+        the row retired; this
+        instrument reads the
+        archived bundle's
+        run-ledger, whose path is
+        stable after the close, and
+        plants reds only on copies.
+        HEAD today: the verb does
+        not exist, so this bundle
+        cannot yet close by it.
+        Failure conditions: close
+        hand-edits status; close uses
+        git mv; CloseEvidence assumes
+        active/; CloseEvidence
+        requires F224 to be live;
+        the file is named .test.ts
+        and default bun test reddens
+        during execution; the test
+        skips when the archive is
+        absent so a missing record
+        still exits 0.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 ./src/test-support/c-apply-verb-close-evidence.ts</Command>
+        </CloseEvidence>
+      </AC-DOGFOOD>
+      <AC-PIN-REMEASURE>
+        Task-observable bounding pin
+        (F84). After any SKILL.md
+        rewrite, the
+        src/test-support/token-accounting.test.ts
+        pins and the README.md
+        skillTextLines measurement
+        cell both match a fresh
+        skillTextLines() measure
+        (totalBytes, and total if the
+        rewrite moves the line
+        count). One re-measurement
+        updates every place the
+        figure is published. Do not
+        manufacture a red for the
+        pin at HEAD (F45). Named
+        baseline commit
+        a1d58298951ac734051159c45de38bf5042edb5f.
+      </AC-PIN-REMEASURE>
+      <AC-NO-SRC-OTHER>
+        Byte-invariance against named
+        baseline commit
+        a1d58298951ac734051159c45de38bf5042edb5f.
+        No src/ path outside the
+        forced-file Constraint is
+        modified. This criterion is
+        CloseEvidence, not a task
+        Satisfies: the full write
+        surface is known only after
+        the last task, and the close
+        itself is the last src-adjacent
+        rename. Command: git diff
+        --exit-code
+        a1d58298951ac734051159c45de38bf5042edb5f
+        -- src/ with pathspec excludes
+        for src/grace.ts,
+        src/grace-apply.ts,
+        src/gates/ledger.ts,
+        src/query/command.test.ts,
+        src/grace-apply.test.ts,
+        src/test-support/c-apply-verb-close-evidence.ts,
+        src/artifact/grammar.ts,
+        src/lint/catalog.ts, and
+        src/test-support/token-accounting.test.ts.
+        The bundle's own archive
+        arrival is not under src/, so
+        the pathspec does not observe
+        the close rename; that is the
+        exclusion, with its reason.
+        Applied-archive: exit 0 iff
+        no unlisted src/ path differs
+        from the named baseline.
+        Active: this command is not
+        CloseEvidence-evaluated.
+        Not a tautology: the named
+        baseline can fail; a
+        base-less git diff cannot.
+        Red direction, on a copy:
+        touch src/gates/core.ts (not
+        in the exclude list); the
+        same command exits non-zero.
+        Clean direction: only the
+        excluded src/ paths differ;
+        exit 0. Failure conditions:
+        an unlisted src/ file
+        changes; the close's own
+        rename reddens the criterion;
+        the Command omits the named
+        baseline.
+        <CloseEvidence>
+          <Command>git diff --exit-code a1d58298951ac734051159c45de38bf5042edb5f -- src/ ':(exclude)src/grace.ts' ':(exclude)src/grace-apply.ts' ':(exclude)src/gates/ledger.ts' ':(exclude)src/query/command.test.ts' ':(exclude)src/grace-apply.test.ts' ':(exclude)src/test-support/c-apply-verb-close-evidence.ts' ':(exclude)src/artifact/grammar.ts' ':(exclude)src/lint/catalog.ts' ':(exclude)src/test-support/token-accounting.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-SRC-OTHER>
+      <AC-SUITE-AND-CI>
+        Task-observable. bun test
+        green for touched packages
+        (grace-apply, gates ledger,
+        query command, skill-contracts,
+        token-accounting,
+        release-check,
+        validate-record-retirement,
+        grammar GATE_DECISION_GATES,
+        catalog ledger.invalid-decision
+        explanation, schema-reference
+        regeneration, and any other
+        test this deliverable forces).
+        bun run validate:schema-reference
+        exits 0. bun run
+        ./scripts/validate-marketplace.ts
+        exits 0. bun run
+        validate:packed exits 0. A
+        task that Satisfies this
+        criterion must put those
+        commands in its Verification
+        block. This criterion does
+        not include lint. HEAD today:
+        those commands are green;
+        that green is the baseline,
+        not this change's evidence.
+      </AC-SUITE-AND-CI>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0 on this
+        repository root, including
+        this bundle after the verb
+        has written applied and
+        moved it. Named baseline
+        commit
+        a1d58298951ac734051159c45de38bf5042edb5f.
+        <CloseEvidence>
+          <Command>bun run ngrace lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI />
+      <M-GATES />
+      <M-SKILLS />
+      <M-TEST-SUPPORT />
+      <M-GRAMMAR />
+      <M-LINT-CATALOG />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/grace-apply.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/gates/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/query/command.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-cursor.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/skill-contracts.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/release-check.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/artifact/grammar.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/lint/catalog.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:schema-reference</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:packed</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path .</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): the new
+        root writes applied on both
+        artifacts, fingerprints,
+        records two gate-applied
+        Decisions, and moves, with
+        rollback; gate apply still
+        does not write; the execute
+        skill and its mirror teach
+        the verb; README lists the
+        root; the row pays F224;
+        this bundle's close runs the
+        verb. Red-first on
+        AC-ROOT-COMMAND,
+        AC-PRECONDITIONS,
+        AC-PLAN-REQUIRED,
+        AC-SURGICAL-WRITE,
+        AC-ATOMIC-MOVE,
+        AC-FINGERPRINT-RECORD,
+        AC-FORCE-HATCH, the new half
+        of AC-RECORD-FALSE,
+        AC-NO-GIT, AC-SKILL-PATH,
+        AC-README-ROW,
+        AC-PACK-ALLOWLIST, the new
+        half of AC-WRITE-SURFACE,
+        and AC-RECORD-ROW, each
+        property its own red (F80),
+        split across tasks so no
+        task plans more than three
+        distinct signatures or
+        repeats a signatureKey (F56,
+        F67). AC-GATE-PURITY,
+        AC-LINT-STAYS,
+        AC-APPLIED-SILENT, and the
+        allowlist membership half of
+        AC-WRITE-SURFACE are
+        HEAD-true stay-true halves,
+        not reds (F45). The new half
+        of AC-FINGERPRINT-RECORD
+        (parse of gate applied, and
+        DecisionGateId assignability)
+        is a red; the half where
+        evaluation GateId stays
+        three-valued is stay-true
+        under AC-GATE-PURITY.
+        AC-PIN-REMEASURE is a bounding
+        pin (F84), not a red.
+        AC-SUITE-AND-CI is
+        task-observable suite
+        evidence and includes bun
+        run validate:packed as the
+        ship proof. Post-archive
+        CloseEvidence, evaluated after
+        the verb's own move and not
+        claimed by a task pass:
+        AC-CLOSE-LINT (lint 0/0),
+        AC-RECORD-ROW (row invariant),
+        AC-DOGFOOD (this bundle's
+        write Decisions), AC-NO-SRC-OTHER
+        (src/ byte-invariance against
+        the named baseline).
+        Every CloseEvidence command
+        and the full validate:ci run
+        green inside a faithful
+        whole-repository copy of the
+        post-close state (F235),
+        with both directions driven
+        and every exit code read
+        directly.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        M-CLI Path stays src/grace.ts.
+        src/grace-apply.ts is a new
+        top-level command module in
+        that Path, the same shape as
+        src/grace-supersede.ts, and
+        does not require a new graph
+        module.
+      </Assumption>
+      <Assumption>
+        Extra attributes on Decision
+        will keep parsing as valid.
+        If a later grammar change
+        closes the attribute set,
+        fingerprint as an attribute
+        would need that grammar to
+        admit it; the child-element
+        shape stays forbidden (F81).
+        GATE_DECISION_GATES gaining
+        applied does not collide with
+        ChangeStatus applied because
+        resolveAsStatus checks
+        CHANGE_STATUSES first.
+      </Assumption>
+      <Assumption>
+        A static import of
+        src/grace-apply.ts from
+        src/grace.ts is enough for
+        bun run validate:packed to
+        fail if that file is omitted
+        from the tarball.
+      </Assumption>
+      <Assumption>
+        Root lint fail-on stays
+        errors. 0/0 as quoted counts
+        is AC-CLOSE-LINT CloseEvidence
+        using argv token fail-on set
+        to warnings.
+      </Assumption>
+    </Assumptions>
+  </C-APPLY-VERB>
+</NgraceChangeSpec>

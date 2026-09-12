@@ -1,0 +1,189 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-APPLY-VERB</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    D37 completes a change the repository
+    has already made once. C-APPROVAL-FINGERPRINT
+    relocated the human's act from writing
+    the status attribute to supplying the
+    ratification while the tool performs
+    the write. applied is the transition
+    that did not get that treatment. The
+    structural argument is unchanged: a
+    status transition is where a bundle
+    acquires or loses authority, so a
+    hand-edited attribute is a hole by
+    construction. More careful instructions
+    cannot close it.
+
+    The verb is small, local, and
+    shippable now. Attestations are a
+    programme with their own board entry.
+    They must not share a bundle. The
+    record this verb writes is attributes
+    on Decision, the same opening
+    C-APPROVAL-FINGERPRINT used, so a
+    later Signatures-like collection can
+    land as further attributes without
+    invalidating the event (a child still
+    would).
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Make gate apply the writer.
+      Rejected. D37 and A29.2 constrain
+      the gate: evaluation must not
+      mutate as a side effect. The
+      usage text at command.ts:492
+      would become a lie. C-APPROVAL-FINGERPRINT
+      revised gate purity for approve
+      only and left apply, archive, and
+      verdict as evaluate-and-record.
+      A dedicated root is the explicit
+      trigger invariant 8 asks for.
+    </Alternative>
+    <Alternative>
+      Ship ngrace lifecycle finish, the
+      name D1 used. Rejected. F224's
+      owner sentence names ngrace apply
+      with argv token change. The
+      supersede precedent is a verb
+      named for the transition, not a
+      lifecycle family. D1.1's dry-run
+      nested apply flag on a command
+      named apply is theatre; the
+      invocation is the trigger.
+    </Alternative>
+    <Alternative>
+      Put fingerprint and artifact on
+      a second gate apply Decision and
+      leave GateId closed. Rejected.
+      C-APPROVAL-FINGERPRINT bound
+      refuse, apply, and archive
+      Decisions to never carry those
+      attributes. Mixing the evaluation
+      permit with the write would make
+      newest apply Decision mean two
+      different events. Expanding the
+      parse vocabulary (VALID_GATES
+      and GATE_DECISION_GATES) with
+      applied names the writer without
+      adding a gate subcommand, which
+      is the argument
+      C-SUPERSEDE-COMMAND used against
+      a superseded GateId: supersede
+      had a lint-checked status plus
+      Replacement and no F86 gap; this
+      transition does. Evaluation
+      GateId stays closed so
+      evaluateGate("applied") does not
+      type-check.
+    </Alternative>
+    <Alternative>
+      Widen GateId to include applied
+      and make evaluateGate exhaustive,
+      throwing on applied. Rejected.
+      evaluateGate("applied") would
+      compile. A runtime throw is an
+      assertion the split type already
+      prevents. That shape forces
+      src/gates/core.ts; the split
+      does not. Archive as implicit
+      default is safe only while the
+      parameter type cannot name
+      applied.
+    </Alternative>
+    <Alternative>
+      Mint no Decision, like supersede.
+      Rejected. F224 and D37 require a
+      fingerprint of the applied bytes
+      and a ledger record of the write.
+      F86 is exactly a gate Decision
+      standing in for work the gate
+      did not do. A verb that writes
+      and moves and still appends
+      nothing reproduces that gap.
+    </Alternative>
+    <Alternative>
+      Re-evaluate apply and archive
+      inside the verb. Rejected. That
+      duplicates the gates and invites
+      the purity hole D37 forbids. The
+      verb reads hasPermittingDecision.
+      Stale permits are the same risk
+      today's hand-edit already has.
+    </Alternative>
+    <Alternative>
+      Ship D1.3 applied-without-record
+      detection in this bundle.
+      Rejected. Every existing applied
+      archive is the pre-writer shape.
+      Widening review to applied would
+      report the corpus at once, the
+      outcome C-APPROVAL-FINGERPRINT
+      AC-ARCHIVE-SILENT forbade. The
+      write Decision is what makes a
+      later detector possible. Owner:
+      P3.7.
+    </Alternative>
+    <Alternative>
+      Spawn git mv. Rejected. The
+      supersede precedent renameSyncs
+      and does not spawn git. Close
+      commits stay the operator's.
+      git mv was the hand form of the
+      same filesystem rename.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Typed attestations on the
+      gate-applied Decision records.
+      D37 sequences them after the
+      verb. Envelope, purpose-inside-
+      the-signed-statement, and
+      issuer-agnostic verification
+      belong to RM-VERIFIED-APPROVAL.
+    </Decision>
+    <Decision>
+      D1.3 / P3.7 review finding for
+      applied with no matching
+      gate-applied record, with a
+      non-retroactive trigger that
+      does not flag the legacy corpus.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Happy path. Bound pass recorded,
+      gate apply permits, epoch folded,
+      gate archive permits, ngrace apply
+      writes both artifacts, fingerprints,
+      appends two Decisions, renameSyncs
+      into archive/. Operator commits.
+    </Scenario>
+    <Scenario>
+      Missing archive permit. Verb
+      refuses naming archive, writes
+      nothing. Operator runs gate
+      archive, then retries.
+    </Scenario>
+    <Scenario>
+      Crash after status writes and
+      Decision append, before rename.
+      Bundle sits applied under
+      active/. Re-running the same
+      verb skips matching writes,
+      skips matching fingerprints,
+      and does the rename.
+    </Scenario>
+    <Scenario>
+      Force. Apply permit missing,
+      operator supplies reason.
+      Verb writes, fingerprints,
+      moves, and records forced true.
+      Dest already exists still
+      refuses.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
