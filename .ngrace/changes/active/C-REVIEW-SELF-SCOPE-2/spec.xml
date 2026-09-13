@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-REVIEW-SELF-SCOPE-2>
+    <Summary>Summary of C-REVIEW-SELF-SCOPE-2.</Summary>
+    <Goals>
+      <Goal>Goal for C-REVIEW-SELF-SCOPE-2.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-REVIEW-SELF-SCOPE-2.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-REVIEW-SELF-SCOPE-2.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-REVIEW-SELF-SCOPE-2.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-REVIEW-SELF-SCOPE-2.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-REVIEW-SELF-SCOPE-2>
+</NgraceChangeSpec>

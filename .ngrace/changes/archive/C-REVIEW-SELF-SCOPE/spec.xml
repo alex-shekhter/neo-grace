@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-REVIEW-SELF-SCOPE>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-REVIEW-SELF-SCOPE><Replacement>C-REVIEW-SELF-SCOPE-2</Replacement>
     <Summary>
       Close `F240` and `F245` in one bundle: the review surface stops calling a plan's own
       declared future a present-tense lie, and stops attributing a bundle's own third authoring
