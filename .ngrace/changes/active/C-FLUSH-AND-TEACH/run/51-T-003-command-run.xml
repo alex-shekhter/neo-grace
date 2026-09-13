@@ -1,1 +1,0 @@
-<NgraceRunEvent command="bun run ./scripts/validate-marketplace.ts" exitCode="0" assertionPassed="true" assertionKind="MustPassCommand" source="lint-run-commands" graceVersion="1.0" id="51" task="T-003" kind="command-run" />

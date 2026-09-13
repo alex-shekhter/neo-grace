@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-FLUSH-AND-TEACH>
     <IntentSummary>
       Convert the approved spec into the executable plan: flush the three

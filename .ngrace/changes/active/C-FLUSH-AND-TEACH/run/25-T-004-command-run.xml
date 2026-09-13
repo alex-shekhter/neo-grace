@@ -1,1 +1,0 @@
-<NgraceRunEvent command="bun test --timeout=30000 src/test-support/token-accounting.test.ts" exitCode="0" assertionPassed="true" assertionKind="MustPassCommand" source="lint-run-commands" graceVersion="1.0" id="25" task="T-004" kind="command-run" />
