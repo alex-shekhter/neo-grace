@@ -1,4 +1,4 @@
-<Findings base="7597" headroom="249" ceiling="7846">
+<Findings base="7569" headroom="266" ceiling="7835">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -6692,34 +6692,6 @@ and did not reconcile toward the brief.
 
 Related but distinct from [F182](#f182), which is about the same `7 × median` producing a fractional
 value on an even population. This one is about the median **moving**.</Body>
-  </Finding>
-  <Finding id="f197" token="F197" status="live">
-    <Title>### F197 — a finding can be paid by a sentence: `derivePayerMap` mints payments from prose, not only from `Pays`. **[verified]**</Title>
-    <Body>
-
-Measured **2026-09-08** at `54e26d9`, `scripts/validate-record-retirement.ts:466-497`, raised by the
-executor's `WRONG` field against the authority's claim that a row without `Pays` leaves a finding with
-no path out.
-
-Beyond the `Pays` field of a chartered row, two prose paths mint payments:
-
-- `closedWithTokens(row.statusText)` over an archived chartered row's `StatusText`, gated on the row's
-  name being an archive directory;
-- a pass over **every** archived `spec.xml` that pays every `F`-token appearing in any sentence
-  matching `PAID_FINDING_RE`.
-
-**The consequence.** Eligibility is what `D28` and `D28.1` make the enforcement, and it can be minted
-by wording. An ordinary sentence in an archived spec that happens to match the pattern marks the
-findings it names as paid, and they become eligible for retirement on the next `--retire`. Nothing
-declares the payment; a phrase does.
-
-**Observed cost, not theorised.** `C-RECORD-TEST-ISOLATION`'s spec carries a guard clause asserting
-that its own prose contains no sentence matching that pattern — a spec defending itself against its
-own text being read as a payment. That is the tax this path imposes on every future spec.
-
-Owner: a later bundle. The remedy is a design question — narrow the prose paths to an explicit
-declaration, or keep them and make the derivation report what it minted and from which sentence — and
-the authority has no position yet.</Body>
   </Finding>
   <Finding id="f200" token="F200" status="live">
     <Title>### F200 — the authority offered amend-and-re-ratify as its recommendation, which [D27](docs/plans/active/RM-GOVERNED-PATH/rulings.xml) forbids, because it never searched the record. **[verified]**</Title>

@@ -308,4 +308,10 @@
     <Pays>F198</Pays>
     <StatusText>**Delivered.** Historical payment record written by C-PAYMENT-INTEGRITY because the bundle that did the work had no row. Present-tree witness: the C-RECORD-RETIREMENT-2 historical row in registry-retired.xml carries &lt;Pays&gt;F172&lt;/Pays&gt; and F172 is retired with &lt;PaidBy&gt;C-RECORD-RETIREMENT-2&lt;/PaidBy&gt;; C-PAYMENT-RECORD-2's own Problem measured 55 archived bundles with no row in either layer.</StatusText>
   </Row>
+  <Row name="C-PAYMENT-INTEGRITY" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Name.** `C-PAYMENT-INTEGRITY`. **Searched before minting**, 2026-09-12 at `af0f721`, over `.ngrace/changes/archive/` (93 directories matching `^C-[A-Z0-9-]+$`) and the record structural Row name attributes (12 live, 50 retired): zero hits for the exact name across the archive directories and both registry files. Per token: `PAYMENT` 4 archive directories (`C-PAYMENT-RECORD`, `-2`, `-3`, `-4`) and 1 row; `INTEGRITY` 2 archive directories (`C-CURSOR-INTEGRITY`, `C-TOKEN-INTEGRITY`) and 0 rows. No colliding or better-fitting prior name. **Charter.** Delete the StatusText prose payment path and declare its nine payments in Pays; record F185's and F198's payments; mint this row to pay F197 at the close.</Charter>
+    <Pays>F197</Pays>
+    <StatusText>Ordered; the row is minted live by the plan and paid by the close's move.</StatusText>
+  </Row>
 </Registry>
