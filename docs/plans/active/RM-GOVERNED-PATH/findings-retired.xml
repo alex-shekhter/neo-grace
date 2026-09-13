@@ -4232,4 +4232,30 @@ Owner: a later bundle. The remedy is a design question — narrow the prose path
 declaration, or keep them and make the derivation report what it minted and from which sentence — and
 the authority has no position yet.</Body>
   </Finding>
+  <Finding id="f244" token="F244" status="retired">
+    <PaidBy>C-PAYMENT-INTEGRITY</PaidBy>
+    <Title>### F244 — the `C-FLUSH-AND-PAY clamp invariant` test asserts `headroom &lt; 7 × median` on the production record, a relation the ratified engine falsifies by construction on any clamped move that frees room: latent since it shipped, red on the first bundle that retires enough. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-12 at `af0f721`, by the executor authoring `C-PAYMENT-INTEGRITY`'s spec and re-driven by the
+authority.** `scripts/validate-record-retirement.test.ts:3067` reads the production `findings.xml`, computes
+`7 × median(live element lines)` and asserts the persisted `headroom` is below it (&quot;the clamp binds&quot;). The engine's
+ratified arithmetic (`C-ROOT-WINDOW-2`/`-3`: persisted ceiling = `min(previous ceiling, pre-move base + floored
+headroom)`, `persistSnapshot` with `ceilingBase = findingsBaseRead`) computes the formula ceiling from the **pre-move**
+base so that a retire frees the moved lines; when the clamp binds, `headroom = 7 × median + lines moved`, which is
+never below the product. Driven on a whole-repository copy of this bundle's state: mid-bundle `7597/249/7846` against
+238; post-close `7569/266/7835` against 238 — `expect(headroom).toBeLessThan(product)` fails both times. It stayed
+green through every close since `C-FLUSH-AND-PAY` only because the held ceiling kept `ceiling − base` under the product
+while the live file grew; the first bundle to retire three findings without flushing any crossed it.
+
+**The class.** [F225](#f225), [F229](#f229), [F232](#f232), [F237](#f237), [F238](#f238): an assertion describing the
+state at its own bundle's approval, written as an invariant. The two relations beside it (`base + headroom = ceiling`,
+`base = newlineCount`) are durable and already asserted by the `C-PAYMENT-RECORD-4` roots-invariant tripwire.
+
+Owner: `C-PAYMENT-INTEGRITY` repairs it (the clause removed; the test deleted or renamed so no test claims a clamp it
+does not assert); its payment is recorded at this entry's flush by appending `F244` to that bundle's retired row, the
+retired-row append the same bundle establishes as lawful for `F185`. Neighbour to [F225](#f225), [F237](#f237).
+
+---
+</Body>
+  </Finding>
 </Findings>

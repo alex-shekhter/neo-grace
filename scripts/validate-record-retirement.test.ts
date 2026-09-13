@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -2077,6 +2077,14 @@ ${names
         F185: "C-RETIRE-AND-CODIFY",
         F198: "C-PAYMENT-RECORD-2",
         F197: "C-PAYMENT-INTEGRITY",
+        // C-GUARD-RATCHET T-001: F244's payment is recorded on the already
+        // archived C-PAYMENT-INTEGRITY row (retired-row append), and the
+        // bundle's own row pays F222 and F223 once its name is an archive
+        // directory. The extension is consulted only for tokens the derivation
+        // actually mints.
+        F244: "C-PAYMENT-INTEGRITY",
+        F222: "C-GUARD-RATCHET",
+        F223: "C-GUARD-RATCHET",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
@@ -4455,11 +4463,16 @@ const CPI_PAYERS: Record<string, string> = {
   F185: "C-RETIRE-AND-CODIFY",
   F198: "C-PAYMENT-RECORD-2",
   F197: "C-PAYMENT-INTEGRITY",
+  F244: "C-PAYMENT-INTEGRITY",
 };
 
-const CPI_ROWS: Array<{ name: string; kind: string; pays: string }> = [
-  { name: "C-PAYMENT-RECORD-2", kind: "historical", pays: "F198" },
-  { name: "C-PAYMENT-INTEGRITY", kind: "chartered", pays: "F197" },
+// The row's Pays clause is payment-invariant: it requires the tokens the row
+// was minted to pay, with no exact-set pin, so a later lawful retired-row append
+// (F244 on C-PAYMENT-INTEGRITY) stays green where an exact set expires
+// (F225/F238's class).
+const CPI_ROWS: Array<{ name: string; kind: string; requiredPays: string[] }> = [
+  { name: "C-PAYMENT-RECORD-2", kind: "historical", requiredPays: ["F198"] },
+  { name: "C-PAYMENT-INTEGRITY", kind: "chartered", requiredPays: ["F197"] },
 ];
 
 function expectCpiCarrierAndRowRelations(recordDir: string): void {
@@ -4515,7 +4528,10 @@ function expectCpiCarrierAndRowRelations(recordDir: string): void {
     const holding = hit.file === "registry.xml" ? "live" : "retired";
     expect(hit.node.attributes.status, `${spec.name}: the row's status agrees with the holding file`).toBe(holding);
     expect(hit.node.attributes.kind, `${spec.name}: kind`).toBe(spec.kind);
-    expect((childText(hit.node, "Pays") ?? "").trim(), `${spec.name}: Pays exactly`).toBe(spec.pays);
+    const paysTokens = (childText(hit.node, "Pays") ?? "").trim().split(/\s+/).filter(Boolean);
+    for (const required of spec.requiredPays) {
+      expect(paysTokens, `${spec.name}: Pays names ${required}`).toContain(required);
+    }
   }
 }
 
@@ -4552,5 +4568,155 @@ describe("C-PAYMENT-INTEGRITY carrier and row relations", () => {
     });
     expect(hits.length, "the mutated copy carries two C-PAYMENT-INTEGRITY rows").toBe(2);
     expect(() => expectCpiCarrierAndRowRelations(recordDir)).toThrow(/exactly one Row across the registry layers/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-GUARD-RATCHET: the flush's carrier and row walks. Payment-invariant:
+// carrier-absent green, no layer pin, no payer pin; the row walk is
+// exactly-once with the holder's status and a Pays that names its required
+// tokens. Red fixtures mutate whichever layer holds the row (F229/F237's
+// state-independent form).
+// ---------------------------------------------------------------------------
+
+const CGR_FINDING_PAYERS: Record<string, string> = {
+  F222: "C-GUARD-RATCHET",
+  F223: "C-GUARD-RATCHET",
+};
+
+const CGR_DECISION_IDS = ["d39"];
+
+const CGR_ROW = { name: "C-GUARD-RATCHET", kind: "chartered", requiredPays: ["F222", "F223"] };
+
+function expectCgrCarrierAndRowRelations(recordDir: string): void {
+  const indexParsed = parseGraceXmlArtifact(
+    "decisions.xml",
+    readFileSync(path.join(recordDir, "decisions.xml"), "utf8"),
+  );
+  expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+  for (const token of Object.keys(CGR_FINDING_PAYERS)) {
+    const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      expect(parsed.root, `${file} parses`).not.toBeNull();
+      return [...walkNodes(parsed.root!)]
+        .filter((node) => node.tag === "Finding" && node.attributes.token === token)
+        .map((node) => ({ file, node }));
+    });
+    expect(
+      carriers.length,
+      `${token}: at most one Finding element carries the token across the two findings files (got ${carriers.length})`,
+    ).toBeLessThanOrEqual(1);
+    for (const carrier of carriers) {
+      const expectedStatus = carrier.file === "findings.xml" ? "live" : "retired";
+      expect(carrier.node.attributes.status, `${token}: the carrier's status agrees with the holding file`).toBe(
+        expectedStatus,
+      );
+      const entries = [...walkNodes(indexParsed.root!)].filter(
+        (node) => node.tag === "Entry" && node.attributes.id === carrier.node.attributes.id,
+      );
+      expect(entries.length, `${token}: the index carries exactly one Entry for the carrier's id`).toBe(1);
+      expect(entries[0]!.attributes.layer, `${token}: the carrier's index Entry layer agrees with the holding file`).toBe(
+        expectedStatus,
+      );
+      if (expectedStatus === "retired") {
+        expect(childText(carrier.node, "PaidBy"), `${token}: a retired carrier carries PaidBy ${CGR_FINDING_PAYERS[token]}`).toBe(
+          CGR_FINDING_PAYERS[token],
+        );
+      }
+    }
+  }
+  for (const id of CGR_DECISION_IDS) {
+    const carriers = (["rulings.xml", "rulings-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      expect(parsed.root, `${file} parses`).not.toBeNull();
+      return [...walkNodes(parsed.root!)]
+        .filter((node) => node.tag === "Decision" && node.attributes.id === id)
+        .map((node) => ({ file, node }));
+    });
+    expect(
+      carriers.length,
+      `${id}: at most one Decision element carries the id across the two rulings files (got ${carriers.length})`,
+    ).toBeLessThanOrEqual(1);
+    for (const carrier of carriers) {
+      const expectedStatus = carrier.file === "rulings.xml" ? "live" : "retired";
+      expect(carrier.node.attributes.status, `${id}: the carrier's status agrees with the holding file`).toBe(
+        expectedStatus,
+      );
+      const entries = [...walkNodes(indexParsed.root!)].filter(
+        (node) => node.tag === "Entry" && node.attributes.id === id,
+      );
+      expect(entries.length, `${id}: the index carries exactly one Entry for the carrier's id`).toBe(1);
+      expect(entries[0]!.attributes.layer, `${id}: the carrier's index Entry layer agrees with the holding file`).toBe(
+        expectedStatus,
+      );
+      for (const coded of childNodes(carrier.node, "CodifiedIn")) {
+        expect(coded.attributes.kind, `${id}: the CodifiedIn carries a kind`).toBeDefined();
+        if (coded.attributes.kind === "test-suite") {
+          expect(
+            existsSync(path.join(REPO_ROOT, (coded.text ?? "").trim())),
+            `${id}: the CodifiedIn test-suite path exists`,
+          ).toBe(true);
+        }
+      }
+    }
+  }
+  const hits = (["registry.xml", "registry-retired.xml"] as const).flatMap((file) => {
+    const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+    expect(parsed.root, `${file} parses`).not.toBeNull();
+    return childNodes(parsed.root!, "Row")
+      .filter((row) => row.attributes.name === CGR_ROW.name)
+      .map((row) => ({ file, node: row }));
+  });
+  expect(
+    hits.length,
+    `${CGR_ROW.name}: exactly one Row across the registry layers (got ${hits.length})`,
+  ).toBe(1);
+  const hit = hits[0]!;
+  const holding = hit.file === "registry.xml" ? "live" : "retired";
+  expect(hit.node.attributes.status, `${CGR_ROW.name}: the row's status agrees with the holding file`).toBe(holding);
+  expect(hit.node.attributes.kind, `${CGR_ROW.name}: kind`).toBe(CGR_ROW.kind);
+  const paysTokens = (childText(hit.node, "Pays") ?? "").trim().split(/\s+/).filter(Boolean);
+  for (const required of CGR_ROW.requiredPays) {
+    expect(paysTokens, `${CGR_ROW.name}: Pays names ${required}`).toContain(required);
+  }
+  const statusText = childText(hit.node, "StatusText") ?? "";
+  for (const token of statusText.match(/F[0-9]+/g) ?? []) {
+    expect(paysTokens, `${CGR_ROW.name}: StatusText names no F token outside Pays (${token})`).toContain(token);
+  }
+}
+
+describe("C-GUARD-RATCHET carrier and row relations", () => {
+  it(
+    "F222 and F223 each exist at most once across the findings pair with status and index layer agreeing and PaidBy C-GUARD-RATCHET when retired, d39 at most once across the rulings pair with its index layer agreeing, and the C-GUARD-RATCHET row exactly once across the registry layers with status agreeing, kind chartered, Pays naming F222 and F223, and a StatusText naming no token outside Pays (generous timeout)",
+    () => {
+      expectCgrCarrierAndRowRelations(path.join(REPO_ROOT, RECORD_REL));
+    },
+    60_000,
+  );
+
+  it("red direction — a second C-GUARD-RATCHET row reddens the exactly-once clause on a mutated copy of whichever layer holds it", () => {
+    const root = isolatedRoot();
+    const recordDir = path.join(root, RECORD_REL);
+    mkdirSync(recordDir, { recursive: true });
+    for (const file of ["registry.xml", "registry-retired.xml", "findings.xml", "findings-retired.xml", "rulings.xml", "rulings-retired.xml", "decisions.xml"]) {
+      copyFileSync(path.join(REPO_ROOT, RECORD_REL, file), path.join(recordDir, file));
+    }
+    for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+      const held = readFileSync(path.join(recordDir, file), "utf8");
+      if (!held.includes(`name="${CGR_ROW.name}"`)) continue;
+      writeFileSync(
+        path.join(recordDir, file),
+        held.replace(
+          "</Registry>",
+          `  <Row name="${CGR_ROW.name}" status="live" kind="chartered">\n    <Number></Number>\n    <Charter>duplicate</Charter>\n    <Pays>F222 F223</Pays>\n    <StatusText>Ordered</StatusText>\n  </Row>\n</Registry>`,
+        ),
+      );
+    }
+    const hits = (["registry.xml", "registry-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      return childNodes(parsed.root!, "Row").filter((row) => row.attributes.name === CGR_ROW.name);
+    });
+    expect(hits.length, `the mutated copy carries two ${CGR_ROW.name} rows`).toBe(2);
+    expect(() => expectCgrCarrierAndRowRelations(recordDir)).toThrow(/exactly one Row across the registry layers/);
   });
 });

@@ -1,4 +1,4 @@
-<Rulings base="1733" headroom="150" ceiling="1883">
+<Rulings base="1760" headroom="123" ceiling="1883">
   <Decision id="d1" token="D1" status="live">
     <Title>## D1 — The tool is the only sanctioned writer of `approved → applied`</Title>
     <Body>
@@ -1730,4 +1730,31 @@ drains. Neighbour to [D37](#d37) (status transitions belong to `ngrace` verbs �
 identity).
 </Body>
   </Decision>
+  <Decision id="d39" token="D39" status="live">
+    <Title>## D39 — the anti-occupancy guard is a ratchet against accidental drift, not a control that resists intent; its boundary is stated at the guard, and it is not widened. **[maintainer's ruling, 2026-09-12; not yet codified]**</Title>
+    <Body>
+**The question** ([F222](#f222)). `C-FLUSH-AND-PAY-3` rebuilt the guard in `src/artifact/xml.test.ts` over the
+TypeScript parser and closed the three drift paths its charter named; eight deliberate constructions (a module-scope
+alias, a `function`, a `class` static, an `enum` member, a BigInt literal, an aliased type, a computed property name, a
+union-typed field) put a number back in silence, and no artifact said whether that was a gap or a boundary. The
+authority put two variants to the maintainer on 2026-09-12: **B1**, a ratchet against drift — the guard is already
+correct and what is owed is one sentence stating the boundary, in the house &quot;known boundary, stated rather than hidden&quot;
+form, plus [F223](#f223)'s early exit; **B2**, a control that resists intent — a redesign as a check on the values the
+test compares rather than the syntax it is written in, an arms race a source-text scan cannot win.
+
+**The ruling.** The maintainer chose B1: *&quot;A first, followed by C1, then B1.&quot;* The guard's threat model is accidental
+drift — the next flush re-pinning a count as a literal, a table, or a module-scope constant — and against that it holds.
+Resisting a deliberate construction is out of its charter, and the honest form is to say so where the guard lives, not
+to widen duty by duty toward a design that cannot close.
+
+**Decided.** (1) The guard's docblock states its threat model and its known boundary — the eight constructions by
+shape, named as outside the charter. (2) `visitSubtree` stops when the callback has been located ([F223](#f223)); no
+behavioural change. (3) No duty is widened and no supersede of `C-FLUSH-AND-PAY-3` is opened. (4) A later bundle that
+wants an intent-resisting instrument opens a new charter against the values compared, and cites this decision as the
+one it overturns.
+
+Codification: the bundle that lands (1) and (2) writes this decision's `CodifiedIn` (`kind=&quot;test-suite&quot;`,
+`src/artifact/xml.test.ts`), the [D37](#d37) form. Pays nothing itself; the landing bundle's row pays F222 and F223.</Body>
+  </Decision>
+
 </Rulings>
