@@ -1,0 +1,761 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-GUARD-RATCHET>
+    <Summary>
+      Three deliverables in the order the governed-path record needs them: the flush of the six
+      entries held in `.ngrace/scratch/staged-findings.md`, the payment `F244` already has and the
+      retirement it forces mid-bundle, and the guard work `D39` rules on in `src/artifact/xml.test.ts`.
+      This bundle opens no supersede, pays `F222` and `F223` through its own registry row, and records
+      `F244`'s payment by appending it to the already-archived `C-PAYMENT-INTEGRITY` row.
+
+      **The flush.** The buffer holds exactly six entries — findings `F240`, `F242`, `F243`, `F244`,
+      `F245` and decision `D39`, measured by the shipped `parseFrozenMarkdown` at
+      `fa1773d7b853050d2330e4aa21f0514c3e8d6b05` — and no charter row. Five `&lt;Finding&gt;` elements
+      land in `findings.xml` (124 element lines by the shipped `renderFinding` shape: 25 + 26 + 28 +
+      25 + 20), `D39` lands in `rulings.xml` (26 lines by the shipped `renderDecision` shape), five
+      `&lt;Entry&gt;` lines land in `decisions.xml` and one for `D39`; then `--rewrite-roots`, the
+      shipped writer, holds every ceiling and re-derives every base. There is no flush verb: the
+      writes are hand writes plus `--rewrite-roots`, never a hand root.
+
+      **The payment `F244` already has.** `F244`'s Owner names `C-PAYMENT-INTEGRITY`, an archived
+      bundle; its retired row in `registry-retired.xml` gains `F244` in `&lt;Pays&gt;` at this flush —
+      the retired-row append that bundle established as lawful for `F185`. A payment through an
+      already-archived name is eligible the moment it exists, so the committed flush tree cannot hold
+      `F244` live: the flush drives the validator to exactly one `finding-eligible-still-live`, and one
+      `--retire` in the same execution wave reports `moved 1` and stamps
+      `&lt;PaidBy&gt;C-PAYMENT-INTEGRITY&lt;/PaidBy&gt;`. The red is a working-tree state inside the
+      flush task, never a commit.
+
+      **The guard, per `D39`.** The `antiOccupancyFailures` docblock states the guard's threat model —
+      accidental drift, not adversarial construction — and its known boundary: the eight deliberate
+      constructions `F222` enumerates, by shape, named as outside the charter, in the house "known
+      boundary, stated rather than hidden" form `C-FLUSH-AND-PAY-3` already uses. `visitSubtree` stops
+      once the visitor has located its node (`F223`); no duty is widened and no supersede of
+      `C-FLUSH-AND-PAY-3` is opened. Two self-directed directions land beside the existing ones: one
+      asserts the docblock carries the statement and the eight shapes, one asserts the early exit by
+      counting the identifiers a marking visitor reaches. `D39` is codified in the authority's close
+      act — after `ngrace apply` archives the bundle and before the close's `--retire` — where the
+      bundle hand-writes
+      `&lt;CodifiedIn kind="test-suite"&gt;src/artifact/xml.test.ts&lt;/CodifiedIn&gt;` on the live
+      decision (`D37`'s form), so the close's `--retire` moves it.
+
+      **What moves, by state.** Mid-bundle: `F244` (`moved 1`). At the close: `F222`, `F223` (paid by
+      the bundle's own row, eligible only once the bundle's directory is an archive directory), `D39`
+      (its resolving `CodifiedIn`), and the `C-GUARD-RATCHET` row itself (`moved 4`). The closed record
+      validates clean.
+
+      **Two suite repairs are forced and were found by driving, not by reading.** The shipped
+      payer-derivation baseline needs `F244: "C-PAYMENT-INTEGRITY"` and `F222`/`F223`:
+      `"C-GUARD-RATCHET"` in its `bundleMinted` extension; the shipped `C-PAYMENT-INTEGRITY` row
+      walk pins `Pays exactly "F197"`, which the mandated append reddens — the clause is rewritten to
+      the payment-invariant form (Pays names the required token; an exact set expires on the next
+      lawful retired-row append, `F225`/`F238`'s class) and `F244` is added to that walk's carrier
+      list so its own payment is walked. Driven without the repairs, the suite is 99 pass / 2 fail at
+      the post-close state; with them it is 101 pass / 0 fail. The plan adds a `C-GUARD-RATCHET`
+      carrier-and-row walk in the same payment-invariant house shape.
+
+      Binding live rulings: `D28` (every genre carries a retirement rule and a size ratchet — every
+      hand write lands inside its persisted window), `D28.1` (eligibility is the enforcement and the
+      ceiling the backstop; the mid-bundle and close reds are declared, driven working-tree states,
+      never commits), `D30` (the record is this bundle's deliverable; no other dispatch touches it
+      while a record-writing task is in flight; findings raised while this bundle is open stage under
+      the next number; no hard Constraint transcribes a scalar count of a file this bundle writes),
+      `D31` (the index has no retired sibling; `--retire` flips its `Entry` layers in place), `D11`
+      (nothing is deferred), `D27` (ratification is the maintainer's), and `D39` (this bundle's
+      charter; its `CodifiedIn` is written here; its duty is stated, not widened). Name searched
+      2026-09-13 at this commit: no archive directory under `.ngrace/changes/archive/` (94 matching
+      `^C-[A-Z0-9-]+$`) and no `Row name=` attribute in either registry layer (12 live + 52 retired)
+      carries `C-GUARD-RATCHET`, `GUARD` or `RATCHET`; the name is new. The id is hand-minted in the
+      legacy `C-&lt;SLUG&gt;` form — `D38`'s hashed suffix is recorded and not built.
+    </Summary>
+    <Problem>
+      The buffer is the authority's hold-out area under the `D30` freeze. Six entries sit staged and
+      not in the record (measured by parsing the buffer with the shipped `parseFrozenMarkdown`, which
+      throws on any adjacency defect, so a clean parse is itself the adjacency check). Three problems
+      sit behind the flush:
+
+      **The record's arithmetic admits all six in one wave.** The live findings root reads
+      `base="7569" headroom="266" ceiling="7835"` at this commit; the five staged findings measure 124
+      element lines, inside the window. `D39` measures 26 against the rulings window
+      `1733 / 150 / 1883`; the index grows by six live `Entry` children (`270 / 26 / 296`) and the
+      registry by one live row (`12 / 14 / 26`). Measured post-write read-back on a whole-repository
+      copy: findings `7694 / 141 / 7835`, rulings `1760 / 123 / 1883`, index `276 / 20 / 296`,
+      registry `13 / 13 / 26`.
+
+      **`F244`'s payment is already owed, so a mid-bundle move is forced.** `F244`
+      (measured 2026-09-12 at `af0f721`, re-driven by this spec) records that the shipped
+      `C-FLUSH-AND-PAY clamp invariant` test asserted `headroom &lt; 7 × median` on the production
+      record — a relation the ratified engine falsifies by construction on any clamped move that frees
+      room. `C-PAYMENT-INTEGRITY` delivered the remedy (the clause removed, the duplicate test
+      deleted; the shipped suite is 101 pass / 0 fail at this commit) but has no record of the payment.
+      Appending `F244` to that archived bundle's retired row makes the token eligible the moment it is
+      live, so the flush's committed state must be the moved state. Driven: the post-flush validator
+      exits 1 with exactly `finding-eligible-still-live` naming `f244` and archive event
+      `C-PAYMENT-INTEGRITY`; one `--retire` reports `moved 1`; findings `7668 / 167 / 7835`, index
+      `275 / 21 / 296`; the validator then exits 0.
+
+      **The guard's boundary is unstated, and `F223`'s wasted traversal is open.** `F222`
+      (measured 2026-09-10 against the delivered `src/artifact/xml.test.ts`) records that eight
+      deliberate constructions put a number back in silence — re-driven here at this commit, on a
+      throwaway copy, each mutation run through `bun test src/artifact/xml.test.ts` with the exit code
+      read directly: the suite is 35 pass / 0 fail for a module-scope alias, a module-scope function,
+      a class static, an enum member, a BigInt literal, a field typed through an alias, a computed
+      property name and a union-typed field; the control (`expected: number` as a real interface
+      member) fires, 34 pass / 1 fail. No artifact says whether that is a gap or a boundary. `D39`, the
+      maintainer's ruling of 2026-09-12, chose B1: the guard is a ratchet against accidental drift and
+      what is owed is one statement of the boundary plus `F223`'s early exit — not a redesign.
+      `visitSubtree` (`:724`) currently recurses unconditionally; `pairingCallbackBody` (`:732`)
+      short-circuits on `found !== undefined`, so the result is already the first match and the change
+      is unobservable behaviour, which is why it must be proven, not asserted.
+
+      **The flush reddens two shipped assertions, and the brief named one.** Appending `F244` to the
+      archived row makes the shipped payer-derivation test's baseline union miss a minted token
+      (`bundleMinted` extension), and makes the shipped `C-PAYMENT-INTEGRITY` row walk's
+      `Pays exactly "F197"` clause red — a payment-state pin of the `F225`/`F238` class, red on the
+      first lawful retired-row append. Driven at the post-close state without either repair: 99 pass /
+      2 fail, exactly those two tests.
+    </Problem>
+    <Goals>
+      <Goal>
+        **R1 — the flush, in one wave, closed by anchor id.** The flush set is exactly the six staged
+        anchors `f240`, `f242`, `f243`, `f244`, `f245` and `d39`, matched as
+        `&lt;a id="…" name="…"&gt;&lt;/a&gt;` forms in the buffer, never by position; all six are
+        present and all six land. Five `&lt;Finding&gt;` elements land in
+        `docs/plans/active/RM-GOVERNED-PATH/findings.xml` in the house shape the predecessors
+        calibrated (open tag, `&lt;Title&gt;` carrying the heading line, `&lt;Body&gt;` carrying the
+        shipped `xmlEscape` of the staged body, close tag — the shipped `renderFinding` shape at
+        `scripts/validate-record-retirement.ts:395`), appended after the last live element and before
+        the root close tag; one `&lt;Decision&gt;` element for `D39` lands the same way in
+        `rulings.xml` (the shipped `renderDecision` shape, `:405`). Six `&lt;Entry&gt;` lines land in
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.xml` after the last existing entry, in the form
+        `  &lt;Entry id="…" token="…" genre="…" layer="live" /&gt;` — `genre="finding"` for the five,
+        `genre="decision"` for `d39`. The `C-PAYMENT-INTEGRITY` row in `registry-retired.xml` gains
+        `F244` in `&lt;Pays&gt;` (`F197 F244`), and `C-GUARD-RATCHET` is minted as a live
+        `kind="chartered"` row in `registry.xml` with `&lt;Pays&gt;F222 F223&lt;/Pays&gt;` and a
+        `&lt;StatusText&gt;` naming no `F` token. Then one `--rewrite-roots` holds every persisted
+        ceiling and re-derives every base — the shipped writer, never a hand root; a read-back above a
+        held ceiling stops the task and reports, it does not raise the ceiling and does not trim a
+        staged body. Bodies embed through the shipped escape and no other transform; the decode round
+        trip returns the staged bytes for every flushed body. The citation rule this bundle adopts,
+        the predecessors': a citation that does not resolve does not enter the record — every fragment
+        citation in the six flushed bodies resolves against the index once the wave lands, and any
+        staged reference that would not resolve is a stop-and-report, never something to normalize
+        away at render.
+      </Goal>
+      <Goal>
+        **R2 — the payment, and the two moves.** `F244` is retired mid-bundle: after the flush and
+        `--rewrite-roots`, the shipped validator reports exactly one `finding-eligible-still-live`
+        (`f244`, archive event `C-PAYMENT-INTEGRITY`) as a declared working-tree state, and one
+        `--retire` in the same execution wave reports `moved 1`, stamps
+        `&lt;PaidBy&gt;C-PAYMENT-INTEGRITY&lt;/PaidBy&gt;` on the retired element, and flips its index
+        `Entry` layer to `retired` in place. At the close, `ngrace apply` archives the bundle and
+        writes `applied`; the close's `--retire` then reports `moved 4` — `F222` and `F223` (minted by
+        the now-archived `C-GUARD-RATCHET` row and stamped `&lt;PaidBy&gt;C-GUARD-RATCHET&lt;/PaidBy&gt;`),
+        `D39` (its resolving `CodifiedIn`), and the `C-GUARD-RATCHET` row (its name is now an archive
+        directory). The closed record validates clean. The bundle mints no other payment and no other
+        row; a `moved` count other than the two named is a stop, not an expectation.
+      </Goal>
+      <Goal>
+        **R3 — the guard, per `D39`.** In `src/artifact/xml.test.ts`, the `antiOccupancyFailures`
+        docblock (`:684`) gains the house "known boundary, stated rather than hidden" statement: the
+        guard's threat model is accidental drift — the next flush re-pinning a count as a literal,
+        restoring an occupancy table, or adding a module-scope constant — and its known boundary is
+        the eight deliberate constructions `F222` enumerates, by shape: a module-scope alias whose
+        numeric binding is never referenced from the body, a module-scope function returning the
+        number, a class static property, an enum member, a BigInt literal, a field typed through a type
+        alias, a computed property name, and a union-typed field. They are named as outside the
+        charter, and no duty is widened; no supersede of `C-FLUSH-AND-PAY-3` is opened. `visitSubtree`
+        (`:724`) stops once the visitor returns `true`, with the `true` propagated through
+        `ts.forEachChild` so siblings after the found node are not visited either (the shipped
+        `pairingCallbackBody` (`:732`) returns `true` when it has bound the callback body; every other
+        caller returns void and its traversal is unchanged). Two self-directed directions land beside
+        the existing ones: one asserts the docblock carries the threat-model sentence, the phrase
+        "Known boundary", and each of the eight shapes; one builds a synthetic source and a visitor
+        that marks identifiers and returns `true` at a marker, asserting the walk reaches the marker
+        and stops — and reaches a trailing identifier only when the visitor returns void. The
+        behavioural proof that the early exit changes nothing observable is driven separately: the
+        guard's pre-existing directions are 35 pass / 0 fail before and after, and the control
+        mutation (`expected: number` as a real interface member) still fires, 34 pass / 1 fail.
+      </Goal>
+      <Goal>
+        **R4 — `D39` is codified and moves at the close.** `D39`'s codification is the authority's
+        close act, not a plan task's: the executor stops before the close (the plan's last task is
+        verification), and the close runs its `lint --assertions final --run-commands` *before*
+        `ngrace apply`, whose `MustPassCommand` validator would red on a live eligible decision. The
+        write therefore lands after `ngrace apply` has archived the bundle and before the close's
+        `--retire` — the `C-APPLY-VERB` close (`ba148c0`) is the precedent: `apply` wrote `applied`
+        and moved the bundle, `D37` received its resolving `CodifiedIn`, the pre-move refusal named
+        exactly the eligible set, then `--retire` moved it. So placed, the bundle hand-writes
+        `&lt;CodifiedIn kind="test-suite"&gt;src/artifact/xml.test.ts&lt;/CodifiedIn&gt;` on the live
+        `D39` in `rulings.xml` (`D37`'s form). The write is placed there, not at the flush: written at
+        the flush it would be eligible while the forced `F244` move is pending, and the mid-bundle
+        `--retire` would move it (`moved 2`), which is not this bundle's sequence. The shipped
+        validator's resolution check accepts it — `kind="test-suite"` with an existing path resolves —
+        and the eligibility scan reports `decision-eligible-still-live` until the close's `--retire`
+        moves it; that red exists only between `apply` and the move, inside the authority's close act,
+        never a commit, and the close's `--retire` moves it to `rulings-retired.xml`. No other
+        `CodifiedIn` or `TaughtIn` is written, and `D39` is not moved by its `TaughtIn` (it writes
+        none).
+      </Goal>
+      <Goal>
+        **R5 — the suite repairs the flush forces, and the new walk.** Three edits to
+        `scripts/validate-record-retirement.test.ts`: (a) the `bundleMinted` extension gains
+        `F244: "C-PAYMENT-INTEGRITY"`, `F222: "C-GUARD-RATCHET"` and `F223: "C-GUARD-RATCHET"` — the
+        house form for a new payer, consulted only for tokens the derivation actually mints, so the
+        payer-derivation test is green with the row live and in the applied-archive state; (b) the
+        `C-PAYMENT-INTEGRITY` carrier list gains `F244: "C-PAYMENT-INTEGRITY"` (so `F244`'s
+        carrier relation is walked: at most once across the findings pair, `PaidBy` when retired, index
+        layer agreeing, carrier-absent green), and that walk's `Pays exactly "F197"` clause is
+        rewritten to the payment-invariant form — the row's Pays names `F197` (and `F198` for the
+        historical row), with no exact-set pin, so a later lawful retired-row append cannot expire it
+        (`F225`/`F238`'s class); (c) a `C-GUARD-RATCHET` carrier-and-row walk in the flush-invariant
+        house shape: each
+        of `f222`, `f223` exists at most once across the findings pair, its `status` agrees with the
+        holding file, a retired carrier carries `&lt;PaidBy&gt;C-GUARD-RATCHET&lt;/PaidBy&gt;`, and its
+        single index `Entry` layer agrees; `d39` exists at most once across the rulings pair with its
+        index `Entry` layer agreeing and its `CodifiedIn` resolving; the `C-GUARD-RATCHET` row exists
+        exactly once across the registry layers with `status` agreeing, `kind="chartered"`, `Pays`
+        naming `F222` and `F223`, and a `StatusText` naming no `F` token outside `Pays`. The walk adds
+        no layer pin, no payment-state pin, and no `headroom &lt; 7 × median` assertion (`F244`'s rule);
+        its red directions locate their holder by walking both layers (`F229`/`F237`'s
+        state-independent form). The walk lands with the flush so every committed state carries a
+        suite consistent with its own record.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module-change shape): one `src/` test file, one `scripts/` test file, the
+        record this bundle flushes, and this bundle's own artifacts; no runtime module is edited, no
+        CLI change, no graph module write. Roadmap: RM-GOVERNED-PATH (record integrity). Binding live
+        rulings: `D28` (both moves land inside every persisted window; the figures live in Assumptions
+        and expire), `D28.1` (the mid-bundle and close eligibility findings are the enforcement saying
+        the move is due — declared and driven working-tree states, never commits `validate:ci` can
+        see), `D30` (scoped, not skirted — the record is this bundle's deliverable, so the freeze
+        binds the execution window that reads or rewrites it; no other dispatch touches the record
+        while a record-writing task of this bundle is in flight, and no brief promises a frozen base
+        across one; findings raised while this bundle is open stage under the next number in
+        `.ngrace/scratch/staged-findings.md`, never into the record under edit; no hard Constraint here
+        transcribes a scalar count of a file this bundle writes — every criterion asserts a relation
+        its instrument can observe), `D31` (the index has no retired sibling; its eligible layers flip
+        in place), `D11` (nothing is deferred; the flushed entries' owners are named in NonGoals),
+        `D27` (ratification is the maintainer's), `D39` (the charter; its boundary is stated and its
+        duty is not widened). No `review`, `gate`, `cursor` or `supersede` verb runs from this bundle;
+        no commit is authored here.
+      </Constraint>
+      <Constraint>
+        Order, ceiling, and CI. The committed sequence is: (1) the flush — the five findings and
+        `D39` land with their six index `Entry` lines, the `C-PAYMENT-INTEGRITY` row gains `F244`, the
+        `C-GUARD-RATCHET` row is minted live, then one `--rewrite-roots` re-derives all four roots (the
+        shipped writer; the bases read back), the shipped validator names exactly the one eligibility
+        finding (a working-tree state, never a commit), one `--retire` in the same execution wave
+        reports `moved 1`, then validation exits 0; (2) the guard and suite work — `src/artifact/xml.test.ts`
+        and the three `scripts/validate-record-retirement.test.ts` edits — with the suite green at
+        every state; (3) the close, run by the authority — `lint --assertions final --run-commands`
+        with the record still clean, the shipped `apply` verb writing `applied` and renaming the
+        bundle's directory into `.ngrace/changes/archive/`, then `D39`'s `CodifiedIn` hand write, then
+        one `--retire` reporting `moved 4`, then validation exits 0. Do not raise any persisted ceiling, do not
+        re-derive a ceiling from a current base, do not hand-edit a `&lt;PaidBy&gt;` (`--retire` is its
+        sanctioned writer), and do not write a root by hand. A read-back above a held ceiling stops the
+        task and reports; it does not raise the ceiling, trim a staged body, or reorder the waves to
+        dodge the arithmetic — the honest outcomes are flush-as-specified or stop.
+      </Constraint>
+      <Constraint>
+        Buffer handling. `.ngrace/scratch/staged-findings.md` is untracked and `.gitignore`d, so it has
+        exactly one copy in the repository. The flush set is closed by anchor id: an entry is flushed if
+        and only if its anchor id is one of `f240`, `f242`, `f243`, `f244`, `f245`, `d39`, matched as
+        anchor forms in the buffer, never by position. The buffer is read, never written — no
+        reformat, renumber, prune or repair; pruning the flushed entries remains post-merge hygiene
+        owned by the authority, not a task here. Bodies embed through the shipped `xmlEscape` render
+        shape and no other transform: the record `&lt;Body&gt;` is exactly `xmlEscape(stagedBody)` and
+        `xmlDecode` of it returns the staged bytes. The staged citations are already in the
+        delimiter-preserving slug form and are not repaired. A staged cross-reference that would not
+        resolve against the index is a stop-and-report, never something to normalize away at render.
+      </Constraint>
+      <Constraint>
+        Write scope, anchors, and imports — derived from the Goals, not from this list's self-report
+        (`F227`'s rule, stated so the derivation is checkable), and enumerated once (`F136.1`'s rule).
+        The Goals force these writes, and nothing else: the record files
+        `docs/plans/active/RM-GOVERNED-PATH/findings.xml`,
+        `docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml` (written only by the shipped
+        `--retire`), `docs/plans/active/RM-GOVERNED-PATH/rulings.xml`,
+        `docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml` (written only by the shipped
+        `--retire`), `docs/plans/active/RM-GOVERNED-PATH/registry.xml`,
+        `docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml`, and
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.xml` (the index layer flips happen in place);
+        `src/artifact/xml.test.ts` (the guard statement, the early exit, and the two self-directed
+        directions); `scripts/validate-record-retirement.test.ts` (the `bundleMinted` extension, the
+        `C-PAYMENT-INTEGRITY` row-walk repair, and the new `C-GUARD-RATCHET` walk); and this bundle's
+        own artifacts under `.ngrace/changes/active/C-GUARD-RATCHET/`. Module enumeration for this
+        bundle, stated once: `M-GRAMMAR`, reached through `src/artifact/xml.ts`'s `LINKS:` header —
+        `src/artifact/xml.test.ts` carries no contract header (re-checked at this commit) and is the
+        test surface of that module's runtime file; the runtime file itself is not edited. None of the
+        record files or `scripts/validate-record-retirement.test.ts` carries a `LINKS:` header (checked
+        at this commit), and no module in `.ngrace/graph/main.xml` owns them — the record and
+        `scripts/` sit outside the graph's `src/`-only path set, and `.ngrace-lint.json`'s
+        `ignoredDirs` names `scripts/`, so the plan's `DurableScope` is exactly `M-GRAMMAR` and its
+        `ObservedWriteScope` is the files above. Do not mint a synthetic module, do not repeat this
+        enumeration as a second module list, and do not register the record files in
+        `CONTEXT_ARTIFACTS`. `scripts/` is lint-ignored and `src/` is not, so
+        `src/artifact/xml.test.ts` is lint-checked at every state. Escape markup as character data
+        (`&lt;`, `&gt;`, `&amp;`) in every artifact this bundle writes; never paraphrase brackets away.
+      </Constraint>
+      <Constraint>
+        The guard's exact bytes, so the plan inherits decisions and not questions. The
+        `antiOccupancyFailures` docblock gains this paragraph verbatim after the existing
+        "Shapes the scan cannot prove are reported, never passed." sentence: *"The guard's threat
+        model is accidental drift, not an adversarial construction: the next flush re-pinning a count
+        as a literal, restoring an occupancy table, or adding a module-scope constant. Against that it
+        holds. Known boundary, stated rather than hidden: eight deliberate constructions put a number
+        back in silence — a module-scope alias whose numeric binding is never referenced from the
+        body, a module-scope function returning the number, a class static property, an enum member, a
+        BigInt literal, a field typed through a type alias, a computed property name, and a
+        union-typed field — and resisting a deliberate construction is outside this guard's charter
+        (D39)."* `visitSubtree` becomes: *"if (visit(node) === true) return true; return
+        ts.forEachChild(node, (child) =&gt; visitSubtree(child, visit));"* with the signature
+        `(node: ts.Node, visit: (child: ts.Node) =&gt; boolean | void): boolean | undefined`, and
+        `pairingCallbackBody`'s callback returns `true` immediately once `found` is set: the shipped
+        combined guard `if (found !== undefined || !ts.isCallExpression(node)) return;` is split into
+        `if (found !== undefined) return true;` and then `if (!ts.isCallExpression(node)) return;`,
+        and the callback ends `found = callback.body; return true;` — so a node that is not an `it`
+        call still returns void and the walk continues, and the `true` fires only on the located
+        binding. Every other caller of `visitSubtree`
+        returns void, so its traversal is byte-for-byte unchanged. The two self-directed directions
+        land in `src/artifact/xml.test.ts`: one reads the file, slices the docblock from the
+        `Regression guard against the occupancy pins` marker to its closing `*/`, and asserts the
+        threat-model sentence, the phrase "Known boundary", and each of the eight shape names; one
+        builds `"const a = 1;\nconst b = 2;\nconst TARGET = 3;\nconst c = 4;"`, walks it with a
+        visitor that collects identifier texts and returns `true` at `TARGET`, and asserts
+        `["a", "b", "TARGET"]`, then walks again with a void visitor and asserts
+        `["a", "b", "TARGET", "c"]`.
+      </Constraint>
+      <Constraint>
+        Criterion mapping, stated plainly (the trap that has cost supersedes). Every `AC-*` below
+        except `AC-NO-CURRENT-MODE` is close-bound by its own `CloseEvidence` child, and a task
+        `Satisfies` that names any of them is the shipped error
+        (`change.close-evidence-and-satisfied`). Exactly one criterion — `AC-NO-CURRENT-MODE` —
+        carries no `CloseEvidence` and is mapped by exactly one task `Satisfies` in the later plan;
+        without that mapping it is an unmapped-criterion warning that `--fail-on warnings` turns into
+        an uncloseable bundle. Every `CloseEvidence` is evaluated only in the applied-archive state
+        (`F196`'s rule), so every criterion below is written to hold there, and the archive pathspecs
+        exclude this bundle's own arrival (the close's rename).
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, settled lessons. The plan's new walk is read-only over the record in the
+        flush-invariant house shape; every criterion names the mutation that turns its evidence red,
+        and both directions are driven before the artifact is approved. The record's own rules this
+        bundle must obey: no assertion pins a token or a decision to a layer or to a payment state
+        (`F225`, `F232`, `F238`'s class); a red-direction fixture locates its holder by walking both
+        layers and mutates whichever holds it, never a file named in advance (`F229`, `F237`); the
+        suite is driven in the applied-archive copy, including its red fixtures, before the plan is
+        approved (`F229`/`F237`'s rule); and nothing asserts `headroom &lt; 7 × median` (`F244`). Every
+        `CloseEvidence` `Command` matches a shipped discriminating shape (`src/artifact/grammar.ts`
+        `DEFAULT_CLOSE_EVIDENCE_COMMAND_SHAPES`): the `bun`-`test` shape for the suites, the
+        `grace.ts` `lint` `--fail-on` shape for close-time lint, and the `git diff --exit-code` shape
+        with a named baseline commit for every byte-invariance claim (`F210`'s rule — a base-less
+        `git diff` cannot fail). No criterion compares a fixed `git show` against a floating
+        working-tree read (`F215`): every diff criterion's window is this bundle's own diff, probed in
+        the post-close state, with this bundle's own archive directory excluded (F188) and tracked
+        paths only (F174). Structural counts are parsed, never grepped, and exit codes are read
+        directly, never through a pipe. Every test the plan adds that measures the real repository
+        carries an explicit generous timeout (`F185`), and every task `Verification` command the plan
+        records exits 0 as written at recording time (`F184`) and excludes every earlier task's files
+        (`F243` — a cumulative `git diff --exit-code` from the base is red at its own stage otherwise).
+        Current-mode lint of this project root appears only as post-archive `AC-CLOSE-LINT`. The check
+        that decides approval (`F231`'s rule): every `CloseEvidence` command **and the full
+        `bun run validate:ci`** run inside a faithful copy of the post-close state — `rsync` of the
+        working tree including untracked files (a `git clone` drops the buffer and the bundle and is
+        not faithful) and `.git` (the byte-invariance criteria need the base commit), `node_modules`
+        symlinked — with the flush, the mid-bundle move, `ngrace apply`, and the close's move
+        performed by the shipped commands, the record's move probe run from inside a whole-repository
+        copy (`F235` — the engine reads the archive from the process cwd), and the retirement suite run
+        at the baseline, post-flush-move, and post-close states.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Delivering the remedies the flushed entries name for other bundles. `F240`'s remedy belongs to
+        whoever next opens `src/review/core.ts` (`F240`, `F245`'s identity skip); `F242`'s belongs to
+        the `scripts/` adoption bundle `.ngrace-lint.json` already defers; `F243`'s and `F245`'s
+        teaching halves belong to the next teaching-surface increment (`ngrace-plan` row 19 and row 15
+        sentences). Owner: the maintainer's sequencing. This bundle records those entries; it charters
+        none of them, decides none of them, and touches none of their files.
+      </NonGoal>
+      <NonGoal>
+        `D38` (hashed `C-&lt;SLUG&gt;[-&lt;N&gt;]-&lt;HASH&gt;` bundle ids). Owner: its own chartered
+        `src/` bundle across `spec new`, `supersede`, anchor validation, the skills, the schema
+        reference and the README — never folded into a bundle in flight. Its recorded edge (3) keeps
+        this bundle's legacy hash-less id.
+      </NonGoal>
+      <NonGoal>
+        Any version bump, release action, or changelog entry. Owner: the maintainer's release act —
+        `package.json`, `openpackage.yml`, `.claude-plugin/marketplace.json`,
+        `plugins/ngrace/.claude-plugin/plugin.json`, `README.md` and `CHANGELOG.md` are unchanged.
+      </NonGoal>
+      <NonGoal>
+        The roadmap surface: `docs/plans/README.md`, the roadmap plan and review under
+        `docs/plans/active/RM-GOVERNED-PATH/` (`plan.md`, `review.md`, the `p0-*` derivations, the
+        `brownfield-*` findings, `sources/`), `docs/plans/archive/`, and the record's own untouched
+        files (`decisions.md`, `record-inventory.json`). Owner: the human-approved roadmap surface —
+        unchanged by this bundle.
+      </NonGoal>
+      <NonGoal>
+        Docs and examples: `README.md` and `examples/` are unchanged — owner: unchanged; no
+        user-visible surface. The guard's docblock is this bundle's documentation of the boundary, and
+        it is inside `src/artifact/xml.test.ts`, the file the bundle edits; no other docs or examples
+        surface changes.
+      </NonGoal>
+      <NonGoal>
+        Changing the record engine, the CLI, or any shipped constant: `parseFrozenMarkdown`,
+        `renderFinding`, `renderDecision`, `derivePayerMap`, `persistSnapshot`, the eligibility scans,
+        `checkCeilingValue`, `INDEX_HEADROOM_ENTRIES`, the `--retire` and `--rewrite-roots` modes
+        already perform every operation this bundle needs — no `src/` runtime file and no `scripts/`
+        file other than the one suite file is edited. Owner: unchanged surfaces — no user-visible CLI
+        token, config key, or ngrace command changes.
+      </NonGoal>
+      <NonGoal>
+        Raising any persisted ceiling, hand-editing a `&lt;PaidBy&gt;`, or touching any genre's
+        budget, constant, or diagnostic: the findings and rulings line budgets, the registry live-row
+        budget and headroom, the index live-`Entry` budget and its clamp, and the rulings provenance
+        ceiling are shipped positions this bundle holds rather than revisits. Owner: no one — the
+        standing record rules under `D28`/`D28.1`.
+      </NonGoal>
+      <NonGoal>
+        Paying any token other than `F222` and `F223`, or recording any payment other than `F244`'s.
+        Owner: no one — the standing payer map. Measured at this commit: the shipped
+        `derivePayerMap` mints 96 tokens over the real archive and both registry layers and names none
+        of `F222`, `F223`, `F240`, `F242`, `F243`, `F244`, `F245`, `D39`; `F197` maps to
+        `C-PAYMENT-INTEGRITY`, `F185` to `C-RETIRE-AND-CODIFY`, `F198` to `C-PAYMENT-RECORD-2`. This
+        bundle mints the one row and appends the one `Pays` token above, and nothing else.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-FLUSH-LANDED>
+        After the flush, each flushed id — `f240`, `f242`, `f243`, `f244`, `f245` as `&lt;Finding&gt;`
+        elements and `d39` as a `&lt;Decision&gt;` element, plus the `C-GUARD-RATCHET` row — exists
+        exactly once across its genre's pair of files, with no fixed expectation of which file holds
+        it: the element's `status` agrees with the file that holds it (`live` in the live file,
+        `retired` in the retired sibling), its token and genre agree, and the single `&lt;Entry&gt;`
+        the index carries for the id has `layer` agreeing with that holding file. The relation
+        survives the record's own payment cycle, which retires an element, flips its index layer, and
+        leaves every clause true. Each written root's `base` equals the shipped metric read back
+        (`newlineCount` for findings and rulings, the live-`Entry` rule for the index, the live `Row`
+        count for registry) and `base + headroom = ceiling` — via `--rewrite-roots`, the shipped
+        writer. Content question. Failure: an element missing, duplicated across the pair, or carrying
+        a disagreeing token, genre, or index `Entry` layer; a base derived from a projection instead
+        of the read-back; a render-time normalization beyond the shipped escape applied silently. The
+        instrument is the production walk the plan adds to `scripts/validate-record-retirement.test.ts`
+        (the flush-invariant house shape over `f240`, `f242`, `f243`, `f244`, `f245`, `d39` and the
+        row) plus the shipped roots-invariant tripwire; red on a mutated copy with a flushed element
+        duplicated and with an index layer flipped against its holding file (driven).
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-FLUSH-LANDED>
+      <AC-PAYMENT-RECORDED>
+        `F244` is retired in `findings-retired.xml` with
+        `&lt;PaidBy&gt;C-PAYMENT-INTEGRITY&lt;/PaidBy&gt;`, its index `Entry` layer is `retired`, and
+        the `C-PAYMENT-INTEGRITY` row in `registry-retired.xml` names `F244` in `&lt;Pays&gt;`; the
+        mid-bundle `--retire` reported `moved 1` and the post-move shipped validator returns zero
+        findings. Content question, answered by walking both layers and reading the payer map.
+        Failure: `F244` still live after the flush (the shipped validator reddens it
+        `finding-eligible-still-live` naming archive event `C-PAYMENT-INTEGRITY`, driven); a
+        `&lt;PaidBy&gt;` naming any payer other than `C-PAYMENT-INTEGRITY`; a `Pays` that does not
+        name `F244`. Instrument: the production `validateRecordRetirement` run and the
+        `C-PAYMENT-INTEGRITY` carrier walk's `F244` clause (carrier-absent green, `PaidBy` when
+        retired, index layer agreeing); red on a copy with `F244` reverted to live (driven).
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-PAYMENT-RECORDED>
+      <AC-CLOSED-MOVERS>
+        At the applied-archive close, `F222` and `F223` are retired in `findings-retired.xml` stamped
+        `&lt;PaidBy&gt;C-GUARD-RATCHET&lt;/PaidBy&gt;`, `D39` is retired in `rulings-retired.xml`
+        carrying its resolving `&lt;CodifiedIn kind="test-suite"&gt;src/artifact/xml.test.ts&lt;/CodifiedIn&gt;`,
+        and the `C-GUARD-RATCHET` row is retired in `registry-retired.xml`; each index `Entry` layer
+        agrees with its holding file; the close's `--retire` reported `moved 4`; and the shipped
+        `validateRecordRetirement` returns zero findings. The relation is payment-invariant by
+        construction (a later lawful move leaves every clause true). Content question. Failure: any of
+        the four still live at the closed state (`finding-eligible-still-live`,
+        `registry-eligible-still-live`, `decision-eligible-still-live`, driven); a `PaidBy` other than
+        `C-GUARD-RATCHET`; a `CodifiedIn` path that does not resolve. Instrument: the production
+        `validateRecordRetirement` run plus the new `C-GUARD-RATCHET` carrier-and-row walk; red on a
+        copy with a carrier duplicated and with the row's index layer flipped (driven).
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-CLOSED-MOVERS>
+      <AC-GUARD-STATEMENT>
+        The `antiOccupancyFailures` docblock in `src/artifact/xml.test.ts` states the guard's threat
+        model (accidental drift: the next flush re-pinning a count as a literal, restoring an
+        occupancy table, or adding a module-scope constant) and its known boundary — the eight
+        deliberate constructions, by shape, named as outside the charter. Content question. Failure:
+        the threat-model sentence, the phrase "Known boundary", or any of the eight shape names
+        removed from the docblock. The instrument is the self-directed direction the plan adds to
+        `src/artifact/xml.test.ts`, which reads the docblock and asserts each element; red on a copy
+        with one shape name reworded (driven: the test reddens, `1 fail`). No supersede of
+        `C-FLUSH-AND-PAY-3` is opened and no duty is widened — a criterion asserting a ninth
+        construction fires is not this bundle's and does not exist here.
+        <CloseEvidence>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+        </CloseEvidence>
+      </AC-GUARD-STATEMENT>
+      <AC-GUARD-EARLY-EXIT>
+        `visitSubtree` stops once the visitor returns `true`; the `true` propagates through
+        `ts.forEachChild` so siblings after the found node are not visited, and the shipped
+        `pairingCallbackBody` returns `true` when it has bound the callback body. The change is
+        unobservable in the guard's own output — the pre-existing directions are green and the guard
+        still fires on a real `expected: number` member. Content question. Failure: unconditional
+        recursion restored (the self-directed early-exit direction reddens on the trailing identifier,
+        `1 fail`), or the early exit stopping a traversal that must continue (the `expected: number`
+        control no longer reddens, turning a would-be `1 fail` into `0 fail`). The instrument is the
+        self-directed direction the plan adds (a counting visitor reaches the marker and stops, and
+        reaches the trailing identifier only when the visitor returns void) plus the shipped
+        directional suite; driven: 35 pass / 0 fail before and after the change, the new directions
+        take it to 37 pass / 0 fail, and the control mutation still reddens at 34 pass / 1 fail.
+        <CloseEvidence>
+          <Command>bun test src/artifact/xml.test.ts</Command>
+        </CloseEvidence>
+      </AC-GUARD-EARLY-EXIT>
+      <AC-NO-SRC>
+        No file under `src/` or `scripts/` changes relative to this spec's base commit except
+        `src/artifact/xml.test.ts` and `scripts/validate-record-retirement.test.ts`, named here and in
+        the command's excludes. Prose and command name the same pathset. The window is this bundle's
+        own diff, over tracked paths only, probed in the post-close state. Failure: any other `src/` or
+        `scripts/` path differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code fa1773d7b853050d2330e4aa21f0514c3e8d6b05 -- src/ scripts/ ':(exclude)src/artifact/xml.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-SRC>
+      <AC-RECORD-UNTOUCHED>
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.md` (the stub) and
+        `docs/plans/active/RM-GOVERNED-PATH/record-inventory.json` are byte-identical to this spec's
+        base commit. No shipped writer touches either inside this bundle's window: `--retire` and
+        `--rewrite-roots` write only the live genre files, their retired siblings, and the index, and
+        the inventory is written only by `--split`, which this bundle never runs. The whole-file byte
+        diff is the right instrument for files this bundle must not change at all. Probed in the
+        post-close state, tracked paths only.
+        <CloseEvidence>
+          <Command>git diff --exit-code fa1773d7b853050d2330e4aa21f0514c3e8d6b05 -- docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Command>
+        </CloseEvidence>
+      </AC-RECORD-UNTOUCHED>
+      <AC-NO-PLANS-EDIT>
+        No tracked path under `docs/plans/` changes relative to this spec's base commit except the
+        seven record files this bundle writes, each named in the command's excludes and its prose:
+        `findings.xml`, `findings-retired.xml`, `rulings.xml`, `rulings-retired.xml`, `registry.xml`,
+        `registry-retired.xml`, `decisions.xml`. Prose and command name the same pathset. In
+        particular the roadmap plan and review, the `p0-*` derivations, the `brownfield-*` findings,
+        `sources/`, `docs/plans/README.md` and `docs/plans/archive/` are unchanged. Probed in the
+        post-close state, tracked paths only.
+        <CloseEvidence>
+          <Command>git diff --exit-code fa1773d7b853050d2330e4aa21f0514c3e8d6b05 -- docs/plans/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/rulings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml'</Command>
+        </CloseEvidence>
+      </AC-NO-PLANS-EDIT>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and tracked paths under `.ngrace/changes/archive/`
+        other than this bundle's own later arrival are not modified. The close itself renames this
+        bundle's directory into `.ngrace/changes/archive/C-GUARD-RATCHET/`, so the pathspec excludes
+        that arrival (F188); no other archive path changes. Probed in the post-close state, tracked
+        paths only.
+        <CloseEvidence>
+          <Command>git diff --exit-code fa1773d7b853050d2330e4aa21f0514c3e8d6b05 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-GUARD-RATCHET'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-DOCS-EXAMPLES>
+        `README.md`, `examples/`, `CLAUDE.md`, `skills/ngrace/`, `plugins/ngrace/skills/ngrace/`,
+        `package.json`, `openpackage.yml`, `.claude-plugin/`, and `CHANGELOG.md` are byte-identical to
+        this spec's base commit. Prose and command name the same pathset. The command sees tracked
+        edits and deletions only (F174).
+        <CloseEvidence>
+          <Command>git diff --exit-code fa1773d7b853050d2330e4aa21f0514c3e8d6b05 -- README.md examples/ CLAUDE.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json openpackage.yml .claude-plugin/ CHANGELOG.md</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task `Verification` commands and `TargetAssertions` contain no current-mode
+        lint of this project root, checked by hand (F171 — the shipped detector misses the grace.ts
+        form). Failure: a Command whose text contains `--assertions current`, or that invokes lint of
+        this root and omits `--assertions`. This is the spec's single Satisfies-mapped criterion; it
+        carries no `CloseEvidence` and must be mapped by exactly one task `Satisfies` in the later
+        plan.
+      </AC-NO-CURRENT-MODE>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      `M-GRAMMAR` is written: its test surface `src/artifact/xml.test.ts` is the only governed `src/`
+      file this bundle edits, and the module is enumerated here once — the runtime file
+      `src/artifact/grammar.ts` and its parser `src/artifact/xml.ts` are not edited. Ceremony tier T1
+      names the same fact: test files and the record, no runtime module touch. Files this spec forces
+      into write scope, with their `LINKS:` headers checked (`src/artifact/xml.test.ts`,
+      `scripts/validate-record-retirement.test.ts` and the record files carry none — re-checked at
+      this commit), are enumerated once in the write-scope Constraint and are not repeated as a
+      second module list (`F136.1`'s rule). Do not mint a synthetic module to fill this section.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/artifact/xml.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-GUARD-RATCHET --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes against the shipped record engine and the shipped guard, not a green
+        suite; every shape below was driven against the shipped CLI and the shipped functions at
+        `fa1773d7b853050d2330e4aa21f0514c3e8d6b05`, inside faithful whole-repository copies (`rsync`
+        of the working tree including untracked files, `node_modules` symlinked) driven through the
+        flush, the mid-bundle `--retire`, the simulated archive arrival, `D39`'s `CodifiedIn`, and the
+        close's `--retire`, with every exit code read directly.
+
+        (1) The buffer, parsed rather than read: the shipped `parseFrozenMarkdown` parses exactly six
+        entries — `f240`, `f242`, `f243`, `f244`, `f245` (findings, `###` headings) and `d39`
+        (decision, `##` heading) — with no registry heading and zero staged charter rows, every
+        heading adjacent to its anchor. Per-entry measurements by the shipped render shape: body /
+        element lines — `f240` 22 / 25, `f242` 23 / 26, `f243` 25 / 28, `f244` 22 / 25, `f245` 17 /
+        20; `d39` body 23 / element 26. The five findings render 124 element lines; `d39` renders 26
+        rulings lines.
+
+        (2) The roots, all states (`--rewrite-roots` after each hand write; the move re-derives its
+        own roots): baseline findings `7569 / 266 / 7835`, rulings `1733 / 150 / 1883`, index
+        `270 / 26 / 296`, registry `12 / 14 / 26`; post-flush `7694 / 141 / 7835`,
+        `1760 / 123 / 1883`, `276 / 20 / 296`, `13 / 13 / 26`; post-mid-move
+        `7668 / 167 / 7835`, `1760 / 123 / 1883`, `275 / 21 / 296`, `13 / 13 / 26`; post-close
+        `7595 / 240 / 7835`, `1733 / 150 / 1883`, `272 / 24 / 296`, `12 / 14 / 26`. Every state
+        satisfies `base + headroom = ceiling`.
+
+        (3) Eligibility, exit codes read directly: baseline validator exit 0; post-flush exit 1 with
+        exactly one `finding-eligible-still-live` naming `f244` and archive event
+        `C-PAYMENT-INTEGRITY`; after the mid-bundle `--retire` (`moved 1`) exit 0; after the simulated
+        archive arrival plus `D39`'s `CodifiedIn`, exit 1 with exactly four findings — `f222` and
+        `f223` `finding-eligible-still-live` (archive event `C-GUARD-RATCHET`),
+        `registry-eligible-still-live` for the `C-GUARD-RATCHET` row, and `decision-eligible-still-live`
+        for `d39`; after the close's `--retire` (`moved 4`) exit 0; a second `--retire` reports
+        `moved 0`. `D39` with a live resolving `CodifiedIn` is reported eligible, never silently
+        accepted — the resolution check itself passes and the eligibility scan is what reds.
+
+        (4) The suite at the three states: 101 pass / 0 fail at the baseline; 101 / 0 after the
+        mid-bundle move with the `bundleMinted` extension and the row-walk repair; 101 / 0 at the
+        post-close state. Without the two repairs the post-close suite is 99 pass / 2 fail —
+        `C-RECORD-PARSE payer derivation` (the derivation mints `F244`, absent from the baseline map
+        and `bundleMinted`) and the `C-PAYMENT-INTEGRITY carrier and row relations` walk
+        (`Expected: "F197" / Received: "F197 F244"`). With the containment repair the row walk is
+        green post-append and red when `F197` is removed from the Pays (driven: `1 fail`).
+
+        (5) The guard's present shape, re-driven on a throwaway copy, each mutation run through
+        `bun test src/artifact/xml.test.ts`: 35 pass / 0 fail for the eight constructions — module-scope
+        alias, module-scope function, class static, enum member, BigInt literal, aliased type,
+        computed property name, union-typed field; the control (`expected: number` as a real interface
+        member) fires, 34 pass / 1 fail. After the change: 37 pass / 0 fail (the thirty-five
+        pre-existing directions plus the docblock-statement direction and the early-exit direction);
+        the control still fires, 34 pass / 1 fail. Re-driven with the split-form `pairingCallbackBody`
+        rewrite alone (no new tests): the eight constructions remain 35 pass / 0 fail and the control
+        remains 34 pass / 1 fail. The early exit is proven by a counting visitor:
+        `["a", "b", "TARGET"]` with the visitor returning `true` at `TARGET`, and
+        `["a", "b", "TARGET", "c"]` when it returns void; the docblock direction reds (exit 1) when a
+        shape name is reworded.
+
+        (6) Citation resolution: the six flushed bodies' fragment citations form the set
+        `{d37, f222, f223, f225, f229, f232, f236, f237, f238, f240}`, every one an index `Entry` id
+        after the flush; `validate-citation-anchors` exits 0 on the driven post-move and post-close
+        records, and `prove-record-preservation` exits 0.
+
+        (7) The payer map at this commit: 96 tokens minted over the real archive and both registry
+        layers; `F197` → `C-PAYMENT-INTEGRITY`, `F185` → `C-RETIRE-AND-CODIFY`, `F198` →
+        `C-PAYMENT-RECORD-2`; none of `F222`, `F223`, `F240`, `F242`, `F243`, `F244`, `F245`, `D39`
+        minted.
+
+        (8) The id search: 94 archive directories matching `^C-[A-Z0-9-]+$`, 12 live + 52 retired
+        registry rows; zero hits for `C-GUARD-RATCHET`, `GUARD` or `RATCHET` as an archive directory
+        name or a `Row name=` attribute.
+
+        (9) The close's lint state: root lint is 0/0 with the guard changes applied; the simulated
+        archive arrival without this bundle's `spec.xml`/`plan.xml` reds `xml.missing-file`, which is
+        an artifact of the simulation — the real close archives the authored artifacts and lint is
+        0/0 there.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken 2026-09-13 at `fa1773d7b853050d2330e4aa21f0514c3e8d6b05` (branch
+        `c-guard-ratchet`, tracked tree clean apart from this bundle's own directory), the staged
+        buffer untracked as designed; all counts by the shipped parser (`parseGraceXmlArtifact` and
+        direct-children filtering over the record, `parseFrozenMarkdown` over the buffer), never a
+        grep. Record roots at this commit: `findings.xml base="7569" headroom="266" ceiling="7835"`,
+        `rulings.xml base="1733" headroom="150" ceiling="1883"`, `decisions.xml base="270"
+        headroom="26" ceiling="296"`, `registry.xml base="12" headroom="14" ceiling="26"`. Every live
+        root satisfies the tripwire relations. `bun ./src/grace.ts lint --path .` exits 0 at 0/0 and
+        `bun run validate:ci` exits 0 at this commit.
+      </Assumption>
+      <Assumption>
+        The staged buffer holds six entries as of 2026-09-13 — `F240`, `F242`, `F243`, `F244`, `F245`
+        (findings, `###`) and `D39` (decision, `##`) — and nothing else: no staged charter row, no
+        registry heading. The header paragraph's per-entry "rendered lines" figures are stale: it
+        projects `25/23/~28/~24/~20` where the shipped parse measures `25/26/28/25/20` for
+        `F240`/`F242`/`F243`/`F244`/`F245`, and `~26` for `D39` (measured 26). The buffer is the
+        authority's file and this bundle repairs nothing in it. The decode round trip is identity for
+        every flushed body: the record `&lt;Body&gt;` is `xmlEscape(stagedBody)` and `xmlDecode` of it
+        returns the staged bytes.
+      </Assumption>
+      <Assumption>
+        The driven state machine, all on faithful copies of the repository at this commit. Baseline:
+        validator exit 0; suite 101 pass / 0 fail; citation validator exit 0; `prove-record-preservation`
+        exit 0. Flush plus `--rewrite-roots`: roots `7694 / 141 / 7835`, `1760 / 123 / 1883`,
+        `276 / 20 / 296`, `13 / 13 / 26`; validator exit 1 naming exactly `f244`. Mid-bundle
+        `--retire`: `moved 1`; roots `7668 / 167 / 7835`, `275 / 21 / 296`; validator exit 0. Archive
+        arrival plus `D39`'s `CodifiedIn`: validator exit 1 naming exactly four findings; close
+        `--retire`: `moved 4`; roots `7595 / 240 / 7835`, `1733 / 150 / 1883`, `272 / 24 / 296`,
+        `12 / 14 / 26`; validator exit 0; a second `--retire` reports `moved 0`.
+      </Assumption>
+      <Assumption>
+        The suite audit. The suite is 101 pass / 0 fail at this commit. It contains no occurrence of
+        `f222`, `f223` or `d39` as a walked token (the ids do appear in prose; the walk's token set is
+        new scope), so the plan's `C-GUARD-RATCHET` walk is an addition, not a repair. The
+        `C-RECORD-PARSE payer derivation` test needs `F244`, `F222`, `F223` in `bundleMinted` once the
+        derivation mints them; the `C-PAYMENT-INTEGRITY` row walk needs its `Pays exactly "F197"`
+        clause relaxed to containment. Without both, the post-close suite is 99 pass / 2 fail; with
+        both, 101 pass / 0 fail. The `C-FLUSH-AND-PAY clamp invariant` test is already gone at this
+        commit (deleted by `C-PAYMENT-INTEGRITY`), so `F244` owes a payment record only, no code.
+      </Assumption>
+      <Assumption>
+        The guard at this commit. `antiOccupancyFailures`'s docblock spans `:684`-`702`, the function
+        `:703`, `visitSubtree` `:724`, `pairingCallbackBody` `:732`. The eight silences and the control
+        were re-driven here (2026-09-13) rather than cited from `F222`: each mutation on a throwaway
+        copy of the repository, run through `bun test src/artifact/xml.test.ts`, exit code read
+        directly — 35 pass / 0 fail for every silence, 34 pass / 1 fail for the control; re-driven
+        with the split-form `pairingCallbackBody` rewrite alone, the same 35 / 0 and 34 / 1. After the
+        change the suite is 37 pass / 0 fail and the control is still 34 pass / 1 fail. The early exit
+        is unobservable in the guard's own output (`pairingCallbackBody` already bound the first
+        match), so `F223`'s "no behavioural change" is proven by the count plus the control, and the
+        mechanism by the counting visitor.
+      </Assumption>
+      <Assumption>
+        The flush's arithmetic, measured on the driven copy and stated as dated figures that expire.
+        The five findings render 124 findings element lines against the 266-line window (margin 142);
+        `D39` renders 26 against the 150-line rulings window (margin 124); six new live `Entry`
+        children move the index from 270 to 276 against ceiling 296; one new live row moves the
+        registry from 12 to 13 against ceiling 26. Ceilings hold; none rises. The mid-bundle move
+        frees `F244`'s element lines and re-derives the findings base to 7668; the close's move frees
+        `F222` (59 lines) and `F223` (14 lines), landing the findings base at 7595, and `D39` (27
+        lines including its `CodifiedIn`) leaves the rulings live base at 1733.
+      </Assumption>
+      <Assumption>
+        Name search and id form. Searched 2026-09-13 at this commit: no archive directory under
+        `.ngrace/changes/archive/` (94 matching `^C-[A-Z0-9-]+$`) and no `Row name=` attribute in
+        either registry layer (12 live + 52 retired, parsed and compared) carries `C-GUARD-RATCHET`,
+        `GUARD` or `RATCHET`; the name is new. The id is hand-minted in the legacy `C-&lt;SLUG&gt;`
+        form: `D38`'s hashed-suffix rule is recorded and not yet built, and that ruling's own edge (3)
+        keeps the legacy corpus's hash-less names. This bundle supersedes nothing.
+      </Assumption>
+      <Assumption>
+        `D39`'s codification timing. Written at the flush, the resolving `CodifiedIn` would make `D39`
+        eligible while the forced `F244` move is pending, and the mid-bundle `--retire` would move it
+        (`moved 2`); the close's `--retire` would then move three. Written in the authority's close
+        after `apply`, the mid-bundle move takes `F244` only (`moved 1`) and the close takes four —
+        the sequence this spec charters, and the one the brief's "the close's `--retire` moves it"
+        names. Between the hand write and the close's move the validator reports `d39` eligible; that
+        state exists only inside the close act and is never committed.
+      </Assumption>
+    </Assumptions>
+  </C-GUARD-RATCHET>
+</NgraceChangeSpec>
