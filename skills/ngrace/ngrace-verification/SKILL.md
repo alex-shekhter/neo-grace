@@ -10,7 +10,7 @@ Strengthen deterministic verification for modules and changes. Verification stat
 
 <shape_sources>
 Registered verification shapes: `docs/schema-reference.md` (artifact-root `NgraceVerificationDocument`, anchor-family `V-M-`). That document is not a complete grammar and does not carry Marker / TraceAssertion doctrine.
-Explain a shape or code: argv token `explain`.
+Explain a shape or code: `ngrace lint --explain <code|shape>`.
 Taught example: `examples/polyglot`.
 </shape_sources>
 

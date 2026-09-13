@@ -1,0 +1,881 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-FLUSH-AND-TEACH>
+    <Summary>
+      Two things in one bundle, because the second cannot pay what the first has not
+      landed. **The flush.** `.ngrace/scratch/staged-findings.md` holds five entries —
+      `F238` `F239` `F240` `F241` `F242`, measured by the shipped `parseFrozenMarkdown` at
+      this commit; the wave this bundle lands is the three the teaching increment pays,
+      `F238` `F239` `F241`, rendered through the shipped `renderFinding` shape into
+      `docs/plans/active/RM-GOVERNED-PATH/findings.xml` (89 element lines) with three index
+      `&lt;Entry&gt;` lines in `decisions.xml`, followed by
+      `bun ./scripts/validate-record-retirement.ts --rewrite-roots`. `F240` and `F242` stay
+      in the buffer, by name, with their owners (measured: all five together project 137
+      lines against a 100-line window, so no four fit; every three do). **The teaching.**
+      Five rules, one sentence each, land in the skill that owns each — `F236` and `F241`
+      in `ngrace-plan`, `F237` and `F238` in `ngrace-reviewer`, `F236`'s relative-path
+      clause in `ngrace-spec`, `F239`'s CLI-token rule in `ngrace-cli` — canonical
+      `skills/ngrace/*` and the packaged mirror `plugins/ngrace/skills/ngrace/*` together;
+      every one of `F239`'s twelve bare `argv token \`explain\`` lines is repaired to the
+      shell-accepted form in both trees. `scripts/check-teaching-surface.ts` gains a check
+      asserting each sentence and asserting the twelve-line population is gone, its
+      falsified reviewer needle is repaired, and its suite mirrors the new needles.
+      **The payment.** The plan mints one live chartered row `Pays F236 F237 F238 F239
+      F241` and extends the retirement suite's payer-derivation baseline with those five
+      tokens; at the close the authority runs `--retire`, which moves the five findings to
+      `findings-retired.xml` stamped `PaidBy`, moves the row to `registry-retired.xml`, and
+      flips the five index layers in place (driven: `moved 6`, validators exit 0, second
+      `--retire` `moved 0`). No `src/` production file changes; no lint issue code; no
+      version bump; `examples/` untouched; `README.md` is repaired only where the
+      skill-footprint cell the teaching moves requires it.
+    </Summary>
+    <Problem>
+      The authority holds staged findings under the D30 freeze; entries in the buffer are not
+      in the record until a flush lands them. Five entries sit staged as of 2026-09-12 —
+      `F238`, `F239`, `F240`, `F241`, `F242`, all findings genre on `###` headings, no staged
+      charter row (measured by parsing the buffer with the shipped `parseFrozenMarkdown`,
+      which throws on an adjacency defect, so a clean parse is itself the adjacency check) —
+      and the findings live root reads `base="7746" headroom="100" ceiling="7846"`, so the
+      all-five write of 137 rendered lines is refused (measured: 7883 &gt; 7846). Any three
+      fit; and of the five, exactly three — `F238`, `F239`, `F241` — name the next
+      teaching-surface increment as their owner. `F236` and `F237`, already in the record,
+      name the same increment. The five findings' remedies are one teaching increment, so
+      the flush and the teaching are one bundle with one payer: the row pays `F236` `F237`
+      `F238` `F239` `F241`, and the three staged tokens flush in the same bundle so they are
+      in the record when the row's `PaidBy` stamp lands.
+      **`F240` and `F242` do not ride, by name.** `F240` (review.confidently-wrong on a
+      file-creating active plan's Target `MustExist`) is owned by whoever next opens
+      `src/review/core.ts`; `F242` (`tsconfig.json` excludes `scripts/**`) is owned by the
+      `scripts/` adoption bundle `.ngrace-lint.json` already names as deferred. Neither is a
+      teaching rule, neither is paid by this row, and the findings window holds no fourth
+      entry: the wave consumes 89 of the 100 lines, leaving headroom 11, below every staged
+      element's line count (the smallest is `F242` at 23), and the flush cannot land one of
+      them in a second wave before the close, because the close's move that re-opens the
+      window is the bundle's last act. Neither is paid by this row (measured: the shipped
+      `derivePayerMap` over the real archive and both registry layers names none of the five
+      tokens), so neither would retire at the close either; they are simply out of window
+      and out of scope.
+    </Problem>
+    <Goals>
+      <Goal>
+        **The flush, in one wave.** Land exactly three `&lt;Finding&gt;` elements for the
+        anchor ids `f238`, `f239`, `f241` — selected by anchor id matched as
+        `&lt;a id="…" name="…"&gt;&lt;/a&gt;` forms in the buffer, never by position — into
+        `docs/plans/active/RM-GOVERNED-PATH/findings.xml` in the house shape the shipped
+        `renderFinding` produces (open tag, `&lt;Title&gt;` carrying the heading line,
+        `&lt;Body&gt;` carrying the shipped escape of the staged body, close tag), appended
+        after the last live element and before the root close tag; three index
+        `&lt;Entry id="…" token="…" genre="finding" layer="live" /&gt;` lines into
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.xml` after the last existing entry;
+        then one `bun ./scripts/validate-record-retirement.ts --rewrite-roots`, the only
+        sanctioned writer of the roots — never a hand-written root attribute. Bodies embed
+        through the shipped `xmlEscape` render shape and no other transform: the decode round
+        trip returns the staged bytes for all three, and no render-time normalization exists.
+        The flush is one wave because the three bodies cross-reference each other: `F239`
+        cites `#f238`, `F241` cites `#f238` and `#f239`, and both cite `#f236` and `#f237`
+        (already in the index). The citation rule is the record's own: a citation that does
+        not resolve does not enter the record, and every fragment citation in the three
+        flushed bodies resolves once the wave lands — driven on a whole-repository copy with
+        the shipped `validateStubAndIndex` entry point, which the plan's suite imports and
+        asserts read-only (the same instrument `AC-RECORD-VALID` names; the script's `main`
+        is not a discriminating CloseEvidence command, so the suite carries the assertion)
+        — and the two cross-references among the three are the only unresolved fragments
+        pre-wave, which is why the three land together and never one at a time. No staged
+        cross-reference needs repair:
+        the buffer already writes the delimiter-preserving keep-dot slug form (`F238` is
+        `f238`), which is the record's own rule, and the flush must not repair it into any
+        other form.
+      </Goal>
+      <Goal>
+        **The teaching — five rules, one sentence each, at the section that owns each.**
+        Each finding names its rule and its home; the sentences and locations are pinned
+        verbatim in the teaching Constraint below, and the plan lands exactly those in the
+        canonical skill and its packaged mirror together. The six skills touched are
+        `ngrace-plan` (`F236`, `F237`, `F241`), `ngrace-spec` (`F236`'s relative-path clause),
+        `ngrace-reviewer` (`F237` and `F238`, the same `review_judgment` bullet),
+        `ngrace-cli` (`F239`'s rule), and — for `F239`'s line repairs only —
+        `ngrace-design` and `ngrace-verification`. Every taught sentence is generic
+        product instruction: it names no bundle, no `F`-token, and no governed record file
+        name except where a shipped pin already requires one.
+      </Goal>
+      <Goal>
+        **`F239`'s twelve lines.** The finding's own Owner declares the population in scope by
+        name: the measured `argv token \`explain\`` lines in the canonical tree and the
+        mirror. Measured at this commit there are **twelve**, across **five** skills in each
+        tree — `ngrace-cli` two, `ngrace-design` one, `ngrace-verification` one,
+        `ngrace-spec` one, `ngrace-plan` one (the finding's prose says "three authoring
+        skills" and enumerates four of the six per tree; the measurement is wider — see the
+        Problem's note in Assumptions and the brief's WRONG ledger). Each of the twelve is
+        repaired to the shell-accepted form `ngrace lint --explain &lt;code|shape&gt;` (or
+        `&lt;code&gt;` for the issue-code lookup), and the new rule sentence lands in
+        `ngrace-cli` `shape_sources` so the form is taught where the CLI token is
+        documented. The bare-token idiom is not eliminated wholesale: the four
+        `argv token run-commands` lines in `ngrace-execute` are pinned by a shipped
+        skill-contract test and are not in `F239`'s measured population; the new check
+        forbids the bare `argv token \`explain\`` form specifically, the twelve lines the
+        finding scopes.
+      </Goal>
+      <Goal>
+        **The payment.** The plan mints one chartered row into
+        `docs/plans/active/RM-GOVERNED-PATH/registry.xml`, live while the bundle is active:
+        `&lt;Row name="C-FLUSH-AND-TEACH" status="live" kind="chartered"&gt;` with an empty
+        `&lt;Number&gt;`, a `&lt;Charter&gt;` carrying the searched-before-minting statement
+        and no `F` token, `&lt;Pays&gt;F236 F237 F238 F239 F241&lt;/Pays&gt;`, and a
+        `&lt;StatusText&gt;` naming no `F` token and carrying no `Closed with` sentence. The
+        row's name is not an archive directory until the close, so the shipped
+        `derivePayerMap` mints nothing from it while the bundle is active (measured: zero
+        findings from the shipped validator with the row minted live). At the close the
+        authority archives the bundle and runs `--retire`; the row's name now equals an
+        archive directory, so the payer map mints the five tokens, the five live findings
+        become eligible (the `F236`/`F237` already live plus the three just flushed) together
+        with the row, and the shipped writer moves six elements and stamps
+        `&lt;PaidBy&gt;C-FLUSH-AND-TEACH&lt;/PaidBy&gt;` on the five findings. The plan
+        extends the payer-derivation baseline in `scripts/validate-record-retirement.test.ts`
+        (`bundleMinted`) with the five tokens — the house form for a new payer, latest
+        example `C-APPLY-VERB`'s line — because the shipped baseline reds on the post-close
+        record otherwise.
+      </Goal>
+      <Goal>
+        **The instruments.** `scripts/check-teaching-surface.ts` gains the new needles for
+        the five sentences and the `F239` population, repairs the needle the reviewer-sentence
+        change falsifies (`life cycle produces next` is removed by the `F238` repair and must
+        move to the new sentence — driven red-first: with the sentence changed and the needle
+        not, `bun ./scripts/check-teaching-surface.ts check` exits 1 naming the file, the
+        section and the missing token), and gains nothing that is not taught.
+        `scripts/check-teaching-surface.test.ts` mirrors the new needles in its local fixture
+        table (it constructs synthetic skills from its own copy, so an unsynced table reds the
+        suite) and drives a red direction for the `F239` form.
+        `scripts/validate-record-retirement.test.ts` gains one production assertion in the
+        C-FLUSH-AND-UNPIN / C-FLUSH-TWO-WAVES flush-invariant house form over `f238`, `f239`
+        and `f241`, the row invariant over `C-FLUSH-AND-TEACH`, and the `bundleMinted`
+        extension. `src/test-support/token-accounting.test.ts` and the `README.md` cell it
+        cross-checks are repaired to the re-measured footprint (the teaching moves both
+        figures); this is the one `src/` write and it is a `.test.ts` pin, not product code.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T2** (cross-cutting: six published skills plus their packaged mirror,
+        two `validate:ci` scripts and one test-support pin, and the record's registry).
+        Roadmap: `RM-GOVERNED-PATH` (record integrity and teaching surface). Binding live
+        rulings: `D28` and `D28.1` (every genre carries a retirement rule and a size ratchet —
+        the flush lands inside the findings window and the close's move re-opens it; figures
+        live in Assumptions and expire); `D30` (scoped, not skirted — the record is this
+        bundle's deliverable, so no other dispatch reads or rewrites the record while a
+        record-writing task of this bundle is in flight, and findings raised while it is open
+        go to the staged buffer under the next staged number); `D27` (nothing is approved
+        unread; ratification is the maintainer's); `D11` (nothing is deferred here — `F240`
+        and `F242` are named NonGoals with owners, not deferrals without a dependency);
+        `D38` (bundle ids stay hash-less until the `-N-HASH` builder ships; this bundle
+        supersedes nothing and adds no lineage suffix — the id is the hand-minted legacy
+        `C-&lt;SLUG&gt;` form); `F43` (escape markup as character data — `&lt;`, `&gt;`,
+        `&amp;` — and never paraphrase brackets away). The bundle runs no `ngrace review`, no
+        gate, no cursor or supersede verb, and no commit: the executor authors this spec at
+        `status="draft"` and stops; the approval write and the close's move are the
+        authority's.
+      </Constraint>
+      <Constraint>
+        **Windows, measured, not assumed.** The findings live root reads
+        `base="7746" headroom="100" ceiling="7846"`. The wave renders **89** element lines by
+        the shipped counting rule (`F238` 33, `F239` 28, `F241` 28; the shipped
+        `newlineCount(elementSpan) + 1`, element spans rendered through the shipped
+        `renderFinding` shape). Driven on a whole-repository copy, the post-flush root reads
+        `&lt;Findings base="7835" headroom="11" ceiling="7846"&gt;` — inside the ceiling with
+        margin 11, so the three fit and no fourth would. The index root reads
+        `base="275" headroom="21" ceiling="296"` (275 live `&lt;Entry&gt;` children, 373
+        total); three `Entry` lines drive it to `base="278" headroom="18"`, inside the
+        ceiling. The registry root reads `base="12" headroom="14" ceiling="26"` (12 live
+        rows); the one minted row drives it to 13 live, and `--rewrite-roots` after the mint
+        rewrites the root to `base="13" headroom="13" ceiling="26"` (driven: without that
+        rewrite the root still reads 12 while the metric reads 13, the red state the shipped
+        roots-invariant tripwire catches), inside the ceiling. At
+        the close the driven record reads findings `base="7673" headroom="173"
+        ceiling="7846"` (the five elements move out), index `base="273" headroom="23"
+        ceiling="296"` (five layers flip in place), and registry back to `base="12"
+        headroom="14" ceiling="26"` (the row moves to the retired sibling); the ceilings hold
+        or fall and never rise — only `--rewrite-roots` and the move's `persistSnapshot`
+        write the roots, and a read-back above a held ceiling stops the task and reports, it
+        does not raise the ceiling and does not trim a staged body.
+      </Constraint>
+      <Constraint>
+        **The flush's order, gap, and citations.** The committed sequence is: land the three
+        findings, land the three index `Entry` lines, `--rewrite-roots`, then validation exits
+        0; then the teaching and its instruments; then the row mint, `--rewrite-roots` after
+        it (`--rewrite-roots` follows every hand write of a record file: the mint takes the
+        registry to 13 live rows while its root `base` still reads 12, and the shipped
+        roots-invariant tripwire on the production record reds until the rewrite lands —
+        driven: 12 vs 13 before, `base="13" headroom="13"` after); then the close (statuses
+        `applied`, the bundle's directory renamed into `.ngrace/changes/archive/`, one
+        `--retire`, validation exits 0). Landing `F238`, `F239`, `F241` while `F240` sits in
+        the buffer leaves a gap in the record's token sequence. **No validator cares**, and
+        this was driven, not inferred: the claim's counter-example would be any code that
+        parses a token's number and compares it to a predecessor's or a successor's — the
+        search over `scripts/validate-record-retirement.ts`,
+        `scripts/validate-citation-anchors.ts` and `scripts/prove-record-preservation.ts` for
+        contiguity, consecutive, sequence, monotonic, or token-number arithmetic returns
+        nothing (the only `gap` hits are `normaliseGaps`' inter-element whitespace), and the
+        driven post-flush record with `f240` absent passes all three validators (exit 0 each).
+        The discriminating direction proves the instruments are live, not vacuously green: a
+        planted `](#f999)` inside `f238`'s body reddens
+        `validate-citation-anchors` at `unresolved-fragment` (exit 1), and a planted
+        `status="retired"` on `f238` in the live file reddens `validate-record-retirement` at
+        `status-file-mismatch` (exit 1). No criterion asserts token contiguity, and none may:
+        the record's own life cycle leaves gaps whenever a bundle flushes a subset.
+      </Constraint>
+      <Constraint>
+        **The five rules, pinned — sentence and location, per finding.** Each sentence lands
+        inside the named section, in the skill's own voice, and the plan's check asserts one
+        load-bearing token per sentence. Where a finding names more than one home, every home
+        is pinned.
+        **(1) `F236` baseline polarity — `ngrace-plan` `must_do` row 4, appended:**
+        "`BaselineAssertions` assert only what the bundle leaves unchanged: a needle the
+        bundle flips by design belongs in a test or a probe, not in a baseline assertion."
+        Load-bearing token: `assert only what the bundle leaves unchanged`.
+        **(2) `F236` row-15 ground — `ngrace-plan` `must_do` row 15, appended:** "The
+        entries are structurally redundant rather than merely disfavored: the review already
+        skips the bundle's own `spec.xml` and `plan.xml` by identity, and reports
+        `decisions.md` as expected rather than as a breach." Load-bearing token:
+        `structurally redundant`. The mechanism is stated generically and per path: a
+        published skill is read where `src/review/core.ts` does not exist, so the sentence
+        names the behaviour, not the functions that implement it — and the changed-files
+        audit skips only the two artifacts by identity while `decisions.md` is reported there
+        (row 15 already calls it expected); "exempt" would be false for that path.
+        **(3) `F236` relative path — `ngrace-spec` `shape_sources`:** the template path is
+        named as relative to the skill's own directory: "Optional-section teaching source:
+        `references/change-spec-template.xml` (relative to this skill's directory)."
+        Load-bearing token: `relative to this skill's directory`.
+        **(4) `F236` close-evidence drive — `ngrace-plan` `must_do` row 19, appended:** "and
+        drive the spec's `CloseEvidence` commands and the full CI in a faithful post-close
+        copy at plan time, not only against the pre-close tree." Load-bearing token:
+        `faithful post-close copy`.
+        **(5) `F237` fixture rule — `ngrace-plan` `must_do` row 19, appended:** "A
+        red-direction fixture is state-dependent exactly as a green assertion is: it locates
+        its target by walking both layers and mutating the holder it finds, never a file
+        named in advance." Load-bearing token: `red-direction fixture`.
+        **(6) `F237` and `F238` reviewer sentence — `ngrace-reviewer` `review_judgment`,
+        replacing the last bullet verbatim:** "- Check an assertion, probe, or red-direction
+        fixture against the state any later lawful move of the record produces next, never
+        only the state at approval: a relation true at approval and false after the next
+        lawful move was never true." Load-bearing tokens: `any later lawful move of the
+        record` (the `F238` repair) and `red-direction fixture` (the `F237` half).
+        **(7) `F241` window rule — `ngrace-plan` `must_do` row 6, appended:** "A
+        module-ownable `src/` path in `ObservedWriteScope` that does not exist yet errors
+        `change.graph-anchors-miss-write-scope` at every lint mode until the task that
+        creates it lands with the owning `LINKS:`; the plan is still approved, the approval
+        commit names the predicted error, and the executor's baseline exit reflects it."
+        Load-bearing token: `change.graph-anchors-miss-write-scope`.
+        **(8) `F239` CLI-token rule — `ngrace-cli` `shape_sources`:** "A skill that names a
+        CLI token names the command that takes it, in the form the shell accepts (`ngrace
+        lint --explain &lt;code|shape&gt;`); the bare-token idiom is for XML artifact bodies
+        only." Load-bearing token: `names the command that takes it`.
+        What reddens a criterion checking each sentence: deleting the sentence (or the token
+        from it) from one tree turns the new `checkTeachingSurface` check non-zero with a
+        refusal naming the file, the section and the missing token; restoring the bytes
+        returns zero.
+      </Constraint>
+      <Constraint>
+        **`F239`'s twelve lines, named.** Replace the bare `argv token \`explain\`` form in
+        all twelve measured lines — `skills/ngrace/ngrace-cli/SKILL.md:11` and `:18`,
+        `ngrace-design/SKILL.md:13`, `ngrace-verification/SKILL.md:13`,
+        `ngrace-spec/SKILL.md:17`, `ngrace-plan/SKILL.md:11`, and their five mirrors — with
+        the shell-accepted form: the five `shape_sources` lines become "Explain a shape or
+        code: `ngrace lint --explain &lt;code|shape&gt;`." and the `ngrace-cli` `commands`
+        line becomes "- Issue code lookup: `ngrace lint --explain &lt;code&gt;` — a
+        catalogued entry, a code the binary emits without a dedicated entry, or an unknown
+        string (says so, exits nonzero). Never infer a meaning it did not print." The
+        measured set is twelve (six per tree); the finding's "three authoring skills" is a
+        miscount of its own grep, and the plan repairs what the grep finds, not what the
+        finding says. The four `argv token run-commands` lines in `ngrace-execute` are out
+        of scope: they are not `explain` lines, they are pinned by a shipped skill-contract
+        test, and the new check forbids the bare `argv token \`explain\`` form specifically.
+      </Constraint>
+      <Constraint>
+        **The instruments, pinned.** `scripts/check-teaching-surface.ts` gains the new needles
+        (one per sentence above except the `F239` rule, which the new check carries) inside a
+        check wired into `runTeachingSurfaceCheck`, and repairs the reviewer needle the
+        `F238` repair falsifies (`life cycle produces next` cannot survive the sentence
+        change). The new `F239` check asserts the rule sentence sits in `ngrace-cli`
+        `shape_sources` in both trees and that no SKILL.md under either tree contains the
+        bare `argv token \`explain\`` form. Every refusal path writes a line naming the file,
+        the rule and the missing token before exiting non-zero; check mode writes nothing.
+        `scripts/check-teaching-surface.test.ts` mirrors every added or changed needle in its
+        local fixture table (it builds synthetic skills from its own copy, so an unsynced
+        table reds the suite) and adds a red direction for the `F239` form (a planted bare
+        `argv token \`explain\`` line reddens with the file named). The retirement suite gains
+        one production assertion in the flush-invariant house form over `f238`, `f239` and
+        `f241` — each exists exactly once across the findings pair with no fixed expectation
+        of which file holds it, its `status` agreeing with the holding file, its token and
+        genre agreeing, its single index `Entry` carrying the agreeing `genre` and a `layer`
+        that agrees with the holding file, plus the shipped read-back arithmetic — and the
+        row invariant over `C-FLUSH-AND-TEACH` (exactly once across the registry layers,
+        `status` agreeing with the holding file, `kind="chartered"`, `Pays` exactly the five
+        tokens in order, `StatusText` naming no `F` token and no `Closed with` sentence,
+        `Charter` carrying the searched-before-minting statement). It is written
+        payment-invariant by construction: a later lawful move retires a carrier, flips its
+        index layer, and leaves every clause true; no clause pins a token `live`, unpaid, or
+        in a named layer (`F238`'s own rule, applied to this bundle's suite).
+      </Constraint>
+      <Constraint>
+        **The row's prose law.** The shipped `derivePayerMap` mints payments from an archived
+        row's `&lt;Pays&gt;` and from `Closed with` sentences in its `&lt;StatusText&gt;`,
+        gated on the row's name being a directory under `.ngrace/changes/archive/`, and it is
+        first-row-wins, so a paid token's payer never changes. The row's `&lt;StatusText&gt;`
+        therefore names no `F` token and contains no `Closed with` sentence, and
+        `&lt;Pays&gt;` names exactly `F236 F237 F238 F239 F241` and no other token is paid by
+        this bundle (`F197`'s third derivation path — archived `spec.xml` prose — is absent
+        from the shipped code: measured, `PAID_FINDING_RE` has zero hits in `src/` and
+        `scripts/`, so this spec's own prose mints nothing). The row is minted live by the
+        plan and its payment is realized only by the close's move, which is the
+        pre-payment shape the predecessors ship.
+      </Constraint>
+      <Constraint>
+        **Write scope, anchors, and enumeration — stated once (`F136.1`'s rule), derived from
+        the Goals (`F227`'s rule).** Files the Goals force into write scope:
+        `skills/ngrace/ngrace-plan/SKILL.md`, `ngrace-spec/SKILL.md`,
+        `ngrace-reviewer/SKILL.md`, `ngrace-cli/SKILL.md`, `ngrace-design/SKILL.md`,
+        `ngrace-verification/SKILL.md`, and each packaged mirror under
+        `plugins/ngrace/skills/ngrace/`; `scripts/check-teaching-surface.ts`;
+        `scripts/check-teaching-surface.test.ts`; `scripts/validate-record-retirement.test.ts`;
+        `src/test-support/token-accounting.test.ts` (the footprint pin, re-measured);
+        `README.md` (the measurement cell the pin test cross-checks — and the only `README.md`
+        write: no Skills Overview row moves, because the six edited skills' frontmatter
+        descriptions do not change); this bundle's own artifacts under
+        `.ngrace/changes/active/C-FLUSH-AND-TEACH/`; and the record files the flush and the
+        close write — `findings.xml`, `decisions.xml`, `registry.xml` (flush, hand write and
+        `--rewrite-roots`), `findings-retired.xml` and `registry-retired.xml` (the close's
+        `--retire`, the only sanctioned writer of the retired siblings and of the stamp).
+        Conditional write, listed as permission with its trigger:
+        `scripts/skill-contracts.test.ts` (only if the teaching falsifies a shipped pin —
+        measured empty at this commit: no shipped contract pins any of the twelve `explain`
+        lines or the reviewer sentence).
+        Anchor facts, measured at this commit: none of the forced files carries a file-local
+        `LINKS:` header (the `LINKS:` strings that appear are prose inside finding bodies and
+        a reviewer checklist line, not headers); `scripts/` is lint-ignored
+        (`.ngrace-lint.json` `ignoredDirs`); the record files, `README.md`, and the packaged
+        mirror are owned by no graph module, and the one module-ownable candidate,
+        `src/test-support/token-accounting.ts`, is not written — only its `.test.ts` sibling
+        is, and `isModuleOwnableWritePath` is false for every `*.test.ts`, so no
+        module-ownable path is written and `change.graph-anchors-miss-write-scope` cannot
+        fire. The two real anchors are named once here and once in `AffectedAreas`, the only
+        module list this spec carries: `M-SKILLS` owns the canonical skill tree and
+        `M-TEST-SUPPORT` owns `src/test-support`, whose pin this deliverable re-measures.
+        Do not mint a synthetic module, do not repeat this list as a second module list, do
+        not add a lint issue code, and do not register the record files as
+        `CONTEXT_ARTIFACTS`.
+      </Constraint>
+      <Constraint>
+        **Criterion mapping, stated on its face.** Every `AC-*` below except
+        `AC-NO-CURRENT-MODE` is close-bound by its own `CloseEvidence` child; a task
+        `Satisfies` naming any of them is the shipped error
+        (`change.close-evidence-and-satisfied`). Exactly one criterion —
+        `AC-NO-CURRENT-MODE` — carries no `CloseEvidence` and is mapped by exactly one task
+        `Satisfies` in the later plan; unmapped it is a warning, and `AC-CLOSE-LINT`'s
+        `--fail-on warnings` turns that warning into an uncloseable bundle. Every
+        `CloseEvidence` is evaluated only in the applied-archive state, after the close's own
+        move has run (`F196`'s rule), so every criterion is written to hold there.
+      </Constraint>
+      <Constraint>
+        **Evidence hygiene, the rules this bundle teaches applied to its own criteria.** Every
+        byte-invariance baseline is this spec's base commit
+        `17d8b474a697c1ac5e1bfa9b8c1e5dc1cdd8803e` — the base-less `git diff` form cannot
+        fail, and a criterion whose baseline cannot fail was never a guard (`F210`'s rule).
+        The window is this bundle's own diff, over tracked paths only (`F174`), probed in the
+        post-close state (`F215`'s rule). The archive pathspec excludes this bundle's own
+        archive arrival with its reason — the close itself renames the bundle's directory into
+        the archive (`F188`) — and the record files the flush and the close do touch are
+        covered by the parse-based relations in `AC-FLUSH-LANDED`, `AC-ROW-PAYS` and
+        `AC-RECORD-VALID`, never by byte-invariance. Every `CloseEvidence` `Command` matches a
+        shipped discriminating shape — the `bun-test` shape for the two suites, the
+        `grace-ts-lint-fail-on` shape for close-time lint, the `git-diff-exit-code` shape with
+        the named baseline commit for every byte-invariance claim, and the configured
+        `bun run ./scripts/validate-marketplace.ts` prefix for mirror sync. Structural counts
+        come from the shipped parser (`parseFrozenMarkdown`, `parseGraceXmlArtifact`,
+        `newlineCount`), never `grep -c`; exit codes are read directly, never through a pipe;
+        any test the later plan adds that measures the real repository carries an explicit
+        generous timeout (`F185`). Every probe was run in both directions on a throwaway
+        whole-repository copy before this spec was written, and probes mutate copies, never
+        the production record. The record's own copy-drive runs from inside a
+        whole-repository copy (`F235`): the engine reads the archive from the process's cwd,
+        so a drive that copies only the record directory and runs the move from the repository
+        root reads the copy's registry and the real archive and is refused as an instrument
+        here. No criterion asserts a state the shipped engine will not produce, requires a
+        change another criterion forbids, or names a probe that cannot be run.
+      </Constraint>
+      <Constraint>
+        **Stop and re-spec rather than touching:** any `src/` production file (the only
+        `src/` write is the named `src/test-support/token-accounting.test.ts` pin);
+        `src/artifact/grammar.ts` validators, `src/lint/catalog.ts`, `src/lint/core.ts`,
+        `src/review/**`, `src/gates/**`; the record engine's functions
+        (`parseFrozenMarkdown`, `renderFinding`, `renderDecision`, `derivePayerMap`,
+        `persistSnapshot`, `checkCeilingValue`, `INDEX_HEADROOM_ENTRIES`, `--retire`,
+        `--rewrite-roots`) — the shipped code needs no new change beyond the suite's
+        assertions; the other ten skills and their mirrors (except the six named skills'
+        `F239` lines); the four spec/plan teaching templates and every other `references/`
+        file; `examples/**`; `docs/plans/**` outside the record files this bundle and its
+        close touch; `docs/plans/archive/`; tracked paths under
+        `.ngrace/changes/archive/` except this bundle's own later arrival there;
+        `CHANGELOG.md`; any version surface; `package.json` and `bun.lock`;
+        `.ngrace-lint.json`; `CONTRIBUTING.md`; `CLAUDE.md`; `AGENTS.md`; and the staged
+        buffer `.ngrace/scratch/staged-findings.md` (read, never written).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `examples/` unchanged; no user-visible surface there, and no polyglot evidence
+        rebalance — the doctrine that bundle shipped stands. Owner: unchanged; no
+        user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        A product version bump, a `package.json` composition change, a new CLI verb, a new lint
+        issue code, or a grammar section. `validate:teaching-surface` already runs the
+        extended check in `validate:ci`; `CHANGELOG.md` is generated and untouched. Owner:
+        unchanged; no user-visible CLI token changes.
+      </NonGoal>
+      <NonGoal>
+        Flushing, writing, or pruning `F240` and `F242`, or rendering any staged entry this
+        spec does not pin. `F240` (review.confidently-wrong on an active file-creating plan's
+        Target `MustExist`) is owned by whoever next opens `src/review/core.ts`; `F242`
+        (`tsconfig.json` includes only `src/**`, so `scripts/*.test.ts` is never typechecked)
+        is owned by the `scripts/` adoption bundle `.ngrace-lint.json` names as deferred.
+        Both stay staged by name. Owner: those two bundles.
+      </NonGoal>
+      <NonGoal>
+        The `C1` payment-integrity bundle (`F197`, `F198`, `F185`) and the `B1` guard bundle
+        (`F222`, `F223`) that follow this one in the maintainer's order recorded 2026-09-12 —
+        this bundle mints one row and repairs one baseline extension; it does not change the
+        derivation, the guard surface, or the timeout doctrine those bundles own. Owner: the
+        maintainer's sequencing.
+      </NonGoal>
+      <NonGoal>
+        Editing `docs/plans/**` outside the record files this bundle and its close write,
+        `docs/plans/archive/`, `CLAUDE.md`, `CONTRIBUTING.md`, `AGENTS.md`,
+        `docs/plans/README.md`, `package.json`, `bun.lock`, `.ngrace-lint.json`, the other
+        ten skills, the teaching templates, or any archived bundle. Owner: unchanged
+        surfaces; their pins stay green by non-edit.
+      </NonGoal>
+      <NonGoal>
+        Writing or pruning the staged buffer, re-flushing any entry already in the record, or
+        rendering any entry this spec does not pin. Owner: post-merge hygiene, the
+        authority's, after the flush PR merges.
+      </NonGoal>
+      <NonGoal>
+        Running `ngrace review`, any gate or cursor or supersede verb, or committing:
+        authoring this bundle's artifacts is the executor's act; ratification is the
+        maintainer's; the approval write and the close's move are the authority's. This spec
+        is written at `status="draft"` and the bundle stops there. Owner: the authority.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-TAUGHT-SENTENCES>
+        The five taught rules (the eight pinned sentences above, covering `F236`, `F237`,
+        `F238`, `F239`, `F241`) sit at their named section homes in the six named skills, in
+        both trees, byte-identical between canonical and packaged where the mirror is a copy,
+        and the extended teaching-surface check asserts one load-bearing token per sentence
+        per tree. The instrument is the production assertions the plan adds to
+        `scripts/check-teaching-surface.test.ts` over isolated roots plus this repository
+        measured with an explicit generous timeout, and `bun run
+        ./scripts/validate-marketplace.ts` for the mirror. Red direction, driven on a copy at
+        this commit: the `F238` sentence change with the old needle still in place turns
+        `bun ./scripts/check-teaching-surface.ts check` non-zero, refusing to
+        `skills/ngrace/ngrace-reviewer/SKILL.md` and the missing token
+        `life cycle produces next` (driven, exit 1); deleting any other sentence from one
+        tree reddens the same way; restoring the bytes returns zero. This criterion is
+        invariant under the close: the close's ceremony edits no skill.
+        <CloseEvidence>
+          <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+        </CloseEvidence>
+      </AC-TAUGHT-SENTENCES>
+      <AC-F239-FORMS>
+        No `SKILL.md` under `skills/ngrace/` or `plugins/ngrace/skills/ngrace/` contains the
+        bare `argv token \`explain\`` form, and the `F239` rule sentence sits in
+        `ngrace-cli` `shape_sources` in both trees. The measured population is the twelve
+        lines named in the `F239` Constraint; each carries the shell-accepted
+        `ngrace lint --explain &lt;code|shape&gt;` (or `&lt;code&gt;`) form. The instrument
+        is the new `checkTeachingSurface` check and its assertions in
+        `scripts/check-teaching-surface.test.ts`. Red direction, driven on a copy: planting a
+        bare `argv token \`explain\`` line into one tree turns the check non-zero with the
+        file and the token named; the four `argv token run-commands` lines in
+        `ngrace-execute` do not redden it (they are out of scope by name).
+        <CloseEvidence>
+          <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+        </CloseEvidence>
+      </AC-F239-FORMS>
+      <AC-FLUSH-LANDED>
+        After the wave, each of `f238`, `f239` and `f241` exists exactly once across the
+        findings pair (`findings.xml` and `findings-retired.xml`), with no fixed expectation
+        of which file holds it: the element's `status` agrees with the holding file, its
+        token and genre agree, and the single index `&lt;Entry&gt;` for the id has `genre`
+        and `layer` agreeing with that holding file — the relation survives the close's own
+        move, which retires the three, flips their index layers, and leaves every clause
+        true. The wave's written findings root base equals the file's `newlineCount` after
+        the write and the index base equals its live-`Entry` count, both via
+        `--rewrite-roots`; the post-flush root is
+        `&lt;Findings base="7835" headroom="11" ceiling="7846"&gt;` and the index base 278
+        (measured on a driven whole-repository copy). The three bodies' fragment citations
+        resolve on the post-flush record; the plan's suite asserts this read-only through the
+        shipped `validateStubAndIndex` entry point with a generous timeout — the evidence
+        `AC-RECORD-VALID` also leans on, named here so the flush's citation claim and its
+        instrument agree. The verbatim body bytes and the append
+        position are the flush task's read-back at execution time, while the buffer still
+        holds the entries (the buffer is pruned post-merge, so no close-time instrument reads
+        it). The instrument is the production assertion the plan adds to
+        `scripts/validate-record-retirement.test.ts` in the flush-invariant house form. Red
+        direction, driven on a copy: duplicating one flushed `&lt;Finding&gt;` reddens the
+        at-most-once clause; flipping a flushed index layer against its holding file reddens
+        the layer clause and the shipped roots tripwire.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-FLUSH-LANDED>
+      <AC-ROW-PAYS>
+        This bundle's registry row exists exactly once across `registry.xml` and
+        `registry-retired.xml`, with no fixed expectation of which file holds it: the
+        `Row`'s `status` agrees with the holding file, `kind="chartered"`, its `&lt;Pays&gt;`
+        names exactly `F236 F237 F238 F239 F241` in that order and no other `F` token, its
+        `&lt;StatusText&gt;` names no `F` token at all and contains no `Closed with` sentence,
+        and its `&lt;Charter&gt;` carries the searched-before-minting statement. The relation
+        survives the row's own retirement at the close. The instrument is the production
+        assertion the plan adds to `scripts/validate-record-retirement.test.ts`, parsed with
+        the shipped parser over both registry layers, payment-invariant by construction. Red
+        direction, driven on mutated copies: a second row with the same name, a `Pays` token
+        outside the five, or a `StatusText` naming a token outside `Pays` each turn the
+        assertion non-zero.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROW-PAYS>
+      <AC-RECORD-VALID>
+        The record is valid at every committed point of this bundle's life and in the
+        applied-archive state. Before the close: the shipped `validateRecordRetirement`
+        returns zero findings with the three findings flushed and the row minted live (the
+        row's name is not yet an archive directory, so the payer map mints nothing and no
+        element is eligible). At the close: the move reports six (the five findings and the
+        row), stamps `&lt;PaidBy&gt;C-FLUSH-AND-TEACH&lt;/PaidBy&gt;` on each moved finding
+        in the retired sibling, flips the five index `Entry` layers in place, and a second
+        `--retire` reports zero. After the close: the shipped `validateRecordRetirement`
+        returns zero findings; the shipped `validateStubAndIndex` returns zero findings (every
+        flushed body's fragment citations resolve, including `F239`'s `#f238` and `F241`'s
+        `#f238` and `#f239`); and the shipped `proveRecordPreservation` returns zero (the
+        inventory is unchanged and the moved bodies remain in the union of the four genre
+        files). Both validators export their entry points — measured: `validateStubAndIndex`
+        at `scripts/validate-citation-anchors.ts:53` and `proveRecordPreservation` at
+        `scripts/prove-record-preservation.ts:37` — and the plan's suite imports them and
+        asserts zero findings read-only on the production record with a generous timeout,
+        because neither `bun ./scripts/validate-citation-anchors.ts` nor
+        `bun ./scripts/prove-record-preservation.ts` matches a discriminating CloseEvidence
+        shape or a configured `.ngrace-lint.json` prefix, and this spec forbids editing that
+        config. Those two scripts also run in the close's `validate:ci`, which is the
+        authority's act and is named here as intent, not as this criterion's evidence. The
+        payment relation is
+        move-invariant and true at every committed point — for each of the five tokens, when a
+        `Finding` carries it, it exists exactly once across both findings files, its `status`
+        agrees with the holding file, `PaidBy` equals this bundle's name if retired, its index
+        `Entry` layer agrees, and the carrier-absent case is green (which is the pre-close
+        state of the three staged tokens' retirement). The instrument is the production
+        assertions in `scripts/validate-record-retirement.test.ts` — the read-only
+        `validateRecordRetirement` run, the imported `validateStubAndIndex` and
+        `proveRecordPreservation` runs, and the carrier/row walks — plus the
+        payer-derivation baseline extension (`bundleMinted`) with the five tokens. Red direction, driven
+        on mutated copies: a planted eligibility, a duplicated carrier, or a minted token
+        missing from the extended baseline each turn the suite non-zero; the driven full close
+        reports `moved 6`, validator 0, citation 0, preservation 0, second `--retire` `moved
+        0`.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-VALID>
+      <AC-ROOTS-HELD>
+        The four live roots satisfy the shipped relations and no ceiling moved across the
+        bundle: for `findings.xml`, `rulings.xml`, `registry.xml` and `decisions.xml` —
+        `base + headroom = ceiling` and each `base` equals its shipped metric read back
+        (`newlineCount` for findings and rulings, the live `&lt;Entry&gt;` rule for the
+        index, the live `Row` count for registry). The relations are payment-invariant by
+        construction: the only shipped writers of the roots, `persistSnapshot` and
+        `--rewrite-roots`, rewrite them in exactly this form, and a ceiling holds or falls,
+        never rises. Measured on the driven copy: pre-flush findings `7746 / 100 / 7846`,
+        post-flush `7835 / 11 / 7846`, post-close `7673 / 173 / 7846`; index pre-flush
+        `275 / 21 / 296`, post-flush `278 / 18 / 296`, post-close `273 / 23 / 296`; registry
+        `12 / 14 / 26` pre-mint and post-close, `13 / 13 / 26` after the row mint's
+        `--rewrite-roots` (13 live rows); rulings unchanged
+        at `1733 / 150 / 1883`. The instrument is the shipped roots-invariant tripwire in
+        `scripts/validate-record-retirement.test.ts`. Red direction, driven on a copy: a root
+        whose `headroom` no longer sums against its ceiling reddens the tripwire.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROOTS-HELD>
+      <AC-MIRROR-SYNC>
+        Every sentence and every `F239` line repair is present in the canonical skill and its
+        packaged mirror, byte-identical. The instrument is `bun run
+        ./scripts/validate-marketplace.ts`, which compares each packaged path to its canonical
+        source and enforces version sync; both trees change together, so it stays green.
+        <CloseEvidence>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </CloseEvidence>
+      </AC-MIRROR-SYNC>
+      <AC-FOOTPRINT-PIN>
+        The skill-footprint pin reports the new true measured values after the teaching lands
+        — the line total and the UTF-8 byte total re-measured from the tree, never written
+        toward — and the `README.md` measurement cell publishes the same two figures, which
+        the shipped test cross-checks against the live measurement. The pin is a transcription
+        reconciled by re-measure, not a ratchet: it moves to whatever the true value is and
+        never by deletion or loosening. The update is not a planned red (the totals-moving
+        exemption, named here); its red direction is the shipped test's own cross-check
+        failing when the cell and the tree disagree. At this commit the pin reads 861 lines /
+        71927 bytes.
+        <CloseEvidence>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+        </CloseEvidence>
+      </AC-FOOTPRINT-PIN>
+      <AC-NO-SRC>
+        No file under `src/` or `scripts/` changes relative to this spec's base commit except
+        the files the Goals force or conditionally permit, named here and in the command's
+        excludes: `src/test-support/token-accounting.test.ts`,
+        `scripts/check-teaching-surface.ts`, `scripts/check-teaching-surface.test.ts`,
+        `scripts/validate-record-retirement.test.ts`, and — as conditional pin-repair
+        permission — `scripts/skill-contracts.test.ts`. Prose and command name the same
+        pathset. Failure: any other `src/` or `scripts/` path differs at close. No product
+        code changes.
+        <CloseEvidence>
+          <Command>git diff --exit-code 17d8b474a697c1ac5e1bfa9b8c1e5dc1cdd8803e -- src/ scripts/ ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts' ':(exclude)scripts/skill-contracts.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-SRC>
+      <AC-RECORD-PRESERVED>
+        The record files the flush and the close provably do not change are byte-identical to
+        this spec's base commit: `docs/plans/active/RM-GOVERNED-PATH/rulings.xml`,
+        `rulings-retired.xml`, `decisions.md`, `record-inventory.json`, `plan.md`,
+        `review.md`, `brownfield-findings.md`, `brownfield-run4-findings.md`,
+        `p0-calibration-derivation.md`, `p0-cursor-derivation.md`, `p0-derivation.md`,
+        `p0-report-honesty-derivation.md`, and the `sources/` subtree — driven, not assumed:
+        the flush writes `findings.xml`, `decisions.xml` and the row into `registry.xml`, and
+        the close writes only the findings pair, the registry pair and the index. The files
+        the flush and the close do change are deliberately absent from this criterion and are
+        covered by the parse-based relations in `AC-FLUSH-LANDED`, `AC-ROW-PAYS` and
+        `AC-RECORD-VALID`. The window is this bundle's own diff, over tracked paths only.
+        <CloseEvidence>
+          <Command>git diff --exit-code 17d8b474a697c1ac5e1bfa9b8c1e5dc1cdd8803e -- docs/plans/active/RM-GOVERNED-PATH/rulings.xml docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </CloseEvidence>
+      </AC-RECORD-PRESERVED>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and `.ngrace/changes/archive/` are not
+        modified; this bundle's own later arrival under
+        `.ngrace/changes/archive/C-FLUSH-AND-TEACH/` is not a modification — the close
+        itself renames this bundle's directory into the archive, and the pathspec excludes
+        that arrival so the close's own rename cannot redden the criterion. The record's
+        sanctioned writes in this bundle's window touch no path under either archive root.
+        The prose claims tracked paths only. Probed in the post-close state.
+        <CloseEvidence>
+          <Command>git diff --exit-code 17d8b474a697c1ac5e1bfa9b8c1e5dc1cdd8803e -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-FLUSH-AND-TEACH'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-DOCS-EXAMPLES>
+        Every surface this bundle does not write is byte-identical to this spec's base commit:
+        `examples/`, `CLAUDE.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/plans/README.md`,
+        `docs/plans/archive/`, `package.json`, `bun.lock`, `CHANGELOG.md`,
+        `.ngrace-lint.json`, and every published skill except the twelve `SKILL.md` files the
+        deliverable rewrites — those are excluded with their reason (the teaching and the
+        `F239` line repairs) and their mirror identity is asserted by `AC-MIRROR-SYNC`, while
+        every `references/` file stays byte-identical and the four teaching templates are not
+        regenerated. `README.md` sits outside this pathset because the measurement cell is a
+        forced write; it is covered by `AC-FOOTPRINT-PIN`'s cross-check. Prose and command
+        name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code 17d8b474a697c1ac5e1bfa9b8c1e5dc1cdd8803e -- examples/ CLAUDE.md CONTRIBUTING.md AGENTS.md docs/plans/README.md docs/plans/archive/ package.json bun.lock CHANGELOG.md .ngrace-lint.json skills/ngrace/ plugins/ngrace/skills/ngrace/ ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)skills/ngrace/ngrace-reviewer/SKILL.md' ':(exclude)skills/ngrace/ngrace-cli/SKILL.md' ':(exclude)skills/ngrace/ngrace-design/SKILL.md' ':(exclude)skills/ngrace/ngrace-verification/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-cli/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-design/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-verification/SKILL.md'</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task `Verification` commands and `TargetAssertions` contain no
+        current-mode lint of this project root, checked by the rule in the evidence-hygiene
+        Constraint, by hand (the shipped detector misses the house `bun ./src/grace.ts lint`
+        form). Failure: a `Command` whose text contains `--assertions current`, or that
+        invokes lint of this root and omits `--assertions`. This is the spec's single
+        `Satisfies`-mapped criterion; it carries no `CloseEvidence` and must be mapped by
+        exactly one task `Satisfies` in the later plan.
+      </AC-NO-CURRENT-MODE>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No module-ownable path is written. Every `src/` write is a `.test.ts` file, which
+      `isModuleOwnableWritePath` does not own; `scripts/` is lint-ignored; the six skills and
+      their mirror carry no file-local `LINKS:` header; the record files and `README.md` are
+      owned by no module in the graph. The two real anchors the deliverable touches are named
+      once here and once in the write-scope `Constraint`: `M-SKILLS` owns the canonical skill
+      tree the six skills live in, and `M-TEST-SUPPORT` owns `src/test-support`, whose pin
+      this deliverable re-measures. The module enumeration is these two anchors and no more;
+      do not mint a synthetic module.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test scripts/check-teaching-surface.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/check-teaching-surface.ts check</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bash -c 'T=$(mktemp -d) &amp;&amp; rsync -a --exclude .git --exclude node_modules --exclude .ngrace/scratch . "$T/repo" &amp;&amp; ln -s "$PWD/node_modules" "$T/repo/node_modules" &amp;&amp; mkdir -p "$T/repo/.ngrace/changes/archive" &amp;&amp; mv "$T/repo/.ngrace/changes/active/C-FLUSH-AND-TEACH" "$T/repo/.ngrace/changes/archive/C-FLUSH-AND-TEACH" &amp;&amp; cd "$T/repo" &amp;&amp; bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH &amp;&amp; bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH &amp;&amp; rm -rf "$T"'</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): the three staged findings are in the record with their index
+        entries, the six skills carry the five rules at their named section homes in both
+        trees, the twelve `F239` lines carry the shell form and no bare `argv token
+        \`explain\`` remains, the extended checks assert them and name file, rule and missing
+        token on every refusal, the row is minted live and validates clean before the close,
+        the close's move reports six and flips the five index layers, the applied-archive
+        record validates clean with the citation validator and the preservation proof
+        (asserted through the suite's imported `validateStubAndIndex` and
+        `proveRecordPreservation`), the
+        payer-derivation baseline carries the five minted tokens, the footprint pin and README
+        cell agree with the live measurement, and every `CloseEvidence` command and the full
+        `validate:ci` run green inside a faithful copy of the post-close state (rsync of the
+        working tree including untracked files, the bundle archived, the close's `--retire`
+        run) with both directions driven for every criterion and every exit code read
+        directly. Structural counts come from the shipped parser, never `grep -c`; the
+        record's copy-drive runs from inside a whole-repository copy (`F235`). The reds are
+        ledger-recorded fail/pass pairs, not claims.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring commit `17d8b474a697c1ac5e1bfa9b8c1e5dc1cdd8803e`, branch
+        `c-flush-and-teach`, tree clean, 2026-09-12.** `bun ./src/grace.ts lint --path .`
+        exits 0 at 0/0 (360 XML artifacts checked with this spec in the tree; 359 before it
+        existed); `bun run validate:ci` exits 0; archive 92
+        bundles; active empty before this bundle. Every count here expires; the
+        implementation re-measures (`D30`).
+      </Assumption>
+      <Assumption>
+        **The buffer, parsed not read.** `.ngrace/scratch/staged-findings.md` holds five
+        entries as of 2026-09-12 — `F238`, `F239`, `F240`, `F241`, `F242`, all findings genre
+        on `###` headings, anchors adjacent to their headings, no staged charter row and no
+        registry heading (measured by the shipped `parseFrozenMarkdown`, which throws on a
+        missing anchor). Per-entry rendered element line counts by the shipped rule: `F238` 33
+        (body 29), `F239` 28 (body 24), `F240` 25 (body 21), `F241` 28 (body 24), `F242` 23
+        (body 19) — 137 total; the wave `F238 F239 F241` is 89. The buffer's own header
+        figures agree (33/28/25/28/23). The buffer is untracked and `.gitignore`d, one copy;
+        nothing here writes it.
+      </Assumption>
+      <Assumption>
+        **Windows, by the shipped parser over the real record.** findings `7746 / 100 / 7846`
+        with 213 live `&lt;Finding&gt;` children (median element line count 34);
+        `F236`'s element is 42 lines and `F237`'s is 31; rulings `1733 / 150 / 1883`; index
+        `275 / 21 / 296` with 373 `&lt;Entry&gt;` children, 275 live; registry `12 / 14 / 26`
+        with 12 live rows and 49 retired rows. Every live root satisfies the tripwire
+        relations at this commit.
+      </Assumption>
+      <Assumption>
+        **The driven flush and close, on a whole-repository copy (`F235`).** rsync of the
+        working tree including untracked files, `node_modules` symlinked, the three
+        `&lt;Finding&gt;` elements rendered through the shipped shape and the three index
+        `Entry` lines appended, then `--rewrite-roots`: findings `7835 / 11 / 7846`, index
+        `278 / 18 / 296`, registry and rulings unchanged; the shipped validator returns zero
+        findings and the citation validator zero (the gap with `f240` absent is accepted by
+        both, driven). The row minted live: the validator still returns zero (the row's name
+        is not an archive directory) but the registry root still reads `12 / 14 / 26` against
+        13 live rows until `--rewrite-roots` runs after the mint, which rewrites it to
+        `13 / 13 / 26` (driven: `12` vs `13` before the rewrite, `base="13" headroom="13"`
+        after). The bundle directory renamed into the archive and
+        `--retire` run from inside the copy: **`moved 6`**; findings `7673 / 173 / 7846`,
+        index `273 / 23 / 296` (five layers flipped in place), registry back to
+        `12 / 14 / 26`; validator 0; citation 0; `prove-record-preservation` 0; a second
+        `--retire` `moved 0`. The five retired carriers carry
+        `&lt;PaidBy&gt;C-FLUSH-AND-TEACH&lt;/PaidBy&gt;` in `findings-retired.xml`.
+      </Assumption>
+      <Assumption>
+        **The teaching populations, measured 2026-09-12 at this commit.** The bare
+        `argv token \`explain\`` population is **12 lines across five skills in each tree**
+        (`grep -rn 'argv token \`explain\`' skills/ngrace plugins/ngrace/skills/ngrace` →
+        12): `ngrace-cli` two per tree, `ngrace-design` one, `ngrace-verification` one,
+        `ngrace-spec` one, `ngrace-plan` one. **The finding `F239` undercounts its own
+        population**: its headline says "three authoring skills" and its prose names
+        `ngrace-spec`, `ngrace-plan` and `ngrace-cli` (four lines per tree), while the grep
+        finds six lines per tree including `ngrace-design` and `ngrace-verification`. The
+        plan repairs what the grep finds, not what the finding says; this is recorded on the
+        brief's WRONG ledger and in the `F239` Constraint. The reviewer sentence's current
+        bytes at `skills/ngrace/ngrace-reviewer/SKILL.md:48` and its mirror are: "Check an
+        assertion or probe against the state the artifact's own life cycle produces next,
+        never only the state at approval: a relation true at approval and false after the next
+        lawful move was never true." The governed `checkTeachingSurface` needle the `F238`
+        repair falsifies is `life cycle produces next` (present once in
+        `scripts/check-teaching-surface.ts` and once in its suite's local table). The four
+        `argv token run-commands` lines in `ngrace-execute` are pinned by
+        `scripts/skill-contracts.test.ts` and are out of scope.
+      </Assumption>
+      <Assumption>
+        **The payer surface, measured.** The shipped `derivePayerMap` over the real archive
+        and both registry layers mints 88 tokens; it names none of `F236`, `F237`, `F238`,
+        `F239`, `F240`, `F241`, `F242`. `F197`'s third derivation path — archived `spec.xml`
+        prose — is absent from the shipped code: `PAID_FINDING_RE` has zero hits in `src/`
+        and `scripts/` (only two fixture strings mention the name), so this spec's prose mints
+        nothing. The `C-FLUSH-AND-UNPIN` row already pays `F232`; `C-APPLY-VERB`'s row pays
+        `F224`; both are unaffected. The `bundleMinted` extension in
+        `scripts/validate-record-retirement.test.ts` is the house form for a new payer, and
+        the extension is consulted only for tokens the derivation actually mints, so the walk
+        is green with the row live and green in the applied-archive state.
+      </Assumption>
+      <Assumption>
+        **The ordering claim, searched wider than the claim.** The counter-example would be
+        any code that parses a token's number and compares it with a predecessor or successor:
+        the search over the three record validators for contiguity, consecutive, sequence,
+        monotonic, and token-number arithmetic returns nothing (`Number(token)` /
+        `parseInt(token)` / `token.slice` arithmetic: zero hits). Driven: the post-flush
+        record with `f240` absent passes `validate-record-retirement` (0), `validate-citation-
+        anchors` (0), and `prove-record-preservation` (0). Discriminating direction: a planted
+        `](#f999)` reddens the citation validator at `unresolved-fragment`; a planted
+        `status="retired"` on `f238` reddens the retirement validator at
+        `status-file-mismatch`.
+      </Assumption>
+      <Assumption>
+        **Citations, measured.** The three flushed bodies' fragment citations are `F238` →
+        `f225 f229 f232 f237 f236`; `F239` → `f236 f237 f238`; `F241` → `f236 f237 f238
+        f239`. All resolve against the index after the wave; before the wave the only
+        unresolved are the cross-references among the three being flushed (`#f238` in `F239`,
+        `#f238` and `#f239` in `F241`). The buffer already writes the keep-dot form, so no
+        flushed body needs repair. Plain `[F62]` / `[F119]` mentions in `F241`'s body are not
+        fragment citations and are not checked.
+      </Assumption>
+      <Assumption>
+        **Name search, measured 2026-09-12 at this commit.** Over `.ngrace/changes/archive/`
+        (92 directories matching `^C-[A-Z0-9-]+$`) and both registry files' structural
+        `Row name=` attributes (12 live, 49 retired): **zero hits** for `C-FLUSH-AND-TEACH`.
+        Per token: `FLUSH` 6 archive directories (`C-FLUSH-AND-PAY`, `-2`, `-3`,
+        `C-FLUSH-AND-REPAIR`, `C-FLUSH-AND-UNPIN`, `C-FLUSH-TWO-WAVES`) and 1 row;
+        `TEACH` 1 archive directory (`C-TEACHING-SURFACE`) and 0 rows; `AND` 8 archive
+        directories and 3 rows. No colliding or better-fitting prior name. The id is the
+        hand-minted legacy `C-&lt;SLUG&gt;` form: `D38`'s `-&lt;N&gt;-&lt;HASH&gt;` rule is
+        recorded and not yet built, and its own edge (3) keeps the legacy corpus's hash-less
+        names.
+      </Assumption>
+      <Assumption>
+        **Skill footprint, snapshot.** 16 skills, total 861 lines, 71927 bytes,
+        `ngrace-fix` 32, referencesTotal 1435; the README cell at `README.md:304` publishes
+        the pair and `token-accounting.test.ts` cross-checks it. The six edited skills do not
+        change their frontmatter descriptions, so no Skills Overview row moves. The exact
+        post-teaching values are re-measured by the plan, never written toward.
+      </Assumption>
+      <Assumption>
+        **Pins the teaching might falsify, measured.** `scripts/skill-contracts.test.ts`
+        pins neither the twelve `explain` lines nor the reviewer sentence (measured: zero
+        occurrences of `argv token \`explain\`` and zero of `life cycle produces next` in that
+        file), so its repair is conditional and the measured falsified-pin set is empty at
+        this commit. `scripts/check-teaching-surface.ts` and its suite both carry the
+        falsified `life cycle produces next` needle and are forced writes. No other shipped
+        test pins any sentence this bundle changes.
+      </Assumption>
+      <Assumption>
+        **Versions and packaging, decided the way the teaching-surface precedents decided
+        them.** No product version bump: a version is a release act, not this bundle's.
+        Packaged version at authoring `6.2.0`; `validate:marketplace` enforces version sync
+        across `README.md`, `openpackage.yml`, `.claude-plugin/marketplace.json` and
+        `package.json`, and enforces packaged-versus-canonical byte identity — both trees
+        change together, so it stays green. `CHANGELOG.md` is generated and untouched;
+        `README.md` is written only in the footprint cell; `examples/` is untouched.
+      </Assumption>
+    </Assumptions>
+  </C-FLUSH-AND-TEACH>
+</NgraceChangeSpec>

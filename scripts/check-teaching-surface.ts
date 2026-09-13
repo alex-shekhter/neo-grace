@@ -388,6 +388,12 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-plan", section: "must_do", token: "re-home" },
   { skill: "ngrace-plan", section: "must_do", token: "on a prototype" },
   { skill: "ngrace-plan", section: "must_do", token: "other than the author" },
+  { skill: "ngrace-plan", section: "must_do", token: "assert only what the bundle leaves unchanged" },
+  { skill: "ngrace-plan", section: "must_do", token: "structurally redundant" },
+  { skill: "ngrace-plan", section: "must_do", token: "faithful post-close copy" },
+  { skill: "ngrace-plan", section: "must_do", token: "red-direction fixture" },
+  { skill: "ngrace-plan", section: "must_do", token: "change.graph-anchors-miss-write-scope" },
+  { skill: "ngrace-spec", section: "shape_sources", token: "relative to this skill's directory" },
   { skill: "ngrace-plan", section: "spec_plan_traceability", token: "uncloseable bundle" },
   { skill: "ngrace-plan", section: "command_phase_rules", token: "stage the task runs" },
   { skill: "ngrace-execute", section: "execution_rules", token: "no declared task is in scope" },
@@ -398,8 +404,68 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-reviewer", section: "review_judgment", token: "forced-file set" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "both directions" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "faithful copy" },
-  { skill: "ngrace-reviewer", section: "review_judgment", token: "life cycle produces next" },
+  { skill: "ngrace-reviewer", section: "review_judgment", token: "any later lawful move of the record" },
+  { skill: "ngrace-reviewer", section: "review_judgment", token: "red-direction fixture" },
 ];
+
+// ---------------------------------------------------------------------------
+// C-FLUSH-AND-TEACH T-003: the F239 cli-token form check. The rule sentence
+// lives in ngrace-cli shape_sources in both trees; no SKILL.md under either
+// tree may carry the bare `argv token `explain`` form the finding measured.
+// ---------------------------------------------------------------------------
+
+const BARE_CLI_TOKEN = "argv token `explain`";
+
+function refuseCliToken(file: string, rule: string, token: string): void {
+  console.error(`checkCliTokenForms refusal: ${file} — cli token forms (${rule}): ${token}`);
+}
+
+/** Every skill's SKILL.md under a tree directory, found on disk and sorted — not a fixed list of skills. */
+function skillFilesUnder(root: string, tree: string): string[] {
+  const treeDir = path.join(root, tree);
+  return readdirSync(treeDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && existsSync(path.join(treeDir, entry.name, "SKILL.md")))
+    .map((entry) => `${tree}/${entry.name}/SKILL.md`)
+    .sort();
+}
+
+/** Return non-zero when ngrace-cli shape_sources lacks the F239 rule token in either tree, or any named SKILL.md carries the bare argv-token form. */
+export function checkCliTokenForms(root: string): number {
+  for (const tree of GOVERNED_TREES) {
+    const treeDir = path.join(root, tree);
+    if (!existsSync(treeDir)) {
+      refuseCliToken(tree, "the skill tree exists", "missing directory");
+      return 1;
+    }
+    const skills = skillFilesUnder(root, tree);
+    if (skills.length === 0) {
+      refuseCliToken(tree, "at least one skill exists under the tree", "no SKILL.md found");
+      return 1;
+    }
+    for (const relative of skills) {
+      if (readFileSync(path.join(root, relative), "utf8").includes(BARE_CLI_TOKEN)) {
+        refuseCliToken(relative, "no bare argv-token explain form", BARE_CLI_TOKEN);
+        return 1;
+      }
+    }
+    const cliRelative = `${tree}/ngrace-cli/SKILL.md`;
+    const cliFile = path.join(root, cliRelative);
+    if (!existsSync(cliFile)) {
+      refuseCliToken(cliRelative, "ngrace-cli exists", "missing SKILL.md");
+      return 1;
+    }
+    const section = extractBlock(readFileSync(cliFile, "utf8"), "shape_sources");
+    if (section === null || !section.includes("names the command that takes it")) {
+      refuseCliToken(
+        cliRelative,
+        "the F239 rule is taught in <shape_sources>",
+        'missing token "names the command that takes it"',
+      );
+      return 1;
+    }
+  }
+  return 0;
+}
 
 /** Return non-zero when a taught rule's load-bearing token is missing from its named section home in either tree. */
 export function checkTaughtRules(root: string): number {
@@ -447,6 +513,9 @@ export function runTeachingSurfaceCheck(root: string): number {
     return 1;
   }
   if (checkTaughtRules(root) !== 0) {
+    return 1;
+  }
+  if (checkCliTokenForms(root) !== 0) {
     return 1;
   }
   if (checkApprovalLexicon(root) !== 0) {

@@ -76,9 +76,12 @@ describe("token-accounting (D15)", () => {
     // C-APPLY-VERB T-005: ngrace-execute items 9 and 10 teach the sanctioned
     // ngrace apply close (line-neutral, byte-moving), measured 861 → 861 lines
     // and 71505 → 71927 bytes.
+    // C-FLUSH-AND-TEACH T-002: the five taught rules and the twelve
+    // `argv token `explain`` line repairs landed in six skills, both trees
+    // (line-neutral, byte-moving): 861 → 861 lines and 71927 → 73362 bytes.
     const measured = skillTextLines();
     expect(measured.total).toBe(861);
-    expect(measured.totalBytes).toBe(71927);
+    expect(measured.totalBytes).toBe(73362);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

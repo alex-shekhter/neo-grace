@@ -10,7 +10,7 @@ Make UI/UX load-bearing in neo-grace. Author optional `.ngrace/context/design-sy
 
 <shape_sources>
 Registered NgraceDesignSystem root and design-reference children: `docs/schema-reference.md`. That document is not a complete grammar; it lists the NgraceDesignSystem root and the ST- prefix, not ST-star whole-word matching or module Type values.
-Explain a shape or code: argv token `explain`.
+Explain a shape or code: `ngrace lint --explain <code|shape>`.
 Children source: `references/design-system-template.xml`.
 AccessibilityCheck / VisualCheck example: `examples/polyglot`.
 </shape_sources>

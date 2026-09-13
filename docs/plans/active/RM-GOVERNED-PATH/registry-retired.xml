@@ -296,4 +296,10 @@
     <Pays>F224</Pays>
     <StatusText>Ordered. The row is minted live by the plan and paid by the close's move.</StatusText>
   </Row>
+  <Row name="C-FLUSH-AND-TEACH" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Name.** `C-FLUSH-AND-TEACH`. **Searched before minting**, 2026-09-12 at `bd284cec05e8c18f6b24584e28018a7a9e4458da`, over `.ngrace/changes/archive/` (92 directories matching the canonical C-* pattern) and the record structural Row name attributes (12 live, 49 retired): zero hits for the exact name across the archive directories and both registry files. Per-token: FLUSH 6 archive directories and 1 retired row; TEACH 1 archive directory and 0 rows; AND 8 archive directories and 3 rows. No colliding or better-fitting prior name. **Charter.** Flush the three staged findings into the record and teach the five rules in six skills, canonical and mirror, minting this row payment for the teaching increment.</Charter>
+    <Pays>F236 F237 F238 F239 F241</Pays>
+    <StatusText>Ordered; the row is minted live by the plan and paid by the close move.</StatusText>
+  </Row>
 </Registry>
