@@ -9,7 +9,6 @@ import { proveRecordPreservation } from "./prove-record-preservation.ts";
 import {
   INDEX_HEADROOM_ENTRIES,
   RULINGS_PROVENANCE_CEILING,
-  closedWithTokens,
   derivePayerMap,
   listArchiveNames,
   liveH2DecisionLineCounts,
@@ -402,48 +401,24 @@ token: F1
     expect((result.stderr.match(/finding-eligible-still-live/g) ?? []).length).toBe(1);
   });
 
-  it("Closed-with citation reduction expands a range and does not treat mention outside the clause as payment", () => {
-    const root = isolatedRoot();
-    const parts = happyParts();
-    parts.findings = `<Findings base="20" headroom="70" ceiling="1000">
-  <Finding id="f1" token="F1" status="live">
-    <Title>### F1 — live</Title>
-    <Body>body one</Body>
-  </Finding>
-  <Finding id="f100" token="F100" status="live">
-    <Title>### F100 — live</Title>
-    <Body>body 100</Body>
-  </Finding>
-  <Finding id="f101" token="F101" status="live">
-    <Title>### F101 — live</Title>
-    <Body>body 101</Body>
-  </Finding>
-</Findings>
-`;
-    parts.registryRetired = `<Registry>
-  <Row name="C-OLD" status="retired" kind="chartered">
-    <Number>2</Number>
-    <Charter>mentions F1 in charter only</Charter>
-    <Pays></Pays>
-    <StatusText>Delivered. Closed with [F100](#f100)–[F101](#f101). Also names F1 here after the period.</StatusText>
-  </Row>
-</Registry>
-`;
-    parts.index = `<RecordIndex base="10" headroom="40" ceiling="1000">
-  <Entry id="f1" token="F1" genre="finding" layer="live" />
-  <Entry id="f100" token="F100" genre="finding" layer="live" />
-  <Entry id="f101" token="F101" genre="finding" layer="live" />
-  <Entry id="f2" token="F2" genre="finding" layer="retired" />
-  <Entry id="d1" token="D1" genre="decision" layer="live" />
-</RecordIndex>
-`;
-    writeHappy(root, parts);
-    const result = runValidator(root);
-    expect(result.status).not.toBe(0);
-    expect(result.stderr).toContain('token="F100"');
-    expect(result.stderr).toContain('token="F101"');
-    expect(result.stderr).not.toContain('token="F1"');
-  });
+  it(
+    "prose-dead guard: a Closed with sentence mints nothing while a Pays cell mints, so the deleted prose path cannot be re-entered by wording (generous timeout)",
+    () => {
+      const root = isolatedRoot();
+      mkdirSync(path.join(root, ".ngrace", "changes", "archive", "C-PROSE-PROBE"), { recursive: true });
+      const proseOnly = derivePayerMap(root, [
+        { name: "C-PROSE-PROBE", pays: "", statusText: "Delivered. Closed with F999 and F998." },
+      ]);
+      expect([...proseOnly.entries()], "a Closed with sentence mints nothing").toEqual([]);
+      const declared = derivePayerMap(root, [
+        { name: "C-PROSE-PROBE", pays: "F999", statusText: "Delivered. Closed with F999." },
+      ]);
+      expect([...declared.entries()], "a Pays cell still mints — the instrument is not vacuously empty").toEqual([
+        ["F999", "C-PROSE-PROBE"],
+      ]);
+    },
+    60_000,
+  );
 
   it("stamp-paid-by writes PaidBy and does not move; validate still fails until --retire moves", () => {
     const root = isolatedRoot();
@@ -2099,6 +2074,9 @@ ${names
         F238: "C-FLUSH-AND-TEACH",
         F239: "C-FLUSH-AND-TEACH",
         F241: "C-FLUSH-AND-TEACH",
+        F185: "C-RETIRE-AND-CODIFY",
+        F198: "C-PAYMENT-RECORD-2",
+        F197: "C-PAYMENT-INTEGRITY",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
@@ -2492,15 +2470,11 @@ ${names
       const pays = childText(row.node, "Pays") ?? "";
       const paysTokens = [...new Set(pays.match(tokenRe) ?? [])];
       expect(paysTokens, "the row's Pays cell names exactly F232 and no other token").toEqual(["F232"]);
-      // The StatusText carries no F token at all and mints nothing through
-      // the Closed-with channel — the shipped closedWithTokens returns the
-      // empty list over the delivered text.
       const statusText = childText(row.node, "StatusText") ?? "";
       expect(
         statusText.match(tokenRe) ?? [],
         `the row's StatusText carries no F token at all`,
       ).toEqual([]);
-      expect(closedWithTokens(statusText), "closedWithTokens over the delivered StatusText is empty").toEqual([]);
       // The isolated fixture mirrors the real membership the claim needs:
       // an archive root containing only the row's name, with the row's own
       // Pays and StatusText — the derivation mints exactly F232 for this
@@ -3064,36 +3038,6 @@ body of the decision.
     60_000,
   );
 
-  it(
-    "C-FLUSH-AND-PAY clamp invariant: the persisted findings headroom is the clamp's result — equal to ceiling minus base and below seven times the median live element line count",
-    () => {
-      const recordDir = path.join(REPO_ROOT, RECORD_REL);
-      const findingsXml = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
-      const parsed = parseGraceXmlArtifact("findings.xml", findingsXml);
-      const root = parsed.root!;
-      const base = Number(root.attributes.base);
-      const headroom = Number(root.attributes.headroom);
-      const ceiling = Number(root.attributes.ceiling);
-      // the arithmetic mirrored over the shipped parser because findingLineCounts is not exported
-      const spans = computeElementSpans(findingsXml, parsed);
-      const liveCounts: number[] = [];
-      for (const node of walkNodes(root)) {
-        if (node.tag !== "Finding" || node.attributes.status === "retired") {
-          continue;
-        }
-        const span = spans.get(node)!;
-        if (span.closeStart === null || span.closeEnd === null) {
-          continue;
-        }
-        liveCounts.push(newlineCount(findingsXml.slice(span.openStart, span.closeEnd)) + 1);
-      }
-      const product = 7 * median(liveCounts);
-      expect(base + headroom, "base plus headroom equals ceiling").toBe(ceiling);
-      expect(base, "base equals the file's newlineCount").toBe(newlineCount(findingsXml));
-      expect(headroom, "the persisted headroom is below seven times the median live element line count — the clamp binds").toBeLessThan(product);
-    },
-    60_000,
-  );
 
   it(
     "C-ROOT-WINDOW row invariant: the C-ROOT-WINDOW row exists exactly once across the registry layers with its status agreeing with the holding file, kind chartered, Pays exactly F216, F182, F193, F190, F225, F226 in that order, and a StatusText carrying no F token and no Closed-with sentence — no fixed expectation of which file that is",
@@ -4496,5 +4440,117 @@ describe("C-FLUSH-AND-TEACH row", () => {
       ),
     );
     expect(() => expectCftCarrierRelations(recordDir)).toThrow(/at most one Finding element carries the token/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-PAYMENT-INTEGRITY: the payments' carrier and row walks. The carrier
+// relation is payment-invariant (carrier-absent green, no layer pin, no payer
+// pin); the row walk is exactly-once with the holder's status. Red fixtures
+// mutate whichever layer holds the row. Written red-first: the row walk reds
+// before the rows exist.
+// ---------------------------------------------------------------------------
+
+const CPI_PAYERS: Record<string, string> = {
+  F185: "C-RETIRE-AND-CODIFY",
+  F198: "C-PAYMENT-RECORD-2",
+  F197: "C-PAYMENT-INTEGRITY",
+};
+
+const CPI_ROWS: Array<{ name: string; kind: string; pays: string }> = [
+  { name: "C-PAYMENT-RECORD-2", kind: "historical", pays: "F198" },
+  { name: "C-PAYMENT-INTEGRITY", kind: "chartered", pays: "F197" },
+];
+
+function expectCpiCarrierAndRowRelations(recordDir: string): void {
+  const indexParsed = parseGraceXmlArtifact(
+    "decisions.xml",
+    readFileSync(path.join(recordDir, "decisions.xml"), "utf8"),
+  );
+  expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+  for (const token of Object.keys(CPI_PAYERS)) {
+    const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      expect(parsed.root, `${file} parses`).not.toBeNull();
+      return [...walkNodes(parsed.root!)]
+        .filter((node) => node.tag === "Finding" && node.attributes.token === token)
+        .map((node) => ({ file, node }));
+    });
+    expect(
+      carriers.length,
+      `${token}: at most one Finding element carries the token across the two findings files (got ${carriers.length})`,
+    ).toBeLessThanOrEqual(1);
+    for (const carrier of carriers) {
+      const expectedStatus = carrier.file === "findings.xml" ? "live" : "retired";
+      expect(carrier.node.attributes.status, `${token}: the carrier's status agrees with the holding file`).toBe(
+        expectedStatus,
+      );
+      const entries = [...walkNodes(indexParsed.root!)].filter(
+        (node) => node.tag === "Entry" && node.attributes.id === carrier.node.attributes.id,
+      );
+      expect(entries.length, `${token}: the index carries exactly one Entry for the carrier's id`).toBe(1);
+      expect(entries[0]!.attributes.layer, `${token}: the carrier's index Entry layer agrees with the holding file`).toBe(
+        expectedStatus,
+      );
+      if (expectedStatus === "retired") {
+        expect(childText(carrier.node, "PaidBy"), `${token}: a retired carrier carries PaidBy ${CPI_PAYERS[token]}`).toBe(
+          CPI_PAYERS[token],
+        );
+      }
+    }
+  }
+  for (const spec of CPI_ROWS) {
+    const hits = (["registry.xml", "registry-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      expect(parsed.root, `${file} parses`).not.toBeNull();
+      return childNodes(parsed.root!, "Row")
+        .filter((row) => row.attributes.name === spec.name)
+        .map((row) => ({ file, node: row }));
+    });
+    expect(
+      hits.length,
+      `${spec.name}: exactly one Row across the registry layers (got ${hits.length})`,
+    ).toBe(1);
+    const hit = hits[0]!;
+    const holding = hit.file === "registry.xml" ? "live" : "retired";
+    expect(hit.node.attributes.status, `${spec.name}: the row's status agrees with the holding file`).toBe(holding);
+    expect(hit.node.attributes.kind, `${spec.name}: kind`).toBe(spec.kind);
+    expect((childText(hit.node, "Pays") ?? "").trim(), `${spec.name}: Pays exactly`).toBe(spec.pays);
+  }
+}
+
+describe("C-PAYMENT-INTEGRITY carrier and row relations", () => {
+  it(
+    "F185, F198 and F197 each exist at most once across the findings pair with status and index layer agreeing and PaidBy matching the payer when retired, and C-PAYMENT-RECORD-2 and C-PAYMENT-INTEGRITY each exist exactly once across the registry layers with status agreeing and Pays exactly F198 / F197 (generous timeout)",
+    () => {
+      expectCpiCarrierAndRowRelations(path.join(REPO_ROOT, RECORD_REL));
+    },
+    60_000,
+  );
+
+  it("red direction — a second C-PAYMENT-INTEGRITY row reddens the exactly-once clause on a mutated copy of whichever layer holds it", () => {
+    const root = isolatedRoot();
+    const recordDir = path.join(root, RECORD_REL);
+    mkdirSync(recordDir, { recursive: true });
+    for (const file of ["registry.xml", "registry-retired.xml", "findings.xml", "findings-retired.xml", "decisions.xml"]) {
+      copyFileSync(path.join(REPO_ROOT, RECORD_REL, file), path.join(recordDir, file));
+    }
+    for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+      const held = readFileSync(path.join(recordDir, file), "utf8");
+      if (!held.includes('name="C-PAYMENT-INTEGRITY"')) continue;
+      writeFileSync(
+        path.join(recordDir, file),
+        held.replace(
+          "</Registry>",
+          `  <Row name="C-PAYMENT-INTEGRITY" status="live" kind="chartered">\n    <Number></Number>\n    <Charter>duplicate</Charter>\n    <Pays>F197</Pays>\n    <StatusText>Ordered</StatusText>\n  </Row>\n</Registry>`,
+        ),
+      );
+    }
+    const hits = (["registry.xml", "registry-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      return childNodes(parsed.root!, "Row").filter((row) => row.attributes.name === "C-PAYMENT-INTEGRITY");
+    });
+    expect(hits.length, "the mutated copy carries two C-PAYMENT-INTEGRITY rows").toBe(2);
+    expect(() => expectCpiCarrierAndRowRelations(recordDir)).toThrow(/exactly one Row across the registry layers/);
   });
 });

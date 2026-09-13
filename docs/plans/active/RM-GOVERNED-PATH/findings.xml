@@ -1,4 +1,4 @@
-<Findings base="7673" headroom="173" ceiling="7846">
+<Findings base="7569" headroom="266" ceiling="7835">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -6633,45 +6633,6 @@ run**, and a plan should not be judged by running its execution-stage commands a
 original case is still a real defect, because `--assertions baseline` without `--run-commands` never
 resolves at any stage.</Body>
   </Finding>
-  <Finding id="f185" token="F185" status="live">
-    <Title>### F185 — a real-repository measurement test has no explicit timeout, so archiving the 70th bundle turned the suite red after the move. **[verified]**</Title>
-    <Body>
-Measured **2026-09-06**, during the close of `C-RETIRE-AND-CODIFY`, post-archive.
-
-`src/grace-context.test.ts:522` calls `buildTaskSlice` against the live package root for three named
-archive subjects. It carries **no explicit timeout**, so it inherits Bun's 5000 ms default. The
-`git mv` that archived this bundle took the archive from 69 to 70 directories, and the test now runs
-**~5240 ms**. Deterministic, not flaky: three consecutive isolated runs failed at 5236.80 / 5243.60 /
-5245.86 ms.
-
-**It is purely a timeout; nothing is logically wrong.** Probed in the discriminating direction:
-`bun test --timeout 20000` gives **1735 pass / 3 skip / 0 fail**, exit 0, with every assertion in that
-test holding. The product is correct and the suite is red only against the default clock.
-
-**This is exactly [F100](#f100)'s class, and the two-verdict close is what caught it.** The executor's
-`bun test` was green and honest — it ran **before** the archive move. The failure exists only after it.
-A single-verdict close would have archived this bundle with a red suite and never displayed the
-criteria whose `CloseEvidence` is `bun test`.
-
-**The defect is structural, not incidental.** A test whose purpose is to measure the *real* repository
-has a cost that necessarily grows with the repository, so a fixed default clock is the wrong
-constraint for it — and any bundle archived from here would have tripped it, independent of this one.
-The remedy is an explicit, generous timeout on that `it(...)`, not a fixture rewrite, which would
-destroy the measurement the test exists to take.
-
-**It did not block the close, and the authority's first reading that it did was wrong.** Bare
-`bun test` is **not** a `CloseEvidence` command for this bundle; the criteria run `bun test &lt;file&gt;`
-against three named `scripts/*.test.ts` files, none of which is `grace-context.test.ts`. All fifteen
-`CloseEvidence` commands were re-run after the `git mv` and exit 0.
-
-**The fix had to land after the close, not inside it.** `AC-NO-GRAMMAR`'s evidence is
-`git diff --exit-code &amp;lt;base&amp;gt; -- src/`, so any `src/` write inside the bundle fails it — the
-one-line timeout edit was applied, tripped that criterion, was reverted for the verdict, and re-applied
-as its own commit once the bundle was archived. The criterion's prose targets the grammar layer
-(`src/artifact/xml.ts`, `xml-serialize.ts`) but its command is repository-wide over `src/`; anyone
-writing a bundle that may need an incidental `src/` fix during close should scope that command to the
-files the prose actually names.</Body>
-  </Finding>
   <Finding id="f191" token="F191" status="live">
     <Title>### F191 — staged charter rows have no anchor, so every wrap projection folded them into the preceding decision. **[verified]**</Title>
     <Body>
@@ -6731,71 +6692,6 @@ and did not reconcile toward the brief.
 
 Related but distinct from [F182](#f182), which is about the same `7 × median` producing a fractional
 value on an even population. This one is about the median **moving**.</Body>
-  </Finding>
-  <Finding id="f197" token="F197" status="live">
-    <Title>### F197 — a finding can be paid by a sentence: `derivePayerMap` mints payments from prose, not only from `Pays`. **[verified]**</Title>
-    <Body>
-
-Measured **2026-09-08** at `54e26d9`, `scripts/validate-record-retirement.ts:466-497`, raised by the
-executor's `WRONG` field against the authority's claim that a row without `Pays` leaves a finding with
-no path out.
-
-Beyond the `Pays` field of a chartered row, two prose paths mint payments:
-
-- `closedWithTokens(row.statusText)` over an archived chartered row's `StatusText`, gated on the row's
-  name being an archive directory;
-- a pass over **every** archived `spec.xml` that pays every `F`-token appearing in any sentence
-  matching `PAID_FINDING_RE`.
-
-**The consequence.** Eligibility is what `D28` and `D28.1` make the enforcement, and it can be minted
-by wording. An ordinary sentence in an archived spec that happens to match the pattern marks the
-findings it names as paid, and they become eligible for retirement on the next `--retire`. Nothing
-declares the payment; a phrase does.
-
-**Observed cost, not theorised.** `C-RECORD-TEST-ISOLATION`'s spec carries a guard clause asserting
-that its own prose contains no sentence matching that pattern — a spec defending itself against its
-own text being read as a payment. That is the tax this path imposes on every future spec.
-
-Owner: a later bundle. The remedy is a design question — narrow the prose paths to an explicit
-declaration, or keep them and make the derivation report what it minted and from which sentence — and
-the authority has no position yet.</Body>
-  </Finding>
-  <Finding id="f198" token="F198" status="live">
-    <Title>### F198 — `C-RECORD-RETIREMENT-2` archived without a registry row, so the finding it settled is still live and cannot be paid. **[verified]**</Title>
-    <Body>
-
-Measured **2026-09-08** at `54e26d9`, during the `C-RECORD-TEST-ISOLATION` spec review, from the
-executor's `WRONG` field against the authority's brief.
-
-[F172](docs/plans/active/RM-GOVERNED-PATH/findings.xml) is **live** (`findings.xml:7155`) and
-describes the citation validator's qualifier-suffix slug grammar — a mechanism that **no longer
-exists**. `expectedSlugFor` and `duplicateCount` are absent from `src/` and `scripts/` (0 hits), and
-the citation validator's only duplicate rule is `duplicate-id` over **index ids**, not tokens across
-layers. A split-token fixture drives all three record validators to exit 0. The mechanism was removed
-by `67bc55c` — `C-RECORD-RETIREMENT-2`, PR #74.
-
-**The bundle that settled it has no row.** `grep -c '&lt;Row name="C-RECORD-RETIREMENT-2"'` returns
-**0** in `registry.xml` and **0** in `registry-retired.xml`, while the first `C-RECORD-RETIREMENT` has
-one. `derivePayerMap` keys payments on chartered rows gated on `archive.has(row.name)`, so a bundle
-with no row pays nothing: `F172` cannot become eligible by any path, and the live genre carries a
-finding whose subject was deleted two bundles ago.
-
-**This is [F187](docs/plans/active/RM-GOVERNED-PATH/findings.xml)'s class surviving the bundle
-chartered to end it.** `C-PAYMENT-RECORD` recorded the payments that already happened; this is at
-least one it did not record. The population it missed is unmeasured here and must not be guessed —
-measuring it is part of the remedy, not a premise of it.
-
-**Why it did not ride in `C-RECORD-TEST-ISOLATION`**, stated so the deferral is not silent: paying
-`F172` means creating a row for an already-archived bundle, whose `name` equals an archive directory
-on sight, and deciding what else `C-RECORD-RETIREMENT-2` settled. That is a population audit and a
-placement question, neither of which that bundle's approved scope answers, and grafting them in would
-contradict its own NonGoals. Surfaced to the maintainer as a charter candidate rather than filed.
-
-Owner: the next charter decision.
-
-**Cost already paid.** The authority's first spec brief carried `F172`'s headline as present
-behaviour, and the spec it produced repeated the claim in a Constraint until the executor measured it.
-A finding is never evidence of present state.</Body>
   </Finding>
   <Finding id="f200" token="F200" status="live">
     <Title>### F200 — the authority offered amend-and-re-ratify as its recommendation, which [D27](docs/plans/active/RM-GOVERNED-PATH/rulings.xml) forbids, because it never searched the record. **[verified]**</Title>

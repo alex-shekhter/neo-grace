@@ -1,0 +1,200 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-PAYMENT-INTEGRITY</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    The maintainer's ruling, recorded 2026-09-12: "C1, narrow." Three live findings are
+    this bundle's Problem, and two of the three moved since they were written.
+
+    F197 (measured 2026-09-08 at 54e26d9) named two prose payment paths in
+    scripts/validate-record-retirement.ts. One of them — a pass over every archived
+    spec.xml matching PAID_FINDING_RE — is gone from the shipped code (PAID_FINDING_RE is
+    defined and used nowhere in src/ or scripts/ code; the name's only two occurrences are
+    fixture data reproducing a finding body, at
+    scripts/fixtures/record-parse/input/findings.xml:7605 and
+    scripts/fixtures/record-parse/golden/findings.xml:7523). The remaining path is
+    closedWithTokens, which reads an archived row's StatusText and mints every F-token in
+    a sentence beginning "Closed with". The narrow ruling: delete that path, and declare
+    in the same three rows' Pays every payment it currently mints, so the derivation is
+    byte-identical before and after. Measured with the shipped derivePayerMap over the
+    real archive (93 directories) and both registry layers (12 live + 50 retired rows):
+    the full map mints 93 tokens, the Pays-only map 84, and the nine prose-only tokens are
+    F100 F101 F102 F103 F104 F105 (C-CRITERION-CLOSE-EVIDENCE), F112 F113
+    (C-APPROVAL-FINGERPRINT) and F125 (C-SUPERSEDE-COMMAND). Re-running the comparison
+    with the prose loop deleted and the nine declared in those rows' Pays reproduces the
+    production map exactly (93 of 93 tokens, every payer equal), which is the byte-identity
+    the ruling requires.
+
+    F198 (measured 2026-09-08 at 54e26d9) said the bundle that settled F172 had no row.
+    Its headline is history: registry-retired.xml carries a kind="historical" row named
+    C-RECORD-RETIREMENT-2 whose Pays is F172, and F172 is retired with PaidBy
+    C-RECORD-RETIREMENT-2. What is still owed is F198's own payment. The bundle that did
+    that work is C-PAYMENT-RECORD-2 (PR #81), whose own Problem measured the rowless
+    population F198 demanded (55 archived bundles with no row in either layer) and whose
+    Summary names the C-RECORD-RETIREMENT-2 row it wrote. C-PAYMENT-RECORD-2 has zero rows
+    in either layer; the house form for exactly that case is a historical row in
+    registry-retired.xml ("This row exists so the derivation can see the payment"). The
+    derivation keys on a row whose name equals an archive directory, so this row mints the
+    moment it exists and F198 becomes eligible mid-bundle.
+
+    F185 (measured 2026-09-06, post-archive of C-RETIRE-AND-CODIFY) recorded a
+    real-repository measurement test with no explicit timeout. The fix landed in commit
+    1896592 (PR #75, the C-RETIRE-AND-CODIFY merge) as a one-line change to
+    src/grace-context.test.ts: `});` became `}, 30_000);` at line 559. That bundle's row
+    already exists, retired, kind="chartered"; appending F185 to its Pays is the route,
+    with C-RECORD-TEST-ISOLATION-2's correction of the retired C-CODIFY-DECISIONS row as
+    precedent. F185 becomes eligible mid-bundle for the same reason.
+
+    The trap the brief names is real and was driven: a finding paid through an
+    already-archived bundle's name is eligible the moment the row exists, and the shipped
+    validator exits 1 until --retire moves it. Driven on a whole-repository copy with the
+    proposed edits: validator exit 1 naming exactly F185 (archive event C-RETIRE-AND-CODIFY)
+    and F198 (archive event C-PAYMENT-RECORD-2); one --retire reports moved 2; validator
+    exit 0. The bundle's own row pays only at the close, when its name becomes an archive
+    directory: driven, the close's --retire reports moved 2 (F197 and the row) and the
+    validator exits 0.
+
+    Two suite failures were discovered by driving the proposed record state, and neither is
+    named in the brief: the payer-derivation baseline (F185, F198, F197 are not in
+    baseline ∪ bundleMinted) and the shipped C-FLUSH-AND-PAY production clamp test, whose
+    third clause asserts headroom is below 7x the median live element line count. That
+    clause is a state claim the ratified arithmetic (C-ROOT-WINDOW-2/-3: the moved ceiling is
+    min(previous ceiling, pre-move base + floored headroom), ceilingBase = findingsBaseRead)
+    falsifies by construction — the formula ceiling is computed from the pre-move base so a
+    retire frees the moved lines, making headroom = 7x median + lines moved whenever the
+    clamp binds. Measured on the driven copy: mid-bundle headroom 249 against product 238,
+    post-close headroom 266 against 238. The other two clauses are exactly what the
+    C-PAYMENT-RECORD-4 roots-invariant tripwire already asserts for all four roots, so the
+    test is a duplicate (F116's class) under a title that claims a clamp it does not assert;
+    this bundle deletes it and names the tripwire as the carrier. The defect is staged as
+    F244, and F244's payment is recorded at its flush by appending F244 to this bundle's
+    retired row — the same retired-row append this bundle establishes for F185. Both suite
+    changes are forced by this bundle's own state.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      F198's payer — variant A (chosen): a kind="historical" row named C-PAYMENT-RECORD-2 in
+      registry-retired.xml, Pays F198, in the house form, because that bundle did the work
+      and has no row. Pros: matches the established historical-row form used for eight
+      rowless payers by C-PAYMENT-RECORD-3 and for C-RECORD-RETIREMENT-2 by
+      C-PAYMENT-RECORD-2; the derivation keys on the archived name; the witness (the
+      C-RECORD-RETIREMENT-2 row, F172's retirement, and C-PAYMENT-RECORD-2's own population
+      measurement) is checkable without judgement. Cons: forces a mid-bundle --retire,
+      because C-PAYMENT-RECORD-2 is already archived.
+    </Alternative>
+    <Alternative>
+      F198's payer — variant B (rejected): this bundle's own row pays F198, so it moves at
+      the close. Pros: no mid-bundle move for F198; one fewer record write. Cons: it
+      attributes to C-PAYMENT-INTEGRITY work C-PAYMENT-RECORD-2 performed, which is the
+      false-payment shape C-PAYMENT-RECORD was chartered to end; and it leaves
+      C-PAYMENT-RECORD-2 with a second unrecorded payment while the record is being repaired
+      for exactly that defect. The brief's own reading — "the bundle that paid it has no row"
+      — points at the historical row.
+    </Alternative>
+    <Alternative>
+      F185's payer — variant A (chosen): append F185 to the retired C-RETIRE-AND-CODIFY
+      row's Pays. Pros: the row already exists and names the bundle whose PR carried the fix;
+      the append is one cell edit; C-RECORD-TEST-ISOLATION-2 already corrected a retired
+      row's Pays, so the move is lawful in precedent. Cons: a retired row is edited, which
+      is normally immutable; the precedent makes it lawful, and the edit changes only the
+      derived payment set.
+    </Alternative>
+    <Alternative>
+      F185's payer — variant B (rejected): a historical row named C-RETIRE-AND-CODIFY, Pays
+      F185. Cons: it duplicates an identity that already has a row, so the "exactly once
+      across the layers" walks would see two rows for one name — a collision the record's
+      own shape rules exist to prevent. The historical form is for a bundle with no row, not
+      for one that has a retired row.
+    </Alternative>
+    <Alternative>
+      The StatusText F-token rule — variant A (chosen): no validator rule is owed. Once
+      closedWithTokens is deleted, a token mentioned in StatusText mints nothing, so a rule
+      forbidding F-tokens in StatusText would protect nothing. Per-bundle row-invariant
+      tests that assert the row's StatusText is house-form prose may stay and may still be
+      asserted for a new row; they are style checks, not payment law. Measured population: 14
+      rows across both layers carry an F-token in StatusText; three of them carried a
+      "Closed with" sentence and minted (the nine tokens above), eleven merely mention.
+    </Alternative>
+    <Alternative>
+      The StatusText F-token rule — variant B (rejected): add a general validator rule
+      reddening any StatusText that names an F-token. Rejected because it would red 14 rows
+      immediately, eleven for a mere mention, and would convert a harmless prose citation
+      into a hard error; the record's own historical form puts F-tokens in StatusText (four
+      historical rows do).
+    </Alternative>
+    <Alternative>
+      The C-FLUSH-AND-PAY production clamp test — variant A (chosen): delete the test. Its
+      two durable relations (base + headroom = ceiling, base = newlineCount) are already
+      asserted for all four roots by the C-PAYMENT-RECORD-4 roots-invariant tripwire, so
+      keeping it reduced is a duplicated assertion (F116's class), and the title
+      "clamp invariant" would claim a clamp it does not assert. Pros: no false title, no
+      duplicate; the clamp behaviour stays driven by the synthetic-fixture clamp tests
+      (T-002 removal, probe 3, the window and anti-ratchet tests); the tripwire is the one
+      carrier of the two relations. Cons: the production record loses a test that was green
+      in its shape, which is the point — its third clause was never an invariant.
+    </Alternative>
+    <Alternative>
+      The C-FLUSH-AND-PAY production clamp test — variant B (rejected): keep it, renamed to
+      "findings root relations", with a stated reason the tripwire does not cover. There is
+      no such reason: the tripwire asserts base + headroom = ceiling and base = newlineCount
+      for all four live roots, which is the whole of the reduced test, so the rename would
+      leave a duplicate under an accurate title. Rejected as F116's class.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      The guard bundle (F222, F223) is B1, next in the maintainer's order; it opens
+      src/artifact/xml.test.ts and is sequential with this bundle's files. This bundle does
+      not touch it.
+    </Decision>
+    <Decision>
+      F240 (review.confidently-wrong on an active file-creating plan's Target MustExist),
+      F242 (tsconfig.json includes only src/**) and F243 (a per-task Verification git diff
+      written cumulatively) are staged in .ngrace/scratch/staged-findings.md and are not
+      this bundle's; the buffer is read-only here. Owners, per F243's own Owner line: F240 to
+      whoever next opens src/review/core.ts; F242 alone to the scripts/ adoption bundle
+      .ngrace-lint.json names as deferred; F243 to the next teaching-surface increment
+      (ngrace-plan row 19) with the execution question to a chartered bundle.
+    </Decision>
+    <Decision>
+      The D38 hashed-suffix id builder is not built; this bundle's id is the hand-minted
+      legacy C-SLUG form and supersedes nothing, so no -N lineage suffix applies.
+    </Decision>
+    <Decision>
+      docs/plans/** outside the record files this bundle writes, CHANGELOG.md and any version
+      bump are unchanged, each with an owner named in NonGoals.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Mid-bundle (driven on a whole-repository copy): the three retired rows' Pays carry the
+      nine tokens; C-RETIRE-AND-CODIFY's Pays carries F185; a kind="historical" row named
+      C-PAYMENT-RECORD-2 with Pays F198 sits retired; registry.xml carries the live
+      C-PAYMENT-INTEGRITY row with Pays F197. After --rewrite-roots the registry root reads
+      base="13" headroom="13" ceiling="26". The validator exits 1 naming exactly F185 and
+      F198; F197 is not eligible (the bundle's row name is not yet an archive directory).
+      One --retire reports moved 2; findings root 7597/249/7846; index 271/25/296; validator
+      exit 0.
+    </Scenario>
+    <Scenario>
+      Close (record mechanics driven on the same copy with the bundle's directory present
+      under the archive — the state the shipped apply reaches; the apply drive belongs to the
+      plan's post-close task): the
+      C-PAYMENT-INTEGRITY row's name is now an archive directory, so F197 mints. One
+      --retire reports moved 2 (F197 and the row); findings root 7569/266/7835; registry back
+      to 12/14/26; F197 retired with PaidBy C-PAYMENT-INTEGRITY; validator exit 0.
+    </Scenario>
+    <Scenario>
+      Prose-dead probe, both directions (driven on the copy): current code, a live F999
+      finding plus a "Closed with F999" sentence in an archived row's StatusText reddens the
+      validator at finding-eligible-still-live (archive event C-RECORD-RETIREMENT-2, exit 1);
+      with the closedWithTokens loop removed from derivePayerMap the same tree validates
+      exit 0. A planted Pays F999 row still mints F999, so the instrument is not vacuous.
+    </Scenario>
+    <Scenario>
+      Byte-identity (driven by function): derivePayerMap over the production record mints 93
+      tokens; over the copy with the prose loop removed and the nine declared in Pays it
+      mints 95 (the same 93 with every payer equal, plus F185 and F198); no production token
+      is missing and no payer differs.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
