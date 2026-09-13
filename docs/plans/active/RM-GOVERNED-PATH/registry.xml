@@ -1,4 +1,4 @@
-<Registry base="13" headroom="13" ceiling="26">
+<Registry base="12" headroom="14" ceiling="26">
   <Row name="C-APPROVAL-SCOPE" status="live" kind="chartered">
     <Number>4</Number>
     <Charter>Skill text for the per-step rule and the authority-owned close. Already named by [D19](#d19) and [D20](#d20).</Charter>
@@ -71,11 +71,4 @@
     <Pays>[F177](#f177).</Pays>
     <StatusText>**Position 4**, ratified 2026-09-06 by the maintainer. The insertion and the six positions it shifts are recorded in [D32](#d32); read the order from there, never from [D31](#d31), which this amends.</StatusText>
   </Row>
-  <Row name="C-GUARD-RATCHET" status="live" kind="chartered">
-    <Number></Number>
-    <Charter>**Name.** `C-GUARD-RATCHET`. **Searched before minting**, 2026-09-13 at `fa1773d7b853050d2330e4aa21f0514c3e8d6b05`, over `.ngrace/changes/archive/` (94 directories matching `^C-[A-Z0-9-]+$`) and the record structural Row name attributes (12 live, 52 retired): zero hits for the exact name across the archive directories and both registry files. Per token: `GUARD` 0 archive directories and 0 rows; `RATCHET` 0 archive directories and 0 rows. No colliding or better-fitting prior name. **Charter.** Flush the six staged entries, record `F244`'s payment, and state the anti-occupancy guard's threat model and boundary per `D39`; mint this row to pay `F222` and `F223` at the close.</Charter>
-    <Pays>F222 F223</Pays>
-    <StatusText>Ordered; the row is minted live by the plan and paid by the close's move.</StatusText>
-  </Row>
-
 </Registry>

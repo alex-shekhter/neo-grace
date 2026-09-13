@@ -1,4 +1,4 @@
-<Findings base="7668" headroom="167" ceiling="7835">
+<Findings base="7595" headroom="240" ceiling="7835">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7344,79 +7344,6 @@ regeneration of every byte-pinned fixture; that is bounded, and the drift it rem
 
 Owner: a chartered bundle. Neighbour to [F204](#f204) (the symptom) and [F206](#f206) (a text metric
 over a structured document — the same category error, measured on volume instead of identity).
-</Body>
-  </Finding>
-  <Finding id="f222" token="F222" status="live">
-    <Title>### F222 — the anti-occupancy guard is a ratchet against drift, not an adversarial control, and no artifact says which. **[verified]**</Title>
-    <Body>
-`C-FLUSH-AND-PAY-3` rebuilt the guard over the TypeScript parser and closed the three failures its
-charter named: a number hidden behind an internal semicolon, a false red on an `async` reformat, and
-blindness to destructured and non-first declarators. It conforms to that charter exactly. Eight
-other ways to put a number back are silent, and the charter never claimed otherwise.
-
-**Measured 2026-09-10 against the delivered `src/artifact/xml.test.ts`, on a throwaway copy of the
-repository, each mutation driven through `bun test src/artifact/xml.test.ts` with the exit code read
-directly.** The suite is 35 pass / 0 fail — the guard silent — for every one of: a module-scope
-alias (`const A = 195; const B = A;` with `B` referenced from the body, so no binding both carries
-the literal and is referenced); a module-scope `function` returning the number; a `class` static
-property; an `enum` member; a BigInt literal (`195n`, a `BigIntLiteral` node, not a
-`NumericLiteral`) inside the guarded body; a field typed through an alias (`type Num = number`); a
-computed property name (`[&quot;expected&quot;]`); and a union-typed field (`expected: number | undefined`).
-The control discriminates: a plain `expected: number` interface member fires, 34 pass / 1 fail. The
-silences are the guard's real behaviour, not a broken probe.
-
-**None of the eight is a defect against the delivered work.** The spec's Goal R3 enumerates the
-duties by shape — duty (iii) is scoped to &quot;every declarator of a **module-scope variable statement**
-… the initializer examined in full as an expression node&quot;, and an aliased binding has no numeric
-initializer while a `function`, `class` or `enum` is not a variable statement; duty (ii) is scoped
-to &quot;a member named `expected` typed `number`&quot;, and an alias is not the `number` keyword; duty (i)
-reads &quot;the parser's numeric-literal nodes&quot;, which a BigInt is not. The implementation matches its
-charter shape for shape. The gap is in the charter.
-
-**Deferred, with the conflict D11 requires.** The duties are enumerated in an approved, frozen spec,
-so widening them means a third `ngrace supersede` in this lineage, at depth 3 — and every one of the
-eight paths requires a deliberate, unusual construction. None is a drift path: the next flush that
-wants to re-pin a count writes `toBe(211)` (duty i), restores the table (duty ii), or adds
-`const EXPECTED = 211` (duty iii), and the guard holds against all three. Superseding a conformant
-bundle to harden against intent is disproportionate, and the alternative — quietly widening a duty
-because the fix is small — is the failure mode [F25](#f25) names and the contract exists to prevent.
-
-**The follow-on must decide the question before it writes any code.** If the guard is a ratchet
-against accidental drift, it is already correct and what is owed is one sentence in the artifact
-saying so, in the house &quot;known boundary, stated rather than hidden&quot; form the same spec already uses
-for its over-approximate reference semantics — the boundary is currently unstated, which is the only
-part a future reader could mistake. If it is meant to resist intent, it needs a different design:
-alias chains of arbitrary depth, every declaration form and every type spelling put it in an arms
-race a scan over source text cannot win, and the honest instrument would be a check on the values
-the test compares rather than the syntax it is written in. Choosing the second without saying so is
-how a guard acquires a reputation it cannot support.
-
-**The absence is searched, not assumed.** `adversar|evasion|evade|arms race|deliberate construction`
-over this bundle's spec and plan, over all six record genre files live and retired, and over the
-delivered `src/artifact/xml.test.ts`, on 2026-09-10: two hits, both in the spec, and both the word
-&quot;evasion&quot; used as the label of the R3-a probe rather than a statement of what the guard is for.
-`adversar` and `arms race` appear nowhere in the record. The word &quot;ratchet&quot; appears there eight
-times, all of them about the citation index's one-way ceiling that `C-INDEX-METRIC-2` broke, none
-about this guard. No artifact states the guard's threat model in either direction.
-
-Disposition: **first item of the follow-on queue**, ahead of [F216](#f216) and [F221](#f221), and it
-takes the same file as `C-FLUSH-AND-PAY-3`, so it is sequential rather than file-disjoint — it
-cannot ride alongside. Owner: a chartered bundle. Neighbour to [F25](#f25) (the deferral form this
-entry follows) and [F220](#f220) (a design ratified on principle and never driven).
-</Body>
-  </Finding>
-  <Finding id="f223" token="F223" status="live">
-    <Title>### F223 — the guard's subtree walk has no early exit and keeps traversing after it has found the node. **[verified]**</Title>
-    <Body>
-`visitSubtree` recurses through `ts.forEachChild` unconditionally, so the callback-locating walk
-continues over every remaining node in the file after the target has already been bound. The match
-logic short-circuits on `found !== undefined`, so no second match can overwrite the first and there
-is no behavioural difference — this is wasted traversal only, on a file that is currently 959 lines
-and grows with every synthetic direction added. Read from the recursion structure, not driven: there
-is no observable behaviour to construct a fixture around, which is also why it is cosmetic.
-
-Owner: the same chartered bundle as [F222](#f222) — same file, same functions, and no reason to open
-the file twice.
 </Body>
   </Finding>
   <Finding id="f227" token="F227" status="live">
