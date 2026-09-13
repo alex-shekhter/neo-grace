@@ -335,71 +335,6 @@ function extractSuccessor(statusText: string, self: string): string {
   return "";
 }
 
-export function closedWithTokens(statusText: string): string[] {
-  const flat = whitespaceNormalize(xmlDecode(statusText));
-  const reduced = flat.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
-  const tokens: string[] = [];
-  const seen = new Set<string>();
-  const startRe = /\bClosed with\b/gi;
-  let start: RegExpExecArray | null;
-  while ((start = startRe.exec(reduced)) !== null) {
-    const rest = reduced.slice(start.index);
-    const period = rest.search(/\./);
-    const clause = period === -1 ? rest : rest.slice(0, period + 1);
-    for (const token of expandFTokens(clause)) {
-      if (!seen.has(token)) {
-        seen.add(token);
-        tokens.push(token);
-      }
-    }
-  }
-  return tokens;
-}
-
-function expandFTokens(text: string): string[] {
-  const out: string[] = [];
-  const rangeEnds = new Set<string>();
-  const rangeRe = /\b(F[0-9]+(?:\.[0-9]+)*)\s*[\u2013\u2014-]\s*(F[0-9]+(?:\.[0-9]+)*)\b/g;
-  let range: RegExpExecArray | null;
-  while ((range = rangeRe.exec(text)) !== null) {
-    const expanded = expandFRange(range[1]!, range[2]!);
-    if (!expanded) {
-      continue;
-    }
-    rangeEnds.add(range[1]!);
-    rangeEnds.add(range[2]!);
-    for (const token of expanded) {
-      out.push(token);
-    }
-  }
-  const singles = text.match(F_TOKEN_RE) ?? [];
-  for (const token of singles) {
-    if (!rangeEnds.has(token) && !out.includes(token)) {
-      out.push(token);
-    }
-  }
-  return out;
-}
-
-function expandFRange(left: string, right: string): string[] | undefined {
-  const parse = (token: string): { prefix: string; n: number } | undefined => {
-    const m = /^(F(?:[0-9]+\.)*)([0-9]+)$/.exec(token);
-    return m ? { prefix: m[1]!, n: Number(m[2]) } : undefined;
-  };
-  const a = parse(left);
-  const b = parse(right);
-  if (!a || !b || a.prefix !== b.prefix) {
-    return undefined;
-  }
-  const start = Math.min(a.n, b.n);
-  const end = Math.max(a.n, b.n);
-  const tokens: string[] = [];
-  for (let i = start; i <= end; i++) {
-    tokens.push(`${a.prefix}${i}`);
-  }
-  return tokens;
-}
-
 export function derivePayerMap(
   repoRoot: string,
   chartered: Array<{ name: string; pays: string; statusText: string }>,
@@ -412,16 +347,6 @@ export function derivePayerMap(
     }
     const tokens = row.pays.match(F_TOKEN_RE) ?? [];
     for (const token of tokens) {
-      if (!paid.has(token)) {
-        paid.set(token, row.name);
-      }
-    }
-  }
-  for (const row of chartered) {
-    if (!archive.has(row.name)) {
-      continue;
-    }
-    for (const token of closedWithTokens(row.statusText)) {
       if (!paid.has(token)) {
         paid.set(token, row.name);
       }
