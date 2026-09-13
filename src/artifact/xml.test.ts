@@ -699,6 +699,16 @@ const GUARD_REFUSAL = "the pairing test's body span could not be located; the gu
  * locally shadowed name is not distinguished from an outer binding
  * (over-approximate, never under). Shapes the scan cannot prove are reported,
  * never passed.
+ *
+ * The guard's threat model is accidental drift, not an adversarial construction:
+ * the next flush re-pinning a count as a literal, restoring an occupancy table,
+ * or adding a module-scope constant. Against that it holds. Known boundary,
+ * stated rather than hidden: eight deliberate constructions put a number back in
+ * silence — a module-scope alias whose numeric binding is never referenced from
+ * the body, a module-scope function returning the number, a class static
+ * property, an enum member, a BigInt literal, a field typed through a type alias,
+ * a computed property name, and a union-typed field — and resisting a deliberate
+ * construction is outside this guard's charter (D39).
  */
 function antiOccupancyFailures(source: string): string[] {
   const failures: string[] = [];
@@ -721,24 +731,24 @@ function antiOccupancyFailures(source: string): string[] {
   return failures;
 }
 
-function visitSubtree(node: ts.Node, visit: (child: ts.Node) => void): void {
-  visit(node);
-  ts.forEachChild(node, (child) => {
-    visitSubtree(child, visit);
-  });
+function visitSubtree(node: ts.Node, visit: (child: ts.Node) => boolean | void): boolean | undefined {
+  if (visit(node) === true) return true;
+  return ts.forEachChild(node, (child) => visitSubtree(child, visit));
 }
 
 /** Locates the pairing test's callback body block; undefined when it cannot be proven. */
 function pairingCallbackBody(sourceFile: ts.SourceFile): ts.Block | undefined {
   let found: ts.Block | undefined;
   visitSubtree(sourceFile, (node) => {
-    if (found !== undefined || !ts.isCallExpression(node)) return;
+    if (found !== undefined) return true;
+    if (!ts.isCallExpression(node)) return;
     if (!ts.isIdentifier(node.expression) || node.expression.text !== "it") return;
     const title = node.arguments[0];
     if (title === undefined || !ts.isStringLiteral(title) || title.text !== PAIRING_TEST_TITLE) return;
     const callback = node.arguments[1];
     if (callback === undefined || !ts.isArrowFunction(callback) || !ts.isBlock(callback.body)) return;
     found = callback.body;
+    return true;
   });
   return found;
 }
@@ -906,6 +916,59 @@ describe("pairing guard fixture", () => {
     expect(nodes).toBeDefined();
   });
 });`;
+
+const GUARD_BOUNDARY_SHAPES = [
+  "module-scope alias",
+  "module-scope function returning the number",
+  "class static",
+  "enum member",
+  "BigInt literal",
+  "typed through a type alias",
+  "computed property name",
+  "union-typed field",
+];
+
+describe("anti-occupancy guard statement", () => {
+  it("states its threat model and its known boundary in its own docblock", () => {
+    const self = readFileSync(
+      path.join(import.meta.dir, path.basename(new URL(import.meta.url).pathname)),
+      "utf8",
+    );
+    const start = self.indexOf("/**\n * Regression guard against the occupancy pins");
+    const end = self.indexOf("*/", start);
+    expect(start, "the guard's docblock is present").toBeGreaterThanOrEqual(0);
+    expect(end, "the guard's docblock is terminated").toBeGreaterThan(start);
+    const docblock = self.slice(start, end);
+    expect(docblock, "the threat model is stated").toContain("threat model is accidental drift");
+    expect(docblock, "the boundary is named as a boundary").toContain("Known boundary");
+    for (const shape of GUARD_BOUNDARY_SHAPES) {
+      expect(docblock, `the boundary names ${shape}`).toContain(shape);
+    }
+  });
+});
+
+describe("anti-occupancy guard early exit", () => {
+  it("stops walking once the visitor returns true, and visits every node when it does not", () => {
+    const sourceFile = ts.createSourceFile(
+      "synthetic.ts",
+      "const a = 1;\nconst b = 2;\nconst TARGET = 3;\nconst c = 4;",
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    );
+    const seen: string[] = [];
+    visitSubtree(sourceFile, (node) => {
+      if (ts.isIdentifier(node)) seen.push(node.text);
+      if (ts.isIdentifier(node) && node.text === "TARGET") return true;
+    });
+    expect(seen).toEqual(["a", "b", "TARGET"]);
+    const seenAll: string[] = [];
+    visitSubtree(sourceFile, (node) => {
+      if (ts.isIdentifier(node)) seenAll.push(node.text);
+    });
+    expect(seenAll).toEqual(["a", "b", "TARGET", "c"]);
+  });
+});
 
 describe("anti-occupancy guard discriminating directions", () => {
   it("passes a pairing body with no numeric literals and no numeric module bindings", () => {

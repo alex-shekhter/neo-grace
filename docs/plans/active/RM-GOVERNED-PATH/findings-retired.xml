@@ -4232,4 +4232,105 @@ Owner: a later bundle. The remedy is a design question — narrow the prose path
 declaration, or keep them and make the derivation report what it minted and from which sentence — and
 the authority has no position yet.</Body>
   </Finding>
+  <Finding id="f244" token="F244" status="retired">
+    <PaidBy>C-PAYMENT-INTEGRITY</PaidBy>
+    <Title>### F244 — the `C-FLUSH-AND-PAY clamp invariant` test asserts `headroom &lt; 7 × median` on the production record, a relation the ratified engine falsifies by construction on any clamped move that frees room: latent since it shipped, red on the first bundle that retires enough. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-12 at `af0f721`, by the executor authoring `C-PAYMENT-INTEGRITY`'s spec and re-driven by the
+authority.** `scripts/validate-record-retirement.test.ts:3067` reads the production `findings.xml`, computes
+`7 × median(live element lines)` and asserts the persisted `headroom` is below it (&quot;the clamp binds&quot;). The engine's
+ratified arithmetic (`C-ROOT-WINDOW-2`/`-3`: persisted ceiling = `min(previous ceiling, pre-move base + floored
+headroom)`, `persistSnapshot` with `ceilingBase = findingsBaseRead`) computes the formula ceiling from the **pre-move**
+base so that a retire frees the moved lines; when the clamp binds, `headroom = 7 × median + lines moved`, which is
+never below the product. Driven on a whole-repository copy of this bundle's state: mid-bundle `7597/249/7846` against
+238; post-close `7569/266/7835` against 238 — `expect(headroom).toBeLessThan(product)` fails both times. It stayed
+green through every close since `C-FLUSH-AND-PAY` only because the held ceiling kept `ceiling − base` under the product
+while the live file grew; the first bundle to retire three findings without flushing any crossed it.
+
+**The class.** [F225](#f225), [F229](#f229), [F232](#f232), [F237](#f237), [F238](#f238): an assertion describing the
+state at its own bundle's approval, written as an invariant. The two relations beside it (`base + headroom = ceiling`,
+`base = newlineCount`) are durable and already asserted by the `C-PAYMENT-RECORD-4` roots-invariant tripwire.
+
+Owner: `C-PAYMENT-INTEGRITY` repairs it (the clause removed; the test deleted or renamed so no test claims a clamp it
+does not assert); its payment is recorded at this entry's flush by appending `F244` to that bundle's retired row, the
+retired-row append the same bundle establishes as lawful for `F185`. Neighbour to [F225](#f225), [F237](#f237).
+
+---
+</Body>
+  </Finding>
+  <Finding id="f222" token="F222" status="retired">
+    <PaidBy>C-GUARD-RATCHET</PaidBy>
+    <Title>### F222 — the anti-occupancy guard is a ratchet against drift, not an adversarial control, and no artifact says which. **[verified]**</Title>
+    <Body>
+`C-FLUSH-AND-PAY-3` rebuilt the guard over the TypeScript parser and closed the three failures its
+charter named: a number hidden behind an internal semicolon, a false red on an `async` reformat, and
+blindness to destructured and non-first declarators. It conforms to that charter exactly. Eight
+other ways to put a number back are silent, and the charter never claimed otherwise.
+
+**Measured 2026-09-10 against the delivered `src/artifact/xml.test.ts`, on a throwaway copy of the
+repository, each mutation driven through `bun test src/artifact/xml.test.ts` with the exit code read
+directly.** The suite is 35 pass / 0 fail — the guard silent — for every one of: a module-scope
+alias (`const A = 195; const B = A;` with `B` referenced from the body, so no binding both carries
+the literal and is referenced); a module-scope `function` returning the number; a `class` static
+property; an `enum` member; a BigInt literal (`195n`, a `BigIntLiteral` node, not a
+`NumericLiteral`) inside the guarded body; a field typed through an alias (`type Num = number`); a
+computed property name (`[&quot;expected&quot;]`); and a union-typed field (`expected: number | undefined`).
+The control discriminates: a plain `expected: number` interface member fires, 34 pass / 1 fail. The
+silences are the guard's real behaviour, not a broken probe.
+
+**None of the eight is a defect against the delivered work.** The spec's Goal R3 enumerates the
+duties by shape — duty (iii) is scoped to &quot;every declarator of a **module-scope variable statement**
+… the initializer examined in full as an expression node&quot;, and an aliased binding has no numeric
+initializer while a `function`, `class` or `enum` is not a variable statement; duty (ii) is scoped
+to &quot;a member named `expected` typed `number`&quot;, and an alias is not the `number` keyword; duty (i)
+reads &quot;the parser's numeric-literal nodes&quot;, which a BigInt is not. The implementation matches its
+charter shape for shape. The gap is in the charter.
+
+**Deferred, with the conflict D11 requires.** The duties are enumerated in an approved, frozen spec,
+so widening them means a third `ngrace supersede` in this lineage, at depth 3 — and every one of the
+eight paths requires a deliberate, unusual construction. None is a drift path: the next flush that
+wants to re-pin a count writes `toBe(211)` (duty i), restores the table (duty ii), or adds
+`const EXPECTED = 211` (duty iii), and the guard holds against all three. Superseding a conformant
+bundle to harden against intent is disproportionate, and the alternative — quietly widening a duty
+because the fix is small — is the failure mode [F25](#f25) names and the contract exists to prevent.
+
+**The follow-on must decide the question before it writes any code.** If the guard is a ratchet
+against accidental drift, it is already correct and what is owed is one sentence in the artifact
+saying so, in the house &quot;known boundary, stated rather than hidden&quot; form the same spec already uses
+for its over-approximate reference semantics — the boundary is currently unstated, which is the only
+part a future reader could mistake. If it is meant to resist intent, it needs a different design:
+alias chains of arbitrary depth, every declaration form and every type spelling put it in an arms
+race a scan over source text cannot win, and the honest instrument would be a check on the values
+the test compares rather than the syntax it is written in. Choosing the second without saying so is
+how a guard acquires a reputation it cannot support.
+
+**The absence is searched, not assumed.** `adversar|evasion|evade|arms race|deliberate construction`
+over this bundle's spec and plan, over all six record genre files live and retired, and over the
+delivered `src/artifact/xml.test.ts`, on 2026-09-10: two hits, both in the spec, and both the word
+&quot;evasion&quot; used as the label of the R3-a probe rather than a statement of what the guard is for.
+`adversar` and `arms race` appear nowhere in the record. The word &quot;ratchet&quot; appears there eight
+times, all of them about the citation index's one-way ceiling that `C-INDEX-METRIC-2` broke, none
+about this guard. No artifact states the guard's threat model in either direction.
+
+Disposition: **first item of the follow-on queue**, ahead of [F216](#f216) and [F221](#f221), and it
+takes the same file as `C-FLUSH-AND-PAY-3`, so it is sequential rather than file-disjoint — it
+cannot ride alongside. Owner: a chartered bundle. Neighbour to [F25](#f25) (the deferral form this
+entry follows) and [F220](#f220) (a design ratified on principle and never driven).
+</Body>
+  </Finding>
+  <Finding id="f223" token="F223" status="retired">
+    <PaidBy>C-GUARD-RATCHET</PaidBy>
+    <Title>### F223 — the guard's subtree walk has no early exit and keeps traversing after it has found the node. **[verified]**</Title>
+    <Body>
+`visitSubtree` recurses through `ts.forEachChild` unconditionally, so the callback-locating walk
+continues over every remaining node in the file after the target has already been bound. The match
+logic short-circuits on `found !== undefined`, so no second match can overwrite the first and there
+is no behavioural difference — this is wasted traversal only, on a file that is currently 959 lines
+and grows with every synthetic direction added. Read from the recursion structure, not driven: there
+is no observable behaviour to construct a fixture around, which is also why it is cosmetic.
+
+Owner: the same chartered bundle as [F222](#f222) — same file, same functions, and no reason to open
+the file twice.
+</Body>
+  </Finding>
 </Findings>
