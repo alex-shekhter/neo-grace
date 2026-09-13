@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   checkApprovalLexicon,
   checkClaimedShapes,
+  checkCliTokenForms,
   checkDocsAndExamplesDecision,
   checkPolyglotDefault,
   checkRecordTokens,
@@ -498,11 +499,17 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-spec", section: "clarifications", token: "declared nowhere else" },
   { skill: "ngrace-spec", section: "workflow", token: "stand in for the interview" },
   { skill: "ngrace-spec", section: "shape_sources", token: "rewritten wholesale" },
+  { skill: "ngrace-spec", section: "shape_sources", token: "relative to this skill's directory" },
   { skill: "ngrace-spec", section: "status_rules", token: "revised in place" },
   { skill: "ngrace-plan", section: "must_do", token: "placeholders" },
   { skill: "ngrace-plan", section: "must_do", token: "re-home" },
   { skill: "ngrace-plan", section: "must_do", token: "on a prototype" },
   { skill: "ngrace-plan", section: "must_do", token: "other than the author" },
+  { skill: "ngrace-plan", section: "must_do", token: "assert only what the bundle leaves unchanged" },
+  { skill: "ngrace-plan", section: "must_do", token: "structurally redundant" },
+  { skill: "ngrace-plan", section: "must_do", token: "faithful post-close copy" },
+  { skill: "ngrace-plan", section: "must_do", token: "red-direction fixture" },
+  { skill: "ngrace-plan", section: "must_do", token: "change.graph-anchors-miss-write-scope" },
   { skill: "ngrace-plan", section: "spec_plan_traceability", token: "uncloseable bundle" },
   { skill: "ngrace-plan", section: "command_phase_rules", token: "stage the task runs" },
   { skill: "ngrace-execute", section: "execution_rules", token: "no declared task is in scope" },
@@ -513,7 +520,8 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-reviewer", section: "review_judgment", token: "forced-file set" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "both directions" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "faithful copy" },
-  { skill: "ngrace-reviewer", section: "review_judgment", token: "life cycle produces next" },
+  { skill: "ngrace-reviewer", section: "review_judgment", token: "any later lawful move of the record" },
+  { skill: "ngrace-reviewer", section: "review_judgment", token: "red-direction fixture" },
 ];
 
 function taughtSkillBody(skill: string, drop?: { section: string; token?: string }): string {
@@ -677,4 +685,87 @@ describe("refusal readability (T-004 red B — shipped runner is silent on refus
     expect(output).toContain("acceptance_criteria_anchors");
     expect(output).toContain("shipped parser");
   });
+});
+
+// ---------------------------------------------------------------------------
+// C-FLUSH-AND-TEACH T-003: checkCliTokenForms — the F239 rule sentence in
+// ngrace-cli shape_sources and no bare `argv token `explain`` form in either
+// tree. The red directions plant into whichever tree the helper walks.
+// ---------------------------------------------------------------------------
+
+const CLI_FORM_TREES = ["skills/ngrace", "plugins/ngrace/skills/ngrace"] as const;
+const CLI_FORM_SKILLS = [
+  "ngrace-plan",
+  "ngrace-spec",
+  "ngrace-cli",
+  "ngrace-design",
+  "ngrace-verification",
+  "ngrace-execute",
+] as const;
+
+function plantCliTokenSkills(root: string, override?: { relative: string; body: string }): void {
+  for (const tree of CLI_FORM_TREES) {
+    for (const skill of CLI_FORM_SKILLS) {
+      const relative = `${tree}/${skill}/SKILL.md`;
+      const body =
+        override?.relative === relative
+          ? override.body
+          : "<shape_sources>\nnames the command that takes it\n</shape_sources>\n";
+      const file = path.join(root, relative);
+      mkdirSync(path.dirname(file), { recursive: true });
+      writeFileSync(file, body);
+    }
+  }
+}
+
+describe("checkCliTokenForms", () => {
+  it("returns zero when ngrace-cli shape_sources carries the F239 rule token in both trees and no tree carries the bare form", () => {
+    const root = isolatedRoot();
+    plantCliTokenSkills(root);
+    expect(checkCliTokenForms(root)).toBe(0);
+  });
+
+  it("returns non-zero naming the file and the token when a bare argv token explain line is planted in one tree", () => {
+    const root = isolatedRoot();
+    plantCliTokenSkills(root, {
+      relative: "skills/ngrace/ngrace-design/SKILL.md",
+      body: "<shape_sources>\nExplain a shape or code: argv token `explain`.\n</shape_sources>\n",
+    });
+    const { code, output } = captureStderr(() => checkCliTokenForms(root));
+    expect(code).not.toBe(0);
+    expect(output).toContain("skills/ngrace/ngrace-design/SKILL.md");
+    expect(output).toContain("argv token `explain`");
+  });
+
+  it("returns non-zero naming the file and the token when the bare form is planted OUTSIDE the five authoring skills (ngrace-execute), so the walk is every SKILL.md on disk", () => {
+    const root = isolatedRoot();
+    plantCliTokenSkills(root, {
+      relative: "skills/ngrace/ngrace-execute/SKILL.md",
+      body: "<shape_sources>\nExplain a shape or code: argv token `explain`.\n</shape_sources>\n",
+    });
+    const { code, output } = captureStderr(() => checkCliTokenForms(root));
+    expect(code).not.toBe(0);
+    expect(output).toContain("skills/ngrace/ngrace-execute/SKILL.md");
+    expect(output).toContain("argv token `explain`");
+  });
+
+  it("returns non-zero when the F239 rule token is missing from ngrace-cli shape_sources", () => {
+    const root = isolatedRoot();
+    plantCliTokenSkills(root, {
+      relative: "skills/ngrace/ngrace-cli/SKILL.md",
+      body: "<shape_sources>\nsomething else\n</shape_sources>\n",
+    });
+    const { code, output } = captureStderr(() => checkCliTokenForms(root));
+    expect(code).not.toBe(0);
+    expect(output).toContain("skills/ngrace/ngrace-cli/SKILL.md");
+    expect(output).toContain("names the command that takes it");
+  });
+
+  it(
+    "real-repository: ngrace-cli shape_sources carries the rule and no SKILL.md carries the bare form in either tree (generous timeout)",
+    () => {
+      expect(checkCliTokenForms(REPO_ROOT)).toBe(0);
+    },
+    60_000,
+  );
 });

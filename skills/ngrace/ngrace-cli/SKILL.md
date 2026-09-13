@@ -8,14 +8,14 @@ description: Operate the neo-grace CLI for .ngrace linting, status, module navig
 
 <shape_sources>
 Command inventory: README CLI Overview table (bound to `listLiveInvocations`). Do not restate that inventory here.
-Explain a shape or code: argv token `explain`.
-Registered artifact shapes: `docs/schema-reference.md`. That document is not a complete grammar.
+Explain a shape or code: `ngrace lint --explain <code|shape>`.
+Registered artifact shapes: `docs/schema-reference.md`. That document is not a complete grammar. A skill that names a CLI token names the command that takes it, in the form the shell accepts (`ngrace lint --explain <code|shape>`); the bare-token idiom is for XML artifact bodies only.
 </shape_sources>
 
 <commands>
 The live command inventory is the README CLI Overview table. Assertion-mode and fail-closed workflow stay in this skill.
 - Active-baseline, selected baseline, selected target, and final assertion modes: see `lifecycle_command_contract`.
-- Issue code lookup: argv token `explain` — a catalogued entry, a code the binary emits without a dedicated entry, or an unknown string (says so, exits nonzero). Never infer a meaning it did not print.
+- Issue code lookup: `ngrace lint --explain <code>` — a catalogued entry, a code the binary emits without a dedicated entry, or an unknown string (says so, exits nonzero). Never infer a meaning it did not print.
 </commands>
 
 <lifecycle_command_contract>`current` evaluates active approved baselines and is not end-state evidence. `MustPassCommand` contains leaf project evidence such as tests, typecheck, build, format, or package checks. Do not put a current-mode lint of this project root in TargetAssertions. Current mode means the command text contains `--assertions current`, or it invokes `ngrace lint` and omits `--assertions`. The restriction matches command text; it does not resolve `bun run <script>` through package.json, and it does not apply to `--help` or to lint of a different project root. Use selected target/final lint externally. Selected `--assertions target` without `--run-commands` is a structural query; unevaluated `MustPassCommand` / `MustPassBudget` is reported as `assertion.command-not-evaluated` and does not fail that query's exit.</lifecycle_command_contract>

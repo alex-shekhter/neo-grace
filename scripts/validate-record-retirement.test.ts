@@ -4,6 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { childNodes, childText, computeElementSpans, parseGraceXmlArtifact, walkNodes } from "../src/artifact/xml.ts";
+import { validateStubAndIndex } from "./validate-citation-anchors.ts";
+import { proveRecordPreservation } from "./prove-record-preservation.ts";
 import {
   INDEX_HEADROOM_ENTRIES,
   RULINGS_PROVENANCE_CEILING,
@@ -2091,6 +2093,12 @@ ${names
         // not an archive directory while the bundle is active) and green in
         // the applied-archive state (the close's mint).
         F224: "C-APPLY-VERB",
+        // C-FLUSH-AND-TEACH T-004: the chartered row five minted tokens.
+        F236: "C-FLUSH-AND-TEACH",
+        F237: "C-FLUSH-AND-TEACH",
+        F238: "C-FLUSH-AND-TEACH",
+        F239: "C-FLUSH-AND-TEACH",
+        F241: "C-FLUSH-AND-TEACH",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
@@ -4222,5 +4230,271 @@ describe("C-APPLY-VERB T-006 record-row red direction", () => {
       ...layers.filter((layer) => layer.file !== holding!.file),
     ]);
     expect(violations.join("; ")).toMatch(/StatusText names an F-token/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-FLUSH-AND-TEACH T-001: the flush-invariant walk over the three staged
+// findings this bundle flushes. The walk reads both findings files and the
+// index at test time, so a duplicate or a layer mismatch reds regardless of
+// which file holds the element (F238/F237-safe: no layer named in advance).
+// ---------------------------------------------------------------------------
+
+const CFT_FLUSHED = ["f238", "f239", "f241"] as const;
+
+function expectFlushedFindingInvariants(recordDir: string): void {
+  const indexParsed = parseGraceXmlArtifact(
+    "decisions.xml",
+    readFileSync(path.join(recordDir, "decisions.xml"), "utf8"),
+  );
+  expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+  for (const id of CFT_FLUSHED) {
+    const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      expect(parsed.root, `${file} parses`).not.toBeNull();
+      return [...walkNodes(parsed.root!)]
+        .filter((node) => node.tag === "Finding" && node.attributes.id === id)
+        .map((node) => ({ file, node }));
+    });
+    expect(
+      carriers.length,
+      `${id}: exactly one Finding element across the findings pair (got ${carriers.length})`,
+    ).toBe(1);
+    const { file, node } = carriers[0]!;
+    const expectedStatus = file === "findings.xml" ? "live" : "retired";
+    expect(
+      node.attributes.status,
+      `${id}: the carrier's status agrees with the holding file (${file})`,
+    ).toBe(expectedStatus);
+    expect(node.attributes.token, `${id}: the carrier's token agrees with the id`).toBe(`F${id.slice(1)}`);
+    const entries = [...walkNodes(indexParsed.root!)].filter(
+      (entry) => entry.tag === "Entry" && entry.attributes.id === id,
+    );
+    expect(entries.length, `${id}: exactly one Entry for the id (a duplicate would walk two)`).toBe(1);
+    expect(entries[0]!.attributes.genre, `${id}: the Entry's genre agrees`).toBe("finding");
+    expect(
+      entries[0]!.attributes.layer,
+      `${id}: the Entry's layer agrees with the holding file`,
+    ).toBe(expectedStatus);
+  }
+  const findingsText = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+  const findingsRoot = parseGraceXmlArtifact("findings.xml", findingsText).root!;
+  expect(Number(findingsRoot.attributes.base), "findings.xml: base equals the file's newlineCount").toBe(
+    newlineCount(findingsText),
+  );
+  expect(
+    Number(findingsRoot.attributes.base) + Number(findingsRoot.attributes.headroom),
+    "findings.xml: base + headroom = ceiling",
+  ).toBe(Number(findingsRoot.attributes.ceiling));
+}
+
+describe("C-FLUSH-AND-TEACH flush invariant", () => {
+  it(
+    "f238, f239 and f241 each exist exactly once across the findings pair with status, token, index genre and index layer agreeing with the holding file, and the findings root reads back (generous timeout)",
+    () => {
+      expectFlushedFindingInvariants(path.join(REPO_ROOT, RECORD_REL));
+    },
+    60_000,
+  );
+});
+
+// ---------------------------------------------------------------------------
+// C-FLUSH-AND-TEACH T-004: the chartered row's walk, carrier relations, the
+// imported citation/preservation assertions, and the named red directions.
+// Every red fixture mutates whichever layer holds the row (F237/F238-safe).
+// ---------------------------------------------------------------------------
+
+const CFT_ROW_FIVE = ["F236", "F237", "F238", "F239", "F241"] as const;
+
+type CftRowHit = {
+  file: string;
+  status: string;
+  kind: string;
+  pays: string;
+  charter: string;
+  statusText: string;
+};
+
+function walkCftRow(recordDir: string): CftRowHit[] {
+  const hits: CftRowHit[] = [];
+  for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+    const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+    expect(parsed.root, `${file} parses`).not.toBeNull();
+    for (const row of childNodes(parsed.root!, "Row")) {
+      if (row.attributes.name !== "C-FLUSH-AND-TEACH") {
+        continue;
+      }
+      hits.push({
+        file,
+        status: row.attributes.status ?? "",
+        kind: row.attributes.kind ?? "",
+        pays: (childText(row, "Pays") ?? "").trim(),
+        charter: childText(row, "Charter") ?? "",
+        statusText: childText(row, "StatusText") ?? "",
+      });
+    }
+  }
+  return hits;
+}
+
+function expectCftRowInvariants(hits: CftRowHit[]): void {
+  expect(
+    hits.length,
+    `the C-FLUSH-AND-TEACH row exists exactly once across the registry layers (got ${hits.length})`,
+  ).toBe(1);
+  const hit = hits[0]!;
+  const holding = hit.file === "registry.xml" ? "live" : "retired";
+  expect(hit.status, "the row's status agrees with the holding file").toBe(holding);
+  expect(hit.kind, "the row is chartered").toBe("chartered");
+  expect(hit.pays, "Pays names exactly the five tokens in that order").toBe("F236 F237 F238 F239 F241");
+  expect(hit.charter, "the Charter records the mint search").toContain("Searched before minting");
+  expect(hit.charter.match(/\bF[0-9]/g), "the Charter names no F token").toBeNull();
+  expect(hit.statusText.match(/\bF[0-9]/), "the StatusText names no F token").toBeNull();
+  expect(/closed with/i.test(hit.statusText), "the StatusText carries no Closed-with sentence").toBe(false);
+}
+
+function expectCftCarrierRelations(recordDir: string): void {
+  const indexParsed = parseGraceXmlArtifact(
+    "decisions.xml",
+    readFileSync(path.join(recordDir, "decisions.xml"), "utf8"),
+  );
+  expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+  for (const token of CFT_ROW_FIVE) {
+    const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      return [...walkNodes(parsed.root!)]
+        .filter((node) => node.tag === "Finding" && node.attributes.token === token)
+        .map((node) => ({ file, node }));
+    });
+    expect(
+      carriers.length,
+      `${token}: at most one Finding element carries the token across the two findings files (got ${carriers.length})`,
+    ).toBeLessThanOrEqual(1);
+    for (const carrier of carriers) {
+      const expectedStatus = carrier.file === "findings.xml" ? "live" : "retired";
+      expect(
+        carrier.node.attributes.status,
+        `${token}: the carrier's status agrees with the holding file (${carrier.file})`,
+      ).toBe(expectedStatus);
+      if (carrier.file === "findings-retired.xml") {
+        expect(
+          childText(carrier.node, "PaidBy"),
+          `${token}: a retired carrier carries PaidBy C-FLUSH-AND-TEACH`,
+        ).toBe("C-FLUSH-AND-TEACH");
+      }
+      const entries = [...walkNodes(indexParsed.root!)].filter(
+        (node) => node.tag === "Entry" && node.attributes.id === carrier.node.attributes.id,
+      );
+      expect(entries.length, `${token}: the index carries exactly one Entry for the carrier's id`).toBe(1);
+      expect(
+        entries[0]!.attributes.layer,
+        `${token}: the carrier's index Entry layer agrees with the holding file`,
+      ).toBe(expectedStatus);
+    }
+  }
+}
+
+/** Isolated copy of the two registry layers, optionally mutated, never the production record. */
+function plantedCftRegistry(mutateHolder?: (xml: string) => string): string {
+  const root = isolatedRoot();
+  const recordDir = path.join(root, RECORD_REL);
+  mkdirSync(recordDir, { recursive: true });
+  for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+    const source = readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8");
+    const holdsRow = source.includes('name="C-FLUSH-AND-TEACH"');
+    writeFileSync(path.join(recordDir, file), holdsRow ? (mutateHolder?.(source) ?? source) : source);
+  }
+  return recordDir;
+}
+
+describe("C-FLUSH-AND-TEACH row", () => {
+  it(
+    "row invariant: exactly once across the registry layers, status agreeing with the holding file, kind chartered, Pays exactly F236 F237 F238 F239 F241 in that order, Charter carrying the searched-before-minting statement with no F token, StatusText naming no F token and no Closed-with sentence (generous timeout)",
+    () => {
+      expectCftRowInvariants(walkCftRow(path.join(REPO_ROOT, RECORD_REL)));
+    },
+    60_000,
+  );
+
+  it(
+    "carrier relations and imported validators: each of the five tokens, when a Finding carries it, exists exactly once across both findings files, status and index layer agreeing, PaidBy C-FLUSH-AND-TEACH if retired — and validateStubAndIndex and proveRecordPreservation return zero findings read-only on the production record (generous timeout)",
+    () => {
+      const recordDir = path.join(REPO_ROOT, RECORD_REL);
+      expectCftCarrierRelations(recordDir);
+      const recordFiles = [
+        "findings.xml",
+        "findings-retired.xml",
+        "rulings.xml",
+        "rulings-retired.xml",
+        "registry.xml",
+        "registry-retired.xml",
+        "decisions.xml",
+      ];
+      const before = new Map(
+        recordFiles.map((file) => [file, readFileSync(path.join(recordDir, file), "utf8")]),
+      );
+      const production = validateRecordRetirement({ repoRoot: REPO_ROOT, recordDir });
+      expect(production, "the shipped validator returns zero findings on the production record").toEqual([]);
+      expect(
+        validateStubAndIndex(path.join(recordDir, "decisions.md")),
+        "validateStubAndIndex returns zero findings read-only",
+      ).toEqual([]);
+      expect(
+        proveRecordPreservation(recordDir),
+        "proveRecordPreservation returns zero findings read-only",
+      ).toEqual([]);
+      for (const file of recordFiles) {
+        expect(
+          readFileSync(path.join(recordDir, file), "utf8"),
+          `${file}: the production runs are read-only`,
+        ).toBe(before.get(file)!);
+      }
+    },
+    60_000,
+  );
+
+  it("red direction — a second row with the same name reddens the exactly-once clause (mutating whichever layer holds the row)", () => {
+    const recordDir = plantedCftRegistry((xml) =>
+      xml.replace(
+        "</Registry>",
+        `  <Row name="C-FLUSH-AND-TEACH" status="live" kind="chartered">\n    <Number></Number>\n    <Charter>duplicate</Charter>\n    <Pays>F236</Pays>\n    <StatusText>Ordered</StatusText>\n  </Row>\n</Registry>`,
+      ),
+    );
+    expect(() => expectCftRowInvariants(walkCftRow(recordDir))).toThrow(/exactly once across the registry layers/);
+  });
+
+  it("red direction — a Pays token outside the five reddens the exact-set clause", () => {
+    const recordDir = plantedCftRegistry((xml) =>
+      xml.replace("<Pays>F236 F237 F238 F239 F241</Pays>", "<Pays>F236 F237 F238 F239 F241 F230</Pays>"),
+    );
+    expect(() => expectCftRowInvariants(walkCftRow(recordDir))).toThrow(/exactly the five tokens/);
+  });
+
+  it("red direction — a StatusText naming a token outside Pays reddens the row's prose law", () => {
+    const recordDir = plantedCftRegistry((xml) =>
+      xml.replace(
+        /(<Row name="C-FLUSH-AND-TEACH"[\s\S]*?)<StatusText>[^<]*<\/StatusText>/,
+        "$1<StatusText>Ordered. Closed with F230.</StatusText>",
+      ),
+    );
+    expect(() => expectCftRowInvariants(walkCftRow(recordDir))).toThrow(/no F token|Closed-with/);
+  });
+
+  it("red direction — a duplicated carrier reddens the at-most-once clause", () => {
+    const root = isolatedRoot();
+    const recordDir = path.join(root, RECORD_REL);
+    mkdirSync(recordDir, { recursive: true });
+    for (const file of ["registry.xml", "registry-retired.xml", "findings.xml", "findings-retired.xml", "decisions.xml"] as const) {
+      copyFileSync(path.join(REPO_ROOT, RECORD_REL, file), path.join(recordDir, file));
+    }
+    const live = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+    writeFileSync(
+      path.join(recordDir, "findings.xml"),
+      live.replace(
+        "</Findings>",
+        `  <Finding id="f236-duplicate" token="F236" status="live">\n    <Title>### F236 duplicate</Title>\n    <Body>duplicated carrier</Body>\n  </Finding>\n</Findings>`,
+      ),
+    );
+    expect(() => expectCftCarrierRelations(recordDir)).toThrow(/at most one Finding element carries the token/);
   });
 });

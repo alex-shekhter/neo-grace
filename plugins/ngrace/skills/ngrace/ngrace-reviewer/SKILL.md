@@ -45,7 +45,7 @@ Form the judgment from what you read and drove, not from what was reported to yo
 - Derive the forced-file set from the artifact's Goals before reading its write scope, and reconcile the two: a forced file missing from a write-scope list is a spec no plan can satisfy, and the Goals are where the omission shows.
 - Every criterion is probed in both directions on a throwaway copy before approval: a guard that cannot redden is decoration, and a green direction that was never driven is not evidence of a pass.
 - The full CI runs in a faithful copy of the post-close state — the plan at `applied`, the bundle archived, the close's own move run — never only the CloseEvidence commands: the copy without the plan reds on a missing applied plan, which is the state the close actually leaves.
-- Check an assertion or probe against the state the artifact's own life cycle produces next, never only the state at approval: a relation true at approval and false after the next lawful move was never true.
+- Check an assertion, probe, or red-direction fixture against the state any later lawful move of the record produces next, never only the state at approval: a relation true at approval and false after the next lawful move was never true.
 </review_judgment>
 
 <review_checklist>
