@@ -414,11 +414,12 @@ describe("C-APPROVE-TIME-REVIEW T-001 ngrace-spec", () => {
       expect(statusRules).toContain("did not run (no plan)");
       expect(statusRules).toContain("ran over 0 pairs");
       expect(statusRules).toContain("not substantiation");
-      expect(statusRules).toContain("review.scope-outside-write-scope");
+      expect(statusRules).toContain("skips the bundle's own");
+      expect(statusRules).toContain("design-context.xml");
       expect(statusRules).toContain("spec.xml");
       expect(statusRules).toContain("plan.xml");
       expect(statusRules).toContain("decisions.md");
-      expect(statusRules).toContain("do not add those paths to ObservedWriteScope");
+      expect(statusRules).toContain("Do not add those paths to `ObservedWriteScope`");
     });
 
     it("workflow step 6 states the F150 expected findings and ObservedWriteScope ban", () => {
@@ -426,11 +427,12 @@ describe("C-APPROVE-TIME-REVIEW T-001 ngrace-spec", () => {
       expect(step6).toContain("did not run (no plan)");
       expect(step6).toContain("ran over 0 pairs");
       expect(step6).toContain("not substantiation");
-      expect(step6).toContain("review.scope-outside-write-scope");
+      expect(step6).toContain("skips the bundle's own");
+      expect(step6).toContain("design-context.xml");
       expect(step6).toContain("spec.xml");
       expect(step6).toContain("plan.xml");
       expect(step6).toContain("decisions.md");
-      expect(step6).toContain("do not add those paths to ObservedWriteScope");
+      expect(step6).toContain("Do not add those paths to `ObservedWriteScope`");
     });
   });
 
@@ -505,11 +507,12 @@ describe("C-APPROVE-TIME-REVIEW T-002 ngrace-plan", () => {
       expect(row15).toContain("did not run (no plan)");
       expect(row15).toContain("ran over 0 pairs");
       expect(row15).toContain("not substantiation");
-      expect(row15).toContain("review.scope-outside-write-scope");
+      expect(row15).toContain("skips the bundle's own");
+      expect(row15).toContain("design-context.xml");
       expect(row15).toContain("spec.xml");
       expect(row15).toContain("plan.xml");
       expect(row15).toContain("decisions.md");
-      expect(row15).toContain("do not add those paths to ObservedWriteScope");
+      expect(row15).toContain("Do not add those paths to `ObservedWriteScope`");
     });
   });
 
@@ -572,11 +575,12 @@ describe("C-APPROVE-TIME-REVIEW T-003 ngrace-reviewer", () => {
       expect(reviewer).toContain("did not run (no plan)");
       expect(reviewer).toContain("ran over 0 pairs");
       expect(reviewer).toContain("not substantiation");
-      expect(reviewer).toContain("review.scope-outside-write-scope");
+      expect(reviewer).toContain("skips the bundle's own");
+      expect(reviewer).toContain("design-context.xml");
       expect(reviewer).toContain("spec.xml");
       expect(reviewer).toContain("plan.xml");
       expect(reviewer).toContain("decisions.md");
-      expect(reviewer).toContain("do not add those paths to ObservedWriteScope");
+      expect(reviewer).toContain("Do not add those paths to `ObservedWriteScope`");
       expect(reviewer).not.toContain("review.zero-or-more-swallow");
     });
   });

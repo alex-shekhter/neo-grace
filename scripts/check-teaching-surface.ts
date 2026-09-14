@@ -406,6 +406,26 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-reviewer", section: "review_judgment", token: "faithful copy" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "any later lawful move of the record" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "red-direction fixture" },
+  { skill: "ngrace-plan", section: "must_do", token: "tree state its task leaves" },
+  { skill: "ngrace-plan", section: "must_do", token: "excludes every earlier task's files" },
+  { skill: "ngrace-plan", section: "must_do", token: "evaluated by nothing before the plan is approved" },
+  { skill: "ngrace-plan", section: "must_do", token: "to a test slice, never a whole file" },
+  { skill: "ngrace-plan", section: "must_do", token: "skips the bundle's own" },
+  { skill: "ngrace-plan", section: "must_do", token: "by identity" },
+  { skill: "ngrace-plan", section: "must_do", token: "design-context.xml" },
+  { skill: "ngrace-plan", section: "must_do", token: "gate approve --artifact plan" },
+  { skill: "ngrace-plan", section: "validation", token: "requires an open epoch on a declared task" },
+  { skill: "ngrace-execute", section: "assertion_commands", token: "needs an open epoch on a declared task" },
+  { skill: "ngrace-execute", section: "recovery_decision_table", token: "approved plan's own baseline assertion is false at HEAD" },
+  { skill: "ngrace-spec", section: "status_rules", token: "skips the bundle's own" },
+  { skill: "ngrace-spec", section: "status_rules", token: "by identity" },
+  { skill: "ngrace-spec", section: "status_rules", token: "design-context.xml" },
+  { skill: "ngrace-spec", section: "workflow", token: "skips the bundle's own" },
+  { skill: "ngrace-spec", section: "workflow", token: "by identity" },
+  { skill: "ngrace-spec", section: "docs_and_examples", token: "bare mint is never committed" },
+  { skill: "ngrace-reviewer", section: "mechanized_first", token: "skips the bundle's own" },
+  { skill: "ngrace-reviewer", section: "mechanized_first", token: "by identity" },
+  { skill: "ngrace-reviewer", section: "mechanized_first", token: "design-context.xml" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -508,8 +528,35 @@ export function checkTaughtRules(root: string): number {
   return 0;
 }
 
+const STALE_REVIEW_CLAIM = "and (when that file changed) decisions.md is expected";
+
+function refuseStaleReviewClaim(file: string, rule: string, token: string): void {
+  console.error(`checkStaleReviewClaims refusal: ${file} — stale review-scope claim (${rule}): ${token}`);
+}
+
+/** Return non-zero when any SKILL.md under either tree still carries the stale review-scope claim. The walk is every SKILL.md on disk, not the four governed skills, so a stale copy planted in a skill the spec did not name reddens it. */
+export function checkStaleReviewClaims(root: string): number {
+  for (const tree of GOVERNED_TREES) {
+    const treeDir = path.join(root, tree);
+    if (!existsSync(treeDir)) {
+      refuseStaleReviewClaim(tree, "the skill tree exists", "missing directory");
+      return 1;
+    }
+    for (const relative of skillFilesUnder(root, tree)) {
+      if (readFileSync(path.join(root, relative), "utf8").includes(STALE_REVIEW_CLAIM)) {
+        refuseStaleReviewClaim(relative, "no stale review-scope claim", STALE_REVIEW_CLAIM);
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
 export function runTeachingSurfaceCheck(root: string): number {
   if (checkRecordTokens(root) !== 0) {
+    return 1;
+  }
+  if (checkStaleReviewClaims(root) !== 0) {
     return 1;
   }
   if (checkTaughtRules(root) !== 0) {

@@ -1,4 +1,4 @@
-<Findings base="7550" headroom="283" ceiling="7833">
+<Findings base="7638" headroom="195" ceiling="7833">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7545,6 +7545,94 @@ Owner: the next teaching-surface increment (`ngrace-plan` row 19, beside the cla
 the execution question to a chartered bundle. Neighbour to [F236](#f236), [F237](#f237).
 
 ---
+</Body>
+  </Finding>
+  <Finding id="f246" token="F246" status="live">
+    <Title>### F246 — an approved plan's `BaselineAssertions` `MustNotContain` was false at HEAD from the moment of approval, and nothing on the approval path evaluates a draft plan's baseline assertions: lint, review and the approve gate were green, root lint went red at the gate's status write, and the executor halted at the selected baseline with zero code written. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-13 at `d1aa693`, by the executor at the `C-REVIEW-SELF-SCOPE` selected-baseline preflight.** The approved plan carried
+`&lt;MustNotContain&gt;&lt;File&gt;src/review/core.ts&lt;/File&gt;&lt;Text&gt;if (scopeIdentityFromPlanRel(planRel)?.planLocation !== &quot;active&quot;) continue;&lt;/Text&gt;&lt;/MustNotContain&gt;`
+as a baseline needle for `detectConfidentlyWrong`. `evaluateTextContainment` (`src/artifact/assertions.ts:386-409`) decides by
+`contents.includes` over the whole file, and the string occurs at `src/review/core.ts:589` (`detectSelfReferential`) and `:824`
+(`detectZeroOrMoreSwallow`) — the `C-REVIEW-ARCHIVE-SCOPE` location filters the plan's own NonGoals forbid touching. So the
+needle could never be true: `lint --path .` and `--assertions baseline --run-commands` exit 1 with one `assertion.MustNotContain`,
+while `--assertions final` (target only) does not see it and the close would not have been blocked. Before `gate approve` the same
+tree linted 0/0 (draft plans' baseline assertions are not evaluated), `ngrace review --change` reported 0 findings, and the gate
+permitted; the authority read the needle, approved, committed, and never ran root lint after the status write. The property the
+needle restated already lives, correctly scoped, at `src/review/core.test.ts:3756` (a source slice bounded to the function).
+
+**The class.** [F42](#f42): a baseline `MustNotContain` needle must be a string only the implementation can introduce — a
+whole-file containment on a spelling that other functions share is a pin on the wrong position. Neighbour to [F211](#f211) but
+not its window: F211's baselines are true at HEAD and flip at the first write; this one was false at approval. Remedy taken:
+D27 — `ngrace spec new C-REVIEW-SELF-SCOPE-2`, `ngrace supersede` (folded epoch 1: opened, eight `command-run`, pause,
+discarded), the `-2` artifacts re-authored from the archived bytes with the needle removed. Cost: two ratifications and two
+dispatches, zero code, the `C-RECORD-TEST-ISOLATION` profile.
+
+**The rule, three surfaces.** (1) `ngrace-plan` row 19 drives planned *commands*; a plan's baseline `MustContain` /
+`MustNotContain` needles are evaluated by nothing before approval — the plan skill states that every baseline needle is driven
+with `--assertions baseline` on the approved-shaped copy, and that a `MustNotContain` on a shared spelling is bounded to a test
+slice, never a whole file. (2) `ngrace-execute`'s recovery table has no row for &quot;an approved plan's own baseline assertion is
+false at HEAD&quot;; the executor inferred hard-stop from rule 11 — the row is written. (3) The authority runs root lint after every
+`gate approve` and before the approval commit: the gate's status write is what turns the baseline evaluation on. Owner: the next
+teaching increment (V2) for (1) and (2); (3) is the authority's standing rule from this date.
+
+---
+</Body>
+  </Finding>
+  <Finding id="f247" token="F247" status="live">
+    <Title>### F247 — four copies per tree of one skill sentence, across three skills, say a bundle's own `spec.xml` and `plan.xml` are *expected* `review.scope-outside-write-scope` findings at plan-approve; the shipped identity skip silences both, only `decisions.md` fires, and `ngrace-plan` row 15's own second half already says so. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-13 at `3bbc8ed`, `4096e15` and `52b8ba4`** — by the executor on three dispatches and by the authority's
+subagent at the plan-approve of `C-REVIEW-SELF-SCOPE`: `ngrace review --path . --change C-… --changed-files spec.xml,plan.xml`
+→ `No out-of-scope paths`; adding `decisions.md` → exactly one finding, on `decisions.md`; the real plan-approve reviews of
+both `C-REVIEW-SELF-SCOPE` plans reported 0 findings over 3 changed files. The sentence — &quot;At plan-approve
+`review.scope-outside-write-scope` on the bundle's own spec.xml, plan.xml, and (when that file changed) decisions.md is
+expected; do not add those paths to ObservedWriteScope&quot; — stands in `skills/ngrace/ngrace-spec/SKILL.md` twice (`status_rules` `:28`, `workflow` step 6 `:133`), in `skills/ngrace/ngrace-reviewer/SKILL.md` once (`mechanized_first` `:37`; first staged as `review_judgment`, a label carried from a report unchecked),
+and in `skills/ngrace/ngrace-plan/SKILL.md` row 15 (`:70`), where the same row then says — eight occurrences with the packaged mirror, measured by the executor's whole-tree grep after the authority's two-file grep had staged &quot;three&quot; (F138's class) —
+&quot;the review already skips the bundle's own `spec.xml` and `plan.xml` by identity&quot; — one row contradicting itself. None of the
+three skills names `design-context.xml`, which [F245](#f245)'s bundle (`C-REVIEW-SELF-SCOPE-2`, PR #95) added to the skip.
+
+**The rule.** The sentence states what the product does: the reviewed bundle's own `spec.xml`, `plan.xml` and
+`design-context.xml` are identity-skipped in both locations and are never declared; `decisions.md` is reported and is
+expected only when that file changed. One sentence, in all four places, and the mirror. Owner: the next teaching increment.
+
+---
+</Body>
+  </Finding>
+  <Finding id="f248" token="F248" status="live">
+    <Title>### F248 — the selected-assertion commands the skills list have preconditions the skills never state: `--assertions baseline|target --run-commands` refuses until an epoch is open on a declared task, and `--assertions target` refuses a plan that is not yet approved; both were learned from the tool's refusals, on three dispatches. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-13** by the executor at the `C-REVIEW-SELF-SCOPE` execution (`d1aa693`) and both `-2` drives (`52b8ba4`,
+`c3d8798`): `bun ./src/grace.ts lint --path . --change C-… --assertions baseline --run-commands` on an approved plan with no
+open epoch → exit 1, `Cannot record command-run: no declared task is in scope. Use cursor advance on a declared T-NNN…`
+(`src/grace-cursor.ts:3424`); after `cursor advance --change C-… --task T-001 --open-epoch` → exit 0. `--assertions target
+--change C-…` on a draft plan → `assertion.change-not-approved`, exit 1. `ngrace-execute` `&lt;assertion_commands&gt;` and
+`ngrace-plan` `&lt;validation&gt;` list the commands and say nothing of either precondition; `ngrace-plan` row 19 tells the author
+to drive every planned command before approval and gives no procedure that would survive the first refusal. Sequenced as
+rule 12 in `ngrace-execute` (open the epoch before the baseline) but not as a precondition of the command itself, and absent
+from `ngrace-plan` entirely.
+
+**The rule.** Each listed assertion command carries its precondition beside it: `--run-commands` needs an open epoch on a
+declared task; `target` and `final` need an approved plan; the plan skill's row 19 says how to drive them on an approved-shaped
+copy (`gate approve --artifact plan` on the copy, then `cursor advance --open-epoch`). Owner: the next teaching increment.
+
+---
+</Body>
+  </Finding>
+  <Finding id="f249" token="F249" status="live">
+    <Title>### F249 — a freshly minted `ngrace spec new` skeleton fails `validate:ci`: `check-teaching-surface` refuses it for the docs-and-examples decision it does not carry, so the repository is CI-red between the mint and the author's rewrite, and the skill that calls the skeleton &quot;a starting shape&quot; never says so. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-13 at `370ed79`** by the authority: `ngrace spec new C-REVIEW-SELF-SCOPE-2` then `bun run validate:ci` →
+exit 1, `refusal: … C-REVIEW-SELF-SCOPE-2/spec.xml — docs-and-examples decision (a Goal, Constraint or NonGoal decides README.md
+and examples/): missing` (`scripts/check-teaching-surface.ts:272`, `checkDocsAndExamplesDecision` `:259`); the skeleton
+contains 0 occurrences of `README` or `examples` (`git show 370ed79:.ngrace/changes/active/C-REVIEW-SELF-SCOPE-2/spec.xml`).
+After the executor's rewrite `validate:ci` exited 0. `ngrace-spec` `shape_sources` says the skeleton &quot;is a starting shape, not
+a verdict&quot; and `docs_and_examples` says &quot;Silence fails&quot; — true of the artifact, unstated of the mint.
+
+**The rule, two surfaces.** Teaching: the skill says the mint alone is CI-red until the rewrite decides `README.md` and
+`examples/`, so a mint is never committed bare. Product: the skeleton seeds a docs-and-examples `&amp;lt;NonGoal&amp;gt;` placeholder
+the author must replace, or `check-teaching-surface` exempts a skeleton still at `AC-SKELETON`. Owner: the next teaching
+increment for the sentence; whoever next opens `spec new`'s template (the D38 bundle touches it) for the seed.
 </Body>
   </Finding>
 </Findings>
