@@ -8,11 +8,14 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   mintBundle
 //   planCommand
 //   scaffoldCommand
 //   specCommand
 // END_MODULE_MAP
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { defineCommand } from "citty";
 
@@ -20,7 +23,7 @@ import { resolveNgracePaths } from "./artifact/project";
 import { buildGraphProjection } from "./artifact/projections";
 import { renderChangePlan, renderChangeSpec } from "./artifact/skeletons";
 import { ARTIFACT_DIR } from "./artifact/paths";
-import { ANCHOR_PATTERNS } from "./artifact/types";
+import { ANCHOR_PATTERNS, nextBundleLineage, parseBundleId } from "./artifact/types";
 import { parseGraceXmlArtifact } from "./artifact/xml";
 import { ADAPTER_BACKED_EXTENSIONS, LANGUAGE_ADAPTERS } from "./language-registry";
 import {
@@ -32,6 +35,10 @@ import {
 } from "./project-utils";
 import { defineGraceCommand } from "./query/command";
 import { GraceCommandError } from "./query/errors";
+
+/** Length of the minted id's uppercase-hex hash suffix (D38's "short"). */
+const MINTED_HASH_LENGTH = 8;
+const SLUG_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 
 function projectRelative(root: string, absPath: string): string {
   return path.relative(root, absPath).replaceAll(path.sep, "/");
@@ -58,6 +65,10 @@ function activeDir(root: string, changeId: string): string {
 
 function archiveDir(root: string, changeId: string): string {
   return path.join(root, ARTIFACT_DIR, "changes", "archive", changeId);
+}
+
+function changesLocation(root: string, location: "active" | "archive"): string {
+  return path.join(root, ARTIFACT_DIR, "changes", location);
 }
 
 function refuseExistingBundle(root: string, changeId: string): void {
@@ -89,6 +100,151 @@ function writeSpecNew(root: string, changeId: string): string {
   mkdirSync(path.dirname(specPath), { recursive: true });
   writeFileSync(specPath, renderChangeSpec(changeId));
   return projectRelative(root, specPath);
+}
+
+/** A bare human slug for a first mint; a `C-` prefixed argument is a hand-typed id. */
+function requireSlug(raw: unknown): string {
+  const slug = String(raw ?? "").trim();
+  if (slug.startsWith("C-")) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `'${slug}' is a hand-typed change id; pass the bare slug and let the tool mint the suffix.`,
+    );
+  }
+  if (!SLUG_PATTERN.test(slug)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Slug '${slug}' must be uppercase kebab (A-Z, 0-9, hyphen).`,
+    );
+  }
+  if (/-[0-9]+$/.test(slug)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Slug '${slug}' ends in a numeric segment; lineage is the tool's to append.`,
+    );
+  }
+  return slug;
+}
+
+/** The timestamp is a handed-in input; the wall clock is never read silently. */
+function resolveTimestamp(raw: unknown): string {
+  const input = String(raw ?? process.env.NGRACE_SPEC_TIMESTAMP ?? "").trim();
+  if (input === "") {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      "spec new requires --timestamp or NGRACE_SPEC_TIMESTAMP (the hash is never read from the clock).",
+    );
+  }
+  const parsed = Date.parse(input);
+  if (Number.isNaN(parsed)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Timestamp '${input}' is not a parseable ISO 8601 timestamp.`,
+    );
+  }
+  return new Date(parsed).toISOString();
+}
+
+function resolveBranch(raw: unknown): string {
+  const branch = String(raw ?? process.env.NGRACE_SPEC_BRANCH ?? "").trim();
+  if (branch !== "") {
+    return branch;
+  }
+  try {
+    const detected = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    if (detected !== "") {
+      return detected;
+    }
+  } catch {
+    // fall through to the refusal
+  }
+  throw new GraceCommandError(
+    "invalid-arguments",
+    "spec new requires --branch, NGRACE_SPEC_BRANCH, or a git working tree.",
+  );
+}
+
+function mintHash(branch: string, timestamp: string): string {
+  return createHash("sha256")
+    .update(`${branch}\n${timestamp}`)
+    .digest("hex")
+    .toUpperCase()
+    .slice(0, MINTED_HASH_LENGTH);
+}
+
+/** Prior bundle directories under one location whose parsed slug equals `C-<slug>`. */
+function countPriorSlug(root: string, location: "active" | "archive", slug: string): number {
+  const dir = changesLocation(root, location);
+  if (!existsSync(dir)) {
+    return 0;
+  }
+  const canonical = `C-${slug}`;
+  return readdirSync(dir, { withFileTypes: true }).filter(
+    (entry) => entry.isDirectory() && parseBundleId(entry.name).slug === canonical,
+  ).length;
+}
+
+type SpecMint = {
+  id: string;
+  slug: string;
+  lineage: number;
+  hash: string;
+  branch: string;
+  timestamp: string;
+};
+
+/** Resolve the minted id from exactly one of the bare slug or a predecessor; never guesses. */
+function resolveSpecMint(args: { slug?: unknown; supersedes?: unknown; timestamp?: unknown; branch?: unknown }): SpecMint {
+  const rawSlug = String(args.slug ?? "").trim();
+  const rawSupersedes = String(args.supersedes ?? "").trim();
+  if ((rawSlug === "") === (rawSupersedes === "")) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      "spec new requires exactly one of a bare <SLUG> or --supersedes <C-PRED>.",
+    );
+  }
+  let slug: string;
+  let lineage: number;
+  if (rawSupersedes !== "") {
+    if (!ANCHOR_PATTERNS.change.test(rawSupersedes)) {
+      throw new GraceCommandError(
+        "invalid-arguments",
+        `Predecessor '${rawSupersedes}' is not a canonical C-* id.`,
+      );
+    }
+    const parts = parseBundleId(rawSupersedes);
+    slug = parts.slug.replace(/^C-/, "");
+    lineage = nextBundleLineage(rawSupersedes);
+  } else {
+    slug = requireSlug(rawSlug);
+    lineage = 1;
+  }
+  const timestamp = resolveTimestamp(args.timestamp);
+  const branch = resolveBranch(args.branch);
+  return {
+    id: `C-${slug}-${lineage}-${mintHash(branch, timestamp)}`,
+    slug,
+    lineage,
+    hash: mintHash(branch, timestamp),
+    branch,
+    timestamp,
+  };
+}
+
+/**
+ * Mint a bundle skeleton and return the resolved id. Exported so `supersede` mints its
+ * successor through the same routine rather than a second implementation.
+ */
+export function mintBundle(
+  root: string,
+  input: { slug?: unknown; supersedes?: unknown; timestamp?: unknown; branch?: unknown },
+): SpecMint & { relative: string } {
+  const mint = resolveSpecMint(input);
+  const relative = writeSpecNew(root, mint.id);
+  return { ...mint, relative };
 }
 
 function approvedSpecXml(root: string, changeId: string): string {
@@ -131,11 +287,37 @@ function writePlanNew(root: string, changeId: string): string {
   return projectRelative(root, planPath);
 }
 
-const newChangeArgs = {
+const planNewArgs = {
   change: {
     type: "positional" as const,
     required: true,
     description: "C-* change id; must already match the accepted pattern",
+  },
+  path: {
+    type: "string" as const,
+    alias: "p",
+    description: "Project root",
+    default: ".",
+  },
+};
+
+const specNewArgs = {
+  slug: {
+    type: "positional" as const,
+    required: false,
+    description: "Bare uppercase-kebab slug; the tool appends -<N>-<HASH>",
+  },
+  supersedes: {
+    type: "string" as const,
+    description: "Predecessor C-* id whose slug and lineage the successor inherits",
+  },
+  timestamp: {
+    type: "string" as const,
+    description: "ISO 8601 timestamp folded into the hash (or NGRACE_SPEC_TIMESTAMP)",
+  },
+  branch: {
+    type: "string" as const,
+    description: "Branch name folded into the hash (default: git HEAD, or NGRACE_SPEC_BRANCH)",
   },
   path: {
     type: "string" as const,
@@ -154,12 +336,22 @@ export const specCommand = defineGraceCommand({
     new: defineCommand({
       meta: {
         name: "new",
-        description: "Write .ngrace/changes/active/C-ID/spec.xml from the skeleton emission.",
+        description: "Mint C-<SLUG>-<N>-<HASH> and write .ngrace/changes/active/<ID>/spec.xml.",
       },
-      args: newChangeArgs,
+      args: specNewArgs,
       async run(context) {
-        const relative = writeSpecNew(resolveRoot(context.args.path), requireChangeId(context.args.change));
+        const root = resolveRoot(context.args.path);
+        const mint = resolveSpecMint(context.args);
+        const priorActive = countPriorSlug(root, "active", mint.slug);
+        const priorArchive = countPriorSlug(root, "archive", mint.slug);
+        const relative = writeSpecNew(root, mint.id);
         process.stdout.write(`${relative}\n`);
+        process.stdout.write(
+          `mint: ${mint.id} slug=${mint.slug} lineage=${mint.lineage} hash=${mint.hash} branch=${mint.branch} timestamp=${mint.timestamp}\n`,
+        );
+        process.stdout.write(
+          `mint-search: ${priorActive} active, ${priorArchive} archive prior bundle(s) share slug ${mint.slug}\n`,
+        );
       },
     }),
   },
@@ -232,7 +424,7 @@ export const planCommand = defineGraceCommand({
         name: "new",
         description: "Write .ngrace/changes/active/C-ID/plan.xml from the skeleton emission.",
       },
-      args: newChangeArgs,
+      args: planNewArgs,
       async run(context) {
         const relative = writePlanNew(resolveRoot(context.args.path), requireChangeId(context.args.change));
         process.stdout.write(`${relative}\n`);

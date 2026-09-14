@@ -34,3 +34,21 @@ describe("docs/ngrace-explainer.html claims", () => {
     }
   });
 });
+
+describe("README change-id examples", () => {
+  const readme = readFileSync(path.join(repoRoot, "README.md"), "utf8");
+
+  it("shows the minted id form and the slug mint argument", () => {
+    expect(readme).toContain("ngrace spec new <SLUG>");
+    expect(readme).toContain("C-<SLUG>-<N>-<HASH>");
+  });
+
+  it("states that supersede's replacement is the lineage successor", () => {
+    expect(readme).toMatch(/lineage successor/);
+  });
+
+  it("keeps the legacy globs and the polyglot fixture id", () => {
+    expect(readme).toContain("`.ngrace/changes/active/C-*`");
+    expect(readme).toContain("C-ADD-KEYBOARD-NAV");
+  });
+});

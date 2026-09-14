@@ -82,9 +82,12 @@ describe("token-accounting (D15)", () => {
     // C-TEACH-DRIVE-BEFORE-APPROVE-2 T-002: the six taught sentences and the
     // eight stale F247 occurrences repaired landed in four skills, both trees
     // (measured): 861 → 864 lines and 73362 → 75236 bytes.
+    // C-HASHED-BUNDLE-IDS T-004: the minted-id sentences landed in ngrace-spec
+    // and ngrace-plan, both trees (line-neutral, byte-moving): 864 → 864 lines
+    // and 75236 → 75626 bytes.
     const measured = skillTextLines();
     expect(measured.total).toBe(864);
-    expect(measured.totalBytes).toBe(75236);
+    expect(measured.totalBytes).toBe(75626);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

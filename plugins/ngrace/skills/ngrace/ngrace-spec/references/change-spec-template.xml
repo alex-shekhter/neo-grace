@@ -8,7 +8,7 @@
       <Constraint>Constraint for C-CHANGE-ID.</Constraint>
     </Constraints>
     <NonGoals>
-      <NonGoal>Non-goal for C-CHANGE-ID.</NonGoal>
+      <NonGoal>Non-goal for C-CHANGE-ID; replace this placeholder by deciding README.md and examples/. Owner: the author.</NonGoal>
     </NonGoals>
     <AcceptanceCriteria>
       <AC-SKELETON>Acceptance criterion for C-CHANGE-ID.</AC-SKELETON>

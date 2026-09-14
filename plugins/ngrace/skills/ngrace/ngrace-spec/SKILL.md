@@ -5,7 +5,7 @@ description: Interview the user and create an approved neo-grace NgraceChangeSpe
 
 <skill>
 <change_bundle_contract>
-`.ngrace/changes/active/C-CHANGE-ID/`
+`.ngrace/changes/active/C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;/`
 
 - `spec.xml` — normative `NgraceChangeSpec`
 - `design-context.xml` — optional, explanatory only
@@ -15,7 +15,7 @@ description: Interview the user and create an approved neo-grace NgraceChangeSpe
 <shape_sources>
 Registered change-spec shape: `docs/schema-reference.md` (heading change-spec). That document is not a complete grammar — it excludes imperative validators and file-local markup.
 Explain a shape or code: `ngrace lint --explain <code|shape>`.
-Primary write path: `ngrace spec new`. The minted skeleton is a starting shape, not a verdict: when a rich, precedent-shaped artifact does not fit it, the skeleton is rewritten wholesale after the mint — the command is the write path, never the source of the final section shape.
+Primary write path: `ngrace spec new &lt;SLUG&gt;` mints `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;` from a bare slug, a handed-in `--timestamp` and the branch. The minted skeleton is a starting shape, not a verdict: when a rich, precedent-shaped artifact does not fit it, the skeleton is rewritten wholesale after the mint — the command is the write path, never the source of the final section shape.
 Optional-section teaching source: `references/change-spec-template.xml`. That path is relative to this skill's directory, as every `references/` path a skill cites is.
 Optional design-context copy-source: `references/design-context-template.xml`.
 </shape_sources>
@@ -29,7 +29,7 @@ At spec-approve the scope and WriteEvidence audits report they did not run (no p
 </status_rules>
 
 <docs_and_examples>
-Every `NgraceChangeSpec` must decide `README.md` and `examples/` in a Goal, Constraint, or NonGoal. A NonGoal must name the owner (a step, a bundle, or "unchanged; no user-visible surface"). Silence fails. Enforcement is `checkDocsAndExamplesDecision`, not this sentence. The mint alone is CI-red until the rewrite decides `README.md` and `examples/`: a `ngrace spec new` skeleton carries no such decision, so a bare mint is never committed.
+Every `NgraceChangeSpec` must decide `README.md` and `examples/` in a Goal, Constraint, or NonGoal. A NonGoal must name the owner (a step, a bundle, or "unchanged; no user-visible surface"). Silence fails. Enforcement is `checkDocsAndExamplesDecision`, not this sentence. The minted skeleton carries a docs-and-examples `NonGoal` that says replace this placeholder by deciding `README.md` and `examples/`; the author must replace it. The mint alone is no longer CI-red.
 </docs_and_examples>
 
 <approval_lexicon>
@@ -127,7 +127,7 @@ Optional `DesignReferences` under the `C-*` wrapper. Children and their validato
 <workflow>
 1. Ask one focused question at a time until goal, scope, constraints, non-goals, acceptance criteria, affected areas, verification expectations, and ceremony tier are clear. When the dispatch is cold and has no one to ask, a brief may stand in for the interview: read the brief's named artifacts, answer its questions from them, and declare what it leaves unanswered as an unknown rather than inventing it.
 2. Propose a concise design summary and explicit assumptions. Ask for approval before writing an approved spec. Only a sufficient phrase from `approval_lexicon` is approval. This pre-write ask is not lexicon ratification of a written spec: do not run the approve gate, do not combine it with the ratification request in the same message, and do not treat a lexicon phrase as permission to skip approve-time review of the written artifact.
-3. Create a deterministic uppercase-kebab `C-*` change id.
+3. Mint the bundle id with `ngrace spec new &lt;SLUG&gt;`: the tool appends the lineage `-&lt;N&gt;` (`-1` first) and a short uppercase-hex hash of the branch and a handed-in timestamp; never hand-type an id or its suffix and never read a clock silently.
 4. Write `spec.xml` with `ngrace spec new` as the primary write path. Use `references/change-spec-template.xml` as the teaching source for optional sections. Prefer `AC-*` acceptance criteria. Add `DesignReferences` when design sources exist.
 5. If rationale, alternatives, scenarios, or external constraints would otherwise bloat the spec, write non-normative `design-context.xml` from `references/design-context-template.xml`.
 6. If approval is not a sufficient phrase from `approval_lexicon`, leave `spec.xml` as `status="draft"` and report the approval step needed. After a sufficient phrase, run `ngrace review --path . --change C-ID` (does not record a verdict), then `ngrace gate approve --change C-ID`; that command writes status. Do not hand-write approved. Request ratification of C-ID at spec stage with a sufficient phrase: `approved`, `I approve`, or `approve this spec`. At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve the review skips the bundle's own `spec.xml`, `plan.xml` and `design-context.xml` by identity; `decisions.md` is reported and is expected only when that file changed. Do not add those paths to `ObservedWriteScope`.
