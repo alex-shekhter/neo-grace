@@ -89,7 +89,10 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
     title: "Claim Asserted Without Check",
     explanation:
       "A required marker, existence claim, or other fact is asserted without production evidence "
-      + "that would make the claim load-bearing (pattern 1 / confidently-wrong).",
+      + "that would make the claim load-bearing (pattern 1 / confidently-wrong). "
+      + "A Baseline MustExist is read against present disk; a Target MustExist is exempt only "
+      + "when the plan's own ObservedWriteScope names the path and the plan is not yet applied, "
+      + "so an undeclared or applied-plan Target still fires.",
     remediation: [
       "Emit the claimed marker from runtime code, or remove the claim.",
       "Create the claimed path, or drop the MustExist assertion.",
@@ -165,7 +168,9 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
     code: "review.scope-outside-write-scope",
     title: "Changed File Outside ObservedWriteScope",
     explanation:
-      "A changed path is not covered by the plan's ObservedWriteScope (mechanized §0.7.1 scope audit).",
+      "A changed path is not covered by the plan's ObservedWriteScope (mechanized §0.7.1 scope audit). "
+      + "The reviewed change's own spec.xml, plan.xml and design-context.xml are exempt by identity "
+      + "in either location; a foreign bundle's artifacts still raise.",
     remediation: [
       "Add the path to ObservedWriteScope, or revert the out-of-scope write.",
       "Do not widen scope silently without plan approval.",
