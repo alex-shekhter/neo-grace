@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22>
     <Summary>
       Two staged findings — `F250` and `F251` — are in the record's hold-out buffer and not in the

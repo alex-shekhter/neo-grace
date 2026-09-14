@@ -4501,4 +4501,45 @@ the author must replace, or `check-teaching-surface` exempts a skeleton still at
 increment for the sentence; whoever next opens `spec new`'s template (the D38 bundle touches it) for the seed.
 </Body>
   </Finding>
+  <Finding id="f250" token="F250" status="retired">
+    <PaidBy>C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22</PaidBy>
+    <Title>### F250 — the attempt-pair audit pairs only the *last* fail per task with the next pass, so a task that records two red-first pairs as fail, fail, pass, pass has one fail never audited and one pass never paired; the review reported &quot;2 fail→pass pair(s)&quot; over a ledger holding four. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-14 at `7ef317c`, the close of `C-TEACH-DRIVE-BEFORE-APPROVE-2`.** The plan's T-001 and T-002 each carry two
+red-first pairs; the executor recorded them as attempts 10 fail (`flush-invariant`), 11 fail (`record-row`), 12 pass, 13 pass, and
+15 fail (`teaching-needles`), 16 fail (`stale-scan`), 17 pass, 18 pass — each fail in its own round trip with its own
+`WriteEvidence`, honest by construction. `ngrace review --change` → `Attempt-pair audit: ran over 2 fail→pass pair(s)`.
+`src/review/core.ts:1466-1488` builds pairs with `lastFailByTask`: a fail overwrites the previous fail for the task, the next
+pass pairs with that one and clears it, and a pass with no pending fail is skipped — so 11→12 and 16→17 were audited, 10 and 15
+never were, 13 and 18 paired with nothing. The `review.attempt-pair-identical-tree` guard (C-SUBSTANTIATION-HONESTY) therefore
+covers half of a two-pair task, and a fabricated first pair would pass the audit unread. The authority read the four
+`WriteEvidence` lists by hand for this bundle.
+
+**The rule, two surfaces.** Product: the audit pairs every fail with the next pass *for that signature key* (or every fail in
+order with the passes that follow), so two consecutive reds are two audited pairs; a pass with no fail to pair stays a
+finding. Teaching: until then, `ngrace-execute` says a task with more than one red-first pair interleaves them — fail A, pass
+A, fail B, pass B — so each pair is audited. Owner: whoever next opens `src/review/core.ts` for the audit; the next teaching
+increment for the sentence.
+
+---
+</Body>
+  </Finding>
+  <Finding id="f251" token="F251" status="retired">
+    <PaidBy>C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22</PaidBy>
+    <Title>### F251 — `spec new` resolves the branch it hashes from the *process cwd*'s git, not from `--path`: a mint run from inside repository A against `--path &lt;repository B&gt;` folds A's branch into B's bundle id, silently. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-14 at the close of `C-HASHED-BUNDLE-IDS-2` (`f5d1362`), by the authority's probe.** `resolveBranch` in
+`src/grace-generate.ts` falls through `--branch` and `NGRACE_SPEC_BRANCH` to `execFileSync(&quot;git&quot;, [&quot;rev-parse&quot;,
+&quot;--abbrev-ref&quot;, &quot;HEAD&quot;])` with no `cwd` option, so git answers for the shell's working directory. Driven: from a copy of this
+repository with no `.git` and `NGRACE_SPEC_BRANCH` unset, `spec new NOBRANCH --timestamp … --path &lt;temp project&gt;` refused
+(`spec new requires --branch, NGRACE_SPEC_BRANCH, or a git working tree.`) although the flag names a project — the tool never
+looked under `--path`; the converse (a git cwd and a gitless `--path`) mints with the cwd's branch. D38's hash is &quot;a one-way
+hash of the branch name and a timestamp&quot;; the spec's Constraint names `git rev-parse --abbrev-ref HEAD` without saying where.
+Every drive this session ran from the project root, where the two coincide, which is why nothing measured it.
+
+**The rule.** The branch is read from the project the mint writes into — `execFileSync` with `cwd` set to the resolved root —
+and the `mint:` line already prints the branch it used, so a reader can see it. A one-line change with one test: a mint from
+a foreign cwd against a `--path` on another branch hashes the `--path` branch. Owner: the next opener of `src/grace-generate.ts`.
+</Body>
+  </Finding>
 </Findings>
