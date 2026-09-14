@@ -513,25 +513,40 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
       continue;
     }
     const identity = scopeIdentityFromPlanRel(planRel);
-    for (const node of walkNodes(artifact.root)) {
-      if (node.tag !== "MustExist") continue;
-      const valueNode = node.children.find((c) => c.tag === "Value");
-      const target = (valueNode?.text ?? node.text).trim();
-      if (!target || isRegisteredSemanticAnchor(target)) {
-        continue;
-      }
-      const candidates = expandScopePathsForArchiveIdentity([target], identity);
-      const present = candidates.some((candidate) => existsSync(path.join(root, candidate)));
-      if (!present) {
-        findings.push(
-          makeFinding(
-            "review.confidently-wrong",
-            planRel,
-            `MustExist claims ${target} which is not present on disk.`,
-            "must-exist-missing",
-            `must-exist:${target}`,
-          ),
-        );
+    const observed = extractObservedWriteScopeFromPlan(abs, root);
+    const declared = {
+      files: expandScopePathsForArchiveIdentity(observed.files, identity),
+      globs: expandScopePathsForArchiveIdentity(observed.globs, identity),
+    };
+    const unapplied = planStatus !== "applied";
+    const sectionNodes = [...walkNodes(artifact.root)].filter(
+      (n) => n.tag === "BaselineAssertions" || n.tag === "TargetAssertions",
+    );
+    for (const sectionNode of sectionNodes) {
+      const section = sectionNode.tag;
+      for (const node of walkNodes(sectionNode)) {
+        if (node.tag !== "MustExist") continue;
+        const valueNode = node.children.find((c) => c.tag === "Value");
+        const target = (valueNode?.text ?? node.text).trim();
+        if (!target || isRegisteredSemanticAnchor(target)) {
+          continue;
+        }
+        if (section === "TargetAssertions" && unapplied && observedWriteScopeContains(declared, target)) {
+          continue;
+        }
+        const candidates = expandScopePathsForArchiveIdentity([target], identity);
+        const present = candidates.some((candidate) => existsSync(path.join(root, candidate)));
+        if (!present) {
+          findings.push(
+            makeFinding(
+              "review.confidently-wrong",
+              planRel,
+              `MustExist claims ${target} which is not present on disk.`,
+              "must-exist-missing",
+              `must-exist:${target}`,
+            ),
+          );
+        }
       }
     }
   }
@@ -1041,11 +1056,13 @@ function isReviewedChangeSpecOrPlanPath(
   if (!identity || identity.changeId === "") return false;
   const n = normalizeRel(rel);
   const id = identity.changeId;
-  const activeSpec = `${ARTIFACT_DIR}/changes/active/${id}/spec.xml`;
-  const activePlan = `${ARTIFACT_DIR}/changes/active/${id}/plan.xml`;
-  const archiveSpec = `${ARTIFACT_DIR}/changes/archive/${id}/spec.xml`;
-  const archivePlan = `${ARTIFACT_DIR}/changes/archive/${id}/plan.xml`;
-  return n === activeSpec || n === activePlan || n === archiveSpec || n === archivePlan;
+  const leaves = ["spec.xml", "plan.xml", "design-context.xml"];
+  for (const location of ["active", "archive"]) {
+    for (const leaf of leaves) {
+      if (n === `${ARTIFACT_DIR}/changes/${location}/${id}/${leaf}`) return true;
+    }
+  }
+  return false;
 }
 
 export function auditScopeOutsideWriteScope(

@@ -2085,6 +2085,12 @@ ${names
         F244: "C-PAYMENT-INTEGRITY",
         F222: "C-GUARD-RATCHET",
         F223: "C-GUARD-RATCHET",
+        // C-REVIEW-SELF-SCOPE-2 T-002: the chartered row's two minted tokens. The
+        // extension is consulted only for tokens the derivation actually mints,
+        // so the walk is green with the row live and green in the applied-archive
+        // state (the close's mint).
+        F240: "C-REVIEW-SELF-SCOPE-2",
+        F245: "C-REVIEW-SELF-SCOPE-2",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
@@ -4718,5 +4724,114 @@ describe("C-GUARD-RATCHET carrier and row relations", () => {
     });
     expect(hits.length, `the mutated copy carries two ${CGR_ROW.name} rows`).toBe(2);
     expect(() => expectCgrCarrierAndRowRelations(recordDir)).toThrow(/exactly one Row across the registry layers/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-REVIEW-SELF-SCOPE-2 T-002: the payer row and the two carriers it pays.
+// ---------------------------------------------------------------------------
+
+const CSELF_FINDING_PAYERS: Record<string, string> = {
+  F240: "C-REVIEW-SELF-SCOPE-2",
+  F245: "C-REVIEW-SELF-SCOPE-2",
+};
+
+const CSELF_ROW = { name: "C-REVIEW-SELF-SCOPE-2", kind: "chartered", requiredPays: ["F240", "F245"] };
+
+function expectCselfCarrierAndRowRelations(recordDir: string): void {
+  const indexParsed = parseGraceXmlArtifact(
+    "decisions.xml",
+    readFileSync(path.join(recordDir, "decisions.xml"), "utf8"),
+  );
+  expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+  for (const token of Object.keys(CSELF_FINDING_PAYERS)) {
+    const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      expect(parsed.root, `${file} parses`).not.toBeNull();
+      return [...walkNodes(parsed.root!)]
+        .filter((node) => node.tag === "Finding" && node.attributes.token === token)
+        .map((node) => ({ file, node }));
+    });
+    expect(
+      carriers.length,
+      `${token}: at most one Finding element carries the token across the two findings files (got ${carriers.length})`,
+    ).toBeLessThanOrEqual(1);
+    for (const carrier of carriers) {
+      const expectedStatus = carrier.file === "findings.xml" ? "live" : "retired";
+      expect(carrier.node.attributes.status, `${token}: the carrier's status agrees with the holding file`).toBe(
+        expectedStatus,
+      );
+      const entries = [...walkNodes(indexParsed.root!)].filter(
+        (node) => node.tag === "Entry" && node.attributes.id === carrier.node.attributes.id,
+      );
+      expect(entries.length, `${token}: the index carries exactly one Entry for the carrier's id`).toBe(1);
+      expect(entries[0]!.attributes.layer, `${token}: the carrier's index Entry layer agrees with the holding file`).toBe(
+        expectedStatus,
+      );
+      if (expectedStatus === "retired") {
+        expect(childText(carrier.node, "PaidBy"), `${token}: a retired carrier carries PaidBy ${CSELF_FINDING_PAYERS[token]}`).toBe(
+          CSELF_FINDING_PAYERS[token],
+        );
+      }
+    }
+  }
+  const hits = (["registry.xml", "registry-retired.xml"] as const).flatMap((file) => {
+    const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+    expect(parsed.root, `${file} parses`).not.toBeNull();
+    return childNodes(parsed.root!, "Row")
+      .filter((row) => row.attributes.name === CSELF_ROW.name)
+      .map((row) => ({ file, node: row }));
+  });
+  expect(
+    hits.length,
+    `${CSELF_ROW.name}: exactly one Row across the registry layers (got ${hits.length})`,
+  ).toBe(1);
+  const hit = hits[0]!;
+  const holding = hit.file === "registry.xml" ? "live" : "retired";
+  expect(hit.node.attributes.status, `${CSELF_ROW.name}: the row's status agrees with the holding file`).toBe(holding);
+  expect(hit.node.attributes.kind, `${CSELF_ROW.name}: kind`).toBe(CSELF_ROW.kind);
+  const paysTokens = (childText(hit.node, "Pays") ?? "").trim().split(/\s+/).filter(Boolean);
+  for (const required of CSELF_ROW.requiredPays) {
+    expect(paysTokens, `${CSELF_ROW.name}: Pays names ${required}`).toContain(required);
+  }
+  const statusText = childText(hit.node, "StatusText") ?? "";
+  for (const token of statusText.match(/F[0-9]+/g) ?? []) {
+    expect(paysTokens, `${CSELF_ROW.name}: StatusText names no F token outside Pays (${token})`).toContain(token);
+  }
+}
+
+describe("C-REVIEW-SELF-SCOPE-2 carrier and row relations", () => {
+  it(
+    "F240 and F245 each exist at most once across the findings pair with status and index layer agreeing and PaidBy C-REVIEW-SELF-SCOPE-2 when retired, and the C-REVIEW-SELF-SCOPE-2 row exactly once across the registry layers with status agreeing, kind chartered, Pays naming F240 and F245, and a StatusText naming no token outside Pays (generous timeout)",
+    () => {
+      expectCselfCarrierAndRowRelations(path.join(REPO_ROOT, RECORD_REL));
+    },
+    60_000,
+  );
+
+  it("red direction — a second C-REVIEW-SELF-SCOPE-2 row reddens the exactly-once clause on a mutated copy of whichever layer holds it", () => {
+    const root = isolatedRoot();
+    const recordDir = path.join(root, RECORD_REL);
+    mkdirSync(recordDir, { recursive: true });
+    for (const file of ["registry.xml", "registry-retired.xml", "findings.xml", "findings-retired.xml", "decisions.xml"]) {
+      copyFileSync(path.join(REPO_ROOT, RECORD_REL, file), path.join(recordDir, file));
+    }
+    for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+      const held = readFileSync(path.join(recordDir, file), "utf8");
+      if (!held.includes(`name="${CSELF_ROW.name}"`)) continue;
+      writeFileSync(
+        path.join(recordDir, file),
+        held.replace(
+          "</Registry>",
+          `  <Row name="${CSELF_ROW.name}" status="live" kind="chartered">\n    <Number></Number>\n    <Charter>duplicate</Charter>\n    <Pays>F240 F245</Pays>\n    <StatusText>Ordered</StatusText>\n  </Row>\n</Registry>`,
+        ),
+      );
+    }
+    const hits = (["registry.xml", "registry-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      return childNodes(parsed.root!, "Row").filter((row) => row.attributes.name === CSELF_ROW.name);
+    });
+    expect(hits.length, `the mutated copy carries two ${CSELF_ROW.name} rows`).toBe(2);
+    expect(() => expectCselfCarrierAndRowRelations(recordDir)).toThrow(/exactly one Row across the registry layers/);
   });
 });

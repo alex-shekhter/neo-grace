@@ -1018,21 +1018,42 @@ describe("corr 171 archive identity (A68)", () => {
 
     const designArchive = ".ngrace/changes/archive/C-MINE/design-context.xml";
     const designActive = ".ngrace/changes/active/C-MINE/design-context.xml";
-    const designFire = auditScopeOutsideWriteScope(
+    const designSilent = auditScopeOutsideWriteScope(
       [designArchive],
       [designActive],
       [],
       { changeId: "C-MINE", planLocation: "active" },
     );
-    expect(designFire.some((f) => f.file === designArchive)).toBe(true);
+    expect(designSilent.filter((f) => f.file === designArchive)).toHaveLength(0);
 
-    const designSilent = auditScopeOutsideWriteScope(
+    const designSilentArchive = auditScopeOutsideWriteScope(
       [designArchive],
       [designActive],
       [],
       { changeId: "C-MINE", planLocation: "archive" },
     );
-    expect(designSilent.filter((f) => f.file === designArchive)).toHaveLength(0);
+    expect(designSilentArchive.filter((f) => f.file === designArchive)).toHaveLength(0);
+
+    const foreignDesign = ".ngrace/changes/archive/C-OTHER/design-context.xml";
+    const foreignFire = auditScopeOutsideWriteScope(
+      [foreignDesign],
+      [designActive],
+      [],
+      { changeId: "C-MINE", planLocation: "archive" },
+    );
+    expect(foreignFire.some((f) => f.file === foreignDesign)).toBe(true);
+  });
+
+  it("FIRE scope-outside-write-scope: a foreign bundle's design-context.xml", () => {
+    const foreignDesign = ".ngrace/changes/archive/C-OTHER/design-context.xml";
+    const designActive = ".ngrace/changes/active/C-MINE/design-context.xml";
+    const foreignFire = auditScopeOutsideWriteScope(
+      [foreignDesign],
+      [designActive],
+      [],
+      { changeId: "C-MINE", planLocation: "archive" },
+    );
+    expect(foreignFire.some((f) => f.file === foreignDesign)).toBe(true);
   });
 
   it("non-artifact path outside scope is still a finding", () => {
@@ -2058,6 +2079,11 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     expect(allowlistBlock).toBeTruthy();
     expect(allowlistBlock![1]).not.toContain(ATTEMPT_PAIR_FINDING_CODE);
     expect(allowlistBlock![1]).not.toContain(RETIRED_ATTEMPT_PAIR_CODE);
+    // C-REVIEW-SELF-SCOPE-2: the narrowed MustExist check and the three-artifact identity skip.
+    expect(REVIEW_CATALOG["review.confidently-wrong"].explanation).toContain("not yet applied");
+    expect(REVIEW_CATALOG["review.confidently-wrong"].explanation).toContain("ObservedWriteScope");
+    expect(REVIEW_CATALOG["review.scope-outside-write-scope"].explanation).toContain("design-context.xml");
+    expect(REVIEW_CATALOG["review.scope-outside-write-scope"].explanation).toContain("foreign bundle");
   });
 
   it("findingId is stable and suitable for gate verdict --note keying", () => {
@@ -3768,3 +3794,90 @@ describe("C-REVIEW-ARCHIVE-SCOPE location filter", () => {
     );
   });
 });
+
+/**
+ * C-REVIEW-SELF-SCOPE-2 T-001: the narrowed MustExist check and the catalog copy.
+ */
+describe("C-REVIEW-SELF-SCOPE-2 narrowed MustExist check (F240)", () => {
+  function writeSelfScopePlan(
+    root: string,
+    changeId: string,
+    status: string,
+    opts: { baseline: string; target: string; scope: string },
+  ): void {
+    const dir = path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, "plan.xml"),
+      `<NgraceChangePlan graceVersion="1.0" status="${status}"><${changeId}>
+  <IntentSummary>self-scope</IntentSummary>
+  <BaselineAssertions>${opts.baseline}</BaselineAssertions>
+  <TargetAssertions>${opts.target}</TargetAssertions>
+  <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>
+  <ObservedWriteScope>${opts.scope}</ObservedWriteScope>
+  <ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+</${changeId}></NgraceChangePlan>`,
+    );
+  }
+  const verify = "<MustVerify><Module>M-EXAMPLE</Module></MustVerify>";
+  const cw = (root: string, needle: string) =>
+    runPatternDetectors(root).filter(
+      (f) => f.code === "review.confidently-wrong" && f.message.includes(needle),
+    );
+
+  it("SILENT confidently-wrong: active approved Target MustExist declared in ObservedWriteScope", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeSelfScopePlan(root, "C-SELF", "approved", {
+      baseline: verify,
+      target: "<MustExist><Value>src/created.ts</Value></MustExist>",
+      scope: "<File>src/created.ts</File>",
+    });
+    expect(cw(root, "src/created.ts")).toHaveLength(0);
+  });
+
+  it("SILENT confidently-wrong: Glob-declared Target MustExist", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeSelfScopePlan(root, "C-SELF-GLOB", "approved", {
+      baseline: verify,
+      target: "<MustExist><Value>src/created/leaf.ts</Value></MustExist>",
+      scope: "<Glob>src/created/*.ts</Glob>",
+    });
+    expect(cw(root, "src/created/leaf.ts")).toHaveLength(0);
+  });
+
+  it("FIRE confidently-wrong: active approved Target MustExist not declared in ObservedWriteScope", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeSelfScopePlan(root, "C-SELF-UNDECLARED", "approved", {
+      baseline: verify,
+      target: "<MustExist><Value>src/never.ts</Value></MustExist>",
+      scope: "<File>src/example.ts</File>",
+    });
+    expect(cw(root, "src/never.ts")).toHaveLength(1);
+  });
+
+  it("FIRE confidently-wrong: Baseline MustExist absent on disk", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeSelfScopePlan(root, "C-SELF-BASELINE", "approved", {
+      baseline: "<MustExist><Value>src/gone.ts</Value></MustExist>",
+      target: verify,
+      scope: "<File>src/gone.ts</File>",
+    });
+    expect(cw(root, "src/gone.ts")).toHaveLength(1);
+  });
+
+  it("FIRE confidently-wrong: applied plan declared Target MustExist stays a real check", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeSelfScopePlan(root, "C-SELF-APPLIED", "applied", {
+      baseline: verify,
+      target: "<MustExist><Value>src/late.ts</Value></MustExist>",
+      scope: "<File>src/late.ts</File>",
+    });
+    expect(cw(root, "src/late.ts")).toHaveLength(1);
+  });
+});
+

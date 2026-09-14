@@ -1,0 +1,528 @@
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-REVIEW-SELF-SCOPE><Replacement>C-REVIEW-SELF-SCOPE-2</Replacement>
+    <IntentSummary>
+      Author the execution for the approved, fingerprinted spec
+      `.ngrace/changes/active/C-REVIEW-SELF-SCOPE/spec.xml` (ratified `approved` with the maintainer's
+      phrase, `ngrace review` 0 findings, `ngrace gate approve` permit and fingerprint recorded in
+      the bundle's `run-ledger.xml`, commit `4096e15` on `c-review-self-scope`) and only within it;
+      the plan conforms to the spec, it does not extend, narrow or reinterpret it. The spec fixes the
+      F240 remedy (exempt a Target `&lt;MustExist&gt;` whose path the plan's own
+      `&lt;ObservedWriteScope&gt;` names, in the un-applied window only), the F245 remedy (extend the
+      identity skip to the bundle's own `design-context.xml` in both locations), the catalog copy,
+      the record row and the close move, the write scope, the criterion mapping, and the faithful
+      post-close copy — this plan takes all of that from the spec.
+
+      Three tasks carry the committed sequence. **T-001** is the review surface: the red-first
+      `src/review/core.test.ts` directions (the flipped `designFire` assertion at `:1027`, the F245
+      foreign FIRE, the F240 SILENT/SILENT-glob/FIRE/FIRE-baseline/FIRE-applied pair, and the
+      catalog-copy assertion), then the two production edits in `src/review/core.ts` and the two
+      `src/review/catalog.ts` explanations that turn them green. **T-002** is the record: the
+      red-first `C-REVIEW-SELF-SCOPE` carrier-and-row walk in
+      `scripts/validate-record-retirement.test.ts`, the `bundleMinted` payer extension, the live row
+      in `registry.xml`, and the shipped `--rewrite-roots`. **T-003** is verification and the
+      post-close reachability drive: the leaf suites, `bun run validate:ci`, the byte-invariance
+      diffs, the predicted plan-approve review, and the faithful whole-repository post-close copy
+      that reaches `applied` through `ngrace apply --force --reason` and evaluates every
+      `CloseEvidence` command.
+
+      **The close is the authority's act and this plan's tasks end before it.** Execution ends when
+      T-003 is verified and its cursor events are recorded; no task performs `terminal`, `fold`,
+      `review`, the verdict, `gate apply`, `gate archive`, `ngrace apply`, the close's `--retire`,
+      any `CloseEvidence` run, or the archive move. Which task leaves each close-needed piece in
+      place: T-001 leaves the review surface green and the catalog explaining both changes; T-002
+      leaves the `C-REVIEW-SELF-SCOPE` row **live** in `registry.xml` (base re-derived by
+      `--rewrite-roots`, no ceiling raised), `F240` and `F245` **live** in `findings.xml`, and the
+      shipped validator exiting 0; T-003 records every cursor event, drives every `CloseEvidence`
+      command and `bun run validate:ci` inside a faithful post-close copy, and leaves the production
+      bundle active, its plan still `draft`, no status hand-written and no directory moved. The close
+      then runs `lint --assertions final --run-commands`, `ngrace apply` (which writes `applied` and
+      renames the bundle into `.ngrace/changes/archive/`), then its own `--retire` (expected
+      `moved 3` — `F240`, `F245` and the row), then evaluates the `CloseEvidence`. No sentence in
+      this plan implies execution performs any of those.
+
+      **The two red-first pairs, driven on copies at this plan's commit.** (1) T-001 adds the new and
+      flipped assertions **before** any production edit and drives them: red, 174 pass / 4 fail — the
+      flipped `designFire` (own archive `design-context.xml` still fires), the two F240 SILENT
+      directions, and the catalog-copy assertion; the FIRE directions pass because they already fire.
+      The two `src/review/core.ts` edits and the catalog sentences are the pass, 178 pass / 0 fail
+      (the scorer is 8 pass / 0 fail at both ends). Signature-kind `test`, key
+      `review-self-scope-tests-first`. (2) T-002 appends the `C-REVIEW-SELF-SCOPE` carrier-and-row
+      walk and the `bundleMinted` extension **before any record write** and drives them: red,
+      103 pass / 2 fail (the production relation reads no row, and the red-direction fixture fails
+      its own "the mutated copy carries two rows" precondition); the live row plus
+      `--rewrite-roots` is the pass, 105 pass / 0 fail. Signature-kind `test`, key
+      `cself-carrier-row-walk-first`.
+
+      **Why three tasks and not fewer or more.** The fix budgets bind per task
+      (`src/grace-cursor.ts` `FIX_SIGNATURE_REPEAT_BUDGET = 2` and `FIX_DISTINCT_SIGNATURE_BUDGET = 4`).
+      T-001's failure-signature families are the test authoring (the planned reds) and the two
+      production edits plus the catalog copy — inside the per-task distinct budget of 4. T-002's are
+      the walk authoring (the planned pair) and the record hand write plus the root read-back — two
+      distinct. T-003 is verification and the post-close drive, not a write task; its commands mutate
+      only a throwaway copy. Folding T-002 into T-001 would put two independent write families (the
+      review surface and the record) in one task's budget for no gain; splitting T-003 is impossible
+      because the post-close drive needs the row and the review surface both landed. The last task's
+      `git diff --exit-code` over `src/` and `scripts/` excludes all four files the bundle writes, so
+      `AC-NO-OTHER-WRITES`'s pathset is exactly that task's exclusion set.
+
+      **Why the scope names the record files no task writes.** `ObservedWriteScope` declares the
+      four record files the close's `--retire` writes — `findings.xml`, `findings-retired.xml`,
+      `decisions.xml`, `registry-retired.xml` — in addition to the `registry.xml` the plan mints and
+      the four `src/` / `scripts/` files the tasks edit. The close's writes land while the plan is
+      still under `active/` and the scope and WriteEvidence audits run at the close, so a path the
+      close writes must already be declared; declaring it is permission, not obligation (`run-ledger.xml`
+      is the shipped precedent), and the precedent plan `C-GUARD-RATCHET` declared every record file
+      it could write rather than the subset a task happened to touch. The bundle's own `spec.xml`,
+      `plan.xml` and `design-context.xml` are **not** declared — the identity skip already covers the
+      first two and this bundle extends it to the third.
+
+      **The committed state machine, driven end to end on whole-repository copies at this plan's
+      commit** (every exit code read directly). Baseline `3bbc8ed` + `4096e15`: `src/review/core.test.ts`
+      172 pass / 0 fail, `src/review/scorer.test.ts` 8 pass / 0 fail,
+      `scripts/validate-record-retirement.test.ts` 103 pass / 0 fail, the shipped validator exit 0.
+      T-001 boundary: `src/review/core.test.ts` 178 pass / 0 fail, scorer 8 / 0. T-002 boundary:
+      retirement suite 105 pass / 0 fail, validator exit 0, registry root `13 / 13 / 26`, and a
+      `--rewrite-roots` that changes only `registry.xml` in the record. Close (the authority's):
+      `ngrace apply` archives the bundle, the close's `--retire` reports `moved 3`, findings
+      `7595 / 240 / 7835` → `7550 / 283 / 7833`, index `272 / 24 / 296` → `270 / 26 / 296`, registry
+      `12 / 14 / 26`, rulings unchanged `1733 / 150 / 1883`; `F240` and `F245` retired
+      `&lt;PaidBy&gt;C-REVIEW-SELF-SCOPE&lt;/PaidBy&gt;`, the row retired in `registry-retired.xml`,
+      every index layer retired in place. Every `CloseEvidence` command and `bun run validate:ci`
+      exit 0 in the post-close copy (driven).
+
+      **The mapping, fixed by the spec's own Constraint.** Exactly one criterion —
+      `AC-NO-CURRENT-MODE` — carries no `CloseEvidence` and is mapped by exactly one task
+      `Satisfies`; it is carried by T-003, this plan's only `Satisfies`. The other ten criteria are
+      close-bound and stay unmapped, because a `Satisfies` of a close-bound criterion is the shipped
+      error `change.close-evidence-and-satisfied` and an unmapped non-CloseEvidence criterion is the
+      warning `AC-CLOSE-LINT`'s `--fail-on warnings` turns into an uncloseable bundle. Every
+      `CloseEvidence` is evaluated only in the applied-archive state, so T-003 writes its drive
+      against the state the ceremony produces, never the pre-close tree.
+
+      **What the plan leaves unchanged, as baseline needles, against what it forces.** The status
+      guard line in `detectConfidentlyWrong` and the absence of a
+      `scopeIdentityFromPlanRel(planRel)?.planLocation !== "active"` continue stay byte-identical
+      (`src/review/core.test.ts`'s source pin at `:3756` reads both strings), `isCliLifecyclePath`'s
+      matched set is unchanged, and the corpus `review.confidently-wrong` `mustFire` row
+      `corpus-cw-02` stays green because its Target path is undeclared. The target evidence that is
+      red at the baseline state is the `MustContain` needles — the two catalog sentences, the
+      `design-context.xml` leaf in `src/review/core.ts`, the `observedWriteScopeContains(declared,
+      target)` call, and the new test titles — not a `MustPassCommand`: no `MustPassCommand` in
+      `TargetAssertions` is red at baseline, because the bundle creates no file and every shipped
+      suite is green at baseline, and the red-first window for the suite commands is inside T-001 and
+      T-002, where a recorded `Verification` command exits non-zero only at the stage before its
+      production edit lands. That intra-task red is the phase fact `command_phase_rules` names, not a
+      defect: the task's recorded `Verification` commands all exit 0 at the task's own boundary.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/review/core.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/review/catalog.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/review/core.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-REVIEW-SELF-SCOPE/spec.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>if (planStatus === "superseded" || planStatus === "rejected" || planStatus === "cancelled")</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>if (scopeIdentityFromPlanRel(planRel)?.planLocation !== "active") continue;</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>function isCliLifecyclePath</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 src/review/scorer.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>src/review/core.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/review/catalog.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/review/core.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>design-context.xml</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>observedWriteScopeContains(declared, target)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>not yet applied</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>foreign bundle</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>SILENT confidently-wrong: active approved Target MustExist declared in ObservedWriteScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>FIRE scope-outside-write-scope: a foreign bundle's design-context.xml</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>C-REVIEW-SELF-SCOPE carrier and row relations</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 src/review/core.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 src/review/scorer.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+      </GraphAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Land the red-first review-surface tests, narrow the MustExist walk, extend the identity
+          skip to design-context.xml, and land the catalog copy
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The review-surface directions, written red-first. In `src/review/core.test.ts`, **before
+            any production edit in this task**: (1) in
+            `it("active plan location is unchanged — no archive alias when still active")`
+            (`:999`), flip the assertion at `:1027` — with the reviewed change id `C-MINE`, a changed
+            `.ngrace/changes/archive/C-MINE/design-context.xml` against the active twin declared,
+            `planLocation "active"`, now yields **no** `review.scope-outside-write-scope` — and keep
+            the block's other assertions (the plan.xml archive-alias silence, the active-path
+            silence, and the `planLocation "archive"` design-context silence); do not drop one; (2)
+            add `it("FIRE scope-outside-write-scope: a foreign bundle's design-context.xml")` — a
+            changed `.ngrace/changes/archive/C-OTHER/design-context.xml` against `C-MINE`'s active
+            twin declared still raises; (3) add a
+            `describe("C-REVIEW-SELF-SCOPE narrowed MustExist check (F240)")` with
+            `SILENT confidently-wrong: active approved Target MustExist declared in ObservedWriteScope`,
+            `SILENT confidently-wrong: Glob-declared Target MustExist`,
+            `FIRE confidently-wrong: active approved Target MustExist not declared in ObservedWriteScope`,
+            `FIRE confidently-wrong: Baseline MustExist absent on disk` (its path **declared** in the
+            plan's `ObservedWriteScope`, so that an implementation exempting both sections reddens it), and
+            `FIRE confidently-wrong: applied plan declared Target MustExist stays a real check`, each
+            driven through `runPatternDetectors` over a temporary root and filtered by code and
+            message; (4) add a catalog-copy assertion that
+            `REVIEW_CATALOG["review.confidently-wrong"].explanation` names the narrowed check and
+            `REVIEW_CATALOG["review.scope-outside-write-scope"].explanation` names
+            `design-context.xml` and a foreign bundle. Driven before the production edits: 174 pass /
+            4 fail (the flipped `designFire`, the two F240 SILENT directions, and the catalog-copy
+            assertion); the FIRE directions pass at both ends. Signature-kind `test`, key
+            `review-self-scope-tests-first`.
+          </Criterion>
+          <Criterion>
+            The narrowed `&lt;MustExist&gt;` walk. In `detectConfidentlyWrong`, keep the shipped
+            whole-plan status guard line byte-identical, derive
+            `const unapplied = planStatus !== "applied";`, and walk the assertion sections
+            **section-aware**: locate each `&lt;BaselineAssertions&gt;` / `&lt;TargetAssertions&gt;`
+            node by walking the parsed root with the shipped `walkNodes` and filtering on the tag —
+            the sections nest under the plan's change-id wrapper element, so
+            `artifact.root.children.find(...)` reaches neither and silently walks nothing. For each
+            `&lt;MustExist&gt;` under `&lt;TargetAssertions&gt;`, when `unapplied` and the plan's
+            own declared write scope names the path, skip it:
+            `if (section === "TargetAssertions" &amp;&amp; unapplied &amp;&amp; observedWriteScopeContains(declared, target)) continue;`
+            where `declared` is the `&lt;ObservedWriteScope&gt;` files and globs expanded through
+            the shipped `expandScopePathsForArchiveIdentity` — the same helper the existence check
+            already reuses, never a second rule. `&lt;File&gt;` / `&lt;Path&gt;` / `&lt;Glob&gt;`
+            all count, decided by `observedWriteScopeContains` (`src/artifact/scope.ts:133`), whose
+            glob arm parses the GRACE scope-glob grammar. `&lt;BaselineAssertions&gt;`
+            `&lt;MustExist&gt;` is never exempt, the `isRegisteredSemanticAnchor` skip stays, and the
+            F123 status guard stays. Driven after this edit: the F240 SILENT directions go green, the
+            FIRE directions and the shipped `f123-superseded-skip`, `applied MustExist of an absent
+            path still fires` and `FIRE confidently-wrong: applied archive MustExist of a missing
+            path` stay green, and the corpus scorer is 8 pass / 0 fail.
+          </Criterion>
+          <Criterion>
+            The identity skip and the catalog copy. `isReviewedChangeSpecOrPlanPath` skips the
+            reviewed change's own `design-context.xml` under both
+            `.ngrace/changes/active/&lt;id&gt;/` and `.ngrace/changes/archive/&lt;id&gt;/`, keyed on
+            `identity.changeId` exactly as the two siblings are and independent of
+            `identity.planLocation`. Do **not** widen `isCliLifecyclePath` (shared with
+            `auditWriteEvidenceOutsideScope`) and do **not** change
+            `auditWriteEvidenceOutsideScope`; the shipped `AC-WRITE-EVIDENCE-KEPT` and
+            `WriteEvidence still skips docs/plans` tests stay green. `src/review/catalog.ts`:
+            `review.confidently-wrong`'s `explanation` gains the sentence on the Baseline-versus-Target
+            narrowing, whose text includes the pinned phrase `not yet applied`, the
+            declared-`ObservedWriteScope` key and the un-applied condition;
+            `review.scope-outside-write-scope`'s `explanation` gains the sentence on the identity
+            skip, whose text includes the pinned phrase `foreign bundle`, covering the reviewed
+            change's own `spec.xml` / `plan.xml` / `design-context.xml` in either location with
+            foreign artifacts still raising. No title, `code`, `severity`,
+            `derivedFrom` or `family` changes; `src/grace-lint.test.ts:1734`'s title pin stays green.
+            Escape markup as character data in every written cell. Driven after this edit:
+            `src/review/core.test.ts` 178 pass / 0 fail, scorer 8 / 0.
+          </Criterion>
+          <Criterion>
+            The boundary and the close. This task's `Verification` commands and the plan's
+            `TargetAssertions` contain no current-mode lint of this project root, checked by hand
+            (F171): no `--assertions current`, and no `ngrace lint` of this root omitting
+            `--assertions`. Each recorded command exits 0 at this task's boundary (F184), driven at
+            this plan's commit on a copy at exactly this stage; each `git diff --exit-code` names the
+            base commit `3bbc8ed22c3717f26063f931f57ecdb417e36554` and excludes this task's own three
+            files (F243). The executor emits its own cursor events inside the open epoch and performs
+            no close act; the terminal event, the cursor fold, every gate, both status writes, the
+            archive move, the close's `--retire` and every `CloseEvidence` evaluation are close acts
+            owned by the authority. Findings raised while this bundle is open go to
+            `.ngrace/scratch/staged-findings.md` under the next staged number (D30, scoped to the
+            record-writing window).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 src/review/core.test.ts</Command>
+          <Command>bun test --timeout=30000 src/review/scorer.test.ts</Command>
+          <Command>git diff --exit-code 3bbc8ed22c3717f26063f931f57ecdb417e36554 -- src/ scripts/ ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts'</Command>
+          <Command>git diff --exit-code 3bbc8ed22c3717f26063f931f57ecdb417e36554 -- README.md examples/ skills/ CHANGELOG.md package.json openpackage.yml .claude-plugin/marketplace.json plugins/ngrace/.claude-plugin/plugin.json</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>
+          Add the red-first C-REVIEW-SELF-SCOPE carrier-and-row walk and the payer-map extension,
+          mint the live row, and hold every ceiling with --rewrite-roots
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The carrier-and-row walk, written red-first. In
+            `scripts/validate-record-retirement.test.ts`, **before any record write in this task**,
+            append a containment-style walk for this bundle in the `expectCgrCarrierAndRowRelations`
+            house shape: a `CSELF_FINDING_PAYERS` map (`F240` and `F245` → `C-REVIEW-SELF-SCOPE`) and
+            a `CSELF_ROW` (`C-REVIEW-SELF-SCOPE`, kind `chartered`, required Pays `F240` and `F245`);
+            `expectCselfCarrierAndRowRelations(recordDir)` asserts that each token's `&lt;Finding&gt;`
+            exists at most once across `findings.xml` / `findings-retired.xml`, its `status` agrees
+            with the holding file, its single index `&lt;Entry&gt;` layer agrees, and a retired
+            carrier's `&lt;PaidBy&gt;` equals `C-REVIEW-SELF-SCOPE` (the carrier-absent case green);
+            and that the row exists exactly once across `registry.xml` / `registry-retired.xml`, its
+            `status` agrees with the holding file, its `kind` is `chartered`, its `&lt;Pays&gt;`
+            **contains** `F240` and `F245` (containment, never an exact set), and its
+            `&lt;StatusText&gt;` names no `F` token outside `&lt;Pays&gt;`. Add a
+            `describe("C-REVIEW-SELF-SCOPE carrier and row relations")` with the production test over
+            `REPO_ROOT` and a red-direction fixture that copies the five record files it reads into
+            an isolated root, plants a duplicate row into whichever layer holds it (verifying the
+            mutation landed before reading the result), and asserts the exactly-once clause throws;
+            a fixture that copies only a subset ENOENTs, so the copy list names every file the
+            relation reads. Extend the `bundleMinted` map in the `C-RECORD-PARSE payer derivation`
+            test with `F240: "C-REVIEW-SELF-SCOPE"` and `F245: "C-REVIEW-SELF-SCOPE"` (the extension
+            is consulted only for tokens the derivation actually mints, so it is inert while the row
+            is live and required once the bundle's name is an archive directory). Driven before the
+            record write: the production test reds (no row) and the red-direction test reds on its
+            own precondition, 103 pass / 2 fail, 0 pass / 2 fail for the new `describe`.
+            Signature-kind `test`, key `cself-carrier-row-walk-first`.
+          </Criterion>
+          <Criterion>
+            The row, byte-exact and hand-written in the append shape, then the shipped writer. Append
+            the `C-REVIEW-SELF-SCOPE` row to `registry.xml` before `&lt;/Registry&gt;`:
+            `status="live" kind="chartered"`, `&lt;Number&gt;&lt;/Number&gt;`, a
+            `&lt;Pays&gt;` of exactly `F240 F245`, a `&lt;StatusText&gt;` naming no `F` token, and a
+            `&lt;Charter&gt;` carrying the searched-before-minting statement with the spec's measured
+            counts — **Name.** `C-REVIEW-SELF-SCOPE`; **searched before minting**, 2026-09-13 at
+            `3bbc8ed`, over `.ngrace/changes/archive/` (95 directories matching `^C-[A-Z0-9-]+$`)
+            and the record's structural `Row name=` attributes across both registry layers (65 rows:
+            12 live + 53 retired); zero exact hits for the name; per token `REVIEW` 4 directories /
+            2 rows, `SELF` 0 / 0, `SCOPE` 4 / 4; no colliding or better-fitting prior name. Escape
+            markup as character data in every written cell. Then run the shipped writer
+            `bun ./scripts/validate-record-retirement.ts --rewrite-roots docs/plans/active/RM-GOVERNED-PATH`
+            — never hand-edit a root; the record reads back registry `13 / 13 / 26` with only
+            `registry.xml` changed in the working tree (driven), rulings unchanged at
+            `1733 / 150 / 1883`. Stop and report if a read-back exceeds a held ceiling; the remedy is
+            never to raise it. Do not run `--retire`, do not hand-write a `&lt;PaidBy&gt;`, and do
+            not run `--split` — the close's move is the authority's act.
+          </Criterion>
+          <Criterion>
+            The boundary and the close. This task's `Verification` commands and the plan's
+            `TargetAssertions` contain no current-mode lint of this project root, checked by hand
+            (F171). Each recorded command exits 0 at this task's boundary (F184), driven at this
+            plan's commit on a copy at exactly this stage; each `git diff --exit-code` names the base
+            commit `3bbc8ed22c3717f26063f931f57ecdb417e36554` and excludes both this task's and the
+            earlier task's files (F243) — the `src/` / `scripts/` diff excludes all four, and the
+            `docs/plans/` diff excludes the five record files the bundle may write. The
+            `M-REVIEW` `DurableScope` covers the two module-ownable `src/` files; the `*.test.ts`
+            files and the record are not module-ownable, so no
+            `change.graph-anchors-miss-write-scope` window exists (no `src/` file is created). The
+            executor emits its own cursor events and performs no close act; `F240`, `F245` and the
+            row are left live for the close's `--retire`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>git diff --exit-code 3bbc8ed22c3717f26063f931f57ecdb417e36554 -- src/ scripts/ ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code 3bbc8ed22c3717f26063f931f57ecdb417e36554 -- docs/plans/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml'</Command>
+          <Command>git diff --exit-code 3bbc8ed22c3717f26063f931f57ecdb417e36554 -- README.md examples/ skills/ CHANGELOG.md package.json openpackage.yml .claude-plugin/marketplace.json plugins/ngrace/.claude-plugin/plugin.json</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>
+          Leaf suites, CI, the predicted plan-approve review, and the faithful post-close
+          applied-archive drive over every CloseEvidence command
+        </Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Task-observable suites, not manufactured reds. `bun test --timeout=30000
+            src/review/core.test.ts` exits 0 at 178 pass / 0 fail; `bun test --timeout=30000
+            src/review/scorer.test.ts` exits 0 at 8 pass / 0 fail; `bun test --timeout=30000
+            scripts/validate-record-retirement.test.ts` exits 0 at 105 pass / 0 fail;
+            `bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH` exits 0;
+            `bun run validate:ci` exits 0. Do not manufacture a red for those commands being green at
+            the prior task's state. This task carries the plan's single `Satisfies`
+            (`AC-NO-CURRENT-MODE`): no task `Verification` command or `TargetAssertions` entry
+            contains a current-mode lint of this project root, checked by hand. Do not claim
+            post-archive lint 0/0 at this task pass.
+          </Criterion>
+          <Criterion>
+            The predicted plan-approve review and the anchors window, on a copy. This bundle creates
+            no file, so `change.graph-anchors-miss-write-scope` has no window: on a copy with this
+            `spec.xml` and `plan.xml` set to `approved`, `bun ./src/grace.ts lint --path .
+            --assertions target` and `bun ./src/grace.ts review --path . --change C-REVIEW-SELF-SCOPE`
+            report no miss-write-scope error, because the only module-ownable paths in
+            `ObservedWriteScope` are `src/review/core.ts` and `src/review/catalog.ts`, both existing
+            and both owned by `M-REVIEW`. Report exactly what `ngrace review --change` prints at
+            plan-approve on the copy — the bundle's own `spec.xml` and `plan.xml` are identity-skipped
+            by the shipped predicate, so a `review.scope-outside-write-scope` naming either is **not**
+            expected and would be a finding, and a finding naming any file in `ObservedWriteScope` is
+            a defect to report; the expected result is 0 findings, and the approval commit names it.
+          </Criterion>
+          <Criterion>
+            The post-close applied-archive drive, on a faithful whole-repository copy (F235), before
+            recording pass — `ngrace-plan` row 19 applied to this bundle. Copy the working tree
+            **including `.git`** and untracked files (rsync without `--exclude .git`), with `node_modules` copied as a real directory — a symlink is
+            untracked to git (`.gitignore` matches `node_modules/` only) and yields a spurious
+            `review.scope-outside-write-scope node_modules` (measured) — and from inside the copy reach
+            the state the ceremony produces: approve the copy's `plan.xml` through
+            `bun ./src/grace.ts gate approve --change C-REVIEW-SELF-SCOPE --artifact plan --path .`, then run
+            `bun ./src/grace.ts apply --change C-REVIEW-SELF-SCOPE --force --reason "post-close drive"`
+            — the verb archives the bundle and writes `applied` on both artifacts (a hand `applied`
+            write is the fallback only if the verb refuses, and the refusal reason is named in the
+            report). Then run
+            `bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH`
+            from inside the copy: it reports `moved 3` (`F240`, `F245` and the row), the row sits in
+            `registry-retired.xml` with `status="retired"`, `F240` and `F245` sit in
+            `findings-retired.xml` stamped `&lt;PaidBy&gt;C-REVIEW-SELF-SCOPE&lt;/PaidBy&gt;`, the
+            three index layers are retired in place, and the roots re-derive to findings
+            `7550 / 283 / 7833`, index `270 / 26 / 296`, registry `12 / 14 / 26`, rulings unchanged
+            `1733 / 150 / 1883`; a second `--retire` reports `moved 0`. Then run **every**
+            `CloseEvidence` `Command` the spec carries, from inside the copy, exit codes read
+            directly: `bun test --timeout=30000 src/review/core.test.ts` (AC-F240-PAIR,
+            AC-F240-CONTEXT-KEPT, AC-F245-PAIR, AC-WRITE-EVIDENCE-KEPT, AC-REDIRECTED-TEST,
+            AC-CATALOG-COPY); `bun test --timeout=30000 scripts/validate-record-retirement.test.ts`
+            (AC-CARRIERS-MOVED); the two byte-invariance `git diff --exit-code
+            3bbc8ed22c3717f26063f931f57ecdb417e36554 -- …` criteria exactly as the spec writes them
+            (AC-SURFACES-UNTOUCHED, AC-NO-OTHER-WRITES), which is why the copy carries `.git`; and
+            `bun ./src/grace.ts lint --path . --fail-on warnings` (AC-CLOSE-LINT). A warning from
+            `--fail-on warnings` is a finding for the report, never a reason to drop the command.
+            Then run `bun run validate:ci` inside the copy, exit code read directly. Finally drive
+            the plan's reds post-close: the `C-REVIEW-SELF-SCOPE` walk's red-direction fixture
+            reddens on a mutated copy of whichever layer holds the row, and the F240/F245 directions
+            red when the production edit is reverted in the copy. The production record and the
+            production bundle are never mutated by this drive. Record the cursor attempt with outcome
+            pass, signature-kind `test`, signature-key `post-close-drive`. Failure conditions: the
+            drive copies only the record directory or omits `.git`; the drive stops at the in-tree
+            suites and skips the `git diff` criteria and `--fail-on warnings`; a warning is dropped
+            rather than reported; the production record is mutated.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 src/review/core.test.ts</Command>
+          <Command>bun test --timeout=30000 src/review/scorer.test.ts</Command>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun run validate:ci</Command>
+          <Command>git diff --exit-code 3bbc8ed22c3717f26063f931f57ecdb417e36554 -- src/ scripts/ ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code 3bbc8ed22c3717f26063f931f57ecdb417e36554 -- docs/plans/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml'</Command>
+          <Command>git diff --exit-code 3bbc8ed22c3717f26063f931f57ecdb417e36554 -- README.md examples/ skills/ CHANGELOG.md package.json openpackage.yml .claude-plugin/marketplace.json plugins/ngrace/.claude-plugin/plugin.json</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-REVIEW-SELF-SCOPE>
+</NgraceChangePlan>

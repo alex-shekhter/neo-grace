@@ -320,4 +320,10 @@
     <Pays>F222 F223</Pays>
     <StatusText>Ordered; the row is minted live by the plan and paid by the close's move.</StatusText>
   </Row>
+  <Row name="C-REVIEW-SELF-SCOPE-2" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Name.** `C-REVIEW-SELF-SCOPE-2`. **Searched before minting**, 2026-09-13 at `370ed79`, over `.ngrace/changes/archive/` (96 directories matching `^C-[A-Z0-9-]+$`, the superseded predecessor `C-REVIEW-SELF-SCOPE` among them) and the record's structural Row name attributes across both registry layers (65 rows: 12 live + 53 retired): zero exact hits for `C-REVIEW-SELF-SCOPE-2`; per token `REVIEW` 5 directories and 2 rows, `SELF` 1 and 0, `SCOPE` 5 and 4. No colliding or better-fitting prior name. **Charter.** Close `F240` and `F245` in the review surface under the lineage id — the narrowed `MustExist` check and the three-artifact identity skip — and pay both findings at the close.</Charter>
+    <Pays>F240 F245</Pays>
+    <StatusText>Ordered; the row is minted live by the plan and paid by the close's move.</StatusText>
+  </Row>
 </Registry>
