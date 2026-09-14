@@ -1,0 +1,102 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-HASHED-BUNDLE-IDS</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    `D38` decides three edges and leaves the builder the mechanics. The mechanics chosen here all
+    follow one principle: the tool owns identity, the human owns the slug. The hash is a pure
+    function of two handed-in inputs, so a mint is reproducible from its command line and never
+    depends on a clock; the lineage is parsed from the predecessor's directory name, so it is read
+    and never guessed; and the permissive anchor pattern is left alone, so the 99 legacy bundles and
+    both registry layers keep working with zero consumer edits. `F249`'s product half is discharged
+    by seeding data rather than by weakening a guard: a skeleton that carries a visible
+    docs-and-examples placeholder is honest, while an `AC-SKELETON` exemption in
+    `check-teaching-surface` would silently accept a real spec that forgot the decision. The
+    decision to mint the successor inside `ngrace spec new --supersedes` (and inside `supersede`
+    when `--replacement` is omitted) keeps `D38`'s literal sentence — `supersede` derives the
+    successor's prefix by incrementing — true without discarding the replacement-first order `D27`
+    and `F135` established.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      **The timestamp: refuse when absent, versus read the clock loudly.** Chosen: `--timestamp` or
+      `NGRACE_SPEC_TIMESTAMP`, refuse when both are absent. The runner-up — default to the wall
+      clock but print it in the `mint:` line ("never reads the clock silently" read as "may read it
+      if announced") — was rejected because it makes the id unreproducible from the command alone
+      and reintroduces a nondeterminism the CI ratchet exists to prevent. Cost: every automated mint
+      must pass a timestamp, which a harness does with `date -u +%Y-%m-%dT%H:%M:%SZ`.
+    </Alternative>
+    <Alternative>
+      **The positional: the bare slug, versus `C-&lt;SLUG&gt;`.** Chosen: the positional is the bare slug
+      and a `C-`-prefixed argument is refused as a hand-typed id, which matches `D38`'s *"refuses a
+      hand-typed id without a suffix"*. The runner-up — keep the current `C-&lt;SLUG&gt;` positional and
+      append the suffix — was rejected because it cannot express that refusal: a `C-`-prefixed
+      argument would be indistinguishably a slug and an id. Cost: the existing test
+      `refuses a slug that would be valid only after prepending C-` inverts, and README's mint
+      example changes.
+    </Alternative>
+    <Alternative>
+      **The hash length: 8 uppercase hex characters, versus 16.** Chosen: 8 (32 bits), matching
+      `D38`'s *"short"* and the abbreviated-hash convention. The runner-up, 16, follows
+      `src/review/core.ts`'s finding-id `slice(0, 16)`, but reads as text in a name whose whole point
+      is human legibility. The collision class is two mints on the same branch with the same slug and
+      the same handed-in second, which the refusal-on-existing-directory closes anyway.
+    </Alternative>
+    <Alternative>
+      **A new `bundle-id` anchor family versus a strict pattern beside the permissive one.** Chosen:
+      a strict `ANCHOR_PATTERNS.mintedChange` that is deliberately **not** registered in
+      `ANCHOR_FAMILIES`. The runner-up would document the new form in the generated
+      `docs/schema-reference.md`, but `classifySemanticAnchorTag` returns `malformed` for any tag
+      matching a family's prefix but not its pattern — so a second `C-` family would classify every
+      legacy hash-less id as malformed and redden the whole corpus. Cost: the generated reference is
+      byte-identical and the new form is taught in the skills, not the schema reference.
+    </Alternative>
+    <Alternative>
+      **The `F249` remedy: seed a placeholder versus exempt `AC-SKELETON`.** Chosen: the seed. The
+      runner-up exemption weakens a shipped guard and accepts a real spec that never decided
+      `README.md`/`examples/`; the seed is visible data the author must replace.
+    </Alternative>
+    <Alternative>
+      **Mint-on-supersede versus a new verb.** Chosen: `supersede --replacement` becomes optional and
+      mints the successor when omitted, and `spec new --supersedes` mints it explicitly. The
+      runner-up — a new `ngrace supersede successor` subcommand — was rejected as a verb this bundle
+      was not chartered to add.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Whether `plan new` should also refuse a hash-less *new* bundle id, given that a legacy hash-less
+      bundle is lawful forever and no shipped marker distinguishes a post-`D38` mint from a legacy
+      one. Left to `D38`'s mint-time-only rule; the spec adds no lint predicate.
+    </Decision>
+    <Decision>
+      How a gitless project resolves the branch when neither `--branch` nor `NGRACE_SPEC_BRANCH` is
+      given. The spec refuses rather than inventing a constant; a future bundle may define a typed
+      absence if the refusal proves too strict for a real gitless workflow.
+    </Decision>
+    <Decision>
+      Whether the `mint-search` line should be machine-readable (JSON) for a harness that wants to
+      quote it. Left as one human-readable line because the only consumer named by `D38` is the
+      registry row's `Charter` prose.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      An agent on branch `parallel-a` runs `ngrace spec new CACHE-WARM --timestamp
+      2026-09-14T03:00:00Z --branch parallel-a` and gets `C-CACHE-WARM-1-2F6A11C4`; a second agent
+      on branch `parallel-b` with the same timestamp gets `C-CACHE-WARM-1-9D0E77B2`. Neither branch
+      can see the other; the branch name is inside the hash, so the ids differ by construction, and
+      the slug prefix keeps both names searchable.
+    </Scenario>
+    <Scenario>
+      A bundle `C-FOO` approved and mid-flight is found defective. The author runs `ngrace spec new
+      --supersedes C-FOO --timestamp … --branch …`, which mints `C-FOO-2-&lt;HASH&gt;`, then
+      `ngrace supersede --change C-FOO --replacement C-FOO-2-&lt;HASH&gt;`, which validates the
+      lineage and moves the predecessor. The alternative single-step
+      `ngrace supersede --change C-FOO --timestamp … --branch …` mints and moves in one act.
+    </Scenario>
+    <Scenario>
+      A contributor hand-types `ngrace spec new C-FOO-1-ABCDEF12` expecting the tool to accept their
+      id. The verb refuses: the suffix is the tool's to mint, and the bare slug is the argument.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>

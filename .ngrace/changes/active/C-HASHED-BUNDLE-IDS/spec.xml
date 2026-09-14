@@ -1,0 +1,740 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-HASHED-BUNDLE-IDS>
+    <Summary>
+      The D38 builder: a new bundle id is `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;`, minted by `ngrace spec new`
+      from a human slug, a lineage number, and a short uppercase-hex one-way hash of the branch name
+      and a timestamp handed in — never read from the clock silently. `ngrace supersede` derives the
+      successor's prefix by parsing the predecessor's directory name and incrementing its lineage;
+      `spec new --supersedes` mints it, and `supersede` mints it when `--replacement` is omitted. The
+      permissive `C-[A-Z0-9-]+` anchor pattern is unchanged, so the 99 legacy hash-less archive
+      directories and both registry layers are accepted by every consumer without edit; a new strict
+      `ANCHOR_PATTERNS.mintedChange` and a `parseBundleId` helper carry the minted grammar and the
+      lineage parse. This bundle also discharges `F249`'s product half — the bundle that next opens
+      `spec new`'s template — by seeding a docs-and-examples `NonGoal` placeholder, so a bare mint is
+      no longer CI-red. Teaching lands in `ngrace-spec` and `ngrace-plan` (canonical and packaged
+      mirror) plus the four generated teaching templates; the README mint examples show the new form.
+      At the close the authority writes `D38`'s `CodifiedIn` after `apply` and runs `--retire`.
+      **This bundle's own id is the legacy hash-less form** — `D38`'s third edge keeps the existing
+      corpus's names forever, and the form this spec builds applies to mints after it lands.
+    </Summary>
+    <Problem>
+      **`D38` is live and not built.** It sits in `docs/plans/active/RM-GOVERNED-PATH/rulings.xml` as
+      a live decision with three decided edges (lineage always present with `-1` for a first mint;
+      deterministic given a handed-in timestamp; legacy names keep their form) and no `CodifiedIn`.
+      Its own text says *"its own chartered bundle when the maintainer sequences it"* and names the
+      surfaces: `spec new`, `supersede`, the anchor validation, the skills, the schema reference and
+      the README. This is that bundle.
+      **What the present verbs do, measured.** `ngrace spec new &lt;C-ID&gt;` writes
+      `.ngrace/changes/active/&lt;C-ID&gt;/spec.xml` from `renderChangeSpec` and refuses any argument that
+      does not match `ANCHOR_PATTERNS.change` (`src/grace-generate.ts:46`, `requireChangeId`); the
+      positional is required (`src/grace-generate.ts:135`-137, `newChangeArgs.change`:
+      `type: "positional"` at `:136`, `required: true` at `:137`). `ngrace supersede --change
+      &lt;C-PRED&gt; --replacement &lt;C-SUCC&gt;` requires both flags (`src/grace-supersede.ts:60`-67) and
+      requires the replacement directory to already exist (`replacementDirectoryExists`,
+      `src/grace-supersede.ts:41`-44, called at `:83`); it delegates the write-and-rename to
+      `supersedeChangeBundle` (`src/gates/ledger.ts:1409`); it parses neither lineage nor hash.
+      **Every consumer of the id is a `ANCHOR_PATTERNS.change` test and therefore already accepts the
+      new form.** Measured at `e18e754`: 49 non-test occurrences of `ANCHOR_PATTERNS.change` across
+      14 files (`rg -c 'ANCHOR_PATTERNS\.change' src/ --glob '!*.test.ts'`; per file:
+      `src/artifact/grammar.ts` 11, `src/gates/ledger.ts` 11, `src/grace-cursor.ts` 6,
+      `src/review/core.ts` 4, `src/grace-context.ts` 3, `src/lint/core.ts` 3,
+      `src/review/outcomes.ts` 3, `src/artifact/scope.ts` 2, `src/artifact/skeletons.ts` 1,
+      `src/calibration/report.ts` 1, `src/grace-apply.ts` 1, `src/grace-generate.ts` 1,
+      `src/grace-lint.ts` 1, `src/grace-supersede.ts` 1). The identity derivations are
+      directory-name based and equally indifferent to the suffix: `scopeIdentityFromPlanRel`
+      (`src/review/core.ts:558`), `expandScopePathsForArchiveIdentity` (`:997`),
+      `isReviewedChangeSpecOrPlanPath` (`:1052`), the directory-name checks in
+      `src/artifact/scope.ts:247/259`, `src/review/outcomes.ts:106`, `src/calibration/report.ts:130`,
+      `src/gates/ledger.ts:1126`, `src/grace-cursor.ts:2368`, and the registry's name-equals-directory
+      move rule (`scripts/validate-record-retirement.ts:1564`). None needs a change; each is proven
+      unchanged by a test that drives the legacy and minted forms through the same path.
+      **The product defect `F249` left open.** A bare `ngrace spec new` mint makes `validate:ci` red:
+      `checkDocsAndExamplesDecision` (`scripts/check-teaching-surface.ts:259`) requires every active
+      spec to name `README.md` and `examples/` in a Goal, Constraint, or NonGoal, and the skeleton
+      names neither. `F249` was paid by `C-TEACH-DRIVE-BEFORE-APPROVE-2` for its teaching half and
+      assigns the product half to *"whoever next opens `spec new`'s template (the D38 bundle touches
+      it)"*. This bundle opens that template, so the seed is its own.
+      **`supersede`'s lineage is the missing piece.** No shipped code parses a bundle id's lineage or
+      hash; `supersede` accepts any existing different directory as the replacement. Under `D38` the
+      successor's prefix is the tool's to derive from the predecessor's parsed name, never guessed.
+    </Problem>
+    <Goals>
+      <Goal>
+        **The mint — `ngrace spec new`.** The verb takes a human slug and mints
+        `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;` where `&lt;N&gt;` is the lineage (`-1` for a first mint) and
+        `&lt;HASH&gt;` is the first **8** characters of the uppercase hex SHA-256 of the UTF-8 bytes
+        `&lt;branch&gt;\n&lt;canonicalTimestamp&gt;`. The timestamp comes from `--timestamp` or
+        `NGRACE_SPEC_TIMESTAMP` (flag wins) and is refused when absent or not parseable as ISO 8601;
+        the branch comes from `--branch`, `NGRACE_SPEC_BRANCH`, or `git rev-parse --abbrev-ref HEAD`,
+        and is refused when none resolves. The verb never reads the wall clock. `--supersedes
+        &lt;C-PRED&gt;` derives the slug and `&lt;N&gt;` from the predecessor's parsed directory name instead
+        of `-1`. On success it writes the skeleton and prints three lines — the relative spec path,
+        the resolved `mint:` line, and the `mint-search:` line naming the prior active/archive bundle
+        counts for the slug — so the searched-before-minting statement's collision half is the tool's
+        and its scope half stays the author's.
+      </Goal>
+      <Goal>
+        **The refusals.** `spec new` refuses, each with a message naming the offending value and the
+        reason: an argument that is a hand-typed id (any positional beginning `C-`, with or without a
+        suffix — the suffix is the tool's to mint); a slug whose final token is all digits (ambiguous
+        with lineage); an input already carrying the minted `-&lt;N&gt;-&lt;HASH&gt;` suffix; an absent or
+        invalid timestamp; an unresolved branch; an unparseable `--supersedes` predecessor; and a
+        resolved id whose directory already exists under `active/` or `archive/`. Refusal writes
+        nothing — no directory, no file.
+      </Goal>
+      <Goal>
+        **The lineage — `ngrace supersede`.** A shared `parseBundleId` reads a directory name into
+        `{ slug, lineage, hash, minted }`: a minted id strips `-&lt;HASH&gt;` then `-&lt;N&gt;`; a legacy
+        hash-less id with a trailing `-&lt;digits&gt;` yields that lineage; any other legacy id yields
+        no lineage. The successor's lineage is `(lineage ?? 1) + 1` and its slug is unchanged, so
+        legacy `C-FOO` → `C-FOO-2-&lt;HASH&gt;` and legacy `C-FOO-2` → `C-FOO-3-&lt;HASH&gt;`. `supersede`'s
+        `--replacement` becomes optional: when given it must exist and be exactly that successor
+        (same slug, next lineage), refusing any other directory; when omitted, the verb mints the
+        successor through the same routine (taking the mint's timestamp/branch inputs) before writing
+        `superseded` and moving the predecessor. A hash-less successor is accepted only when it
+        already exists, never newly minted.
+      </Goal>
+      <Goal>
+        **The anchor grammar, and the legacy edge.** `ANCHOR_PATTERNS.change` stays
+        `/^C-[A-Z0-9]+(?:-[A-Z0-9]+)*$/` — unchanged — so every consumer keeps accepting the legacy
+        corpus. `src/artifact/types.ts` gains `ANCHOR_PATTERNS.mintedChange`
+        `/^C-[A-Z0-9]+(?:-[A-Z0-9]+)*-[1-9][0-9]*-[0-9A-F]{8}$/`, the `parseBundleId` parser, and a
+        `nextBundleLineage` helper. The minted pattern is **not** added to `ANCHOR_FAMILIES`: the
+        `change` family's prefix classification already owns `C-`, and a second `C-` family would
+        classify every legacy hash-less id as malformed (`ANCHOR_FAMILIES` and
+        `classifySemanticAnchorTag` live in `src/artifact/grammar.ts` at `:247` and `:352`; the
+        minted pattern and the parser live in `src/artifact/types.ts`, and `grammar.ts` is
+        untouched). `docs/schema-reference.md` is consequently
+        byte-identical (no registered shape inventory changes); it is proven by the byte-invariance
+        criterion, not regenerated.
+      </Goal>
+      <Goal>
+        **`F249`'s product half — the seed.** `renderChangeSpec`'s `NonGoals` section carries a
+        docs-and-examples placeholder naming both `README.md` and `examples/` and instructing the
+        author to replace it, so a freshly minted skeleton passes `checkDocsAndExamplesDecision` and
+        a bare mint is no longer CI-red. The exemption alternative — exempting a skeleton still at
+        `AC-SKELETON` in `check-teaching-surface` — is **not** taken; the seed is data the author can
+        see and must replace, where an exemption weakens a shipped guard. `check-teaching-surface`
+        and its predicate are unchanged.
+      </Goal>
+      <Goal>
+        **The teaching and its templates.** `ngrace-spec` (`change_bundle_contract`, `shape_sources`,
+        `workflow` step 3, `docs_and_examples`) and `ngrace-plan` (`approved_plan_immutability`) carry
+        the new mint and lineage rules; the canonical skills and the packaged mirror move together.
+        The four generated teaching templates under `skills/ngrace/*/references/` and
+        `plugins/ngrace/skills/ngrace/*/references/` are regenerated from the changed emission.
+        `scripts/check-teaching-surface.ts` gains section-scoped needles for the new sentences and its
+        suite a red direction for each. The README's mint examples show the slug argument and the new
+        id form, with the `C-*` globs and the legacy polyglot fixture id left as they are.
+      </Goal>
+      <Goal>
+        **The record.** The plan mints one live chartered row `C-HASHED-BUNDLE-IDS` into
+        `docs/plans/active/RM-GOVERNED-PATH/registry.xml` (empty `&lt;Number&gt;`, a `&lt;Charter&gt;` carrying
+        the searched-before-minting statement, an empty `&lt;Pays&gt;`, and a `&lt;StatusText&gt;` naming no
+        `F` token outside `Pays`), then `--rewrite-roots`. At the close the authority archives the
+        bundle, hand-writes `D38`'s `&lt;CodifiedIn kind="test-suite"&gt;` children into `rulings.xml`,
+        and runs `--retire`, which moves `D38` to `rulings-retired.xml`, flips its index layer in
+        place, and moves the row to `registry-retired.xml` once its name equals the archive
+        directory. The row pays nothing: the search of `findings.xml` names no live finding whose
+        remedy belongs to this surface (see Assumptions).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T2** (cross-cutting: two CLI verbs, the anchor grammar, two governed skills
+        plus their packaged mirror, four generated templates, the README, four `scripts/` or `src/`
+        test surfaces, and the record's registry). Roadmap: `RM-GOVERNED-PATH` (governed path and
+        identity). Binding rulings: `D38` (this bundle's charter and its three edges); `D37` (status
+        transitions belong to `ngrace` verbs, and its `CodifiedIn` form is the codification shape);
+        `D27` (an approved artifact is repaired by supersede, and supersede is replacement-first);
+        `D28` and `D28.1` (every genre carries a retirement rule and a size ratchet; figures live in
+        Assumptions and expire); `D30` (the record is this bundle's at the close only, under the
+        authority's hand); `D31` (the index has no retired sibling; its eligible `Entry` layers flip
+        in place); `D11` (nothing is deferred; every out-of-scope entry is a named NonGoal with an
+        owner); `F43` (escape markup as character data — `&lt;`, `&gt;`, `&amp;` — and never paraphrase
+        brackets away); `F136.1` (enumerate modules in every place the artifact enumerates modules).
+        The bundle runs no `ngrace review`, no gate, no cursor or supersede verb, and no commit: the
+        executor authors this spec at `status="draft"` and stops; the approval write, the close's
+        move, and the `CodifiedIn` hand write are the authority's.
+      </Constraint>
+      <Constraint>
+        **The mint contract, pinned.** `ngrace spec new` takes exactly one of the positional
+        `&lt;SLUG&gt;` or `--supersedes &lt;C-PRED&gt;`:
+        `ngrace spec new &lt;SLUG&gt; --timestamp &lt;ISO8601&gt; [--branch &lt;name&gt;] [--path &lt;root&gt;]` and
+        `ngrace spec new --supersedes &lt;C-PRED&gt; --timestamp &lt;ISO8601&gt; [--branch &lt;name&gt;] [--path
+        &lt;root&gt;]`. `&lt;SLUG&gt;` matches `^[A-Z0-9]+(?:-[A-Z0-9]+)*$` and does not carry the `C-` prefix;
+        the tool prepends it. `&lt;N&gt;` is `1`, or the predecessor's parsed lineage plus one.
+        `&lt;HASH&gt;` is `createHash("sha256").update(\`${branch}\n${canonicalTimestamp}\`).digest("hex").toUpperCase().slice(0, 8)`
+        — **8** characters, the `short` of `D38`. `canonicalTimestamp` is
+        `new Date(input).toISOString()`, refused when `Number.isNaN(Date.parse(input))`; input is
+        `--timestamp` or `NGRACE_SPEC_TIMESTAMP`, flag wins. `branch` is `--branch`,
+        `NGRACE_SPEC_BRANCH`, or `git rev-parse --abbrev-ref HEAD`; it is refused when git is absent
+        and no flag or env is given. The same inputs always produce the same id; the wall clock is
+        never read. The resolved path is `.ngrace/changes/active/&lt;ID&gt;/spec.xml`.
+      </Constraint>
+      <Constraint>
+        **The refusal set, pinned — each writes nothing.** (a) a positional beginning `C-` is a
+        hand-typed id: *"... is a hand-typed change id; pass the bare slug"*. (b) a slug whose final
+        `-`-separated token is all digits is refused as ambiguous with lineage. (c) a positional
+        already matching `ANCHOR_PATTERNS.mintedChange` is refused (the suffix is the tool's). (d)
+        absent or invalid timestamp: *"spec new requires --timestamp or NGRACE_SPEC_TIMESTAMP"*. (e)
+        unresolved branch: *"spec new requires --branch, NGRACE_SPEC_BRANCH, or a git working tree"*.
+        (f) an unparseable `--supersedes` predecessor. (g) the resolved id already exists under
+        `active/` or `archive/`: the shipped `refuseExistingBundle` message, which names the path.
+        The `mint-search` success line reports the prior-slug counts, so the `Charter` can quote the
+        tool's own collision half rather than restating a hand count.
+      </Constraint>
+      <Constraint>
+        **The lineage contract, pinned.** `parseBundleId(id)` returns
+        `{ slug, lineage?, hash?, minted }`: minted ids (`ANCHOR_PATTERNS.mintedChange`) strip the
+        trailing `-&lt;HASH&gt;` and then the `-&lt;N&gt;`, giving `slug`, `lineage`, `hash`,
+        `minted=true`; a legacy id matching `ANCHOR_PATTERNS.change` with a trailing `-&lt;[1-9][0-9]*&gt;`
+        gives that `lineage`, `minted=false`; any other legacy id gives `lineage=undefined`. The
+        successor is `C-&lt;same slug&gt;-&lt;(lineage ?? 1) + 1&gt;-&lt;HASH&gt;`. Legacy `C-FOO` (no trailing
+        digits) is read as lineage 1, so its successor is `C-FOO-2-&lt;HASH&gt;`; legacy `C-FOO-2` is
+        lineage 2, so its successor is `C-FOO-3-&lt;HASH&gt;` — the legacy edge keeps the *old* names,
+        never new hash-less ones. `supersede --replacement` accepts only the successor (same slug,
+        next lineage), hash-less only when the directory already exists; when `--replacement` is
+        omitted the verb mints the successor itself. `supersedeChangeBundle` is not otherwise
+        changed: the mint happens in `src/grace-supersede.ts` before the call, and the shipped write
+        and rollback order stays.
+      </Constraint>
+      <Constraint>
+        **Which consumers change, which accept both — stated once.** Only three production sites
+        change: `src/grace-generate.ts` (`spec new`'s mint, refusals, report; `plan new` and
+        `scaffold` untouched), `src/grace-supersede.ts` (lineage derivation, `--replacement`
+        optional, mint-on-omit), and `src/artifact/types.ts` (`mintedChange`, `parseBundleId`,
+        `nextBundleLineage`). Every other `ANCHOR_PATTERNS.change` site and every directory-name
+        identity derivation accepts both forms unchanged, because the pattern is a strict superset of
+        the minted form; each is proven by a test that drives a legacy hash-less id and a minted id
+        through the same path and asserts the same result. `docs/schema-reference.md` does not
+        change because `ANCHOR_FAMILIES`, `SPEC_REQUIRED_SECTIONS`, and every other registered
+        inventory are untouched. No lint code is added: *"new mints carry the suffix"* is a mint-time
+        refusal, not a lint predicate, because a hash-less legacy bundle is lawful forever.
+      </Constraint>
+      <Constraint>
+        **`F249`'s remedy, pinned.** `renderSpecSection("NonGoals", id)` emits
+        `&lt;NonGoal&gt;Non-goal for &lt;ID&gt;; replace this placeholder by deciding README.md and examples/.
+        Owner: the author.&lt;/NonGoal&gt;` inside `&lt;NonGoals&gt;`. The text names both `README.md` and
+        `examples/`, so `checkDocsAndExamplesDecision` returns 0 on a bare mint; it is visibly a
+        placeholder, so the author replaces it. `scripts/check-teaching-surface.ts` and
+        `checkDocsAndExamplesDecision` are not changed. Because `renderChangeSpec`'s emission
+        changes, the four generated teaching templates change and are regenerated by
+        `bun run ./scripts/generate-skeleton-templates.ts`; `bun run validate:skeleton-templates`
+        is the guard.
+      </Constraint>
+      <Constraint>
+        **The teaching surfaces, pinned (canonical + packaged, byte-identical).**
+        `skills/ngrace/ngrace-spec/SKILL.md`: `change_bundle_contract` shows
+        `` `.ngrace/changes/active/C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;/` ``; `shape_sources` says the primary write
+        path mints that form; `workflow` step 3 reads *"Mint the bundle id with `ngrace spec new
+        &lt;SLUG&gt;`: the tool appends the lineage `-&lt;N&gt;` (`-1` first) and a short uppercase-hex hash
+        of the branch and a handed-in timestamp; never hand-type an id or its suffix and never read a
+        clock silently."*; `docs_and_examples` adds *"the minted skeleton carries a docs-and-examples
+        `NonGoal` placeholder the author must replace"*. `skills/ngrace/ngrace-plan/SKILL.md`:
+        `approved_plan_immutability` reads *"create the replacement with `ngrace spec new
+        --supersedes &lt;C-PRED&gt;`, then run `ngrace supersede`"* in place of the old
+        create-then-supersede sentence. `scripts/check-teaching-surface.ts` gains section-scoped
+        needles for the new `workflow` step and `approved_plan_immutability` sentences; its suite
+        mirrors each and drives a red direction. Every sentence is generic product instruction: no
+        `F` token, no bare `D` token, no record file name, no `RM-` plan id (the four governed skills
+        are under `checkRecordTokens`).
+      </Constraint>
+      <Constraint>
+        **The README surfaces, measured.** `README.md` carries **41** lines containing `C-` at this
+        commit. The mint examples change: line 130 becomes `ngrace spec new &lt;SLUG&gt;` with the
+        `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;` form named; the command-table row at line 188 becomes
+        `ngrace spec new &lt;SLUG&gt; --timestamp &lt;ISO8601&gt; --path &lt;root&gt;` and names the refusals; the
+        `supersede` row at line 202 states that `--replacement` is optional and must be the lineage
+        successor; and one concept sentence near the change-bundle rows (lines 53-54) states the id
+        form and the legacy edge. The `C-*` globs (lines 51, 53, 54, 247, 257) and the generic
+        `C-ID` full-id placeholders stay: they name an existing bundle id and both forms are valid.
+        The polyglot measurement row at line 309 keeps `C-ADD-KEYBOARD-NAV` — a legacy fixture id the
+        legacy edge protects, and a row whose measured bytes must not move. `src/docs-claims.test.ts`
+        gains assertions that the README mint example uses the slug argument and that the id-form
+        sentence is present.
+      </Constraint>
+      <Constraint>
+        **Write scope, anchors, and enumeration — stated once (`F136.1`), derived from the Goals
+        (`F227`).** Files the Goals force into write scope:
+        `src/artifact/types.ts` (`ANCHOR_PATTERNS.mintedChange`, `parseBundleId`,
+        `nextBundleLineage`); `src/grace-generate.ts` (`spec new`'s mint, refusals, report);
+        `src/grace-supersede.ts` (lineage, optional `--replacement`, mint-on-omit);
+        `src/artifact/skeletons.ts` (the `NonGoals` seed); `src/grace-generate.test.ts`,
+        `src/grace-supersede.test.ts`, `src/artifact/grammar.test.ts` (or a sibling suite of the same
+        module) and `src/docs-claims.test.ts`; `scripts/check-teaching-surface.ts` and
+        `scripts/check-teaching-surface.test.ts`; `scripts/validate-record-retirement.test.ts` (the
+        row and `CodifiedIn` walks); `src/test-support/token-accounting.test.ts` and the `README.md`
+        measurement cell (the skill footprint re-measured); `README.md`; the four generated
+        `skills/ngrace/*/references/*-template.xml` and their packaged mirrors;
+        `skills/ngrace/ngrace-spec/SKILL.md`, `skills/ngrace/ngrace-plan/SKILL.md` and their packaged
+        mirrors; this bundle's own artifacts under
+        `.ngrace/changes/active/C-HASHED-BUNDLE-IDS/`; and the record files the mint and the close
+        write — `registry.xml` (the row mint, hand write plus `--rewrite-roots`), `rulings.xml`
+        (`D38`'s `CodifiedIn`, hand write), `decisions.xml` (the index layer flip), and
+        `rulings-retired.xml` and `registry-retired.xml` (the close's `--retire`). Anchor facts,
+        measured at this commit: `src/artifact/types.ts` declares `LINKS: M-ARTIFACT-TYPES`;
+        `src/grace-generate.ts` and `src/grace-supersede.ts` declare `LINKS: M-CLI`; and
+        `src/artifact/skeletons.ts` declares `LINKS: M-GRAMMAR`. Those three modules, `M-SKILLS`
+        (the canonical and packaged skill trees), and `M-TEST-SUPPORT` (the footprint instrument)
+        are `AffectedAreas`; `scripts/` is lint-ignored (`.ngrace-lint.json` `ignoredDirs`), the
+        `.test.ts` files are not module-ownable, and the templates, README, and record files sit
+        under no module `Path`. Do not mint a synthetic module, do not repeat this list as a second
+        module list, and do not add a lint issue code.
+      </Constraint>
+      <Constraint>
+        **Criterion mapping, stated on its face.** Every `AC-*` below except `AC-NO-CURRENT-MODE` is
+        close-bound by its own `CloseEvidence` child; a task `Satisfies` naming any of them is the
+        shipped error (`change.close-evidence-and-satisfied`). Exactly one criterion —
+        `AC-NO-CURRENT-MODE` — carries no `CloseEvidence` and is mapped by exactly one task
+        `Satisfies` in the later plan; unmapped it is a warning, and `AC-CLOSE-LINT`'s
+        `--fail-on warnings` turns that warning into an uncloseable bundle. Every `CloseEvidence` is
+        evaluated only in the applied-archive state, after the close's own move has run (`F196`), so
+        every criterion is written to hold there.
+      </Constraint>
+      <Constraint>
+        **Evidence hygiene, the rules this bundle itself obeys.** Every byte-invariance baseline is
+        this spec's base commit `e18e7540c298f37b22ba35077180ff7ad63c8294` — the base-less `git diff`
+        form cannot fail, and a criterion whose baseline cannot fail was never a guard (`F210`). The
+        window is this bundle's own diff, over tracked paths only (`F174`), probed in the post-close
+        state (`F215`). The archive pathspec excludes this bundle's own archive arrival with its
+        reason — the close itself renames the bundle's directory into the archive (`F188`). The
+        record files the mint and the close touch are covered by parse-based relations in
+        `AC-D38-CODIFIED`, `AC-ROW-MINTED` and `AC-RECORD-VALID`, never by byte-invariance. Every
+        `CloseEvidence` `Command` matches a shipped discriminating shape — the `bun-test` shape for
+        the suites, the `grace-ts-lint-fail-on` shape for close-time lint, the `git-diff-exit-code`
+        shape with the named baseline commit for every byte-invariance claim, and the configured
+        `bun run ./scripts/validate-marketplace.ts` prefix for mirror sync. Structural counts come
+        from the shipped parser, never `grep -c`; exit codes are read directly, never through a pipe;
+        any test that measures the real repository carries an explicit generous timeout (`F185`).
+        Probes mutate copies, never the production record; the record's copy-drive runs from inside a
+        whole-repository copy (`F235`). No criterion asserts a state the shipped engine will not
+        produce, requires a change another criterion forbids, or names a probe that cannot be run.
+      </Constraint>
+      <Constraint>
+        **Stop and re-spec rather than touching:** any `src/` production file other than
+        `src/artifact/types.ts`, `src/grace-generate.ts`, `src/grace-supersede.ts` and
+        `src/artifact/skeletons.ts`; `src/lint/**`, `src/review/**`, `src/gates/**`, and the record
+        engine (`parseFrozenMarkdown`, `renderFinding`, `renderDecision`, `derivePayerMap`,
+        `persistSnapshot`, `--retire`, `--rewrite-roots`); `ANCHOR_FAMILIES`
+        (`src/artifact/grammar.ts:247`) and `docs/schema-reference.md`; the other fourteen skills
+        and the two skills' `references/` files
+        other than the four regenerated templates; the staged buffer
+        `.ngrace/scratch/staged-findings.md` (read, never written); `examples/**`; `CHANGELOG.md`;
+        `package.json`, `bun.lock`, `openpackage.yml`, `.claude-plugin/marketplace.json` and
+        `plugins/ngrace/.claude-plugin/plugin.json` (no version bump); `.ngrace-lint.json`;
+        `CLAUDE.md`; `docs/plans/**` outside the record files this bundle and its close write;
+        `docs/plans/archive/`; and tracked paths under `.ngrace/changes/archive/` except this
+        bundle's own later arrival there.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `examples/` unchanged; the polyglot fixture keeps its legacy hash-less `C-ADD-KEYBOARD-NAV`
+        and its measured bytes, and no user-visible surface changes there. Owner: unchanged; no
+        user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        A product version bump, a `package.json` composition change, a new CLI verb or subcommand, a
+        new lint issue code, or a new grammar section or anchor family — a version is a release act,
+        not this bundle's. Packaged version at authoring `6.2.0`; `validate:marketplace` enforces
+        version sync across `README.md`, `openpackage.yml`, `.claude-plugin/marketplace.json` and
+        `package.json`, and packaged-versus-canonical byte identity — both skill trees and both
+        template trees change together, so it stays green. `CHANGELOG.md` is generated and untouched.
+        Owner: unchanged; no user-visible CLI token changes beyond the mints.
+      </NonGoal>
+      <NonGoal>
+        `F250` (the attempt-pair audit's last-fail-per-task pairing; next opener of
+        `src/review/core.ts`), `F242` (`scripts/` adoption; `.ngrace-lint.json` excludes `scripts/`),
+        and `F207` `F221` `F235` (schema and serializer work). Owner: the named deferred bundles.
+      </NonGoal>
+      <NonGoal>
+        Renaming, re-suffixing, or re-lining any existing bundle or archive directory, and any
+        rewriting of the legacy corpus — `D38`'s third edge keeps the existing names forever, and
+        this bundle's own hash-less `C-HASHED-BUNDLE-IDS` is the last hand-minted name. Owner: the
+        legacy edge; no bundle.
+      </NonGoal>
+      <NonGoal>
+        `F158`'s non-atomic fold boundary on a failed supersede, and `F135`'s process rules — this
+        bundle changes `supersede`'s id derivation only, not the fold, and neither finding's remedy
+        belongs to this surface. Owner: unchanged; recorded elsewhere.
+      </NonGoal>
+      <NonGoal>
+        Running `ngrace review`, any gate or cursor or supersede verb, or committing: authoring this
+        bundle's artifacts is the executor's act; ratification is the maintainer's; the approval
+        write, the close's move, and the `CodifiedIn` hand write are the authority's. This spec is
+        written at `status="draft"` and the bundle stops there. Owner: the authority.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-MINT-FORM>
+        `ngrace spec new &lt;SLUG&gt; --timestamp &lt;ISO8601&gt; --branch &lt;name&gt;` writes
+        `.ngrace/changes/active/C-&lt;SLUG&gt;-1-&lt;HASH&gt;/spec.xml` whose wrapper tag equals its directory
+        name, where `&lt;HASH&gt;` is exactly 8 uppercase hex characters, and prints the relative path on
+        line 1 plus a `mint:` line naming the resolved id, slug, lineage, hash, branch and timestamp.
+        `ngrace spec new --supersedes C-PRED …` resolves `&lt;N&gt;` to the predecessor's parsed lineage
+        plus one and keeps the predecessor's slug. The instrument is production assertions over
+        isolated temp roots in `src/grace-generate.test.ts`, the minted pattern and parser in
+        `src/artifact/types.ts`. Red direction, driven on a copy: a template that emits a 7-character
+        hash reddens the length clause; a `--supersedes` that copies the predecessor's `&lt;N&gt;`
+        instead of incrementing reddens the lineage clause.
+        <CloseEvidence>
+          <Command>bun test src/grace-generate.test.ts</Command>
+        </CloseEvidence>
+      </AC-MINT-FORM>
+      <AC-MINT-DETERMINISTIC>
+        The same `branch` and canonical timestamp always yield the same hash, and two different
+        timestamps yield different hashes: driven by minting twice with identical inputs and diffing
+        the wrapper tags, then minting with a second timestamp and asserting the ids differ. No wall
+        clock is read — the instrument passes `--timestamp` explicitly, so a clock read would make
+        two identical-input mints differ and redden the first clause. The instrument is production
+        assertions in `src/grace-generate.test.ts`; the hash helper is exported and unit-tested
+        against a hand-computed expected digest.
+        <CloseEvidence>
+          <Command>bun test src/grace-generate.test.ts</Command>
+        </CloseEvidence>
+      </AC-MINT-DETERMINISTIC>
+      <AC-MINT-REFUSALS>
+        Each refusal in the pinned set exits non-zero with a message naming the offending value and
+        the reason, and writes no directory and no file: a `C-`-prefixed positional (hand-typed id);
+        a slug ending in `-&lt;digits&gt;`; an already-minted positional; an absent or malformed
+        timestamp; an unresolved branch (git absent and no `--branch`/env); an unparseable
+        `--supersedes`; and an id whose directory already exists under `active/` or `archive/`. The
+        instrument is one production assertion per refusal in `src/grace-generate.test.ts`, each
+        asserting exit non-zero, the message, and that the tree is unchanged. Red direction, driven
+        on a copy: making one refusal accept instead reddens exactly its assertion.
+        <CloseEvidence>
+          <Command>bun test src/grace-generate.test.ts</Command>
+        </CloseEvidence>
+      </AC-MINT-REFUSALS>
+      <AC-LINEAGE>
+        `parseBundleId` reads a minted id, a legacy hash-less id with a trailing `-&lt;N&gt;`, and a
+        legacy slug-only id correctly; `ngrace spec new --supersedes C-FOO` mints
+        `C-FOO-2-&lt;HASH&gt;`, `--supersedes C-FOO-2` mints `C-FOO-3-&lt;HASH&gt;`, and
+        `supersede --change C-FOO --replacement C-FOO-2-&lt;HASH&gt;` accepts while a wrong-lineage or
+        wrong-slug replacement is refused. `supersede` with no `--replacement` mints the successor
+        itself and completes the move. The instrument is production assertions in
+        `src/grace-supersede.test.ts` over isolated temp roots, using an approved-shaped predecessor
+        bundle. Red direction, driven on a copy: a parser that reads `C-FOO` as lineage 0 mints
+        `C-FOO-1-&lt;HASH&gt;` and reddens the successor clause; a `supersede` that accepts any existing
+        directory reddens the wrong-slug clause.
+        <CloseEvidence>
+          <Command>bun test src/grace-supersede.test.ts</Command>
+        </CloseEvidence>
+      </AC-LINEAGE>
+      <AC-LEGACY-ACCEPTED>
+        `ANCHOR_PATTERNS.change` still accepts every legacy hash-less id and `ANCHOR_PATTERNS.mintedChange`
+        accepts exactly the minted form; a legacy hash-less active bundle and a minted one drive the
+        same identity paths to the same result. The instrument is production assertions in
+        `src/artifact/grammar.test.ts` (plus `src/review/core.test.ts` for the archive corpus, which
+        already enumerates every archived `C-*` dynamically) against fixture projects. Red direction,
+        driven on a copy: narrowing `ANCHOR_PATTERNS.change` to the minted form turns the existing
+        archive and identity fixtures non-zero, which is the failure this criterion guards.
+        <CloseEvidence>
+          <Command>bun test src/artifact/grammar.test.ts</Command>
+        </CloseEvidence>
+      </AC-LEGACY-ACCEPTED>
+      <AC-SEED-NOT-RED>
+        A bare `ngrace spec new &lt;SLUG&gt;` skeleton contains `README.md` and `examples/` inside a
+        `NonGoal` body, so `checkDocsAndExamplesDecision` returns 0 on it and
+        `bun ./scripts/check-teaching-surface.ts check` is green with only that mint in `active/`.
+        The instrument is production assertions in `src/grace-generate.test.ts` (the emission
+        carries both tokens) and `scripts/check-teaching-surface.test.ts` (the predicate returns 0 on
+        the emission and non-zero on a sibling that omits them). Red direction, driven on a copy:
+        removing the seed text from `renderChangeSpec` turns both non-zero; restoring returns zero.
+        <CloseEvidence>
+          <Command>bun test src/grace-generate.test.ts</Command>
+        </CloseEvidence>
+      </AC-SEED-NOT-RED>
+      <AC-TEMPLATES>
+        The four generated teaching templates under `skills/ngrace/ngrace-{spec,plan}/references/`
+        and `plugins/ngrace/skills/ngrace/ngrace-{spec,plan}/references/` equal the changed
+        `renderChangeSpec`/`renderChangePlan` teaching emission, canonical and packaged identical.
+        The instrument is the shipped `checkSkeletonTemplates` driven by its suite.
+        Red direction, driven on a copy: reverting one template to the pre-seed bytes turns the check
+        non-zero with the path named; regenerating returns zero.
+        <CloseEvidence>
+          <Command>bun test scripts/generate-skeleton-templates.test.ts</Command>
+        </CloseEvidence>
+      </AC-TEMPLATES>
+      <AC-TEACHING>
+        The new mint and lineage sentences sit in `ngrace-spec` (`change_bundle_contract`,
+        `shape_sources`, `workflow` step 3, `docs_and_examples`) and `ngrace-plan`
+        (`approved_plan_immutability`), byte-identical between the canonical skill and its packaged
+        mirror, and the extended `scripts/check-teaching-surface.ts` asserts the listed tokens per
+        section per tree. The instrument is the production assertions the plan adds to
+        `scripts/check-teaching-surface.test.ts` over isolated roots plus this repository measured
+        with an explicit generous timeout, and `bun run ./scripts/validate-marketplace.ts` for the
+        mirror. Red direction, driven on a copy: deleting a taught sentence from one tree turns the
+        check non-zero, refusing with the file, the section and the missing token; restoring returns
+        zero.
+        <CloseEvidence>
+          <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+        </CloseEvidence>
+      </AC-TEACHING>
+      <AC-README>
+        The README mint example uses the slug argument (`ngrace spec new &lt;SLUG&gt;`), the id form
+        `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;` is stated, the `supersede` row states that `--replacement` must be
+        the lineage successor, and the `C-*` globs and the legacy polyglot fixture id are unchanged.
+        The instrument is production assertions in `src/docs-claims.test.ts` over the shipped
+        `README.md`. Red direction, driven on a copy: reverting the mint example to `ngrace spec new
+        C-ID` reddens the slug-argument clause.
+        <CloseEvidence>
+          <Command>bun test src/docs-claims.test.ts</Command>
+        </CloseEvidence>
+      </AC-README>
+      <AC-MIRROR-SYNC>
+        Every skill sentence and every regenerated template is present in the canonical tree and its
+        packaged mirror, byte-identical. The instrument is `bun run ./scripts/validate-marketplace.ts`,
+        which compares each packaged path to its canonical source and enforces version sync; both
+        trees change together, so it stays green.
+        <CloseEvidence>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </CloseEvidence>
+      </AC-MIRROR-SYNC>
+      <AC-D38-CODIFIED>
+        In the applied-archive state `D38` exists exactly once across the rulings pair
+        (`rulings.xml` and `rulings-retired.xml`), with no fixed expectation of which file holds it,
+        and carries at least two resolving `&lt;CodifiedIn kind="test-suite"&gt;` children naming
+        `src/grace-generate.test.ts` and `src/grace-supersede.test.ts`; its single index `&lt;Entry&gt;`
+        has `genre="decision"` and a `layer` agreeing with the holding file. The relation survives
+        the close's own move, which retires `D38` and flips its index layer. The instrument is the
+        production assertion the plan adds to `scripts/validate-record-retirement.test.ts`,
+        payment-invariant by construction. Red direction, driven on a copy: removing one `CodifiedIn`
+        child makes the resolution clause non-zero before the close (`decision-eligible-still-live`
+        is the live-state counterpart), and pointing a `test-suite` at a missing path is refused by
+        the shipped `CodifiedIn` path check.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-D38-CODIFIED>
+      <AC-ROW-MINTED>
+        This bundle's registry row exists exactly once across `registry.xml` and
+        `registry-retired.xml`, with no fixed expectation of which file holds it: the `Row`'s
+        `status` agrees with the holding file, `kind="chartered"`, its `&lt;Charter&gt;` carries the
+        searched-before-minting statement, its `&lt;Pays&gt;` is empty, and its `&lt;StatusText&gt;` names no
+        `F` token outside `&lt;Pays&gt;`. The `Pays` assertion is containment, never an exact set, so a
+        later lawful retired-row append cannot expire it. The relation survives the row's own
+        retirement at the close. The instrument is the production assertion the plan adds to
+        `scripts/validate-record-retirement.test.ts`, parsed with the shipped parser over both
+        registry layers. Red direction, driven on mutated copies: a second row with the same name, or
+        a `StatusText` naming a token outside `Pays`, each turn the assertion non-zero.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROW-MINTED>
+      <AC-RECORD-VALID>
+        The record is valid at every committed point of this bundle's life and in the applied-archive
+        state. Before the close: `validateRecordRetirement` returns zero findings with the row minted
+        live and `--rewrite-roots` run; a mid-bundle `--retire` reports `moved 0`. At the close: the
+        `CodifiedIn` hand write is the only live-state tripwire and `--retire` reports the `D38`
+        decision and the registry row moved (two elements), stamps nothing on findings, flips the
+        `D38` index layer in place, and a second `--retire` reports zero. After the close:
+        `validateRecordRetirement` returns zero findings, `validateStubAndIndex` returns zero findings
+        (every citation resolves), and `proveRecordPreservation` returns zero. The instrument is the
+        production assertions in `scripts/validate-record-retirement.test.ts` — the read-only
+        validator run, the imported `validateStubAndIndex` and `proveRecordPreservation` runs, the
+        row and `CodifiedIn` walks — with an explicit generous timeout. Red direction, driven on a
+        copy: a planted eligibility or a duplicated carrier turns the suite non-zero; the driven full
+        close reports the two moves, validator 0, citation 0, preservation 0, second `--retire`
+        `moved 0`.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-VALID>
+      <AC-ROOTS-HELD>
+        The four live roots satisfy the shipped relations and no ceiling moved across the bundle: for
+        `findings.xml`, `rulings.xml`, `registry.xml` and `decisions.xml` — `base + headroom = ceiling`
+        and each `base` equals its shipped metric read back (`newlineCount` for findings and rulings,
+        the live `&lt;Entry&gt;` rule for the index, the live `Row` count for registry). Measured on a
+        driven copy: findings `7522 / 311 / 7833` and index `269 / 27 / 296` unchanged; rulings
+        `1733 / 150 / 1883` before the `CodifiedIn` write and the close's re-derivation after;
+        registry `12 / 14 / 26` pre-mint, `13 / 13 / 26` after the row mint's `--rewrite-roots`, and
+        back to `12 / 14 / 26` after the close. The only shipped writers of the roots,
+        `persistSnapshot` and `--rewrite-roots`, rewrite them in exactly this form, and a ceiling
+        holds or falls, never rises. The instrument is the shipped roots-invariant tripwire in
+        `scripts/validate-record-retirement.test.ts`. Red direction, driven on a copy: a root whose
+        `headroom` no longer sums against its ceiling reddens the tripwire.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROOTS-HELD>
+      <AC-NO-PRODUCTION-DRIFT>
+        No file under `src/` or `scripts/` changes relative to this spec's base commit except the
+        files the Goals force or permit, named here and in the command's excludes:
+        `src/artifact/types.ts`, `src/grace-generate.ts`, `src/grace-supersede.ts`,
+        `src/artifact/skeletons.ts`, `src/grace-generate.test.ts`, `src/grace-supersede.test.ts`,
+        `src/artifact/grammar.test.ts`, `src/docs-claims.test.ts`,
+        `src/test-support/token-accounting.test.ts`, `scripts/check-teaching-surface.ts`,
+        `scripts/check-teaching-surface.test.ts`, and
+        `scripts/validate-record-retirement.test.ts`. Prose and command name the same pathset.
+        Failure: any other `src/` or `scripts/` path differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- src/ scripts/ ':(exclude)src/artifact/types.ts' ':(exclude)src/grace-generate.ts' ':(exclude)src/grace-supersede.ts' ':(exclude)src/artifact/skeletons.ts' ':(exclude)src/grace-generate.test.ts' ':(exclude)src/grace-supersede.test.ts' ':(exclude)src/artifact/grammar.test.ts' ':(exclude)src/docs-claims.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-PRODUCTION-DRIFT>
+      <AC-DOCS-EXAMPLES>
+        Every surface this bundle does not write is byte-identical to this spec's base commit:
+        `examples/`, `CLAUDE.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/plans/README.md`,
+        `docs/schema-reference.md` (generated, and unchanged because no registered inventory moves),
+        `package.json`, `bun.lock`, `openpackage.yml`, `.claude-plugin/marketplace.json`,
+        `plugins/ngrace/.claude-plugin/plugin.json`, `CHANGELOG.md`, and `.ngrace-lint.json`. The
+        four generated templates and the two `SKILL.md` files are excluded with their reason (the
+        seed and the teaching) and their mirror identity is asserted by `AC-MIRROR-SYNC`; the other
+        skills' `references/` files stay byte-identical. `README.md` sits outside this pathset because
+        the mint examples and the footprint cell are forced writes; it is covered by `AC-README` and
+        the footprint criterion. Prose and command name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- examples/ CLAUDE.md CONTRIBUTING.md AGENTS.md docs/plans/README.md docs/schema-reference.md package.json bun.lock openpackage.yml .claude-plugin plugins/ngrace/.claude-plugin CHANGELOG.md .ngrace-lint.json skills/ngrace/ plugins/ngrace/skills/ngrace/ ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)skills/ngrace/ngrace-spec/references/change-spec-template.xml' ':(exclude)skills/ngrace/ngrace-plan/references/change-plan-template.xml' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml'</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and `.ngrace/changes/archive/` are not modified;
+        this bundle's own later arrival under `.ngrace/changes/archive/C-HASHED-BUNDLE-IDS/` is not
+        a modification — the close itself renames this bundle's directory into the archive, and the
+        pathspec excludes that arrival so the close's own rename cannot redden the criterion. The
+        record's sanctioned writes in this bundle's window touch no path under either archive root.
+        The prose claims tracked paths only. Probed in the post-close state.
+        <CloseEvidence>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-HASHED-BUNDLE-IDS'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task `Verification` commands and `TargetAssertions` contain no current-mode
+        lint of this project root, checked by hand (the shipped detector misses the house
+        `bun ./src/grace.ts lint` form). Failure: a `Command` whose text contains
+        `--assertions current`, or that invokes lint of this root and omits `--assertions`. This is
+        the spec's single `Satisfies`-mapped criterion; it carries no `CloseEvidence` and must be
+        mapped by exactly one task `Satisfies` in the later plan.
+      </AC-NO-CURRENT-MODE>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-ARTIFACT-TYPES />
+      <M-CLI />
+      <M-GRAMMAR />
+      <M-SKILLS />
+      <M-TEST-SUPPORT />
+      No module-ownable path outside these is written. `scripts/` is lint-ignored
+      (`.ngrace-lint.json` `ignoredDirs`); the `.test.ts` files are not module-ownable; the four
+      skill `SKILL.md` files, the four generated templates, `README.md`, and the record files sit
+      under no module `Path`. The four real anchors the deliverable touches are named once here and
+      once in the write-scope Constraint: `M-ARTIFACT-TYPES` owns `src/artifact/types.ts`,
+      `M-CLI` owns the two verbs, `M-GRAMMAR` owns `src/artifact/skeletons.ts`, `M-SKILLS` owns the
+      canonical and packaged skill trees, and `M-TEST-SUPPORT` owns the footprint instrument. The
+      module enumeration is these five anchors and no more; do not mint a synthetic module.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/grace-generate.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-supersede.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/artifact/grammar.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/docs-claims.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/check-teaching-surface.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/generate-skeleton-templates.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:skeleton-templates</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): `spec new` mints `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;` deterministically from a handed-in
+        timestamp and branch, refuses the pinned set without writing, reports the resolved id and the
+        slug-prefix search, and seeds a docs-and-examples `NonGoal` so a bare mint passes
+        `check-teaching-surface`; `supersede` derives the successor's lineage from the predecessor's
+        parsed name, accepts only the lineage successor, and mints it when `--replacement` is
+        omitted; the permissive `change` pattern and every identity derivation accept the legacy
+        corpus unchanged; the two skills and the four generated templates carry the form, canonical
+        and packaged identical; the README mint examples show the slug argument; the row is minted
+        live and `D38`'s `CodifiedIn` lands at the close; every `CloseEvidence` command and the full
+        `validate:ci` run green inside a faithful copy of the post-close state, with both directions
+        driven for every criterion and every exit code read directly. Structural counts come from the
+        shipped parser, never `grep -c`; the record's copy-drive runs from inside a whole-repository
+        copy (`F235`). The reds are ledger-recorded fail/pass pairs, not claims.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring commit `e18e7540c298f37b22ba35077180ff7ad63c8294`, branch
+        `c-hashed-bundle-ids`, tree clean, 2026-09-14.** `bun ./src/grace.ts lint --path .` exits 0 at
+        0/0 with this spec in the tree; `bun run validate:ci` exits 0 at the base; archive 99
+        directories matching `^C-[A-Z0-9-]+$`; `active/` held only `.gitkeep` before this bundle.
+        Every count here expires; the implementation re-measures (`D30`).
+      </Assumption>
+      <Assumption>
+        **The name search, re-measured 2026-09-14 at this commit.** Over `.ngrace/changes/archive/`
+        (99 directories matching `^C-[A-Z0-9-]+$`) and the record's structural `Row name=` attributes
+        across both registry layers (67 rows: 12 live + 55 retired): **zero hits** for
+        `C-HASHED-BUNDLE-IDS`. Per token: `HASHED` 0 archive directories and 0 rows; `BUNDLE` 1
+        archive directory (`C-BUNDLE-BASE-REF`) and 0 rows; `IDS` 0 and 0. No colliding or
+        better-fitting prior name. The id is the hand-minted legacy `C-&lt;SLUG&gt;` form: `D38`'s own
+        third edge keeps the legacy corpus's hash-less names, and the `-&lt;N&gt;-&lt;HASH&gt;` form this
+        bundle builds applies to mints after it lands.
+      </Assumption>
+      <Assumption>
+        **The consumer census, measured at this commit.** 49 non-test `ANCHOR_PATTERNS.change`
+        occurrences across 14 files (counted by `rg -c 'ANCHOR_PATTERNS\.change' src/ --glob
+        '!*.test.ts'`, which prints `file:count` lines summing to 49; the per-file counts are in the
+        Problem); every directory-name identity derivation listed in the Problem. All accept both
+        forms by construction because the pattern is a strict superset of the minted form. The three
+        production sites that change are `src/artifact/types.ts`, `src/grace-generate.ts` and
+        `src/grace-supersede.ts`.
+      </Assumption>
+      <Assumption>
+        **The `F249` red, re-driven at this commit on a whole-repository copy.** `ngrace spec new
+        C-PROBE-BARE` then `bun ./scripts/check-teaching-surface.ts check` → exit 1,
+        `refusal: … /C-PROBE-BARE/spec.xml — docs-and-examples decision (a Goal, Constraint or
+        NonGoal decides README.md and examples/): missing README.md and examples/`. The skeleton
+        contains no `README.md`/`examples/` token. The seed makes that exit 0.
+      </Assumption>
+      <Assumption>
+        **The live findings that name the surface, searched 2026-09-14 at this commit.**
+        `grep` over `findings.xml` for `spec new`, `supersede`, `bundle id` and `collide` finds
+        `F135` (the authority superseded before the replacement existed, and a `spec new` skeleton is
+        never inert) and `F158` (the supersede verb's contract, measured, and one non-atomic failure
+        path), both live, plus `F123` (superseded plan targets) and `F153` (quoted tool output).
+        None owns a remedy on this surface: `F135`'s teaching half is paid and its product half is
+        `F249`'s, already paid by `C-TEACH-DRIVE-BEFORE-APPROVE-2`; `F158`'s fold boundary is
+        explicitly *not chartered here*; `F123` and `F153` name other surfaces. So the row's
+        `&lt;Pays&gt;` is empty and `D38` is codified by `CodifiedIn`, not by payment.
+      </Assumption>
+      <Assumption>
+        **The README population, measured at this commit.** 41 lines contain `C-`
+        (`grep -c 'C-' README.md`), 39 distinct `C-` token occurrences
+        (`grep -o 'C-[A-Z0-9][A-Z0-9-]*' README.md | wc -l`). The mint examples are lines 130 and
+        188; the `supersede` row is 202; the concept rows are 53-54; the `C-*` globs are 51, 53, 54,
+        247, 257; the generic `C-ID` placeholders and the legacy polyglot fixture at 309 stay.
+      </Assumption>
+      <Assumption>
+        **The record windows, by the shipped parser over the real record.** findings
+        `7522 / 311 / 7833`; rulings `1733 / 150 / 1883`; index `269 / 27 / 296` with 386 `Entry`
+        lines; registry `12 / 14 / 26` with 12 live rows. `D38` is live in `rulings.xml` with no
+        `CodifiedIn` and index `Entry layer="live"`. The mint takes registry to 13 live rows
+        (`--rewrite-roots` → `13 / 13 / 26`); the close's `--retire` moves `D38` and the row and
+        returns registry to 12. `findings.xml` and the index are untouched except the index layer
+        flip; every live root satisfies the tripwire relations at this commit.
+      </Assumption>
+      <Assumption>
+        **Skill footprint, snapshot.** 16 skills, total 864 lines, 75236 bytes,
+        `ngrace-spec` 142 lines / 13546 bytes, `ngrace-plan` 122 / 13181, `referencesTotal` 1435.
+        `README.md`'s measurement cell at the `skillTextLines().total` / `totalBytes` row publishes
+        the pair, and `src/test-support/token-accounting.test.ts` cross-checks it. The two edited
+        skills' frontmatter descriptions do not change, so no Skills Overview row moves; the exact
+        post-teaching values are re-measured by the plan, never written toward.
+      </Assumption>
+      <Assumption>
+        **Versions and packaging, decided the way the precedent bundles decided them.** No product
+        version bump: a version is a release act, not this bundle's. Packaged version at authoring
+        `6.2.0`; `validate:marketplace` enforces version sync across `README.md`, `openpackage.yml`,
+        `.claude-plugin/marketplace.json` and `package.json`, and packaged-versus-canonical byte
+        identity — both trees change together, so it stays green. `CHANGELOG.md` is generated and
+        untouched; `examples/` is untouched.
+      </Assumption>
+    </Assumptions>
+  </C-HASHED-BUNDLE-IDS>
+</NgraceChangeSpec>
