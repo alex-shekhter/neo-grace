@@ -2091,6 +2091,15 @@ ${names
         // state (the close's mint).
         F240: "C-REVIEW-SELF-SCOPE-2",
         F245: "C-REVIEW-SELF-SCOPE-2",
+        // C-TEACH-DRIVE-BEFORE-APPROVE-2 T-001: the chartered row's five minted
+        // tokens. The extension is consulted only for tokens the derivation
+        // actually mints, so the walk is green with the row live and green in
+        // the applied-archive state (the close's mint).
+        F243: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+        F246: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+        F247: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+        F248: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+        F249: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
@@ -4833,5 +4842,203 @@ describe("C-REVIEW-SELF-SCOPE-2 carrier and row relations", () => {
     });
     expect(hits.length, `the mutated copy carries two ${CSELF_ROW.name} rows`).toBe(2);
     expect(() => expectCselfCarrierAndRowRelations(recordDir)).toThrow(/exactly one Row across the registry layers/);
+  });
+});
+// ---------------------------------------------------------------------------
+// C-TEACH-DRIVE-BEFORE-APPROVE-2 T-001: the flush-invariant carrier walk.
+// ---------------------------------------------------------------------------
+
+function expectCtdbaFlushInvariant(recordDir: string): void {
+  const liveParsed = parseGraceXmlArtifact("findings.xml", readFileSync(path.join(recordDir, "findings.xml"), "utf8"));
+  const retiredParsed = parseGraceXmlArtifact("findings-retired.xml", readFileSync(path.join(recordDir, "findings-retired.xml"), "utf8"));
+  const indexParsed = parseGraceXmlArtifact("decisions.xml", readFileSync(path.join(recordDir, "decisions.xml"), "utf8"));
+  expect(liveParsed.root, "findings.xml parses").not.toBeNull();
+  expect(retiredParsed.root, "findings-retired.xml parses").not.toBeNull();
+  expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+  for (const id of ["f246", "f247", "f248", "f249"]) {
+    const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+      const parsed = file === "findings.xml" ? liveParsed : retiredParsed;
+      return [...walkNodes(parsed.root!)]
+        .filter((node) => node.tag === "Finding" && node.attributes.id === id)
+        .map((node) => ({ file, node }));
+    });
+    expect(carriers.length, `${id}: exactly one Finding element across the findings pair (got ${carriers.length})`).toBe(1);
+    const { file, node } = carriers[0]!;
+    const expectedStatus = file === "findings.xml" ? "live" : "retired";
+    expect(node.attributes.status, `${id}: the carrier's status agrees with the holding file (${file})`).toBe(expectedStatus);
+    expect(node.attributes.token, `${id}: the carrier's token agrees with the id`).toBe(`F${id.slice(1)}`);
+    const entries = [...walkNodes(indexParsed.root!)].filter((entry) => entry.tag === "Entry" && entry.attributes.id === id);
+    expect(entries.length, `${id}: exactly one Entry for the id`).toBe(1);
+    expect(entries[0]!.attributes.genre, `${id}: the Entry's genre agrees`).toBe("finding");
+    expect(entries[0]!.attributes.layer, `${id}: the Entry's layer agrees with the holding file`).toBe(expectedStatus);
+  }
+  const findingsText = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+  const findingsRoot = parseGraceXmlArtifact("findings.xml", findingsText).root!;
+  const base = Number(findingsRoot.attributes.base);
+  const headroom = Number(findingsRoot.attributes.headroom);
+  const ceiling = Number(findingsRoot.attributes.ceiling);
+  expect(base, "findings.xml: base equals the file's newlineCount").toBe(newlineCount(findingsText));
+  expect(base + headroom, "findings.xml: base + headroom = ceiling").toBe(ceiling);
+}
+
+describe("C-TEACH-DRIVE-BEFORE-APPROVE-2 flush invariant", () => {
+  it(
+    "the four flushed ids are exactly once across the findings pair with agreeing status, token, index genre and layer, and the findings root satisfies base + headroom = ceiling (generous timeout)",
+    () => {
+      expectCtdbaFlushInvariant(path.join(REPO_ROOT, RECORD_REL));
+    },
+    60_000,
+  );
+
+  it("red direction — a duplicated carrier reddens the at-most-once flush clause", () => {
+    const root = isolatedRoot();
+    const recordDir = path.join(root, RECORD_REL);
+    mkdirSync(recordDir, { recursive: true });
+    for (const file of ["registry.xml", "registry-retired.xml", "findings.xml", "findings-retired.xml", "decisions.xml"]) {
+      copyFileSync(path.join(REPO_ROOT, RECORD_REL, file), path.join(recordDir, file));
+    }
+    const held = readFileSync(path.join(recordDir, "findings.xml"), "utf8");
+    writeFileSync(
+      path.join(recordDir, "findings.xml"),
+      held.replace("</Findings>", `  <Finding id="f246" token="F246" status="live">\n    <Title>dup</Title>\n    <Body>dup</Body>\n  </Finding>\n</Findings>`),
+    );
+    expect(() => expectCtdbaFlushInvariant(recordDir)).toThrow(/exactly one Finding element across the findings pair/);
+  });
+});
+// ---------------------------------------------------------------------------
+// C-TEACH-DRIVE-BEFORE-APPROVE-2 T-001: the carrier/row walk.
+// ---------------------------------------------------------------------------
+
+const CTDBA_FINDING_PAYERS: Record<string, string> = {
+  F243: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+  F246: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+  F247: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+  F248: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+  F249: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+};
+
+const CTDBA_ROW = {
+  name: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+  kind: "chartered",
+  requiredPays: ["F243", "F246", "F247", "F248", "F249"],
+};
+
+function expectCtdbaCarrierAndRowRelations(recordDir: string): void {
+  const indexParsed = parseGraceXmlArtifact(
+    "decisions.xml",
+    readFileSync(path.join(recordDir, "decisions.xml"), "utf8"),
+  );
+  expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+  for (const token of Object.keys(CTDBA_FINDING_PAYERS)) {
+    const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      expect(parsed.root, `${file} parses`).not.toBeNull();
+      return [...walkNodes(parsed.root!)]
+        .filter((node) => node.tag === "Finding" && node.attributes.token === token)
+        .map((node) => ({ file, node }));
+    });
+    expect(
+      carriers.length,
+      `${token}: at most one Finding element carries the token across the two findings files (got ${carriers.length})`,
+    ).toBeLessThanOrEqual(1);
+    for (const carrier of carriers) {
+      const expectedStatus = carrier.file === "findings.xml" ? "live" : "retired";
+      expect(carrier.node.attributes.status, `${token}: the carrier's status agrees with the holding file`).toBe(expectedStatus);
+      const entries = [...walkNodes(indexParsed.root!)].filter(
+        (node) => node.tag === "Entry" && node.attributes.id === carrier.node.attributes.id,
+      );
+      expect(entries.length, `${token}: the index carries exactly one Entry for the carrier's id`).toBe(1);
+      expect(entries[0]!.attributes.layer, `${token}: the carrier's index Entry layer agrees with the holding file`).toBe(expectedStatus);
+      if (expectedStatus === "retired") {
+        expect(childText(carrier.node, "PaidBy"), `${token}: a retired carrier carries PaidBy ${CTDBA_FINDING_PAYERS[token]}`).toBe(CTDBA_FINDING_PAYERS[token]);
+      }
+    }
+  }
+  const hits = (["registry.xml", "registry-retired.xml"] as const).flatMap((file) => {
+    const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+    expect(parsed.root, `${file} parses`).not.toBeNull();
+    return childNodes(parsed.root!, "Row")
+      .filter((row) => row.attributes.name === CTDBA_ROW.name)
+      .map((row) => ({ file, node: row }));
+  });
+  expect(hits.length, `${CTDBA_ROW.name}: exactly one Row across the registry layers (got ${hits.length})`).toBe(1);
+  const hit = hits[0]!;
+  const holding = hit.file === "registry.xml" ? "live" : "retired";
+  expect(hit.node.attributes.status, `${CTDBA_ROW.name}: the row's status agrees with the holding file`).toBe(holding);
+  expect(hit.node.attributes.kind, `${CTDBA_ROW.name}: kind`).toBe(CTDBA_ROW.kind);
+  const paysTokens = (childText(hit.node, "Pays") ?? "").trim().split(/\s+/).filter(Boolean);
+  for (const required of CTDBA_ROW.requiredPays) {
+    expect(paysTokens, `${CTDBA_ROW.name}: Pays names ${required}`).toContain(required);
+  }
+  const statusText = childText(hit.node, "StatusText") ?? "";
+  for (const token of statusText.match(/F[0-9]+/g) ?? []) {
+    expect(paysTokens, `${CTDBA_ROW.name}: StatusText names no F token outside Pays (${token})`).toContain(token);
+  }
+}
+
+describe("C-TEACH-DRIVE-BEFORE-APPROVE-2 carrier and row relations", () => {
+  it(
+    "F243 F246 F247 F248 F249 each exist at most once across the findings pair with status and index layer agreeing and PaidBy C-TEACH-DRIVE-BEFORE-APPROVE-2 when retired, and the C-TEACH-DRIVE-BEFORE-APPROVE-2 row exactly once across the registry layers with status agreeing, kind chartered, Pays containing the five tokens, and a StatusText naming no token outside Pays (generous timeout)",
+    () => {
+      expectCtdbaCarrierAndRowRelations(path.join(REPO_ROOT, RECORD_REL));
+    },
+    60_000,
+  );
+
+  it(
+    "the shipped validateStubAndIndex and proveRecordPreservation return zero on the production record (generous timeout)",
+    () => {
+      expect(validateStubAndIndex(path.join(REPO_ROOT, RECORD_REL, "decisions.md")).length).toBe(0);
+      expect(proveRecordPreservation(path.join(REPO_ROOT, RECORD_REL)).length).toBe(0);
+    },
+    60_000,
+  );
+
+  it("red direction — a second C-TEACH-DRIVE-BEFORE-APPROVE-2 row reddens the exactly-once clause", () => {
+    const root = isolatedRoot();
+    const recordDir = path.join(root, RECORD_REL);
+    mkdirSync(recordDir, { recursive: true });
+    for (const file of ["registry.xml", "registry-retired.xml", "findings.xml", "findings-retired.xml", "decisions.xml"]) {
+      copyFileSync(path.join(REPO_ROOT, RECORD_REL, file), path.join(recordDir, file));
+    }
+    for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+      const held = readFileSync(path.join(recordDir, file), "utf8");
+      if (!held.includes(`name="${CTDBA_ROW.name}"`)) continue;
+      writeFileSync(
+        path.join(recordDir, file),
+        held.replace(
+          "</Registry>",
+          `  <Row name="${CTDBA_ROW.name}" status="live" kind="chartered">\n    <Number></Number>\n    <Charter>duplicate</Charter>\n    <Pays>F243 F246 F247 F248 F249</Pays>\n    <StatusText>Ordered</StatusText>\n  </Row>\n</Registry>`,
+        ),
+      );
+    }
+    const hits = (["registry.xml", "registry-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      return childNodes(parsed.root!, "Row").filter((row) => row.attributes.name === CTDBA_ROW.name);
+    });
+    expect(hits.length, `the mutated copy carries two ${CTDBA_ROW.name} rows`).toBe(2);
+    expect(() => expectCtdbaCarrierAndRowRelations(recordDir)).toThrow(/exactly one Row across the registry layers/);
+  });
+
+  it("red direction — a StatusText naming a token outside Pays reddens the prose law", () => {
+    const root = isolatedRoot();
+    const recordDir = path.join(root, RECORD_REL);
+    mkdirSync(recordDir, { recursive: true });
+    for (const file of ["registry.xml", "registry-retired.xml", "findings.xml", "findings-retired.xml", "decisions.xml"]) {
+      copyFileSync(path.join(REPO_ROOT, RECORD_REL, file), path.join(recordDir, file));
+    }
+    for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+      const held = readFileSync(path.join(recordDir, file), "utf8");
+      if (!held.includes(`name="${CTDBA_ROW.name}"`)) continue;
+      const rowStart = held.indexOf(`<Row name="${CTDBA_ROW.name}"`);
+      const rowEnd = held.indexOf("</Row>", rowStart);
+      const rowBlock = held.slice(rowStart, rowEnd);
+      expect(rowBlock.includes("<StatusText>"), "the mutation targets the row's StatusText").toBe(true);
+      writeFileSync(
+        path.join(recordDir, file),
+        held.slice(0, rowStart) + rowBlock.replace("<StatusText>", "<StatusText>F999 ") + held.slice(rowEnd),
+      );
+    }
+    expect(() => expectCtdbaCarrierAndRowRelations(recordDir)).toThrow(/StatusText names no F token outside Pays/);
   });
 });

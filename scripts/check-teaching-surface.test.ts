@@ -10,6 +10,7 @@ import {
   checkDocsAndExamplesDecision,
   checkPolyglotDefault,
   checkRecordTokens,
+  checkStaleReviewClaims,
   checkTaughtRules,
   checkTemplateFill,
 } from "./check-teaching-surface";
@@ -522,6 +523,26 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-reviewer", section: "review_judgment", token: "faithful copy" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "any later lawful move of the record" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "red-direction fixture" },
+  { skill: "ngrace-plan", section: "must_do", token: "tree state its task leaves" },
+  { skill: "ngrace-plan", section: "must_do", token: "excludes every earlier task's files" },
+  { skill: "ngrace-plan", section: "must_do", token: "evaluated by nothing before the plan is approved" },
+  { skill: "ngrace-plan", section: "must_do", token: "to a test slice, never a whole file" },
+  { skill: "ngrace-plan", section: "must_do", token: "skips the bundle's own" },
+  { skill: "ngrace-plan", section: "must_do", token: "by identity" },
+  { skill: "ngrace-plan", section: "must_do", token: "design-context.xml" },
+  { skill: "ngrace-plan", section: "must_do", token: "gate approve --artifact plan" },
+  { skill: "ngrace-plan", section: "validation", token: "requires an open epoch on a declared task" },
+  { skill: "ngrace-execute", section: "assertion_commands", token: "needs an open epoch on a declared task" },
+  { skill: "ngrace-execute", section: "recovery_decision_table", token: "approved plan's own baseline assertion is false at HEAD" },
+  { skill: "ngrace-spec", section: "status_rules", token: "skips the bundle's own" },
+  { skill: "ngrace-spec", section: "status_rules", token: "by identity" },
+  { skill: "ngrace-spec", section: "status_rules", token: "design-context.xml" },
+  { skill: "ngrace-spec", section: "workflow", token: "skips the bundle's own" },
+  { skill: "ngrace-spec", section: "workflow", token: "by identity" },
+  { skill: "ngrace-spec", section: "docs_and_examples", token: "bare mint is never committed" },
+  { skill: "ngrace-reviewer", section: "mechanized_first", token: "skips the bundle's own" },
+  { skill: "ngrace-reviewer", section: "mechanized_first", token: "by identity" },
+  { skill: "ngrace-reviewer", section: "mechanized_first", token: "design-context.xml" },
 ];
 
 function taughtSkillBody(skill: string, drop?: { section: string; token?: string }): string {
@@ -765,6 +786,66 @@ describe("checkCliTokenForms", () => {
     "real-repository: ngrace-cli shape_sources carries the rule and no SKILL.md carries the bare form in either tree (generous timeout)",
     () => {
       expect(checkCliTokenForms(REPO_ROOT)).toBe(0);
+    },
+    60_000,
+  );
+});
+
+// ---------------------------------------------------------------------------
+// C-TEACH-DRIVE-BEFORE-APPROVE-2 T-002: checkStaleReviewClaims — no SKILL.md
+// under either tree carries the stale F247 review-scope claim. The walk is
+// every SKILL.md on disk, never only the four governed skills.
+// ---------------------------------------------------------------------------
+
+const STALE_CLAIM = "and (when that file changed) decisions.md is expected";
+
+function plantStaleClaim(root: string, relative: string): void {
+  for (const tree of ["skills/ngrace", "plugins/ngrace/skills/ngrace"] as const) {
+    const clean = path.join(root, tree, "ngrace-execute", "SKILL.md");
+    mkdirSync(path.dirname(clean), { recursive: true });
+    if (!existsSync(clean)) {
+      writeFileSync(clean, "<status_rules>clean</status_rules>\n");
+    }
+  }
+  const file = path.join(root, relative);
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, `<status_rules>\nX ${STALE_CLAIM} X.\n</status_rules>\n`);
+}
+
+describe("checkStaleReviewClaims", () => {
+  it("returns zero on a whole tree whose SKILL.md files carry no stale claim", () => {
+    const root = isolatedRoot();
+    for (const tree of ["skills/ngrace", "plugins/ngrace/skills/ngrace"] as const) {
+      for (const skill of ["ngrace-spec", "ngrace-plan", "ngrace-reviewer"]) {
+        const file = path.join(root, tree, skill, "SKILL.md");
+        mkdirSync(path.dirname(file), { recursive: true });
+        writeFileSync(file, "<status_rules>clean</status_rules>\n");
+      }
+    }
+    expect(checkStaleReviewClaims(root)).toBe(0);
+  });
+
+  it("returns non-zero naming the file when the stale claim is planted in a skill OUTSIDE the four governed skills", () => {
+    const root = isolatedRoot();
+    plantStaleClaim(root, "skills/ngrace/ngrace-cli/SKILL.md");
+    const { code, output } = captureStderr(() => checkStaleReviewClaims(root));
+    expect(code).not.toBe(0);
+    expect(output).toContain("skills/ngrace/ngrace-cli/SKILL.md");
+    expect(output).toContain(STALE_CLAIM);
+  });
+
+  it("returns non-zero naming the file when the stale claim is planted in the packaged mirror", () => {
+    const root = isolatedRoot();
+    plantStaleClaim(root, "plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md");
+    const { code, output } = captureStderr(() => checkStaleReviewClaims(root));
+    expect(code).not.toBe(0);
+    expect(output).toContain("plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md");
+  });
+
+  it(
+    "real-repository: no SKILL.md under either tree carries the stale claim (generous timeout)",
+    () => {
+      expect(checkStaleReviewClaims(REPO_ROOT)).toBe(0);
     },
     60_000,
   );

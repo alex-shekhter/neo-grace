@@ -25,11 +25,11 @@ Create `spec.xml` as `status="draft"`. After a sufficient phrase from `approval_
 
 A draft `spec.xml` is revised in place: before approval the draft is corrected — never forked, never duplicated — and create → review → gate is the path an approved artifact takes. Only an approved artifact is immutable; repair an approved artifact by supersede, never by editing it.
 
-At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve `review.scope-outside-write-scope` on the bundle's own spec.xml, plan.xml, and (when that file changed) decisions.md is expected; do not add those paths to ObservedWriteScope.
+At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve the review skips the bundle's own `spec.xml`, `plan.xml` and `design-context.xml` by identity; `decisions.md` is reported and is expected only when that file changed. Do not add those paths to `ObservedWriteScope`.
 </status_rules>
 
 <docs_and_examples>
-Every `NgraceChangeSpec` must decide `README.md` and `examples/` in a Goal, Constraint, or NonGoal. A NonGoal must name the owner (a step, a bundle, or "unchanged; no user-visible surface"). Silence fails. Enforcement is `checkDocsAndExamplesDecision`, not this sentence.
+Every `NgraceChangeSpec` must decide `README.md` and `examples/` in a Goal, Constraint, or NonGoal. A NonGoal must name the owner (a step, a bundle, or "unchanged; no user-visible surface"). Silence fails. Enforcement is `checkDocsAndExamplesDecision`, not this sentence. The mint alone is CI-red until the rewrite decides `README.md` and `examples/`: a `ngrace spec new` skeleton carries no such decision, so a bare mint is never committed.
 </docs_and_examples>
 
 <approval_lexicon>
@@ -130,7 +130,7 @@ Optional `DesignReferences` under the `C-*` wrapper. Children and their validato
 3. Create a deterministic uppercase-kebab `C-*` change id.
 4. Write `spec.xml` with `ngrace spec new` as the primary write path. Use `references/change-spec-template.xml` as the teaching source for optional sections. Prefer `AC-*` acceptance criteria. Add `DesignReferences` when design sources exist.
 5. If rationale, alternatives, scenarios, or external constraints would otherwise bloat the spec, write non-normative `design-context.xml` from `references/design-context-template.xml`.
-6. If approval is not a sufficient phrase from `approval_lexicon`, leave `spec.xml` as `status="draft"` and report the approval step needed. After a sufficient phrase, run `ngrace review --path . --change C-ID` (does not record a verdict), then `ngrace gate approve --change C-ID`; that command writes status. Do not hand-write approved. Request ratification of C-ID at spec stage with a sufficient phrase: `approved`, `I approve`, or `approve this spec`. At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve `review.scope-outside-write-scope` on the bundle's own spec.xml, plan.xml, and (when that file changed) decisions.md is expected; do not add those paths to ObservedWriteScope.
+6. If approval is not a sufficient phrase from `approval_lexicon`, leave `spec.xml` as `status="draft"` and report the approval step needed. After a sufficient phrase, run `ngrace review --path . --change C-ID` (does not record a verdict), then `ngrace gate approve --change C-ID`; that command writes status. Do not hand-write approved. Request ratification of C-ID at spec stage with a sufficient phrase: `approved`, `I approve`, or `approve this spec`. At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve the review skips the bundle's own `spec.xml`, `plan.xml` and `design-context.xml` by identity; `decisions.md` is reported and is expected only when that file changed. Do not add those paths to `ObservedWriteScope`.
 </workflow>
 
 <hard_rules>

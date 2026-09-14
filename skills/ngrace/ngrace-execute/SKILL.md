@@ -15,6 +15,7 @@ Require one active bundle with approved, identity-matched `spec.xml` and `plan.x
 - Selected target with command evidence: `ngrace lint --path PROJECT --change C-ID --assertions target --run-commands`
 - Final end-state validation: `ngrace lint --path PROJECT --change C-ID --assertions final` (add `--run-commands` when the target declares `MustPassCommand`)
 - Parallel preflight: `ngrace lint --path PROJECT --parallel-preflight`
+- Every selected command carries a precondition: `--assertions target` and `--assertions final` evaluate only an approved plan (`assertion.change-not-approved` otherwise), and `--run-commands` needs an open epoch on a declared task (`cursor advance --change C-ID --task T-NNN --open-epoch`) before it can record a command-run.
 </assertion_commands>
 
 <mode_selection>
@@ -27,6 +28,7 @@ Wait for explicit `sequential` or `parallel-safe` choice. Parallel-safe requires
 | partial-observed-writes | Inspect the declared observed scope and ask whether to resume or revert. |
 | durable-state-changed | Hard stop; run `ngrace supersede`. Approved assertions are immutable. |
 | target-already-satisfied | Run final end-state validation, opted-in command evidence when declared, durable reconciliation, and ask for explicit apply confirmation. |
+| approved-baseline-false-at-head | Hard stop before any write: the approved plan's own baseline assertion is false at HEAD, a defect no draft-state check could see; run ngrace supersede rather than edit the plan. |
 | unsafe-unknown-drift | Hard stop and report unexplained files. |
 </recovery_decision_table>
 

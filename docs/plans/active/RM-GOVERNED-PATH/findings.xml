@@ -1,4 +1,4 @@
-<Findings base="7550" headroom="283" ceiling="7833">
+<Findings base="7522" headroom="311" ceiling="7833">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7515,34 +7515,6 @@ does not read the file under test is `F125` with a narrower premise.
 
 Owner: a chartered bundle, sequenced by the maintainer; `.ngrace-lint.json` already names `scripts/` adoption as deferred to a
 later `C-*`, and this rides with it or ahead of it. Neighbour to F125.
-
----
-</Body>
-  </Finding>
-  <Finding id="f243" token="F243" status="live">
-    <Title>### F243 — a task's `Verification` `git diff --exit-code` written cumulatively from the base commit is red at the stage it claims unless it excludes every earlier task's files, and nothing can notice: task `Verification` commands are checked for non-emptiness and never executed. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-12 at `f0bbab7`, executing `C-FLUSH-AND-TEACH`.** T-002's and T-003's `Verification` carry
-`git diff --exit-code &lt;base&gt; -- skills/ src/ scripts/ … ':(exclude)…'` naming that task's own writes as excludes but not
-`scripts/validate-record-retirement.test.ts`, which T-001 wrote first; at T-002's stage both commands exit 1 on T-001's
-walk. Adding the one exclusion makes each exit 0 (the executor's measurement, re-driven). The plan was approved with the
-defect because the planner drove every `Verification` command at HEAD, before execution, where every cumulative diff is
-trivially green — `ngrace-plan` `must_do` 19 says &quot;drive every planned command on a prototype&quot; and does not say *in the
-state the task leaves*.
-
-**Why no gate saw it.** `src/artifact/grammar.ts:2274` requires a task's `Verification` to hold at least one non-empty
-`Command`; no lint mode, `--run-commands` (which evaluates `MustPassCommand` assertions only) or cursor verb executes
-them. A task's `Verification` is prose to the product: its pass is the executor's claim, and the `command-run` events
-the ledger holds are the assertion commands, not the task's. The two red commands cost nothing at execution and nothing
-at close; they are wrong in an immutable artifact, and a supersede for a pathspec is the disproportion `F236` names.
-
-**The rule.** A per-task byte-invariance command excludes every earlier task's files, or is scoped to the paths the
-task itself must not touch rather than everything-but-mine; and a planned `Verification` command is driven in the
-tree state its task leaves, not at HEAD. Whether the product should execute task `Verification` at `attempt pass` is
-a design question this entry records and does not answer.
-
-Owner: the next teaching-surface increment (`ngrace-plan` row 19, beside the clause `C-FLUSH-AND-TEACH` added);
-the execution question to a chartered bundle. Neighbour to [F236](#f236), [F237](#f237).
 
 ---
 </Body>

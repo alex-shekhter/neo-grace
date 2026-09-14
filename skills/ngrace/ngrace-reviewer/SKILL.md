@@ -34,7 +34,7 @@ The CLI emits deterministic finding IDs for pattern detectors (five RM-AGENT-REL
 (scope, test weakening, backward-compat, hunk coverage). Finding IDs are stable across reruns and
 unrelated blank-line edits. Use those IDs in your report; do not invent parallel codes.
 
-At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve `review.scope-outside-write-scope` on the bundle's own spec.xml, plan.xml, and (when that file changed) decisions.md is expected; do not add those paths to ObservedWriteScope. Other findings are not expected-clean.
+At spec-approve the scope and WriteEvidence audits report they did not run (no plan); attempt-pair reports ran over 0 pairs and that is not substantiation. At plan-approve the review skips the bundle's own `spec.xml`, `plan.xml` and `design-context.xml` by identity; `decisions.md` is reported and is expected only when that file changed. Do not add those paths to `ObservedWriteScope`. Other findings are not expected-clean.
 </mechanized_first>
 
 <review_judgment>
