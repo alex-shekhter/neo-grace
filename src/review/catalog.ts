@@ -9,6 +9,8 @@
 //
 // START_MODULE_MAP
 //   ATTEMPT_PAIR_FINDING_CODE
+//   ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE
+//   ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE
 //   WRITE_EVIDENCE_SCOPE_FINDING_CODE
 //   CLOSE_EVIDENCE_ABSENCE_FINDING_CODE
 //   APPROVAL_NEVER_ASKED_FINDING_CODE
@@ -60,6 +62,19 @@ export type ReviewIssueGuide = {
  * re-type the string at call sites.
  */
 export const ATTEMPT_PAIR_FINDING_CODE = "review.attempt-pair-identical-tree" as const;
+
+/**
+ * Live unpaired-fail finding code (F250 / F9.7): a recorded red with no resolving pass.
+ */
+export const ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE =
+  "review.attempt-pair-unpaired-fail" as const;
+
+/**
+ * Live unpaired-pass finding code (F250 / F9.7): a recorded pass with no preceding red.
+ * First `info` review code — below the default `warning` threshold, visible on request.
+ */
+export const ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE =
+  "review.attempt-pair-unpaired-pass" as const;
 
 /**
  * Live WriteEvidence-vs-ObservedWriteScope finding code (C-DECLARED-WRITES).
@@ -215,6 +230,42 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
     ],
     severity: "warning",
     derivedFrom: "§6.4 hunk coverage",
+    family: "process-audit",
+  },
+  [ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE]: {
+    code: ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE,
+    title: "Unpaired Fail (Red Never Resolved)",
+    explanation:
+      "A fail attempt on a task has no following pass for that task after every attempt is "
+      + "consumed: the recorded red was never resolved, so the fail→pass audit cannot pair it "
+      + "(F250 / F9.7).",
+    remediation: [
+      "If the fail should have been resolved, record the resolving pass; do not stage a "
+        + "retrospective red (F9.1).",
+      "If the task was abandoned, disclose it; the red stands unresolved.",
+      "When the finding is adjudicated rather than repaired: record a bound "
+        + "`ngrace gate verdict --change C-ID --outcome pass` with `--ack-finding` equal to this "
+        + "finding's stable findingId. A bare \"reviewed\" flag is not enough.",
+    ],
+    severity: "warning",
+    derivedFrom: "F250 / F9.7",
+    family: "process-audit",
+  },
+  [ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE]: {
+    code: ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE,
+    title: "Unpaired Pass (No Preceding Red)",
+    explanation:
+      "A pass attempt on a task has no preceding fail for that task, so the red-first ordering is "
+      + "not corroborated at all — F9.7's pass-only blind spot. Severity is info because the "
+      + "verification-only closing task legitimately records pass-only attempts.",
+    remediation: [
+      "Disclose a genuinely red-free pass; a bare pass is not evidence that red-first happened.",
+      "When the finding is adjudicated rather than repaired: record a bound "
+        + "`ngrace gate verdict --change C-ID --outcome pass` with `--ack-finding` equal to this "
+        + "finding's stable findingId. A bare \"reviewed\" flag is not enough.",
+    ],
+    severity: "info",
+    derivedFrom: "F250 / F9.7",
     family: "process-audit",
   },
   [ATTEMPT_PAIR_FINDING_CODE]: {

@@ -516,6 +516,7 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-execute", section: "execution_rules", token: "no declared task is in scope" },
   { skill: "ngrace-execute", section: "execution_rules", token: "pass-only cycle" },
   { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "report evidence" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "interleaves them" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "artifact whole" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "is a claim" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "forced-file set" },
@@ -581,7 +582,7 @@ function plantTaughtSkills(root: string, override?: { relative: string; body: st
 }
 
 describe("checkTaughtRules", () => {
-  it("returns zero when the twenty-nine taught tokens sit at their named section homes in both trees", () => {
+  it("returns zero when the thirty taught tokens sit at their named section homes in both trees", () => {
     const root = isolatedRoot();
     plantTaughtSkills(root);
     expect(checkTaughtRules(root)).toBe(0);
@@ -598,6 +599,19 @@ describe("checkTaughtRules", () => {
     expect(output).toContain("skills/ngrace/ngrace-spec/SKILL.md");
     expect(output).toContain("acceptance_criteria_anchors");
     expect(output).toContain("named baseline commit");
+  });
+
+  it("returns non-zero naming the file, section and token when the interleaving sentence is deleted from one tree", () => {
+    const root = isolatedRoot();
+    plantTaughtSkills(root, {
+      relative: "skills/ngrace/ngrace-execute/SKILL.md",
+      body: taughtSkillBody("ngrace-execute", { section: "cursor_kinds", token: "interleaves them" }),
+    });
+    const { code, output } = captureStderr(() => checkTaughtRules(root));
+    expect(code).not.toBe(0);
+    expect(output).toContain("skills/ngrace/ngrace-execute/SKILL.md");
+    expect(output).toContain("cursor_kinds");
+    expect(output).toContain("interleaves them");
   });
 
   it("returns non-zero naming the file and block when the review_judgment block is deleted from one tree", () => {

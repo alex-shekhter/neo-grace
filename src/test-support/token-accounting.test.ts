@@ -85,9 +85,12 @@ describe("token-accounting (D15)", () => {
     // C-HASHED-BUNDLE-IDS T-004: the minted-id sentences landed in ngrace-spec
     // and ngrace-plan, both trees (line-neutral, byte-moving): 864 → 864 lines
     // and 75236 → 75626 bytes.
+    // C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 T-003: the interleaving sentence landed in
+    // ngrace-execute, both trees (line-neutral, byte-moving): 864 → 864 lines
+    // and 75626 → 75791 bytes.
     const measured = skillTextLines();
     expect(measured.total).toBe(864);
-    expect(measured.totalBytes).toBe(75626);
+    expect(measured.totalBytes).toBe(75791);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);
