@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-TEACH-DRIVE-BEFORE-APPROVE-2>
+    <Summary>Summary of C-TEACH-DRIVE-BEFORE-APPROVE-2.</Summary>
+    <Goals>
+      <Goal>Goal for C-TEACH-DRIVE-BEFORE-APPROVE-2.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-TEACH-DRIVE-BEFORE-APPROVE-2.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-TEACH-DRIVE-BEFORE-APPROVE-2.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-TEACH-DRIVE-BEFORE-APPROVE-2.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-TEACH-DRIVE-BEFORE-APPROVE-2.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-TEACH-DRIVE-BEFORE-APPROVE-2>
+</NgraceChangeSpec>

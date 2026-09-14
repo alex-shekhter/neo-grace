@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-TEACH-DRIVE-BEFORE-APPROVE>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-TEACH-DRIVE-BEFORE-APPROVE><Replacement>C-TEACH-DRIVE-BEFORE-APPROVE-2</Replacement>
     <Summary>
       The third teaching increment (V2): flush the four findings the second increment left staged,
       teach one rule each in the four governed skills, and pay all five through one chartered row.
