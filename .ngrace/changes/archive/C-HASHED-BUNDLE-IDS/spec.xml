@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-HASHED-BUNDLE-IDS>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-HASHED-BUNDLE-IDS><Replacement>C-HASHED-BUNDLE-IDS-2</Replacement>
     <Summary>
       The D38 builder: a new bundle id is `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;`, minted by `ngrace spec new`
       from a human slug, a lineage number, and a short uppercase-hex one-way hash of the branch name
