@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-HASHED-BUNDLE-IDS-2>
     <Summary>
       The D38 builder: a new bundle id is `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;`, minted by `ngrace spec new`
