@@ -326,4 +326,10 @@
     <Pays>F240 F245</Pays>
     <StatusText>Ordered; the row is minted live by the plan and paid by the close's move.</StatusText>
   </Row>
+  <Row name="C-TEACH-DRIVE-BEFORE-APPROVE-2" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Name.** `C-TEACH-DRIVE-BEFORE-APPROVE-2`. **Searched before minting**, 2026-09-14 at `2aed6ac55d048664b02e2fadcb01db0a266a1f14`, over `.ngrace/changes/archive/` (98 directories matching `^C-[A-Z0-9-]+$`; the superseded predecessor is one of them) and the record structural Row name attributes across both registry layers (12 live, 54 retired): zero exact hits for `C-TEACH-DRIVE-BEFORE-APPROVE-2`. Per token: `TEACH` 3 directories and 1 row, `DRIVE` 1 and 0, `BEFORE` 1 and 0, `APPROVE` 2 directories and 2 rows. No colliding or better-fitting prior name. **Charter.** Flush the four staged findings into the record and teach one rule per finding plus the verification-state rule as pinned sentences in four skills, canonical and mirror, minting this row payment for the teaching increment.</Charter>
+    <Pays>F243 F246 F247 F248 F249</Pays>
+    <StatusText>Ordered; the row is minted live by the plan and paid by the close's move.</StatusText>
+  </Row>
 </Registry>
