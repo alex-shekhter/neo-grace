@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
@@ -35,19 +35,42 @@ function directChildTags(xml: string): string[] {
   return wrapper?.children.map((child) => child.tag) ?? [];
 }
 
+const TIMESTAMP_A = "2026-09-14T03:00:00Z";
+const TIMESTAMP_B = "2026-09-14T03:00:01Z";
+const BRANCH = "c-hashed-bundle-ids";
+
+function mintArgs(slug: string, extra: string[] = [], timestamp = TIMESTAMP_A): string[] {
+  return ["spec", "new", slug, "--timestamp", timestamp, "--branch", BRANCH, ...extra];
+}
+
+function firstLine(result: ReturnType<typeof runGenerate>): string {
+  return stdoutText(result).split("\n")[0]!;
+}
+
+function mintedIdFromRelative(relative: string): string {
+  return path.basename(path.dirname(relative));
+}
+
+function expectNoActiveFor(root: string, pattern: RegExp): void {
+  const activeDir = path.join(root, ARTIFACT_DIR, "changes", "active");
+  const entries = existsSync(activeDir) ? readdirSync(activeDir) : [];
+  expect(entries.filter((name) => pattern.test(name)), `active/ must carry no bundle for ${pattern}`).toEqual([]);
+}
+
 describe("spec new", () => {
-  it("writes a draft spec and prints the project-relative path", () => {
-    const root = createTempProject("grace-spec-new-");
-    const changeId = "C-GEN-SPEC";
-    const result = runGenerate(root, ["spec", "new", changeId]);
+  it("mints C-SLUG-1-HASH from a bare slug, a timestamp and a branch", () => {
+    const root = createTempProject("grace-spec-mint-");
+    const result = runGenerate(root, mintArgs("GEN-SPEC"));
     expect(result.exitCode).toBe(0);
-    const relative = `${ARTIFACT_DIR}/changes/active/${changeId}/spec.xml`;
-    expect(stdoutText(result).split("\n")[0]).toBe(relative);
+    const relative = firstLine(result);
+    const minted = mintedIdFromRelative(relative);
+    expect(relative).toBe(`${ARTIFACT_DIR}/changes/active/${minted}/spec.xml`);
+    expect(minted).toMatch(/^C-GEN-SPEC-1-[0-9A-F]{8}$/);
     const file = path.join(root, relative);
     expect(existsSync(file)).toBe(true);
     const xml = readFileSync(file, "utf8");
     expect(xml).toContain(`<NgraceChangeSpec graceVersion="${NGRACE_ARTIFACT_VERSION}" status="draft">`);
-    expect(xml).toContain(`<${changeId}>`);
+    expect(xml).toContain(`<${minted}>`);
     const tags = directChildTags(xml);
     expect(tags).toEqual([...GRAMMAR_INVENTORIES.SPEC_REQUIRED_SECTIONS]);
     expect(xml).toContain("<M-AFFECTED-MODULE");
@@ -55,40 +78,110 @@ describe("spec new", () => {
     expect(xml).not.toContain("<Problem>");
     expect(xml).not.toContain("<DesignReferences>");
     expect(xml).not.toContain("<!--");
+    const lines = stdoutText(result).trimEnd().split("\n");
+    expect(lines[1]).toContain(`mint: ${minted}`);
+    expect(lines[1]).toContain("slug=GEN-SPEC");
+    expect(lines[1]).toContain("lineage=1");
+    expect(lines[1]).toContain(`branch=${BRANCH}`);
+    expect(lines[2]).toContain("mint-search: 0 active, 0 archive");
   });
 
-  it("refuses a second invocation without changing the file", () => {
+  it("is deterministic given its inputs", () => {
+    const idA = mintedIdFromRelative(firstLine(runGenerate(createTempProject("grace-spec-det-a-"), mintArgs("DET"))));
+    const idB = mintedIdFromRelative(firstLine(runGenerate(createTempProject("grace-spec-det-b-"), mintArgs("DET"))));
+    expect(idA).toBe(idB);
+    const idC = mintedIdFromRelative(
+      firstLine(runGenerate(createTempProject("grace-spec-det-c-"), mintArgs("DET", [], TIMESTAMP_B))),
+    );
+    expect(idC).not.toBe(idA);
+  });
+
+  it("seeds a docs-and-examples placeholder a bare mint no longer fails for", () => {
+    const root = createTempProject("grace-spec-seed-");
+    const result = runGenerate(root, mintArgs("SEED"));
+    expect(result.exitCode).toBe(0);
+    const xml = readFileSync(path.join(root, firstLine(result)), "utf8");
+    expect(xml).toContain("replace this placeholder by deciding README.md and examples/");
+    const nonGoal = xml.match(/<NonGoal>([\s\S]*?)<\/NonGoal>/)?.[1] ?? "";
+    expect(nonGoal).toContain("README.md");
+    expect(nonGoal).toContain("examples/");
+  });
+
+  it("refuses every pinned refusal and writes nothing", () => {
+    const root = createTempProject("grace-spec-refuse-");
+
+    const handTyped = runGenerate(root, mintArgs("C-GEN-TYPED"));
+    expect(handTyped.exitCode).not.toBe(0);
+    expect(stderrText(handTyped)).toContain("hand-typed");
+    expectNoActiveFor(root, /GEN-TYPED/);
+
+    const alreadyMinted = runGenerate(root, mintArgs("C-GEN-TYPED-1-ABCDEF12"));
+    expect(alreadyMinted.exitCode).not.toBe(0);
+    expect(stderrText(alreadyMinted)).toContain("hand-typed");
+    expectNoActiveFor(root, /GEN-TYPED/);
+
+    const numeric = runGenerate(root, mintArgs("GEN-2"));
+    expect(numeric.exitCode).not.toBe(0);
+    expect(stderrText(numeric)).toContain("numeric segment");
+    expectNoActiveFor(root, /GEN-2/);
+
+    const noTimestamp = runGenerate(root, ["spec", "new", "GEN-NOTS"]);
+    expect(noTimestamp.exitCode).not.toBe(0);
+    expect(stderrText(noTimestamp)).toMatch(/timestamp/i);
+    expectNoActiveFor(root, /GEN-NOTS/);
+
+    const badPredecessor = runGenerate(root, ["spec", "new", "--supersedes", "not-a-change", "--timestamp", TIMESTAMP_A, "--branch", BRANCH]);
+    expect(badPredecessor.exitCode).not.toBe(0);
+    expect(stderrText(badPredecessor)).toContain("canonical C-*");
+    expectNoActiveFor(root, /NOT-A-CHANGE/);
+
+    const env = { ...process.env };
+    delete env.NGRACE_SPEC_BRANCH;
+    const noBranch = Bun.spawnSync({
+      cmd: [process.execPath, graceBin, "spec", "new", "GEN-NOBR", "--timestamp", TIMESTAMP_A, "--path", root],
+      cwd: root,
+      stdout: "pipe",
+      stderr: "pipe",
+      env,
+    });
+    expect(noBranch.exitCode).not.toBe(0);
+    expect(Buffer.from(noBranch.stderr).toString("utf8")).toContain("requires --branch");
+    expectNoActiveFor(root, /GEN-NOBR/);
+  });
+
+  it("refuses when the minted id already exists under active or archive", () => {
     const root = createTempProject("grace-spec-dup-");
-    const changeId = "C-GEN-SPEC-DUP";
-    const first = runGenerate(root, ["spec", "new", changeId]);
+    const first = runGenerate(root, mintArgs("DUP"));
     expect(first.exitCode).toBe(0);
-    const file = path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "spec.xml");
+    const relative = firstLine(first);
+    const minted = mintedIdFromRelative(relative);
+    const file = path.join(root, relative);
     const before = readFileSync(file, "utf8");
-    const second = runGenerate(root, ["spec", "new", changeId]);
+    const second = runGenerate(root, mintArgs("DUP"));
     expect(second.exitCode).not.toBe(0);
-    expect(stderrText(second)).toMatch(/invalid-arguments|already exists|exists/i);
+    expect(stderrText(second)).toMatch(/already exists/i);
     expect(readFileSync(file, "utf8")).toBe(before);
-  });
-
-  it("refuses a slug that would be valid only after prepending C-", () => {
-    const root = createTempProject("grace-spec-slug-");
-    const result = runGenerate(root, ["spec", "new", "SKELETON-PROBE"]);
-    expect(result.exitCode).not.toBe(0);
-    expect(stderrText(result)).toMatch(/invalid-arguments|C-/);
-    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "active", "C-SKELETON-PROBE"))).toBe(false);
-    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "active", "SKELETON-PROBE"))).toBe(false);
-  });
-
-  it("refuses when the id already exists under archive", () => {
-    const root = createTempProject("grace-spec-archive-");
-    const changeId = "C-GEN-ARCHIVED";
-    const archiveDir = path.join(root, ARTIFACT_DIR, "changes", "archive", changeId);
+    const archiveDir = path.join(root, ARTIFACT_DIR, "changes", "archive", minted);
     mkdirSync(archiveDir, { recursive: true });
     writeFileSync(path.join(archiveDir, "spec.xml"), "<n />");
-    const result = runGenerate(root, ["spec", "new", changeId]);
-    expect(result.exitCode).not.toBe(0);
-    expect(stderrText(result)).toMatch(/archive/);
-    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "active", changeId))).toBe(false);
+    rmSync(path.join(root, ARTIFACT_DIR, "changes", "active", minted), { recursive: true });
+    const third = runGenerate(root, mintArgs("DUP"));
+    expect(third.exitCode).not.toBe(0);
+    expect(stderrText(third)).toMatch(/archive/);
+  });
+
+  it("mints the successor with --supersedes from a minted or legacy predecessor", () => {
+    const root = createTempProject("grace-spec-succ-");
+    const predecessorId = mintedIdFromRelative(firstLine(runGenerate(root, mintArgs("PRED"))));
+    const successor = runGenerate(root, ["spec", "new", "--supersedes", predecessorId, "--timestamp", TIMESTAMP_B, "--branch", BRANCH]);
+    expect(successor.exitCode).toBe(0);
+    expect(mintedIdFromRelative(firstLine(successor))).toMatch(/^C-PRED-2-[0-9A-F]{8}$/);
+    const legacy = runGenerate(root, ["spec", "new", "--supersedes", "C-LEGACY", "--timestamp", TIMESTAMP_A, "--branch", BRANCH]);
+    expect(legacy.exitCode).toBe(0);
+    expect(mintedIdFromRelative(firstLine(legacy))).toMatch(/^C-LEGACY-2-[0-9A-F]{8}$/);
+    const legacyTwo = runGenerate(root, ["spec", "new", "--supersedes", "C-LEGACY-2", "--timestamp", TIMESTAMP_B, "--branch", BRANCH]);
+    expect(legacyTwo.exitCode).toBe(0);
+    expect(mintedIdFromRelative(firstLine(legacyTwo))).toMatch(/^C-LEGACY-3-[0-9A-F]{8}$/);
   });
 });
 
@@ -102,19 +195,12 @@ function writeApprovedSpec(root: string, changeId: string, specXml: string): str
 describe("plan new", () => {
   it("writes a draft plan beside an approved spec and prints the path", () => {
     const root = createTempProject("grace-plan-new-");
-    const changeId = "C-GEN-PLAN";
-    const spec = runGenerate(root, ["spec", "new", changeId]);
+    const spec = runGenerate(root, mintArgs("GEN-PLAN"));
+    expect(spec.exitCode).toBe(0);
+    const changeId = mintedIdFromRelative(firstLine(spec));
     const specFile = path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "spec.xml");
-    if (spec.exitCode === 0 && existsSync(specFile)) {
-      const approved = readFileSync(specFile, "utf8").replace('status="draft"', 'status="approved"');
-      writeFileSync(specFile, approved);
-    } else {
-      writeApprovedSpec(
-        root,
-        changeId,
-        `<NgraceChangeSpec graceVersion="${NGRACE_ARTIFACT_VERSION}" status="approved"><${changeId}><Summary>s</Summary><Goals>g</Goals><Constraints>c</Constraints><NonGoals>n</NonGoals><AcceptanceCriteria><AC-SKELETON>a</AC-SKELETON></AcceptanceCriteria><AffectedAreas><M-AFFECTED-MODULE /></AffectedAreas><VerificationIntent>v</VerificationIntent></${changeId}></NgraceChangeSpec>\n`,
-      );
-    }
+    const approved = readFileSync(specFile, "utf8").replace('status="draft"', 'status="approved"');
+    writeFileSync(specFile, approved);
     const result = runGenerate(root, ["plan", "new", changeId]);
     expect(result.exitCode).toBe(0);
     const relative = `${ARTIFACT_DIR}/changes/active/${changeId}/plan.xml`;
@@ -307,7 +393,7 @@ function lintSummary(result: ReturnType<typeof lintProject>): { errors: number; 
 describe("generate-then-lint", () => {
   it("spec new then lint of a temp project is 0/0", () => {
     const root = minimalTsFixture();
-    const generated = runGenerate(root, ["spec", "new", "C-GEN-LINT-SPEC"]);
+    const generated = runGenerate(root, mintArgs("GEN-LINT-SPEC"));
     expect(generated.exitCode).toBe(0);
     const lint = lintProject(root);
     expect(lint.exitCode).toBe(0);
@@ -318,10 +404,12 @@ describe("generate-then-lint", () => {
 
   it("plan new beside an approved spec then lint is 0/0", () => {
     const root = minimalTsFixture();
-    expect(runGenerate(root, ["spec", "new", "C-GEN-LINT-PLAN"]).exitCode).toBe(0);
-    const specFile = path.join(root, ARTIFACT_DIR, "changes", "active", "C-GEN-LINT-PLAN", "spec.xml");
+    const spec = runGenerate(root, mintArgs("GEN-LINT-PLAN"));
+    expect(spec.exitCode).toBe(0);
+    const changeId = mintedIdFromRelative(firstLine(spec));
+    const specFile = path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "spec.xml");
     writeFileSync(specFile, readFileSync(specFile, "utf8").replace('status="draft"', 'status="approved"'));
-    expect(runGenerate(root, ["plan", "new", "C-GEN-LINT-PLAN"]).exitCode).toBe(0);
+    expect(runGenerate(root, ["plan", "new", changeId]).exitCode).toBe(0);
     const lint = lintProject(root);
     expect(lint.exitCode).toBe(0);
     const planSummary = lintSummary(lint);
@@ -331,10 +419,12 @@ describe("generate-then-lint", () => {
 
   it("plan new beside a draft spec writes nothing", () => {
     const root = minimalTsFixture();
-    expect(runGenerate(root, ["spec", "new", "C-GEN-LINT-DRAFT"]).exitCode).toBe(0);
-    const refused = runGenerate(root, ["plan", "new", "C-GEN-LINT-DRAFT"]);
+    const spec = runGenerate(root, mintArgs("GEN-LINT-DRAFT"));
+    expect(spec.exitCode).toBe(0);
+    const changeId = mintedIdFromRelative(firstLine(spec));
+    const refused = runGenerate(root, ["plan", "new", changeId]);
     expect(refused.exitCode).not.toBe(0);
-    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "active", "C-GEN-LINT-DRAFT", "plan.xml"))).toBe(false);
+    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "plan.xml"))).toBe(false);
   });
 
   it("scaffold stdout prepended to a fixture body has 0 markup errors", () => {

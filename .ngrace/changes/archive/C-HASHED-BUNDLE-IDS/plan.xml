@@ -1,0 +1,861 @@
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-HASHED-BUNDLE-IDS><Replacement>C-HASHED-BUNDLE-IDS-2</Replacement>
+    <IntentSummary>
+      Author the execution for the approved, fingerprinted spec
+      `.ngrace/changes/active/C-HASHED-BUNDLE-IDS/spec.xml` (ratified `approved` with the maintainer's
+      phrase, `ngrace review` 0 findings, `ngrace gate approve` permit, commit `264e502` on
+      `c-hashed-bundle-ids`) and only within it; the plan conforms to the spec, it does not extend,
+      narrow or reinterpret it. Ceremony tier **T2** per the spec's `Constraints`. This bundle
+      implements `D38`: `ngrace spec new` mints `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;` from a bare slug, a
+      handed-in timestamp and branch; `ngrace supersede` parses the predecessor's lineage and accepts
+      or mints the exact successor; the permissive `ANCHOR_PATTERNS.change` stays byte-identical and
+      the strict `ANCHOR_PATTERNS.mintedChange` stays out of `ANCHOR_FAMILIES`, so the 99 legacy
+      bundles and both registry layers keep working; the skeleton seeds a docs-and-examples `NonGoal`
+      (`F249`'s product half); `ngrace-spec`, `ngrace-plan`, four generated templates and the README
+      carry the form; and the record mints one live chartered row while `D38`'s two `CodifiedIn`
+      children land at the close.
+
+      **This is a `src/` bundle with four production files, and it creates none.** Confirmed at this
+      plan's commit: the four production files `src/artifact/types.ts`, `src/grace-generate.ts`,
+      `src/grace-supersede.ts` and `src/artifact/skeletons.ts` all exist, and every named suite
+      (`src/artifact/grammar.test.ts`, `src/grace-generate.test.ts`, `src/grace-supersede.test.ts`,
+      `src/docs-claims.test.ts`, `scripts/check-teaching-surface.test.ts`,
+      `scripts/generate-skeleton-templates.test.ts`, `scripts/validate-record-retirement.test.ts`,
+      `src/test-support/token-accounting.test.ts`) all exist. So
+      `change.graph-anchors-miss-write-scope` has no window: the only module-ownable paths in
+      `ObservedWriteScope` are `src/artifact/types.ts` (owned by `M-ARTIFACT-TYPES`),
+      `src/grace-generate.ts` and `src/grace-supersede.ts` (owned by `M-CLI`), and
+      `src/artifact/skeletons.ts` (owned by `M-GRAMMAR`); the `.test.ts` files are not
+      module-ownable, `scripts/` is lint-ignored (`.ngrace-lint.json` `ignoredDirs`), and the
+      skills, templates, README and record files sit under no module `Path`. `DurableScope` is
+      exactly the spec's five `AffectedAreas` anchors: `M-ARTIFACT-TYPES`, `M-CLI`, `M-GRAMMAR`,
+      `M-SKILLS` and `M-TEST-SUPPORT`, each paired with its shipped `V-M-*`.
+
+      Six sequential tasks carry the committed sequence. **T-001** is the grammar and parser in
+      `src/artifact/types.ts` (`ANCHOR_PATTERNS.mintedChange`, `parseBundleId`, `nextBundleLineage`)
+      with the red-first tests in `src/artifact/grammar.test.ts`. **T-002** is the mint:
+      `src/grace-generate.ts` (the slug-to-id mint, the refusal set, the `mint:`/`mint-search:`
+      report), the docs-and-examples seed in `src/artifact/skeletons.ts`, the red-first tests in
+      `src/grace-generate.test.ts`, and the four regenerated teaching templates. **T-003** is the
+      lineage in `src/grace-supersede.ts` (parse the predecessor, accept or mint the exact successor)
+      with the red-first tests in `src/grace-supersede.test.ts`. **T-004** is the teaching and the
+      README: the section-scoped needles and README claims red-first, then the sentences in
+      `ngrace-spec` and `ngrace-plan` plus their packaged mirrors, the README examples, and the
+      re-measured skill footprint. **T-005** is the record: the red-first row and `D38` codification
+      walks in `scripts/validate-record-retirement.test.ts`, the live `C-HASHED-BUNDLE-IDS` row in
+      `registry.xml`, and the shipped `--rewrite-roots`. **T-006** is verification and the faithful
+      post-close applied-archive drive over every `CloseEvidence` command.
+
+      **The close is the authority's act and this plan's tasks end before it.** Execution ends when
+      T-006 is verified and its cursor events are recorded; no task performs `terminal`, `fold`,
+      `review`, the verdict, `gate apply`, `gate archive`, `ngrace apply`, the close's `--retire`,
+      the `CodifiedIn` hand write on the production record, any production `CloseEvidence` run, or
+      the archive move. Which task leaves each close-needed piece in place: T-001 leaves the minted
+      grammar parsing; T-002 leaves `spec new` minting and the bare-mint CI-red gone; T-003 leaves
+      `supersede` deriving the lineage; T-004 leaves the sentences in both trees and the footprint
+      re-measured; T-005 leaves the `C-HASHED-BUNDLE-IDS` row **live** in `registry.xml` (base
+      re-derived by `--rewrite-roots`, no ceiling raised), `D38` **live** in `rulings.xml` with **no**
+      `CodifiedIn` (the shipped `decision-eligible-still-live` would refuse it earlier), and the
+      shipped validator exiting 0. The close then runs `lint --assertions final --run-commands`,
+      `ngrace apply` (which writes `applied` and renames the bundle into `.ngrace/changes/archive/`),
+      hand-writes `D38`'s two `&lt;CodifiedIn kind="test-suite"&gt;` children into `rulings.xml`
+      **after** `apply` and **before** `--retire`, then runs its own `--retire` (expected `moved 2`
+      — `D38` and the row), then evaluates the `CloseEvidence`. No sentence in this plan implies
+      execution performs any of those.
+
+      **The red-first pairs, one signature key each, driven task by task on the whole-repository
+      copy `/tmp/ng-hbi/repo` (rsync of the working tree including `.git` and untracked files, with
+      `node_modules` as a real directory) at this plan's commit; the counts are observed, not
+      predicted.** (1) T-001 appends the minted-grammar tests to `src/artifact/grammar.test.ts`
+      **before** any production edit and drives them: red, `0 pass / 1 fail / 1 error`
+      (`SyntaxError: Export named 'nextBundleLineage' not found`); the `src/artifact/types.ts`
+      additions are the pass, **97 pass / 0 fail** (93 shipped + 4 new). Signature-kind `test`, key
+      `bundle-id-tests-first`. (2) T-002 appends the mint, refusal, seed and determinism tests to
+      `src/grace-generate.test.ts` and flips the shipped `refuses a slug that would be valid only
+      after prepending C-` test at `:73` **before** any production edit and drives them: red,
+      **11 pass / 10 fail**; the `src/grace-generate.ts` mint plus the `src/artifact/skeletons.ts`
+      seed plus the regenerated templates are the pass, **21 pass / 0 fail**, with
+      `scripts/generate-skeleton-templates.test.ts` **5 pass / 0 fail**. Signature-kind `test`, key
+      `spec-new-mint-tests-first`. (3) T-003 appends the lineage tests to
+      `src/grace-supersede.test.ts` **before** any production edit and drives them: red,
+      **14 pass / 4 fail**; the `src/grace-supersede.ts` lineage is the pass, **18 pass / 0 fail**.
+      Signature-kind `test`, key `supersede-lineage-tests-first`. (4) T-004 adds the section-scoped
+      needles and their suite mirror **before** any skill edit and drives
+      `bun ./scripts/check-teaching-surface.ts check`: **exit 1**, `refusal:
+      skills/ngrace/ngrace-spec/SKILL.md — taught rules (the rule is taught in
+      &lt;docs_and_examples&gt;): missing token "replace this placeholder"`; the pinned sentences in
+      both trees are the pass, **exit 0**. Signature-kind `test`, key `teaching-needles`. In the
+      same task, and separately, it adds the README assertions to `src/docs-claims.test.ts`
+      **before** the README edit and drives them: red, **3 pass / 2 fail**; the README examples are
+      the pass, **5 pass / 0 fail**. Signature-kind `test`, key `readme-claims`. The pairs interleave
+      fail A, pass A, fail B, pass B (F250: the attempt-pair audit pairs only the last fail per
+      task). (5) T-005 appends the `C-HASHED-BUNDLE-IDS` carrier-and-row walk and the `D38`
+      codification walk to `scripts/validate-record-retirement.test.ts` **before** any record write
+      and drives them: red, **113 pass / 3 fail** (the row is absent); the live row plus
+      `--rewrite-roots` is the pass, **116 pass / 0 fail**, with registry `12 / 14 / 26` →
+      `13 / 13 / 26`. Signature-kind `test`, key `record-row-tests-first`. (6) T-006 records pass
+      against signature-kind `test`, key `post-close-drive`.
+
+      **Why six tasks and not fewer.** The fix budgets bind per task (`src/grace-cursor.ts`
+      `FIX_SIGNATURE_REPEAT_BUDGET = 2` and `FIX_DISTINCT_SIGNATURE_BUDGET = 4`). T-001 has one
+      signature family (the grammar tests first, then the production edit). T-002 has one (the mint
+      tests first, then production plus templates). T-003 has one. T-004 has two distinct (the
+      teaching needles, the README claims) — inside the distinct budget of 4. T-005 has one. T-006
+      is verification and the post-close drive, not a write task. Four independent production files
+      in one task would put four distinct failure families in one budget and force a supersede on
+      the first wrong guess; six tasks keep each write family separable. The last task's
+      `git diff --exit-code` over `src/` and `scripts/` excludes all twelve files the bundle writes,
+      so `AC-NO-PRODUCTION-DRIFT`'s pathset is exactly that task's exclusion set.
+
+      **Why the scope names the record files no task writes.** `ObservedWriteScope` declares the
+      five record files the plan mints and the close writes — the `registry.xml` T-005 mints, and
+      `rulings.xml` (the `CodifiedIn` hand write), `decisions.xml` (the index layer flip),
+      `rulings-retired.xml` and `registry-retired.xml` (the close's `--retire`). The close's writes
+      land while the plan is still under `active/` and the scope and WriteEvidence audits run at the
+      close, so a path the close writes must already be declared; declaring it is permission, not
+      obligation (`run-ledger.xml` is the shipped precedent). The bundle's own `spec.xml`,
+      `plan.xml` and `design-context.xml` are **not** declared — the identity skip already covers
+      them at plan-approve.
+
+      **The baseline needles assert only what the bundle leaves unchanged.** `ANCHOR_PATTERNS.change`
+      stays byte-identical (`change: /^C-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,` in `types.ts`);
+      `ANCHOR_FAMILIES` stays untouched in `src/artifact/grammar.ts`;
+      `checkDocsAndExamplesDecision` stays untouched; and every shipped suite is green at `264e502`
+      (`src/artifact/grammar.test.ts` 93 pass / 0 fail, `src/grace-generate.test.ts` 19/0,
+      `src/grace-supersede.test.ts` 13/0, `src/docs-claims.test.ts` 2/0,
+      `scripts/check-teaching-surface.test.ts` 49/0, `scripts/generate-skeleton-templates.test.ts`
+      5/0, `scripts/validate-record-retirement.test.ts` 111/0,
+      `src/test-support/token-accounting.test.ts` 9/0). The shipped test
+      `refuses a slug that would be valid only after prepending C-` (`src/grace-generate.test.ts:73`)
+      is **flipped by design** — a target `MustNotContain`, never a baseline needle. Every baseline
+      `MustContain` / `MustPassCommand` was driven with `--assertions baseline --run-commands` on the
+      approved-shaped copy `/tmp/ngrace-plan-probe2/repo` (plan approved via `gate approve --artifact
+      plan`, epoch 1 open on `T-001`), and again on `/tmp/ng-hbi/repo`; both runs exit 0 with plain
+      lint 0/0.
+
+      **The mapping, fixed by the spec's own Constraint.** Exactly one criterion —
+      `AC-NO-CURRENT-MODE` — carries no `CloseEvidence` and is mapped by exactly one task
+      `Satisfies`; it is carried by T-006, this plan's only `Satisfies`. The other eighteen criteria
+      are close-bound and stay unmapped, because a `Satisfies` of a close-bound criterion is the
+      shipped error `change.close-evidence-and-satisfied` and an unmapped non-CloseEvidence criterion
+      is the warning `AC-CLOSE-LINT`'s `--fail-on warnings` turns into an uncloseable bundle. Every
+      `CloseEvidence` is evaluated only in the applied-archive state, so T-006 writes its drive
+      against the state the ceremony produces, never the pre-close tree.
+
+      **Determinism.** `validate:determinism` scores the review detectors over a defect corpus and
+      runs a two-run identity check; the new verbs add **nothing** to that surface — `spec new` and
+      `supersede` are not review detectors and the scorer never invokes them. The determinism the
+      spec actually requires is internal to the mint (same branch and timestamp yield the same id),
+      and it is proven by a unit assertion in `src/grace-generate.test.ts`, not by the CI ratchet.
+      The plan proves the ratchet stays green by driving `bun run validate:determinism` at baseline
+      and again inside the post-close copy in T-006; no corpus entry, baseline key or scorer number
+      moves.
+
+      **The committed state machine** ends at: T-005's boundary registry `13 / 13 / 26` after the
+      mint's `--rewrite-roots` (only `registry.xml` changed in the record), rulings unchanged
+      `1733 / 150 / 1883`, findings `7522 / 311 / 7833` and index `269 / 27 / 296` untouched, and
+      every shipped validator at zero. The authority's close: `ngrace apply` archives the bundle,
+      the `CodifiedIn` hand write lands, and `--retire` reports `moved 2`; registry returns to
+      `12 / 14 / 26`, `D38` sits in `rulings-retired.xml` carrying its two resolving `CodifiedIn`
+      children, the row sits in `registry-retired.xml`, the `D38` index layer flips in place, and a
+      second `--retire` reports `moved 0`. Every `CloseEvidence` command and `bun run validate:ci`
+      exit 0 in the post-close copy (observed end to end on `/tmp/ng-hbi/repo`: `apply --force`
+      archives the bundle, the `CodifiedIn` hand write reds `decision-eligible-still-live` before
+      the move, `--retire` reports `moved 2`, a second reports `moved 0`, and `validate:ci` exits
+      0).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-ARTIFACT-TYPES</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>src/artifact/types.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.ts</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/skeletons.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.test.ts</Value></MustExist>
+      <MustExist><Value>src/docs-claims.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/generate-skeleton-templates.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/references/change-spec-template.xml</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/references/change-plan-template.xml</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-HASHED-BUNDLE-IDS/spec.xml</Value></MustExist>
+      <MustContain>
+        <File>src/artifact/types.ts</File>
+        <Text>change: /^C-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>const ANCHOR_FAMILIES</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>export function checkDocsAndExamplesDecision</Text>
+      </MustContain>
+      <MustPassCommand><Command>bun test --timeout=30000 src/artifact/grammar.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/grace-generate.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/grace-supersede.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/docs-claims.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/generate-skeleton-templates.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run ./scripts/validate-marketplace.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:determinism</Command></MustPassCommand>
+      <MustVerify><Module>M-ARTIFACT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-ARTIFACT-TYPES</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>src/artifact/types.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.ts</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/skeletons.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.test.ts</Value></MustExist>
+      <MustExist><Value>src/docs-claims.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/generate-skeleton-templates.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-HASHED-BUNDLE-IDS/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-HASHED-BUNDLE-IDS/plan.xml</Value></MustExist>
+      <MustContain><File>src/artifact/types.ts</File><Text>mintedChange</Text></MustContain>
+      <MustContain><File>src/artifact/types.ts</File><Text>parseBundleId</Text></MustContain>
+      <MustContain><File>src/artifact/types.ts</File><Text>nextBundleLineage</Text></MustContain>
+      <MustContain><File>src/grace-generate.ts</File><Text>NGRACE_SPEC_TIMESTAMP</Text></MustContain>
+      <MustContain><File>src/grace-generate.ts</File><Text>NGRACE_SPEC_BRANCH</Text></MustContain>
+      <MustContain><File>src/grace-generate.ts</File><Text>mint-search</Text></MustContain>
+      <MustContain><File>src/grace-generate.ts</File><Text>hand-typed</Text></MustContain>
+      <MustContain><File>src/grace-supersede.ts</File><Text>nextBundleLineage</Text></MustContain>
+      <MustContain><File>src/artifact/skeletons.ts</File><Text>replace this placeholder by deciding README.md and examples/</Text></MustContain>
+      <MustContain><File>src/grace-generate.test.ts</File><Text>mints C-</Text></MustContain>
+      <MustContain><File>src/grace-generate.test.ts</File><Text>deterministic given its inputs</Text></MustContain>
+      <MustContain><File>src/grace-generate.test.ts</File><Text>hand-typed id</Text></MustContain>
+      <MustContain><File>src/grace-generate.test.ts</File><Text>--supersedes</Text></MustContain>
+      <MustContain><File>src/grace-supersede.test.ts</File><Text>lineage successor</Text></MustContain>
+      <MustContain><File>src/artifact/grammar.test.ts</File><Text>mintedChange</Text></MustContain>
+      <MustContain><File>src/artifact/grammar.test.ts</File><Text>parseBundleId</Text></MustContain>
+      <MustContain><File>scripts/check-teaching-surface.ts</File><Text>never hand-type an id or its suffix</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>C-HASHED-BUNDLE-IDS carrier and row relations</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>D38 codification</Text></MustContain>
+      <MustContain><File>skills/ngrace/ngrace-spec/SKILL.md</File><Text>never hand-type an id or its suffix</Text></MustContain>
+      <MustContain><File>skills/ngrace/ngrace-spec/SKILL.md</File><Text>replace this placeholder</Text></MustContain>
+      <MustContain><File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File><Text>never hand-type an id or its suffix</Text></MustContain>
+      <MustContain><File>skills/ngrace/ngrace-plan/SKILL.md</File><Text>--supersedes</Text></MustContain>
+      <MustContain><File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File><Text>--supersedes</Text></MustContain>
+      <MustContain><File>skills/ngrace/ngrace-spec/references/change-spec-template.xml</File><Text>replace this placeholder by deciding README.md and examples/</Text></MustContain>
+      <MustContain><File>plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml</File><Text>replace this placeholder by deciding README.md and examples/</Text></MustContain>
+      <MustContain><File>README.md</File><Text>ngrace spec new &lt;SLUG&gt;</Text></MustContain>
+      <MustContain><File>README.md</File><Text>C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Row name="C-HASHED-BUNDLE-IDS"</Text></MustContain>
+      <MustNotContain><File>src/grace-generate.test.ts</File><Text>refuses a slug that would be valid only after prepending C-</Text></MustNotContain>
+      <MustPassCommand><Command>bun test --timeout=30000 src/artifact/grammar.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/grace-generate.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/grace-supersede.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/docs-claims.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/generate-skeleton-templates.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run ./scripts/validate-marketplace.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:determinism</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+      <MustVerify><Module>M-ARTIFACT-TYPES</Module></MustVerify>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-ARTIFACT-TYPES />
+        <M-CLI />
+        <M-GRAMMAR />
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-ARTIFACT-TYPES />
+        <V-M-CLI />
+        <V-M-GRAMMAR />
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/types.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/grace-generate.ts</File>
+      <File>src/artifact/skeletons.ts</File>
+      <File>src/grace-generate.test.ts</File>
+      <File>src/grace-supersede.ts</File>
+      <File>src/grace-supersede.test.ts</File>
+      <File>src/docs-claims.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>README.md</File>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
+      <File>skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Add the minted-grammar and lineage-parse tests red-first and land the strict pattern,
+          parseBundleId and nextBundleLineage in src/artifact/types.ts
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (bundle-id-tests-first): in its own tool round trip, before any production
+            edit, append the minted-grammar cases to `src/artifact/grammar.test.ts` in the existing
+            `describe` house shape: a `describe("C-HASHED-BUNDLE-IDS minted id grammar")` asserting
+            that `ANCHOR_PATTERNS.mintedChange` accepts `C-FOO-1-ABCDEF12` and `C-FOO-12-0123456789`
+            and rejects the legacy `C-FOO`, `C-FOO-2`, `C-FOO-1-ABCDEF1` (7 hex), `C-FOO-0-ABCDEF12`
+            (lineage 0) and `C-FOO-1-abcdef12` (lowercase); that `parseBundleId` reads
+            `C-FOO-1-ABCDEF12` as `{ slug: "C-FOO", lineage: 1, hash: "ABCDEF12", minted: true }`,
+            `C-FOO-2` as `{ slug: "C-FOO", lineage: 2, minted: false }`, and `C-FOO` as
+            `{ slug: "C-FOO", lineage: undefined, minted: false }`; and that `nextBundleLineage`
+            returns 2 for `C-FOO`, 3 for `C-FOO-2`, and 2 for an unknown lineage. The shipped
+            `ANCHOR_PATTERNS.change` is asserted **true** for `C-FOO`, `C-FOO-2` and
+            `C-FOO-1-ABCDEF12` in the same block — the legacy edge is a property of the permissive
+            pattern and belongs to `AC-LEGACY-ACCEPTED`. Driven before any production edit: the new
+            `it`s red because the exports do not exist. Record the cursor attempt with outcome fail,
+            signature-kind `test`, signature-key `bundle-id-tests-first`. Run only this file. Do not
+            edit `src/artifact/types.ts` in this round trip. Failure conditions: the block reuses the
+            shipped `ANCHOR_PATTERNS.change` acceptance without asserting the minted pattern's
+            rejections; a rejection case is one the strict pattern is not meant to catch.
+          </Criterion>
+          <Criterion>
+            Production then pass: add `ANCHOR_PATTERNS.mintedChange`
+            `/^C-[A-Z0-9]+(?:-[A-Z0-9]+)*-[1-9][0-9]*-[0-9A-F]{8}$/` to the `ANCHOR_PATTERNS`
+            object literal in `src/artifact/types.ts` **without touching the `change` entry or its
+            byte bytes**, add the exported `parseBundleId` returning
+            `{ slug: string; lineage?: number; hash?: string; minted: boolean }` (a minted id strips
+            the trailing `-&lt;HASH&gt;` then `-&lt;N&gt;`; a legacy id with a trailing all-digits
+            segment yields that lineage; any other legacy id yields `lineage: undefined`), and the
+            exported `nextBundleLineage` returning `(lineage ?? 1) + 1`. Do **not** add the minted
+            pattern to `ANCHOR_FAMILIES` (which lives in `src/artifact/grammar.ts:247`) and do not
+            edit `src/artifact/grammar.ts` at all. Then `bun test --timeout=30000
+            src/artifact/grammar.test.ts` exits 0 with the shipped 93 tests untouched and the new
+            minted-grammar block green. Record the cursor attempt with outcome pass for
+            signature-key `bundle-id-tests-first`. Failure conditions: the `change` entry modified;
+            the minted pattern registered in `ANCHOR_FAMILIES`; `parseBundleId` guessed rather than
+            parsed; a legacy id with a trailing digits segment mis-read as a minted hash.
+          </Criterion>
+          <Criterion>
+            The boundary and the close. This task's `Verification` commands and the plan's
+            `TargetAssertions` contain no current-mode lint of this project root, checked by hand
+            (F171): no `--assertions current`, and no `ngrace lint` of this root omitting
+            `--assertions`. Each recorded command exits 0 at this task's boundary (F184), observed on the prototype copy
+            `/tmp/ng-hbi/repo` at exactly this stage; each `git diff --exit-code` names the
+            base commit `e18e7540c298f37b22ba35077180ff7ad63c8294` and excludes this task's own two
+            files (F243). The executor emits its own cursor events inside the open epoch and performs
+            no close act; the terminal event, the cursor fold, every gate, both status writes, the
+            archive move, the close's `--retire` and every `CloseEvidence` evaluation are close acts
+            owned by the authority. Findings raised while this bundle is open go to
+            `.ngrace/scratch/staged-findings.md` under the next staged number (D30, scoped to the
+            record-writing window).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 src/artifact/grammar.test.ts</Command>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- src/ scripts/ ':(exclude)src/artifact/types.ts' ':(exclude)src/artifact/grammar.test.ts'</Command>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- README.md examples/ skills/ plugins/ docs/ CHANGELOG.md package.json openpackage.yml .claude-plugin .ngrace-lint.json</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>
+          Add the mint, refusal, seed and determinism tests red-first, then land the spec new mint in
+          grace-generate.ts, the docs-and-examples seed in skeletons.ts, and the regenerated templates
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (spec-new-mint-tests-first): in its own tool round trip, before any production
+            edit, extend `src/grace-generate.test.ts` and drive it red. Replace the shipped test
+            `refuses a slug that would be valid only after prepending C-` (`:73`) with
+            `it("mints C-SLUG-1-HASH from a bare slug, a timestamp and a branch")` — a bare slug
+            (`["spec", "new", "GEN-SPEC", "--timestamp", "2026-09-14T03:00:00Z", "--branch",
+            "c-hashed-bundle-ids"]`) exits 0 and writes
+            `.ngrace/changes/active/C-GEN-SPEC-1-&lt;HASH&gt;/spec.xml` whose wrapper tag equals its
+            directory — plus `it("is deterministic given its inputs")` (minting twice with identical
+            `--timestamp`/`--branch` yields one id; a second `--timestamp` yields a different id),
+            `it("refuses a hand-typed id and every pinned refusal")` (one assertion per refusal: a
+            `C-`-prefixed positional; a `-&lt;digits&gt;` slug; a `--timestamp`-less mint; a slug that
+            collides in `active/`; an unparseable `--supersedes`), `it("mints the successor with
+            --supersedes")` (a legacy `C-GEN-PRED` and a `C-GEN-PRED-2` fixture each yield lineage
+            plus one), and `it("seeds a docs-and-examples placeholder a bare mint no longer fails
+            for")` (the emitted NonGoal body names `README.md` and `examples/`). The shipped
+            `refuses when the id already exists under archive` and the `plan new` tests are updated
+            in the same round trip to pass `--timestamp`/`--branch` and the new id form. Driven
+            before any production edit: the new and changed tests red. Record the cursor attempt with
+            outcome fail, signature-kind `test`, signature-key `spec-new-mint-tests-first`. Do not
+            edit `src/grace-generate.ts` or `src/artifact/skeletons.ts` in this round trip. Failure
+            conditions: the round trip also implements the mint; a refusal is asserted only by exit
+            code without the message; the determinism case reads the clock.
+          </Criterion>
+          <Criterion>
+            Production then pass, seeded and generated: implement in `src/grace-generate.ts` the bare
+            slug positional (`newChangeArgs` takes `slug`, optional, with `--supersedes &lt;C-PRED&gt;`
+            as the alternative — exactly one required, refused otherwise), the timestamp input
+            (`--timestamp` or `NGRACE_SPEC_TIMESTAMP`, flag wins, canonicalized by
+            `new Date(input).toISOString()`, refused when absent or `NaN`), the branch input
+            (`--branch`, `NGRACE_SPEC_BRANCH`, or `git rev-parse --abbrev-ref HEAD`, refused when none
+            resolves), the hash
+            (`createHash("sha256").update(\`${branch}\n${canonicalTimestamp}\`).digest("hex").toUpperCase().slice(0, 8)`),
+            the pinned refusal set (a `C-`-prefixed positional is a hand-typed id; a slug whose final
+            segment is all digits; an already-minted positional; absent/invalid timestamp; unresolved
+            branch; unparseable `--supersedes`; the shipped `refuseExistingBundle` collision), and the
+            three-line success report (relative spec path, then a `mint:` line naming
+            `slug=`, `lineage=`, `hash=`, `branch=`, `timestamp=`, then a `mint-search:` line naming
+            the prior active/archive counts for the slug). In `src/artifact/skeletons.ts`, change
+            `renderSpecSection("NonGoals", …)` to emit
+            `&lt;NonGoal&gt;Non-goal for …; replace this placeholder by deciding README.md and examples/.
+            Owner: the author.&lt;/NonGoal&gt;`. Regenerate the four teaching templates with
+            `bun run ./scripts/generate-skeleton-templates.ts` (canonical
+            `skills/ngrace/ngrace-{spec,plan}/references/*-template.xml` and their packaged mirrors)
+            and copy each canonical template onto its mirror byte-identically. **Only the two spec
+            templates change bytes** — the plan template emits no `NonGoals`, so the two plan
+            templates are regenerated and expected byte-identical and no target needle pins the seed
+            in them (observed on `/tmp/ng-hbi/repo`: after the regeneration `git status` lists only
+            the two spec templates). Observed mint drives on the same copy:
+            `spec new CACHE-WARM --timestamp 2026-09-14T03:00:00Z --branch c-hbi` mints
+            `C-CACHE-WARM-1-D1302E6C`; the same inputs in a second root mint the same id;
+            `2026-09-14T03:00:01Z` mints `C-CACHE-WARM-1-7578BE42`; `--supersedes C-FOO-2` mints
+            `C-FOO-3-D1302E6C`; and each refusal names its cause. Then
+            `bun test --timeout=30000 src/grace-generate.test.ts` exits 0,
+            `bun test --timeout=30000 scripts/generate-skeleton-templates.test.ts` exits 0, and
+            `bun ./scripts/check-teaching-surface.ts check` exits 0 (a bare mint in a temp project
+            passes `checkDocsAndExamplesDecision`). Record the cursor attempt with outcome pass for
+            signature-key `spec-new-mint-tests-first`. Do not read the wall clock, do not raise a
+            ceiling, and do not edit `plan new`'s id validation beyond accepting the minted form
+            (which the unchanged `ANCHOR_PATTERNS.change` already does). Failure conditions: a
+            template regenerated from a stale emission or a mirror left stale; the hash computed from
+            anything but the handed-in branch and canonical timestamp; a refusal that writes a
+            directory; the seed text absent from the skeleton or present only in the teaching emission.
+          </Criterion>
+          <Criterion>
+            The boundary and the close. This task's `Verification` commands and the plan's
+            `TargetAssertions` contain no current-mode lint of this project root, checked by hand
+            (F171). Each recorded command exits 0 at this task's boundary (F184), observed on the prototype copy
+            `/tmp/ng-hbi/repo` at exactly this stage; each `git diff --exit-code` names the base
+            commit `e18e7540c298f37b22ba35077180ff7ad63c8294` and excludes this task's and the earlier
+            task's files (F243) — the `src/` / `scripts/` diff excludes the five written so far, and
+            the skills/templates diff excludes the four regenerated templates. The executor emits its
+            own cursor events and performs no close act.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 src/grace-generate.test.ts</Command>
+          <Command>bun test --timeout=30000 scripts/generate-skeleton-templates.test.ts</Command>
+          <Command>bun ./scripts/check-teaching-surface.ts check</Command>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- src/ scripts/ ':(exclude)src/artifact/types.ts' ':(exclude)src/artifact/grammar.test.ts' ':(exclude)src/grace-generate.ts' ':(exclude)src/artifact/skeletons.ts' ':(exclude)src/grace-generate.test.ts'</Command>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- README.md examples/ skills/ plugins/ docs/ CHANGELOG.md package.json openpackage.yml .claude-plugin .ngrace-lint.json ':(exclude)skills/ngrace/ngrace-spec/references/change-spec-template.xml' ':(exclude)skills/ngrace/ngrace-plan/references/change-plan-template.xml' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml'</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>
+          Add the lineage tests red-first, then land lineage derivation and mint-on-omit in
+          grace-supersede.ts
+        </Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (supersede-lineage-tests-first): in its own tool round trip, before any
+            production edit, append to `src/grace-supersede.test.ts` a
+            `describe("C-HASHED-BUNDLE-IDS lineage successor")`: the CLI accepts
+            `--change C-GEN-PRED --replacement C-GEN-PRED-2-&lt;HASH&gt;` when that directory exists
+            (a lineage successor), refuses `--replacement C-GEN-PRED-3-&lt;HASH&gt;` (wrong lineage) and
+            `--replacement C-GEN-OTHER-2-&lt;HASH&gt;` (wrong slug), and, with `--replacement` omitted
+            and a timestamp/branch supplied, mints `C-GEN-PRED-2-&lt;HASH&gt;` itself and completes the
+            move. The shipped refusal tests keep their assertions. Driven before any production edit:
+            the new `it`s red. Record the cursor attempt with outcome fail, signature-kind `test`,
+            signature-key `supersede-lineage-tests-first`. Do not edit `src/grace-supersede.ts` in
+            this round trip. Failure conditions: the successor asserted by a hand-written id rather
+            than the parsed lineage; the mint-on-omit case reaching the production record.
+          </Criterion>
+          <Criterion>
+            Production then pass: in `src/grace-supersede.ts`, make `--replacement` optional; when
+            given, keep the shipped `replacementDirectoryExists` existence refusal and add the lineage
+            refusal — parse both ids with `parseBundleId` and, when either id carries a lineage,
+            require the same slug and `nextBundleLineage(predecessor)` equal to the replacement's
+            lineage; a fully legacy hash-less pair (neither id carries a lineage) keeps the pre-D38
+            acceptance, so `C-OLD` to `C-NEW` still supersedes and `src/gates/core.test.ts` stays
+            green with no write outside this plan's scope (a deviation from the spec's prose,
+            recorded in the report). When omitted, derive the
+            successor from `parseBundleId(predecessor)` (slug unchanged, `nextBundleLineage`) and mint
+            its skeleton through the same exported mint routine `spec new` uses (taking the mint's
+            `--timestamp`/`--branch` inputs), then proceed to the shipped
+            `supersedeChangeBundle`. Do not change the write-and-rollback order in
+            `src/gates/ledger.ts`. Then `bun test --timeout=30000 src/grace-supersede.test.ts` exits
+            0 with the shipped 13 tests untouched and the new lineage block green. Record the cursor
+            attempt with outcome pass for signature-key `supersede-lineage-tests-first`. Failure
+            conditions: a wrong-slug replacement accepted; `supersedeChangeBundle` reached before the
+            successor's directory exists; the fold order changed.
+          </Criterion>
+          <Criterion>
+            The boundary and the close. This task's `Verification` commands and the plan's
+            `TargetAssertions` contain no current-mode lint of this project root, checked by hand
+            (F171). Each recorded command exits 0 at this task's boundary (F184), observed on the prototype copy
+            `/tmp/ng-hbi/repo` at exactly this stage; each `git diff --exit-code` names the base
+            commit `e18e7540c298f37b22ba35077180ff7ad63c8294` and excludes this task's and the earlier
+            tasks' files (F243) — the `src/` / `scripts/` diff excludes the seven written so far. The
+            executor emits its own cursor events and performs no close act.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 src/grace-supersede.test.ts</Command>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- src/ scripts/ ':(exclude)src/artifact/types.ts' ':(exclude)src/artifact/grammar.test.ts' ':(exclude)src/grace-generate.ts' ':(exclude)src/artifact/skeletons.ts' ':(exclude)src/grace-generate.test.ts' ':(exclude)src/grace-supersede.ts' ':(exclude)src/grace-supersede.test.ts'</Command>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- README.md examples/ skills/ plugins/ docs/ CHANGELOG.md package.json openpackage.yml .claude-plugin .ngrace-lint.json ':(exclude)skills/ngrace/ngrace-spec/references/change-spec-template.xml' ':(exclude)skills/ngrace/ngrace-plan/references/change-plan-template.xml' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml'</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>
+          Add the section-scoped needles and README claims red-first, then teach the sentences in
+          ngrace-spec and ngrace-plan plus their mirrors, update the README, and re-measure the
+          footprint
+        </Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (teaching-needles): in its own tool round trip, before any skill edit, add the
+            `TAUGHT_RULES` entries for the new sentences to `scripts/check-teaching-surface.ts`
+            (section-scoped, per governed tree): `ngrace-spec` `workflow` token
+            `never hand-type an id or its suffix`; `ngrace-spec` `docs_and_examples` token
+            `replace this placeholder`; `ngrace-plan` `approved_plan_immutability` token
+            `--supersedes`. Mirror every entry in `scripts/check-teaching-surface.test.ts`'s local
+            table. The sentences are absent at this state, so `bun ./scripts/check-teaching-surface.ts
+            check` exits 1, refusing with the file, the section and the first missing token. Record
+            the cursor attempt with outcome fail, signature-kind `test`, signature-key
+            `teaching-needles`. Do not land any sentence in this round trip. Failure conditions:
+            this round trip also edits a skill; a needle added to the check but not the suite's local
+            table; the red recorded against an isolated fixture instead of the production trees.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (readme-claims): in its own tool round trip, before the README edit, extend
+            `src/docs-claims.test.ts` with a `describe("README change-id examples")` asserting the
+            README mint example uses the slug argument (`ngrace spec new &lt;SLUG&gt;`), the id form
+            `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;` is stated, the `supersede` row states that
+            `--replacement` must be the lineage successor, and the `C-*` globs and the legacy fixture
+            `C-ADD-KEYBOARD-NAV` are still present. Driven before the README edit: red. Record the
+            cursor attempt with outcome fail, signature-kind `test`, signature-key `readme-claims`. Do
+            not edit `README.md` in this round trip. Failure conditions: the round trip also edits the
+            README; the assertion binds a line number rather than a token.
+          </Criterion>
+          <Criterion>
+            Production then pass (teaching): land the pinned sentences verbatim, canonical then copy
+            each edited file onto its packaged mirror byte-identically. `ngrace-spec`
+            `change_bundle_contract` shows the minted bundle path
+            (`` `.ngrace/changes/active/C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;/` ``, brackets escaped per
+            F43); `shape_sources` names the minted form as the primary write path; `workflow` step 3
+            becomes "Mint the bundle id with `ngrace spec new &lt;SLUG&gt;`: the tool appends the
+            lineage `-&lt;N&gt;` (`-1` first) and a short uppercase-hex hash of the branch and a
+            handed-in timestamp; never hand-type an id or its suffix and never read a clock
+            silently."; `docs_and_examples` adds the sentence that the minted skeleton carries a
+            docs-and-examples `NonGoal` placeholder the author must replace. `ngrace-plan`
+            `approved_plan_immutability` replaces the create-then-supersede sentence with
+            "create the replacement with `ngrace spec new --supersedes &lt;C-PRED&gt;`, then run
+            `ngrace supersede`". Then `bun ./scripts/check-teaching-surface.ts check` exits 0 and
+            `bun test --timeout=30000 scripts/check-teaching-surface.test.ts` exits 0. Record the
+            cursor attempt with outcome pass for signature-key `teaching-needles`. Failure
+            conditions: a sentence paraphrased rather than landed verbatim; a mirror left stale; a
+            sentence naming an `F` token, a bare `D` token, a record file name or an `RM-` plan id
+            (the four governed skills are under `checkRecordTokens`).
+          </Criterion>
+          <Criterion>
+            Production then pass (README and footprint): update `README.md` — the mint example at
+            line 130 to `ngrace spec new &lt;SLUG&gt;` naming `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;`;
+            the command-table row at line 188 to
+            `ngrace spec new &lt;SLUG&gt; --timestamp &lt;ISO8601&gt; --path &lt;root&gt;` naming the
+            refusals; the `supersede` row at line 202 to state that `--replacement` is optional and
+            must be the lineage successor; and one concept sentence near the change-bundle rows
+            (lines 53-54) stating the id form and the legacy edge. Leave the `C-*` globs (lines 51,
+            53, 54, 247, 257), the generic `C-ID` placeholders and the polyglot fixture
+            `C-ADD-KEYBOARD-NAV` (line 309) unchanged. Re-measure the skill footprint with
+            `skillTextLines()` and update `src/test-support/token-accounting.test.ts` and the
+            `README.md` measurement cell to the new true values together, never written toward; the
+            pre-remeasure token-accounting fail is not a planned signature. Then
+            `bun test --timeout=30000 src/docs-claims.test.ts` exits 0,
+            `bun test --timeout=30000 src/test-support/token-accounting.test.ts` exits 0 and
+            `bun run ./scripts/validate-marketplace.ts` exits 0. Record the cursor attempt with
+            outcome pass for signature-key `readme-claims`. Failure conditions: the footprint written
+            toward rather than re-measured; the legacy fixture id or a measured row changed; the
+            mirror skill text stale.
+          </Criterion>
+          <Criterion>
+            The boundary and the close. This task's `Verification` commands and the plan's
+            `TargetAssertions` contain no current-mode lint of this project root, checked by hand
+            (F171). Each recorded command exits 0 at this task's boundary (F184), observed on the prototype copy
+            `/tmp/ng-hbi/repo` at exactly this stage; each `git diff --exit-code` names the base
+            commit `e18e7540c298f37b22ba35077180ff7ad63c8294` and excludes this task's and the earlier
+            tasks' files (F243) — the `src/` / `scripts/` diff excludes the eleven written so far, and
+            the skills/templates diff excludes the two `SKILL.md` files and the four templates, all
+            written by now. The executor emits its own cursor events and performs no close act.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun ./scripts/check-teaching-surface.ts check</Command>
+          <Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test --timeout=30000 src/docs-claims.test.ts</Command>
+          <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- src/ scripts/ ':(exclude)src/artifact/types.ts' ':(exclude)src/artifact/grammar.test.ts' ':(exclude)src/grace-generate.ts' ':(exclude)src/artifact/skeletons.ts' ':(exclude)src/grace-generate.test.ts' ':(exclude)src/grace-supersede.ts' ':(exclude)src/grace-supersede.test.ts' ':(exclude)src/docs-claims.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts'</Command>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- README.md examples/ skills/ plugins/ docs/ CHANGELOG.md package.json openpackage.yml .claude-plugin .ngrace-lint.json ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)skills/ngrace/ngrace-spec/references/change-spec-template.xml' ':(exclude)skills/ngrace/ngrace-plan/references/change-plan-template.xml' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml' ':(exclude)README.md'</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>
+          Add the C-HASHED-BUNDLE-IDS carrier-and-row walk and the D38 codification walk red-first,
+          mint the live row, and hold every ceiling with --rewrite-roots
+        </Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (record-row-tests-first): in its own tool round trip, before any record write,
+            append two walks to `scripts/validate-record-retirement.test.ts` in the house shapes.
+            `expectChbiCarrierAndRowRelations(recordDir)`: the `C-HASHED-BUNDLE-IDS` `Row` exists
+            exactly once across `registry.xml` / `registry-retired.xml` with no fixed expectation of
+            which file holds it, its `status` agrees with the holding file, its `kind` is
+            `chartered`, its `&lt;Pays&gt;` is empty (containment of nothing, never an exact-set pin),
+            and its `&lt;StatusText&gt;` names no `F` token outside `&lt;Pays&gt;`. And a
+            `describe("D38 codification")` walk: `D38` exists exactly once across `rulings.xml` /
+            `rulings-retired.xml` with no fixed expectation of which file holds it, its `status`
+            agrees with the holding file, its single index `&lt;Entry&gt;` carries `genre="decision"`
+            and a `layer` agreeing with the holding file, and **iff** the holding file is the retired
+            sibling it carries at least two resolving `&lt;CodifiedIn kind="test-suite"&gt;` children
+            (`src/grace-generate.test.ts` and `src/grace-supersede.test.ts`), so the live state with
+            no `CodifiedIn` is green and the post-close state is green. Add a red-direction fixture
+            for each walk that copies every record file the relation reads into an isolated root,
+            plants a duplicate row (or a flipped `D38` index layer) into whichever layer holds it,
+            verifies the mutation landed before reading the result, and asserts the exactly-once
+            clause throws. Driven before the record write: the production row walk reds (no row);
+            `D38` is live with no `CodifiedIn`, so that walk is green at this state. Record the
+            cursor attempt with outcome fail, signature-kind `test`, signature-key
+            `record-row-tests-first`. Do not mint in this round trip. Failure conditions: this round
+            trip also mints; a walk hardcodes a layer; the `Pays` clause pins an exact set; the
+            `CodifiedIn` clause is unconditional so the live state reds.
+          </Criterion>
+          <Criterion>
+            The row, byte-exact and hand-written in the append shape, then the shipped writer. Append
+            the `C-HASHED-BUNDLE-IDS` row to `registry.xml` before `&lt;/Registry&gt;`:
+            `status="live" kind="chartered"`, `&lt;Number&gt;&lt;/Number&gt;`, an empty
+            `&lt;Pays&gt;&lt;/Pays&gt;`, a `&lt;StatusText&gt;` naming no `F` token and carrying no
+            `Closed with` sentence, and a `&lt;Charter&gt;` carrying the searched-before-minting
+            statement with the spec's measured counts — **Name.** `C-HASHED-BUNDLE-IDS`;
+            **searched before minting**, 2026-09-14 at `264e502`, over `.ngrace/changes/archive/`
+            (99 directories matching `^C-[A-Z0-9-]+$`) and the record's structural `Row name=`
+            attributes across both registry layers (67 rows: 12 live + 55 retired); zero exact hits
+            for `C-HASHED-BUNDLE-IDS`; per token `HASHED` 0 directories / 0 rows, `BUNDLE` 1
+            directory (`C-BUNDLE-BASE-REF`) / 0 rows, `IDS` 0 / 0; no colliding or better-fitting
+            prior name; and the statement that this bundle's own id is the legacy hash-less form by
+            `D38`'s third edge. Escape markup as character data in every written cell. Then run the
+            shipped writer
+            `bun ./scripts/validate-record-retirement.ts --rewrite-roots docs/plans/active/RM-GOVERNED-PATH`
+            — never hand-edit a root; the record reads back registry `13 / 13 / 26` with only
+            `registry.xml` changed in the working tree (driven), rulings unchanged at
+            `1733 / 150 / 1883`. Stop and report if a read-back exceeds a held ceiling; the remedy is
+            never to raise it. Do not run `--retire`, do not hand-write a `&lt;PaidBy&gt;`, do not
+            write `D38`'s `CodifiedIn` (the shipped `decision-eligible-still-live` refuses a live
+            decision with a resolving `CodifiedIn`; the close writes it after `apply`), and do not run
+            `--split`. Then the row walk greens, the `D38` walk stays green, and
+            `bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH`,
+            `bun ./scripts/validate-citation-anchors.ts` and
+            `bun ./scripts/prove-record-preservation.ts` return zero. Record the cursor attempt with
+            outcome pass for signature-key `record-row-tests-first`.
+          </Criterion>
+          <Criterion>
+            The boundary and the close. This task's `Verification` commands and the plan's
+            `TargetAssertions` contain no current-mode lint of this project root, checked by hand
+            (F171). Each recorded command exits 0 at this task's boundary (F184), observed on the prototype copy
+            `/tmp/ng-hbi/repo` at exactly this stage; each `git diff --exit-code` names the base
+            commit `e18e7540c298f37b22ba35077180ff7ad63c8294` and excludes this task's and the earlier
+            tasks' files (F243) — the `src/` / `scripts/` diff excludes all twelve written files
+            (equal to `AC-NO-PRODUCTION-DRIFT`'s set), and the `docs/plans/` diff excludes the five
+            record files the bundle and its close may write. The executor emits its own cursor events
+            and performs no close act; the row is left live and `D38` is left live and uncodified for
+            the close.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- src/ scripts/ ':(exclude)src/artifact/types.ts' ':(exclude)src/artifact/grammar.test.ts' ':(exclude)src/grace-generate.ts' ':(exclude)src/artifact/skeletons.ts' ':(exclude)src/grace-generate.test.ts' ':(exclude)src/grace-supersede.ts' ':(exclude)src/grace-supersede.test.ts' ':(exclude)src/docs-claims.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- docs/plans/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/rulings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml'</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>
+          Leaf suites, validate:ci, the predicted plan-approve review, and the faithful post-close
+          applied-archive drive over every CloseEvidence command
+        </Title>
+        <DependsOn>
+          <Task>T-005</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Task-observable suites, not manufactured reds. `bun test --timeout=30000
+            src/artifact/grammar.test.ts` exits 0; `bun test --timeout=30000
+            src/grace-generate.test.ts` exits 0; `bun test --timeout=30000
+            src/grace-supersede.test.ts` exits 0; `bun test --timeout=30000
+            src/docs-claims.test.ts` exits 0; `bun test --timeout=30000
+            scripts/check-teaching-surface.test.ts` exits 0; `bun test --timeout=30000
+            scripts/generate-skeleton-templates.test.ts` exits 0; `bun test --timeout=30000
+            scripts/validate-record-retirement.test.ts` exits 0; `bun test --timeout=30000
+            src/test-support/token-accounting.test.ts` exits 0; `bun run validate:determinism` exits
+            0; `bun run validate:ci` exits 0. Do not manufacture a red for those commands being green
+            at the prior task's state. This task carries the plan's single `Satisfies`
+            (`AC-NO-CURRENT-MODE`): no task `Verification` command or `TargetAssertions` entry
+            contains a current-mode lint of this project root, checked by hand. Do not claim
+            post-archive lint 0/0 at this task pass.
+          </Criterion>
+          <Criterion>
+            The predicted plan-approve review and the anchors window, on a copy. This bundle creates
+            no file under `src/`, so `change.graph-anchors-miss-write-scope` has no window: on a copy
+            with this `spec.xml` and `plan.xml` set to `approved`,
+            `bun ./src/grace.ts lint --path . --assertions target` and
+            `bun ./src/grace.ts review --path . --change C-HASHED-BUNDLE-IDS` report no
+            miss-write-scope error, because the only module-ownable paths in `ObservedWriteScope` are
+            the four existing production files, each owned by an anchor in `DurableScope`. Report
+            exactly what `ngrace review --change` prints at plan-approve on the copy — the bundle's
+            own `spec.xml`, `plan.xml` and `design-context.xml` are identity-skipped by the shipped
+            predicate, so a `review.scope-outside-write-scope` naming any of them is **not** expected
+            and would be a finding, and a finding naming any file in `ObservedWriteScope` is a defect
+            to report; the expected result is 0 findings, and the approval commit names it.
+          </Criterion>
+          <Criterion>
+            The post-close applied-archive drive, on a faithful whole-repository copy (F235), before
+            recording pass — `ngrace-plan` row 19 applied to this bundle, and the rules this bundle
+            teaches. Copy the working tree **including `.git`** and untracked files (rsync without
+            `--exclude .git`), with `node_modules` copied as a real directory — a symlink is untracked
+            to git and yields a spurious `review.scope-outside-write-scope node_modules` (measured)
+            — and from inside the copy reach the state the ceremony produces: approve the copy's
+            `plan.xml` through
+            `bun ./src/grace.ts gate approve --change C-HASHED-BUNDLE-IDS --artifact plan --path .`,
+            then run
+            `bun ./src/grace.ts apply --change C-HASHED-BUNDLE-IDS --force --reason "post-close
+            drive"` — the verb archives the bundle and writes `applied` on both artifacts (a hand
+            `applied` write is the fallback only if the verb refuses, and the refusal reason is named
+            in the report). **Then, in that order, hand-write `D38`'s `&lt;CodifiedIn
+            kind="test-suite"&gt;src/grace-generate.test.ts&lt;/CodifiedIn&gt;` and `&lt;CodifiedIn
+            kind="test-suite"&gt;src/grace-supersede.test.ts&lt;/CodifiedIn&gt;` into the copy's
+            `rulings.xml`** — after `apply` and before `--retire`, because the shipped
+            `decision-eligible-still-live` refuses a live decision with a resolving `CodifiedIn` — and
+            confirm the shipped validator exits non-zero naming `decision-eligible-still-live` before
+            the move (the discriminating red). Then run the shipped
+            `bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH`
+            from inside the copy: it reports **`moved 2`** (`D38` and the row), `D38` sits in
+            `rulings-retired.xml` with `status="retired"` carrying both `CodifiedIn` children, the
+            row sits in `registry-retired.xml` with `status="retired"`, the `D38` index layer is
+            retired in place with the `Entry` line still present, and the roots re-derive to registry
+            `12 / 14 / 26` with findings and index unchanged and rulings re-derived within its held
+            ceiling; a second `--retire` reports `moved 0`. Then run **every** `CloseEvidence`
+            `Command` the spec carries, from inside the copy, exit codes read directly:
+            `bun test src/grace-generate.test.ts` (AC-MINT-FORM, AC-MINT-DETERMINISTIC,
+            AC-MINT-REFUSALS, AC-SEED-NOT-RED); `bun test src/grace-supersede.test.ts` (AC-LINEAGE);
+            `bun test src/artifact/grammar.test.ts` (AC-LEGACY-ACCEPTED);
+            `bun test scripts/generate-skeleton-templates.test.ts` (AC-TEMPLATES);
+            `bun test scripts/check-teaching-surface.test.ts` (AC-TEACHING);
+            `bun test src/docs-claims.test.ts` (AC-README);
+            `bun run ./scripts/validate-marketplace.ts` (AC-MIRROR-SYNC);
+            `bun test scripts/validate-record-retirement.test.ts` (AC-D38-CODIFIED, AC-ROW-MINTED,
+            AC-RECORD-VALID, AC-ROOTS-HELD); the two byte-invariance
+            `git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- …` criteria exactly as
+            the spec writes them (AC-NO-PRODUCTION-DRIFT, AC-DOCS-EXAMPLES), the archive-edit
+            criterion with its own-arrival exclude (AC-NO-ARCHIVE-EDIT) — which is why the copy
+            carries `.git`; and `bun ./src/grace.ts lint --path . --fail-on warnings`
+            (AC-CLOSE-LINT). A warning from `--fail-on warnings` is a finding for the report, never a
+            reason to drop the command. Then run `bun run validate:ci` inside the copy, exit code read
+            directly. Also drive the new verbs on the copy through the real CLI and paste the tails: a
+            mint with `--timestamp`; the same mint twice (identical id); a second timestamp (different
+            id); `--supersedes` on a legacy `-2` fixture; `supersede` without `--replacement`; and
+            each refusal. Finally drive the plan's reds post-close: the row walk reds on a duplicate
+            row, and the `D38` walk reds on a flipped index layer, mutating whichever layer holds the
+            target. The production record and the production bundle are never mutated by this drive.
+            Leave the copy's path in place and name it in the report. Record the cursor attempt with
+            outcome pass, signature-kind `test`, signature-key `post-close-drive`. Failure conditions:
+            the drive copies only the record directory or omits `.git`; the `CodifiedIn` write happens
+            before `apply` or after `--retire`; the drive stops at the in-tree suites and skips the
+            `git diff` criteria and `--fail-on warnings`; a warning is dropped rather than reported;
+            the production record is mutated.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 src/artifact/grammar.test.ts</Command>
+          <Command>bun test --timeout=30000 src/grace-generate.test.ts</Command>
+          <Command>bun test --timeout=30000 src/grace-supersede.test.ts</Command>
+          <Command>bun test --timeout=30000 src/docs-claims.test.ts</Command>
+          <Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test --timeout=30000 scripts/generate-skeleton-templates.test.ts</Command>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run validate:determinism</Command>
+          <Command>bun run validate:ci</Command>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- src/ scripts/ ':(exclude)src/artifact/types.ts' ':(exclude)src/artifact/grammar.test.ts' ':(exclude)src/grace-generate.ts' ':(exclude)src/artifact/skeletons.ts' ':(exclude)src/grace-generate.test.ts' ':(exclude)src/grace-supersede.ts' ':(exclude)src/grace-supersede.test.ts' ':(exclude)src/docs-claims.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code e18e7540c298f37b22ba35077180ff7ad63c8294 -- examples/ CLAUDE.md CONTRIBUTING.md AGENTS.md docs/plans/README.md docs/schema-reference.md package.json bun.lock openpackage.yml .claude-plugin plugins/ngrace/.claude-plugin CHANGELOG.md .ngrace-lint.json skills/ngrace/ plugins/ngrace/skills/ngrace/ ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)skills/ngrace/ngrace-spec/references/change-spec-template.xml' ':(exclude)skills/ngrace/ngrace-plan/references/change-plan-template.xml' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/references/change-spec-template.xml' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/references/change-plan-template.xml' ':(exclude)README.md'</Command>
+        </Verification>
+      </T-006>
+    </ImplementationPlan>
+  </C-HASHED-BUNDLE-IDS>
+</NgraceChangePlan>

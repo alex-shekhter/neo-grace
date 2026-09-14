@@ -12,6 +12,7 @@
 //   ANCHOR_PATTERNS
 //   ARCHIVED_CHANGE_STATUSES
 //   ARTIFACT_TAG_PREFIX
+//   BundleIdParts
 //   CHANGE_STATUSES
 //   CLAIMED_CONFIDENCE_LEVELS
 //   ChangeStatus
@@ -46,6 +47,8 @@
 //   VERIFICATION_ENTRY_STRUCTURE_TAGS
 //   VERIFICATION_THREADED_CHILD_TAGS
 //   isRegisteredSemanticAnchor
+//   nextBundleLineage
+//   parseBundleId
 //   parseClaimedConfidence
 //   skillName
 //   skillRef
@@ -204,6 +207,8 @@ export const ANCHOR_PATTERNS = {
   graphDocument: /^GD-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   verificationDocument: /^VD-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   change: /^C-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
+  /** Strict minted form: C-<SLUG>-<N>-<HASH> (D38); the permissive `change` pattern stays the accepted set. */
+  mintedChange: /^C-[A-Z0-9]+(?:-[A-Z0-9]+)*-[1-9][0-9]*-[0-9A-F]{8}$/,
   module: /^M-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   verification: /^V-M-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
   dataFlow: /^DF-[A-Z0-9]+(?:-[A-Z0-9]+)*$/,
@@ -224,6 +229,52 @@ export function isRegisteredSemanticAnchor(value: string): boolean {
     if (pattern.test(value)) return true;
   }
   return false;
+}
+
+/** Parsed bundle-id parts: a minted id carries lineage and hash; a legacy id carries at most lineage. */
+export type BundleIdParts = {
+  slug: string;
+  lineage: number | undefined;
+  hash: string | undefined;
+  minted: boolean;
+};
+
+/**
+ * Parse a bundle id into slug, lineage and hash (D38). A minted `C-<SLUG>-<N>-<HASH>`
+ * strips the trailing hash then the lineage; a legacy hash-less id with a trailing all-digits
+ * segment yields that lineage; any other id yields no lineage. Never guesses a lineage.
+ */
+export function parseBundleId(id: string): BundleIdParts {
+  if (ANCHOR_PATTERNS.mintedChange.test(id)) {
+    const hash = id.slice(-8);
+    const withoutHash = id.slice(0, -9);
+    const lineageMatch = /-[1-9][0-9]*$/.exec(withoutHash);
+    if (lineageMatch && lineageMatch.index > 0) {
+      return {
+        slug: withoutHash.slice(0, lineageMatch.index),
+        lineage: Number(lineageMatch[0].slice(1)),
+        hash,
+        minted: true,
+      };
+    }
+  }
+  if (ANCHOR_PATTERNS.change.test(id)) {
+    const lineageMatch = /-([1-9][0-9]*)$/.exec(id);
+    if (lineageMatch && lineageMatch.index > 0) {
+      return {
+        slug: id.slice(0, lineageMatch.index),
+        lineage: Number(lineageMatch[1]),
+        hash: undefined,
+        minted: false,
+      };
+    }
+  }
+  return { slug: id, lineage: undefined, hash: undefined, minted: false };
+}
+
+/** Successor lineage for a supersede: one past the parsed lineage, or 2 when none is present. */
+export function nextBundleLineage(id: string): number {
+  return (parseBundleId(id).lineage ?? 1) + 1;
 }
 
 /**

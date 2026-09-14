@@ -70,7 +70,7 @@ describe("C-SUPERSEDE-COMMAND T-003", () => {
     const specPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-OLD", "spec.xml");
     const specBefore = readFileSync(specPath, "utf8");
 
-    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2", "--path", root]);
     expect(combinedOutput(result)).toMatch(/missing as a directory/);
     expect(result.status).not.toBe(0);
     expect(readFileSync(specPath, "utf8")).toBe(specBefore);
@@ -127,17 +127,17 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       planStatus: "draft",
     });
     writeChangeBundleFixture(root, {
-      changeId: "C-NEW",
+      changeId: "C-OLD-2",
       location: "active",
       specStatus: "draft",
       planStatus: "draft",
     });
-    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2", "--path", root]);
     const specAfter = readFileSync(changeArtifactPath(root, "C-OLD", "spec.xml")!, "utf8");
     expect(specAfter).toContain("<Replacement>");
-    expect(specAfter).toContain("<Replacement>C-NEW</Replacement>");
+    expect(specAfter).toContain("<Replacement>C-OLD-2</Replacement>");
     expect(specAfter).not.toContain("<ReplacementChange>");
-    expect(specAfter).not.toMatch(/<C-NEW[\s/>]/);
+    expect(specAfter).not.toMatch(/<C-OLD-2[\s/>]/);
 
     const named = tempProject();
     writeChangeBundleFixture(named, {
@@ -147,7 +147,7 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       planStatus: "draft",
     });
     writeChangeBundleFixture(named, {
-      changeId: "C-NEW",
+      changeId: "C-OLD-2",
       location: "active",
       specStatus: "draft",
       planStatus: "draft",
@@ -155,9 +155,9 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
     const namedSpec = path.join(named, ARTIFACT_DIR, "changes", "active", "C-OLD", "spec.xml");
     writeFileSync(
       namedSpec,
-      readFileSync(namedSpec, "utf8").replace("<C-OLD>", "<C-OLD><Replacement>C-NEW</Replacement>"),
+      readFileSync(namedSpec, "utf8").replace("<C-OLD>", "<C-OLD><Replacement>C-OLD-2</Replacement>"),
     );
-    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", named]);
+    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2", "--path", named]);
     const namedAfter = readFileSync(changeArtifactPath(named, "C-OLD", "spec.xml")!, "utf8");
     expect((namedAfter.match(/<Replacement>/g) ?? []).length).toBe(1);
   });
@@ -171,14 +171,14 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       planStatus: "draft",
     });
     writeChangeBundleFixture(root, {
-      changeId: "C-NEW",
+      changeId: "C-OLD-2",
       location: "active",
       specStatus: "draft",
       planStatus: "draft",
     });
     const activeDir = path.join(root, ARTIFACT_DIR, "changes", "active", "C-OLD");
     const archiveDir = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD");
-    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2", "--path", root]);
     expect(existsSync(archiveDir)).toBe(true);
     expect(existsSync(activeDir)).toBe(false);
   });
@@ -191,12 +191,12 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       specStatus: "draft",
     });
     writeChangeBundleFixture(root, {
-      changeId: "C-NEW",
+      changeId: "C-OLD-2",
       location: "active",
       specStatus: "draft",
       planStatus: "draft",
     });
-    const specOnly = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    const specOnly = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2", "--path", root]);
     expect(specOnly.status).toBe(0);
     expect(combinedOutput(specOnly)).not.toMatch(/No loose run\/ events to fold/);
     const archiveDir = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD");
@@ -215,7 +215,7 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       planStatus: "draft",
     });
     writeChangeBundleFixture(root, {
-      changeId: "C-NEW",
+      changeId: "C-OLD-2",
       location: "active",
       specStatus: "draft",
       planStatus: "draft",
@@ -256,7 +256,7 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
     expect(attemptStart).toBeGreaterThan(advanceStart);
     expect(cursorSrc.slice(advanceStart, attemptStart)).not.toContain("discarded");
 
-    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2", "--path", root]);
     expect(result.status).toBe(0);
     expect(result.stdout.trim()).toBe(path.join(ARTIFACT_DIR, "changes", "archive", "C-OLD").replaceAll(path.sep, "/"));
     expect(combinedOutput(result)).not.toMatch(/\bFold\b/i);
@@ -299,7 +299,7 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       planStatus: "superseded",
     });
     writeChangeBundleFixture(root, {
-      changeId: "C-NEW",
+      changeId: "C-OLD-2",
       location: "active",
       specStatus: "draft",
       planStatus: "draft",
@@ -307,14 +307,14 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
     const archivedSpec = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD", "spec.xml");
     writeFileSync(
       archivedSpec,
-      readFileSync(archivedSpec, "utf8").replace("<C-OLD>", "<C-OLD><Replacement>C-NEW</Replacement>"),
+      readFileSync(archivedSpec, "utf8").replace("<C-OLD>", "<C-OLD><Replacement>C-OLD-2</Replacement>"),
     );
     const archivedPlan = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD", "plan.xml");
     writeFileSync(
       archivedPlan,
-      readFileSync(archivedPlan, "utf8").replace("<C-OLD>", "<C-OLD><Replacement>C-NEW</Replacement>"),
+      readFileSync(archivedPlan, "utf8").replace("<C-OLD>", "<C-OLD><Replacement>C-OLD-2</Replacement>"),
     );
-    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2", "--path", root]);
     expect(combinedOutput(result)).toMatch(/already under archive\/ and not under active\//i);
     expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD"))).toBe(true);
     expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "active", "C-OLD"))).toBe(false);
@@ -329,7 +329,7 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       planStatus: "superseded",
     });
     writeChangeBundleFixture(root, {
-      changeId: "C-NEW",
+      changeId: "C-OLD-2",
       location: "active",
       specStatus: "draft",
       planStatus: "draft",
@@ -338,15 +338,15 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
     const planPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-OLD", "plan.xml");
     writeFileSync(
       specPath,
-      readFileSync(specPath, "utf8").replace("<C-OLD>", "<C-OLD><Replacement>C-NEW</Replacement>"),
+      readFileSync(specPath, "utf8").replace("<C-OLD>", "<C-OLD><Replacement>C-OLD-2</Replacement>"),
     );
     writeFileSync(
       planPath,
-      readFileSync(planPath, "utf8").replace("<C-OLD>", "<C-OLD><Replacement>C-NEW</Replacement>"),
+      readFileSync(planPath, "utf8").replace("<C-OLD>", "<C-OLD><Replacement>C-OLD-2</Replacement>"),
     );
     const specBefore = readFileSync(specPath, "utf8");
     const planBefore = readFileSync(planPath, "utf8");
-    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2", "--path", root]);
     expect(result.status).toBe(0);
     const archivedSpec = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD", "spec.xml");
     const archivedPlan = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD", "plan.xml");
@@ -363,7 +363,7 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       planStatus: "draft",
     });
     writeChangeBundleFixture(root, {
-      changeId: "C-NEW",
+      changeId: "C-OLD-2",
       location: "active",
       specStatus: "draft",
       planStatus: "draft",
@@ -373,7 +373,7 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
     const planPath = path.join(activeDir, "plan.xml");
     const specBefore = readFileSync(specPath, "utf8");
     chmodSync(planPath, 0o444);
-    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2", "--path", root]);
     chmodSync(planPath, 0o644);
     expect(result.status).not.toBe(0);
     expect(existsSync(activeDir)).toBe(true);
@@ -390,7 +390,7 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       planStatus: "draft",
     });
     writeChangeBundleFixture(root, {
-      changeId: "C-NEW",
+      changeId: "C-OLD-2",
       location: "active",
       specStatus: "draft",
       planStatus: "draft",
@@ -400,14 +400,14 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
     const specBefore = readFileSync(specPath, "utf8");
     const exdev = Object.assign(new Error("cross-device"), { code: "EXDEV" });
     expect(() =>
-      supersedeChangeBundle(root, "C-OLD", "C-NEW", {
+      supersedeChangeBundle(root, "C-OLD", "C-OLD-2", {
         renameSync: () => {
           throw exdev;
         },
       }),
     ).toThrow(GraceCommandError);
     try {
-      supersedeChangeBundle(root, "C-OLD", "C-NEW", {
+      supersedeChangeBundle(root, "C-OLD", "C-OLD-2", {
         renameSync: () => {
           throw exdev;
         },
@@ -423,3 +423,52 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
 
 
 
+
+describe("C-HASHED-BUNDLE-IDS-2 lineage successor", () => {
+  it("accepts a lineage successor replacement", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId: "C-OLD", location: "active", specStatus: "draft", planStatus: "draft" });
+    writeChangeBundleFixture(root, { changeId: "C-OLD-2-ABCDEF12", location: "active", specStatus: "draft", planStatus: "draft" });
+    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2-ABCDEF12", "--path", root]);
+    expect(result.status).toBe(0);
+    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD", "spec.xml"))).toBe(true);
+    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "active", "C-OLD-2-ABCDEF12", "spec.xml"))).toBe(true);
+  });
+
+  it("refuses a wrong-lineage successor", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId: "C-OLD", location: "active", specStatus: "draft", planStatus: "draft" });
+    writeChangeBundleFixture(root, { changeId: "C-OLD-3-ABCDEF12", location: "active", specStatus: "draft", planStatus: "draft" });
+    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-3-ABCDEF12", "--path", root]);
+    expect(result.status).not.toBe(0);
+    expect(combinedOutput(result)).toContain("lineage successor");
+  });
+
+  it("refuses a wrong-slug replacement", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId: "C-OLD", location: "active", specStatus: "draft", planStatus: "draft" });
+    writeChangeBundleFixture(root, { changeId: "C-OTHER-2-ABCDEF12", location: "active", specStatus: "draft", planStatus: "draft" });
+    const result = runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OTHER-2-ABCDEF12", "--path", root]);
+    expect(result.status).not.toBe(0);
+    expect(combinedOutput(result)).toContain("lineage successor");
+  });
+
+  it("mints the lineage successor itself when --replacement is omitted", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId: "C-OLD", location: "active", specStatus: "draft", planStatus: "draft" });
+    const result = runSupersedeCli(["--change", "C-OLD", "--timestamp", "2026-09-14T03:00:00Z", "--branch", "b", "--path", root]);
+    expect(result.status).toBe(0);
+    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD", "spec.xml"))).toBe(true);
+    const active = readdirSync(path.join(root, ARTIFACT_DIR, "changes", "active")).filter((name) => /^C-OLD-2-[0-9A-F]{8}$/.test(name));
+    expect(active).toHaveLength(1);
+  });
+
+  it("derives the successor from a legacy hash-less predecessor", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId: "C-LEGACY-2", location: "active", specStatus: "draft", planStatus: "draft" });
+    const result = runSupersedeCli(["--change", "C-LEGACY-2", "--timestamp", "2026-09-14T03:00:00Z", "--branch", "b", "--path", root]);
+    expect(result.status).toBe(0);
+    const active = readdirSync(path.join(root, ARTIFACT_DIR, "changes", "active")).filter((name) => /^C-LEGACY-3-[0-9A-F]{8}$/.test(name));
+    expect(active).toHaveLength(1);
+  });
+});

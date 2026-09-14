@@ -5042,3 +5042,156 @@ describe("C-TEACH-DRIVE-BEFORE-APPROVE-2 carrier and row relations", () => {
     expect(() => expectCtdbaCarrierAndRowRelations(recordDir)).toThrow(/StatusText names no F token outside Pays/);
   });
 });
+
+const CHBI_ROW_NAME = "C-HASHED-BUNDLE-IDS-2";
+
+function expectChbiCarrierAndRowRelations(recordDir: string): void {
+  const hits = (["registry.xml", "registry-retired.xml"] as const).flatMap((file) => {
+    const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+    expect(parsed.root, `${file} parses`).not.toBeNull();
+    return childNodes(parsed.root!, "Row")
+      .filter((row) => row.attributes.name === CHBI_ROW_NAME)
+      .map((row) => ({ file, node: row }));
+  });
+  expect(hits.length, `${CHBI_ROW_NAME}: exactly one Row across the registry layers (got ${hits.length})`).toBe(1);
+  const hit = hits[0]!;
+  const holding = hit.file === "registry.xml" ? "live" : "retired";
+  expect(hit.node.attributes.status, `${CHBI_ROW_NAME}: the row's status agrees with the holding file`).toBe(holding);
+  expect(hit.node.attributes.kind, `${CHBI_ROW_NAME}: kind`).toBe("chartered");
+  const paysTokens = (childText(hit.node, "Pays") ?? "").trim().split(/\s+/).filter(Boolean);
+  expect(paysTokens, `${CHBI_ROW_NAME}: Pays is empty`).toHaveLength(0);
+  const statusText = childText(hit.node, "StatusText") ?? "";
+  for (const token of statusText.match(/F[0-9]+/g) ?? []) {
+    expect(paysTokens, `${CHBI_ROW_NAME}: StatusText names no F token outside Pays (${token})`).toContain(token);
+  }
+}
+
+function expectD38Codification(recordDir: string): void {
+  const indexParsed = parseGraceXmlArtifact("decisions.xml", readFileSync(path.join(recordDir, "decisions.xml"), "utf8"));
+  expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+  const carriers = (["rulings.xml", "rulings-retired.xml"] as const).flatMap((file) => {
+    const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+    expect(parsed.root, `${file} parses`).not.toBeNull();
+    return childNodes(parsed.root!, "Decision")
+      .filter((node) => node.attributes.id === "d38")
+      .map((node) => ({ file, node }));
+  });
+  expect(carriers.length, "D38: exactly one Decision across the rulings layers").toBe(1);
+  const carrier = carriers[0]!;
+  const holding = carrier.file === "rulings.xml" ? "live" : "retired";
+  expect(carrier.node.attributes.status, "D38: status agrees with the holding file").toBe(holding);
+  const entries = childNodes(indexParsed.root!, "Entry").filter((node) => node.attributes.id === "d38");
+  expect(entries.length, "D38: the index carries exactly one Entry").toBe(1);
+  expect(entries[0]!.attributes.genre, "D38: index genre").toBe("decision");
+  expect(entries[0]!.attributes.layer, "D38: index layer agrees with the holding file").toBe(holding);
+  if (holding === "retired") {
+    const codified = childNodes(carrier.node, "CodifiedIn").filter((node) => node.attributes.kind === "test-suite");
+    expect(codified.length, "D38: at least two resolving CodifiedIn test-suite children").toBeGreaterThanOrEqual(2);
+    const paths = codified.map((node) => node.text.trim());
+    expect(paths).toContain("src/grace-generate.test.ts");
+    expect(paths).toContain("src/grace-supersede.test.ts");
+  }
+}
+
+describe("C-HASHED-BUNDLE-IDS-2 carrier and row relations", () => {
+  it(
+    "the C-HASHED-BUNDLE-IDS-2 row exists exactly once across the registry layers with status agreeing, kind chartered, an empty Pays, and a StatusText naming no token outside Pays (generous timeout)",
+    () => {
+      expectChbiCarrierAndRowRelations(path.join(REPO_ROOT, RECORD_REL));
+    },
+    60_000,
+  );
+
+  it("red direction — a second C-HASHED-BUNDLE-IDS-2 row reddens the exactly-once clause", () => {
+    const root = isolatedRoot();
+    const recordDir = path.join(root, RECORD_REL);
+    mkdirSync(recordDir, { recursive: true });
+    for (const file of ["registry.xml", "registry-retired.xml", "rulings.xml", "rulings-retired.xml", "decisions.xml"]) {
+      copyFileSync(path.join(REPO_ROOT, RECORD_REL, file), path.join(recordDir, file));
+    }
+    for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+      const held = readFileSync(path.join(recordDir, file), "utf8");
+      if (!held.includes(`name="${CHBI_ROW_NAME}"`)) continue;
+      writeFileSync(
+        path.join(recordDir, file),
+        held.replace(
+          "</Registry>",
+          `  <Row name="${CHBI_ROW_NAME}" status="live" kind="chartered">\n    <Number></Number>\n    <Charter>duplicate</Charter>\n    <Pays></Pays>\n    <StatusText>Ordered</StatusText>\n  </Row>\n</Registry>`,
+        ),
+      );
+    }
+    const hits = (["registry.xml", "registry-retired.xml"] as const).flatMap((file) => {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+      return childNodes(parsed.root!, "Row").filter((row) => row.attributes.name === CHBI_ROW_NAME);
+    });
+    expect(hits.length, `the mutated copy carries two ${CHBI_ROW_NAME} rows`).toBe(2);
+    expect(() => expectChbiCarrierAndRowRelations(recordDir)).toThrow(/exactly one Row across the registry layers/);
+  });
+
+  it("red direction — a StatusText naming a token outside Pays reddens the prose law", () => {
+    const root = isolatedRoot();
+    const recordDir = path.join(root, RECORD_REL);
+    mkdirSync(recordDir, { recursive: true });
+    for (const file of ["registry.xml", "registry-retired.xml", "rulings.xml", "rulings-retired.xml", "decisions.xml"]) {
+      copyFileSync(path.join(REPO_ROOT, RECORD_REL, file), path.join(recordDir, file));
+    }
+    for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+      const held = readFileSync(path.join(recordDir, file), "utf8");
+      if (!held.includes(`name="${CHBI_ROW_NAME}"`)) continue;
+      const rowStart = held.indexOf(`<Row name="${CHBI_ROW_NAME}"`);
+      const rowEnd = held.indexOf("</Row>", rowStart);
+      const rowBlock = held.slice(rowStart, rowEnd);
+      expect(rowBlock.includes("<StatusText>"), "the mutation targets the row's StatusText").toBe(true);
+      writeFileSync(
+        path.join(recordDir, file),
+        held.slice(0, rowStart) + rowBlock.replace("<StatusText>", "<StatusText>F999 ") + held.slice(rowEnd),
+      );
+    }
+    expect(() => expectChbiCarrierAndRowRelations(recordDir)).toThrow(/StatusText names no F token outside Pays/);
+  });
+});
+
+describe("D38 codification", () => {
+  it(
+    "D38 exists exactly once across the rulings pair with status and index layer agreeing, and a retired D38 carries at least two resolving CodifiedIn test-suite children (generous timeout)",
+    () => {
+      expectD38Codification(path.join(REPO_ROOT, RECORD_REL));
+    },
+    60_000,
+  );
+
+  it("red direction — a retired D38 with fewer than two CodifiedIn children reddens the codification clause", () => {
+    const root = isolatedRoot();
+    const recordDir = path.join(root, RECORD_REL);
+    mkdirSync(recordDir, { recursive: true });
+    for (const file of ["registry.xml", "registry-retired.xml", "rulings.xml", "rulings-retired.xml", "decisions.xml"]) {
+      copyFileSync(path.join(REPO_ROOT, RECORD_REL, file), path.join(recordDir, file));
+    }
+    const holders = (["rulings.xml", "rulings-retired.xml"] as const).filter((file) =>
+      readFileSync(path.join(recordDir, file), "utf8").includes('<Decision id="d38"'),
+    );
+    expect(holders.length, "the production record carries D38 in exactly one rulings layer").toBe(1);
+    const held = holders[0]!;
+    const heldPath = path.join(recordDir, held);
+    const heldText = readFileSync(heldPath, "utf8");
+    const decision = heldText.match(/<Decision id="d38"[\s\S]*?<\/Decision>\n?/);
+    expect(decision, "D38 parses").not.toBeNull();
+    const stripped = decision![0].replace(/<CodifiedIn[\s\S]*?<\/CodifiedIn>\s*/g, "");
+    if (held === "rulings.xml") {
+      writeFileSync(heldPath, heldText.replace(decision![0], ""));
+      const retiredPath = path.join(recordDir, "rulings-retired.xml");
+      writeFileSync(
+        retiredPath,
+        readFileSync(retiredPath, "utf8").replace("</Rulings>", `${stripped.replace('status="live"', 'status="retired"')}</Rulings>`),
+      );
+      const indexPath = path.join(recordDir, "decisions.xml");
+      writeFileSync(
+        indexPath,
+        readFileSync(indexPath, "utf8").replace(/(<Entry id="d38"[^>]*layer=")live(")/, "$1retired$2"),
+      );
+    } else {
+      writeFileSync(heldPath, heldText.replace(decision![0], stripped));
+    }
+    expect(() => expectD38Codification(recordDir)).toThrow(/at least two resolving CodifiedIn/);
+  });
+});

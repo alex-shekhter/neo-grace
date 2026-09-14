@@ -18,7 +18,8 @@ import path from "node:path";
 import { type CommandDef, runMain } from "citty";
 
 import { ARTIFACT_DIR } from "./artifact/paths";
-import { ANCHOR_PATTERNS } from "./artifact/types";
+import { ANCHOR_PATTERNS, nextBundleLineage, parseBundleId } from "./artifact/types";
+import { mintBundle } from "./grace-generate";
 import { supersedeChangeBundle } from "./gates/ledger";
 import { defineGraceCommand } from "./query/command";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -45,6 +46,18 @@ function replacementDirectoryExists(projectRoot: string, replacementId: string):
   );
 }
 
+/** The replacement must be the predecessor's lineage successor: same slug, next lineage (D38). */
+function requireLineageSuccessor(changeId: string, replacementId: string): void {
+  const predecessor = parseBundleId(changeId);
+  const successor = parseBundleId(replacementId);
+  if (successor.slug !== predecessor.slug || successor.lineage !== nextBundleLineage(changeId)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Replacement ${replacementId} is not the lineage successor of ${changeId} (same slug, lineage ${nextBundleLineage(changeId)}).`,
+    );
+  }
+}
+
 export const supersedeCommand = defineGraceCommand({
   meta: {
     name: "supersede",
@@ -59,8 +72,15 @@ export const supersedeCommand = defineGraceCommand({
     },
     replacement: {
       type: "string",
-      description: "Different already-existing C-* replacement",
-      required: true,
+      description: "Lineage successor C-*; omitted, the verb mints it",
+    },
+    timestamp: {
+      type: "string",
+      description: "ISO 8601 timestamp for the minted successor (or NGRACE_SPEC_TIMESTAMP)",
+    },
+    branch: {
+      type: "string",
+      description: "Branch name for the minted successor (or NGRACE_SPEC_BRANCH / git HEAD)",
     },
     path: {
       type: "string",
@@ -73,18 +93,30 @@ export const supersedeCommand = defineGraceCommand({
     await runGraceCommand("text", () => {
       const projectRoot = path.resolve(String(context.args.path ?? "."));
       const changeId = requireChangeId(context.args.change, "Change id");
-      const replacementId = requireChangeId(context.args.replacement, "Replacement id");
-      if (replacementId === changeId) {
-        throw new GraceCommandError(
-          "invalid-arguments",
-          `Replacement ${replacementId} equals the change being superseded.`,
-        );
-      }
-      if (!replacementDirectoryExists(projectRoot, replacementId)) {
-        throw new GraceCommandError(
-          "invalid-arguments",
-          `Replacement ${replacementId} is missing as a directory under active/ or archive/.`,
-        );
+      const rawReplacement = String(context.args.replacement ?? "").trim();
+      let replacementId: string;
+      if (rawReplacement !== "") {
+        replacementId = requireChangeId(rawReplacement, "Replacement id");
+        if (replacementId === changeId) {
+          throw new GraceCommandError(
+            "invalid-arguments",
+            `Replacement ${replacementId} equals the change being superseded.`,
+          );
+        }
+        if (!replacementDirectoryExists(projectRoot, replacementId)) {
+          throw new GraceCommandError(
+            "invalid-arguments",
+            `Replacement ${replacementId} is missing as a directory under active/ or archive/.`,
+          );
+        }
+        requireLineageSuccessor(changeId, replacementId);
+      } else {
+        const minted = mintBundle(projectRoot, {
+          supersedes: changeId,
+          timestamp: context.args.timestamp,
+          branch: context.args.branch,
+        });
+        replacementId = minted.id;
       }
       supersedeChangeBundle(projectRoot, changeId, replacementId);
       const relative = path

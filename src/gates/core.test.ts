@@ -2208,12 +2208,12 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       planStatus: "draft",
     });
     writeChangeBundleFixture(root, {
-      changeId: "C-NEW",
+      changeId: "C-OLD-2",
       location: "active",
       specStatus: "draft",
       planStatus: "draft",
     });
-    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", root]);
+    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2", "--path", root]);
     const specAfter = readFileSync(changeArtifactPath(root, "C-OLD", "spec.xml")!, "utf8");
     expect(specAfter).toMatch(/\bstatus="superseded"/);
     const planAfter = readFileSync(changeArtifactPath(root, "C-OLD", "plan.xml")!, "utf8");
@@ -2227,7 +2227,7 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       planStatus: "draft",
     });
     writeChangeBundleFixture(quoted, {
-      changeId: "C-NEW",
+      changeId: "C-OLD-2",
       location: "active",
       specStatus: "draft",
       planStatus: "draft",
@@ -2237,7 +2237,7 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       quotedSpecPath,
       readFileSync(quotedSpecPath, "utf8").replace('status="draft"', "status='draft'"),
     );
-    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", quoted]);
+    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2", "--path", quoted]);
     expect(readFileSync(changeArtifactPath(quoted, "C-OLD", "spec.xml")!, "utf8")).toMatch(
       /\bstatus='superseded'/,
     );
@@ -2250,12 +2250,12 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
       planStatus: "approved",
     });
     writeChangeBundleFixture(approved, {
-      changeId: "C-NEW",
+      changeId: "C-OLD-2",
       location: "active",
       specStatus: "draft",
       planStatus: "draft",
     });
-    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-NEW", "--path", approved]);
+    runSupersedeCli(["--change", "C-OLD", "--replacement", "C-OLD-2", "--path", approved]);
     expect(readFileSync(changeArtifactPath(approved, "C-OLD", "spec.xml")!, "utf8")).toMatch(
       /\bstatus="superseded"/,
     );

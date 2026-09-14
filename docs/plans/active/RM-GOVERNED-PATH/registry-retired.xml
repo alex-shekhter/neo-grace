@@ -332,4 +332,10 @@
     <Pays>F243 F246 F247 F248 F249</Pays>
     <StatusText>Ordered; the row is minted live by the plan and paid by the close's move.</StatusText>
   </Row>
+  <Row name="C-HASHED-BUNDLE-IDS-2" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Name.** `C-HASHED-BUNDLE-IDS-2`. **Searched before minting**, 2026-09-14 at `852b150`, over `.ngrace/changes/archive/` (100 directories matching `^C-[A-Z0-9-]+$`; the predecessor `C-HASHED-BUNDLE-IDS` is one of them) and the record's structural `Row name=` attributes across both registry layers (67 rows: 12 live + 55 retired): zero exact hits for `C-HASHED-BUNDLE-IDS-2`. Per token: `HASHED` 1 archive directory and 0 rows; `BUNDLE` 2 archive directories (`C-BUNDLE-BASE-REF`, `C-HASHED-BUNDLE-IDS`) and 0 rows; `IDS` 1 and 0. No colliding or better-fitting prior name. This `-2` is the last legacy-form mint by D38's third edge. **Charter.** Build D38: `spec new` mints `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;`, `supersede` derives and accepts only the lineage successor, the permissive anchor pattern and the legacy corpus stay unchanged, the skeleton seeds a docs-and-examples NonGoal, the teaching and README carry the form, `src/gates/core.test.ts` joins the scope, and D38 is codified by two CodifiedIn test suites at the close.</Charter>
+    <Pays></Pays>
+    <StatusText>Ordered; the row is minted live by the plan and paid by the close move.</StatusText>
+  </Row>
 </Registry>

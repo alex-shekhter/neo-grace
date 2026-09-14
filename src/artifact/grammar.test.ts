@@ -22,6 +22,7 @@ import { ARTIFACT_DIR } from "./paths";
 import { resolveNgracePaths } from "./project";
 import { writeChangeBundleFixture, writeLegacyGrace3Project, writeMinimalNgraceProject, writeSegmentedNgraceProject } from "./test-fixtures";
 import { parseGraceXmlArtifact } from "./xml";
+import { ANCHOR_PATTERNS, nextBundleLineage, parseBundleId } from "./types";
 import {
   buildRunCursorXml,
   buildRunLedgerXml,
@@ -1569,6 +1570,36 @@ describe("C-GRAMMAR-SEAM T-004 teaching files and template copy-fixture", () => 
         plantClarifications(root, changeId, artifact, fillTemplatePlaceholders(example));
         expect(clarificationShapeCodes(root), `${relative}#${index}`).toEqual([]);
       }
+    }
+  });
+});
+
+describe("C-HASHED-BUNDLE-IDS-2 minted id grammar", () => {
+  it("mintedChange accepts the minted form and rejects malformed and legacy ids", () => {
+    expect(ANCHOR_PATTERNS.mintedChange.test("C-FOO-1-ABCDEF12")).toBe(true);
+    expect(ANCHOR_PATTERNS.mintedChange.test("C-FOO-12-01234567")).toBe(true);
+    expect(ANCHOR_PATTERNS.mintedChange.test("C-FOO")).toBe(false);
+    expect(ANCHOR_PATTERNS.mintedChange.test("C-FOO-2")).toBe(false);
+    expect(ANCHOR_PATTERNS.mintedChange.test("C-FOO-1-ABCDEF1")).toBe(false);
+    expect(ANCHOR_PATTERNS.mintedChange.test("C-FOO-0-ABCDEF12")).toBe(false);
+    expect(ANCHOR_PATTERNS.mintedChange.test("C-FOO-1-abcdef12")).toBe(false);
+  });
+
+  it("parseBundleId reads the minted and legacy forms", () => {
+    expect(parseBundleId("C-FOO-1-ABCDEF12")).toEqual({ slug: "C-FOO", lineage: 1, hash: "ABCDEF12", minted: true });
+    expect(parseBundleId("C-FOO-2")).toEqual({ slug: "C-FOO", lineage: 2, hash: undefined, minted: false });
+    expect(parseBundleId("C-FOO")).toEqual({ slug: "C-FOO", lineage: undefined, hash: undefined, minted: false });
+  });
+
+  it("nextBundleLineage increments the parsed lineage or starts at two", () => {
+    expect(nextBundleLineage("C-FOO")).toBe(2);
+    expect(nextBundleLineage("C-FOO-2")).toBe(3);
+    expect(nextBundleLineage("C-FOO-1-ABCDEF12")).toBe(2);
+  });
+
+  it("the permissive change pattern still accepts the legacy corpus", () => {
+    for (const id of ["C-FOO", "C-FOO-2", "C-FOO-1-ABCDEF12"]) {
+      expect(ANCHOR_PATTERNS.change.test(id)).toBe(true);
     }
   });
 });

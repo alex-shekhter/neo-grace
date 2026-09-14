@@ -104,7 +104,7 @@ function renderSpecSection(name: string, changeId: string): string {
     case "Constraints":
       return `    <Constraints>\n      <Constraint>Constraint for ${safeId}.</Constraint>\n    </Constraints>`;
     case "NonGoals":
-      return `    <NonGoals>\n      <NonGoal>Non-goal for ${safeId}.</NonGoal>\n    </NonGoals>`;
+      return `    <NonGoals>\n      <NonGoal>Non-goal for ${safeId}; replace this placeholder by deciding README.md and examples/. Owner: the author.</NonGoal>\n    </NonGoals>`;
     case "AcceptanceCriteria":
       return `    <AcceptanceCriteria>\n      <${SYNTHETIC_CRITERION}>Acceptance criterion for ${safeId}.</${SYNTHETIC_CRITERION}>\n    </AcceptanceCriteria>`;
     case "AffectedAreas":
