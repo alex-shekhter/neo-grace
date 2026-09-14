@@ -1,4 +1,4 @@
-<Findings base="7595" headroom="240" ceiling="7835">
+<Findings base="7550" headroom="283" ceiling="7833">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7493,31 +7493,6 @@ Owner: the record-engine bundle that next touches `scripts/validate-record-retir
 [F231](#f231) and [F230](#f230).
 </Body>
   </Finding>
-  <Finding id="f240" token="F240" status="live">
-    <Title>### F240 — `review.confidently-wrong` fires on every active plan's Target `MustExist` of a file the plan itself creates, so a file-creating bundle carries review errors from plan-approve until its first task lands: F123's open question, the active-plan half. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-12 at `34072ef`, plan-approve of `C-APPLY-VERB`.** `bun ./src/grace.ts review --path . --change C-APPLY-VERB`
-→ 3 errors, all `review.confidently-wrong`, on `plan.xml`'s Target `MustExist` of `src/grace-apply.ts`, `src/grace-apply.test.ts`
-and `src/test-support/c-apply-verb-close-evidence.ts` — the three files the bundle exists to create. `src/review/core.ts:505-537`
-walks every `plan.xml` under `active/` and `archive/`, skips only `superseded | rejected | cancelled` roots, walks `MustExist`
-anywhere via `walkNodes` (Baseline and Target alike), and has no exemption for a path the plan's own `ObservedWriteScope`
-declares. A Target assertion is the end state; reading it against present disk before execution is a category error the
-detector's name makes explicit. The precedent's ledger confirms the cost is silent: `C-SUPERSEDE-COMMAND/run-ledger.xml`
-mentions `confidently-wrong` zero times — the findings stood at plan-approve, vanished when `src/grace-supersede.ts` landed,
-and were never acked, so the record shows a clean review that was never clean at approval.
-
-**Relation to `F123`.** F123 recorded the same detector on a *superseded* plan's targets and left open whether the audit should
-skip superseded roots. This is the other half: an active plan's Target `MustExist` is a claim about the future by definition,
-and the walk should read Baseline against disk and Target against the applied state — or skip Target for plans whose
-`ObservedWriteScope` names the path. Neighbour to F123.
-
-Owner: the bundle that next opens `src/review/core.ts`, sequenced by the maintainer (`C-APPLY-VERB` excludes new `review.*`
-code by its spec, F101). Until then, plan-approve reviews of file-creating bundles carry these errors and the approval commit
-names them.
-
----
-</Body>
-  </Finding>
   <Finding id="f242" token="F242" status="live">
     <Title>### F242 — `tsconfig.json` includes only `src/**`, so every `scripts/*.test.ts` is never typechecked: `bun run typecheck` is green while the retirement suite carries three type errors at HEAD and Bun strips the types at run time. **[verified]**</Title>
     <Body>
@@ -7568,26 +7543,6 @@ a design question this entry records and does not answer.
 
 Owner: the next teaching-surface increment (`ngrace-plan` row 19, beside the clause `C-FLUSH-AND-TEACH` added);
 the execution question to a chartered bundle. Neighbour to [F236](#f236), [F237](#f237).
-
----
-</Body>
-  </Finding>
-  <Finding id="f245" token="F245" status="live">
-    <Title>### F245 — the review's identity skip covers a bundle's own `spec.xml` and `plan.xml` but not its `design-context.xml`, so a bundle that writes the optional companion the `ngrace-spec` skill defines is reported out of scope and must declare its own artifact in `ObservedWriteScope`. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-13 at `d84e37a`, by the executor authoring `C-PAYMENT-INTEGRITY/plan.xml` under `ngrace-plan`.** The
-first `bun ./src/grace.ts review --path . --change C-PAYMENT-INTEGRITY` exited 1 with
-`review.scope-outside-write-scope .ngrace/changes/active/C-PAYMENT-INTEGRITY/design-context.xml`; declaring the file
-in `ObservedWriteScope` made the re-run 0 findings. `isReviewedChangeSpecOrPlanPath` (`src/review/core.ts:1037`) skips
-exactly four paths — the reviewed change's active and archived `spec.xml` and `plan.xml` — while `ngrace-spec`'s
-`change_bundle_contract` names `design-context.xml` as the bundle's third artifact and `ngrace-plan` `must_do` row 15
-lists only `spec.xml`, `plan.xml` and `decisions.md` as the expected scope findings. The plan's declaration is a
-route-around: a bundle listing its own authoring artifact as a write it observed, to satisfy an audit that already
-exempts its two siblings by identity.
-
-**The rule.** The identity skip covers every artifact the bundle contract defines for the reviewed change, or row 15
-says which of them must be declared and why. Owner: whoever next opens `src/review/core.ts` (with [F240](#f240)) for
-the skip; the next teaching-surface increment for row 15. Neighbour to [F236](#f236) (row 15's ground).
 
 ---
 </Body>

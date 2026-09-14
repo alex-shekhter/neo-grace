@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-REVIEW-SELF-SCOPE-2>
     <Summary>
       Close `F240` and `F245` in one bundle: the review surface stops calling a plan's own
