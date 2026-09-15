@@ -338,4 +338,10 @@
     <Pays></Pays>
     <StatusText>Ordered; the row is minted live by the plan and paid by the close move.</StatusText>
   </Row>
+  <Row name="C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>Collision half: the mint printed `mint-search: 0 active, 0 archive prior bundle(s) share slug PAIR-AUDIT-MINT-CWD`. Scope half: over the 101 archive directories and both registry layers, the surfaces this bundle opens are owned by C-SUBSTANTIATION-HONESTY (the live identical-tree audit and the attempt-pair pairing) and C-HASHED-BUNDLE-IDS-2 (the hashed mint and resolveBranch), with review-surface precedents C-DECLARED-WRITES, C-CRITERION-CLOSE-EVIDENCE and C-REVIEW-SELF-SCOPE-2; 43 archived bundles name src/review/core.ts, 23 name src/review/catalog.ts, 10 name src/grace-generate.ts; no colliding or better-fitting prior name.</Charter>
+    <Pays>F250 F251</Pays>
+    <StatusText>Paid at the close of C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22.</StatusText>
+  </Row>
 </Registry>

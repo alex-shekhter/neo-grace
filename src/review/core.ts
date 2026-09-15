@@ -88,6 +88,8 @@ import {
 } from "../query/core";
 import {
   ATTEMPT_PAIR_FINDING_CODE,
+  ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE,
+  ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE,
   CLOSE_EVIDENCE_ABSENCE_FINDING_CODE,
   APPROVAL_NEVER_ASKED_FINDING_CODE,
   APPROVAL_FINGERPRINT_MISMATCH_FINDING_CODE,
@@ -1449,12 +1451,12 @@ export function auditAttemptPairWriteEvidence(input: AttemptPairEvidenceInput): 
 function loadAttemptPairsFromBundle(
   projectRoot: string,
   changeId: string,
-): AttemptPairEvidenceInput["pairs"] {
+): { pairs: AttemptPairEvidenceInput["pairs"]; unpaired: LooseEvent[] } {
   let bundlePath: string;
   try {
     bundlePath = resolveChangeBundle(projectRoot, changeId);
   } catch {
-    return [];
+    return { pairs: [], unpaired: [] };
   }
   const events: LooseEvent[] = [
     ...listLedgerEvents(bundlePath),
@@ -1463,19 +1465,26 @@ function loadAttemptPairsFromBundle(
     .filter((e) => e.kind === "attempt")
     .sort((a, b) => a.id - b.id);
 
-  const lastFailByTask = new Map<string, LooseEvent>();
+  const pendingFailsByTask = new Map<string, LooseEvent[]>();
   const pairs: AttemptPairEvidenceInput["pairs"] = [];
+  const unpaired: LooseEvent[] = [];
 
   for (const event of events) {
     const payload = readAttemptPayload(event);
     const outcome = (payload.outcome ?? event.attributes.outcome ?? "").trim();
     if (outcome === "fail") {
-      lastFailByTask.set(event.task, event);
+      const queue = pendingFailsByTask.get(event.task) ?? [];
+      queue.push(event);
+      pendingFailsByTask.set(event.task, queue);
       continue;
     }
     if (outcome !== "pass") continue;
-    const failEvent = lastFailByTask.get(event.task);
-    if (!failEvent) continue;
+    const queue = pendingFailsByTask.get(event.task);
+    const failEvent = queue && queue.length > 0 ? queue.shift() : undefined;
+    if (!failEvent) {
+      unpaired.push(event);
+      continue;
+    }
     const failPayload = readAttemptPayload(failEvent);
     pairs.push({
       task: event.task,
@@ -1484,9 +1493,9 @@ function loadAttemptPairsFromBundle(
       failDigests: contentDigestsFromEvidence(failPayload.writeEvidence),
       passDigests: contentDigestsFromEvidence(payload.writeEvidence),
     });
-    lastFailByTask.delete(event.task);
   }
-  return pairs;
+  for (const queue of pendingFailsByTask.values()) unpaired.push(...queue);
+  return { pairs, unpaired };
 }
 
 // ---------------------------------------------------------------------------
@@ -1628,19 +1637,35 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
           absence: { verdict: "not-run", reason },
         };
       } else {
-        const pairs = loadAttemptPairsFromBundle(root, changeId);
+        const { pairs, unpaired } = loadAttemptPairsFromBundle(root, changeId);
         const pairFindings = auditAttemptPairWriteEvidence({
           changeId,
           projectRoot: root,
           pairs,
         });
-        findings.push(...pairFindings);
+        const unpairedFindings = unpaired.map((event) => {
+          const payload = readAttemptPayload(event);
+          const outcome = (payload.outcome ?? event.attributes.outcome ?? "").trim();
+          return makeFinding(
+            outcome === "pass"
+              ? ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE
+              : ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE,
+            resolveAttemptPairAnchorFile(changeId, root, undefined),
+            `Attempt ${event.id} (${outcome}) for ${event.task} is unpaired: `
+              + (outcome === "pass"
+                ? "no preceding fail corroborates red-first (pass-only attempt)."
+                : "no following pass resolved this red (the red stands unresolved)."),
+            outcome === "pass" ? "attempt-pair-unpaired-pass" : "attempt-pair-unpaired-fail",
+            `attempt-pair:unpaired:${event.task}:${event.id}`,
+          );
+        });
+        findings.push(...pairFindings, ...unpairedFindings);
         attemptPairAudit = {
           status: "ran",
           reason: `ran over ${pairs.length} fail→pass pair(s) for ${changeId}`,
           changeId,
           pairCount: pairs.length,
-          findingCount: pairFindings.length,
+          findingCount: pairFindings.length + unpairedFindings.length,
         };
       }
     }

@@ -33,9 +33,8 @@ row keeps its link to `decisions.md` because that path is the stub.
 
 `RM-AGENT-RELIABILITY` completed on
 2026-08-01 and is archived (targets `6.1.0` for Phases 2–11; product release actions remain the
-maintainer's). `RM-AGENT-RELIABILITY-EVIDENCE` completed on 2026-07-30. Surviving scheduled work
-from that track includes the draft change bundle `C-LEDGER-READ-ABSENCE` under
-`.ngrace/changes/active/` (not a roadmap plan).
+maintainer's). `RM-AGENT-RELIABILITY-EVIDENCE` completed on 2026-07-30. Its last surviving change
+bundle, `C-LEDGER-READ-ABSENCE`, is archived as `superseded` under `.ngrace/changes/archive/`.
 
 **Execution order (historical).** `RM-NAMESPACE-SEPARATION` ran first and is complete — shipped
 2026-07-29 as `@neograce/cli` 6.0.1. `RM-AGENT-RELIABILITY` (with its evidence sibling) followed and

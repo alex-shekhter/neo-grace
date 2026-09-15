@@ -1,0 +1,934 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22>
+    <Summary>
+      Two staged findings — `F250` and `F251` — are in the record's hold-out buffer and not in the
+      record, and both name this bundle's surfaces. **`F250`:** `ngrace review --change`'s
+      attempt-pair audit pairs each task's *last* fail with the next pass, so a task recording two
+      honest red-first pairs as fail, fail, pass, pass has one fail never audited and one pass never
+      paired — driven at this commit against a fixture bundle, `fail, fail, pass, pass` audits
+      **1** pair (should be 2), a pass-only task audits 0 pairs and raises nothing (the `F9.7`
+      blind spot), and `fail, pass, fail` audits 1 pair and says nothing about the trailing red.
+      The fix pairs on order, not on a single last-fail slot: every fail is queued per task and the
+      next pass for that task consumes the oldest queued fail, so two consecutive reds are two
+      audited pairs; an attempt the pairing cannot pair becomes one of two new `review.*` findings —
+      an unpaired **fail** (a red never resolved) is `warning`,
+      `review.attempt-pair-unpaired-fail`, and an unpaired **pass** (no preceding red) is `info`,
+      `review.attempt-pair-unpaired-pass`. The split is measured: over the archive's 96
+      `run-ledger.xml` files, 76 hold attempt events and 73 of those (161 attempts — 106 unpaired
+      passes, 55 unpaired fails) would fire the drafted single-warning rule, because the
+      verification-only closing task every bundle carries records pass-only attempts; the `info`
+      severity sits below the review's default `warning` threshold, so `F9.7`'s blind spot becomes
+      visible on request (`--severity info`) without an ack on every close.
+      **`F251`:** `resolveBranch` in `src/grace-generate.ts` runs `git rev-parse --abbrev-ref HEAD`
+      with no `cwd`, so `spec new --path &lt;project B&gt;` hashes the *shell's* branch. Driven at
+      this commit from this working tree against a `--path` git repo on `branch-b`, the mint line
+      reads `branch=c-pair-audit-mint-cwd`; the gitless-`--path` converse mints instead of refusing.
+      The fix runs git with `cwd` = the resolved `--path` root. **The teaching:** one sentence in
+      `ngrace-execute`'s attempt kind says a task with more than one red-first pair interleaves them
+      so each is paired positionally, in canonical and packaged trees, pinned by a new
+      `check-teaching-surface` needle. **The payment:** the buffer's two entries flush into
+      `findings.xml` with two index `Entry` lines, and one live chartered row
+      `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22` pays both; the close's `--retire` moves three. This is the
+      first hashed mint in this repository, and this spec is its first real use of the
+      `ngrace-spec`/`ngrace-plan` hashed-mint path changed by PR #97.
+    </Summary>
+    <Problem>
+      **One finding is a pairing defect; the other is a branch-source defect.** `F250` (measured
+      2026-09-14 at `7ef317c`, the close of `C-TEACH-DRIVE-BEFORE-APPROVE-2`) records that
+      `ngrace review --change` reported `Attempt-pair audit: ran over 2 fail→pass pair(s)` over two
+      tasks that together held **eight** attempts (each task: fail, fail, pass, pass).
+      `src/review/core.ts:1466-1488` builds pairs with `lastFailByTask`, a single
+      `Map&lt;task, event&gt;`: a fail overwrites the task's previous fail, the next pass pairs with
+      that one and deletes it, and a pass with no pending fail is skipped. So a task with two
+      red-first pairs has its **first** fail never audited and its second pass never paired; the
+      `review.attempt-pair-identical-tree` guard (`C-SUBSTANTIATION-HONESTY`) covers half of a
+      two-pair task, and a fabricated first pair passes the audit unread. Re-driven at this commit
+      against a hand-built run/ fixture: `fail, fail, pass, pass` → `pairCount=1`; a pass-only task
+      → `pairCount=0` and zero findings; `fail, pass, fail` → `pairCount=1` and zero findings (the
+      trailing fail is dropped). `F9.7` already recorded the pass-only half as a blind spot — *"No
+      fail, no pair, no finding … Recording only a pass does not defeat the check; it never engages
+      it"* — and `F250` is its remedy. **The remedy's shape was ruled (V-B).** An unpaired *fail*
+      is a `warning`; an unpaired *pass* is `info`, below the default `warning` threshold, because
+      the archive measurement shows the pass half is dominated by a structural, legitimate cause —
+      the verification-only closing task. Two codes are required because one severity per code is
+      enforced (`makeFinding` reads `guide?.severity ?? "error"`), so the drafted single code cannot
+      carry both severities. An unpaired pass is visible on request (`--severity info`), not on every
+      close.
+      **`F251`** (measured 2026-09-14 at `f5d1362`, the close of `C-HASHED-BUNDLE-IDS-2`) records
+      that `resolveBranch` (`src/grace-generate.ts:148`) falls through `--branch` and
+      `NGRACE_SPEC_BRANCH` to `execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"])` with no
+      `cwd` option, so git answers for the *process's* working directory while `--path` names the
+      project the mint writes into. Driven at this commit, both directions: from this working tree
+      (`c-pair-audit-mint-cwd`) with `NGRACE_SPEC_BRANCH` unset and `--path` a git repo on
+      `branch-b`, the mint line reads `branch=c-pair-audit-mint-cwd` and hashes that name; from the
+      same git working tree with a gitless `--path`, `spec new` exits 0 and mints with the cwd's
+      branch instead of refusing. `C-HASHED-BUNDLE-IDS-2`'s Constraint names
+      `git rev-parse --abbrev-ref HEAD` without saying *where* it runs, which is why nothing caught
+      it: every drive that session ran from the project root, where the two coincide.
+      **Both findings are in the hold-out buffer, not the record.** `.ngrace/scratch/staged-findings.md`
+      holds exactly two entries as of 2026-09-14 — findings `f250` and `f251` (measured by the shipped
+      `parseFrozenMarkdown`: two entries, `chartered` 0, `registryHeadingIndex` -1, anchors adjacent
+      to their `###` headings). The findings live root reads
+      `base="7522" headroom="311" ceiling="7833"` with **207** live `&lt;Finding&gt;` children; the
+      two rendered elements measure **22** and **17** lines (39 total), inside the window. The two
+      bodies cite no internal fragment, so the wave has no citation dependency and may land in
+      buffer order.
+      **No decision is chartered here.** A search of the live rulings for `attempt`, `pair`, `cwd`
+      and `branch` (61 live decisions) finds no decision that codifies the attempt-pair pairing rule
+      or the spec mint's branch source; the only rulings hit are incidental prose (`D8.4`'s
+      calibration pairs, `D25`'s unmerged branch, `D1.3`'s "a new review finding"). `D38` (the
+      `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;` builder) is already paid and retired; a `cwd` fix does
+      not reopen it because `D38` decides the *hash inputs*, and this bundle does not change them —
+      it changes which repository the branch input is read from.
+    </Problem>
+    <Goals>
+      <Goal>
+        **`F250` product half — pair on order, and account for every attempt.** Replace
+        `lastFailByTask` in `loadAttemptPairsFromBundle` (`src/review/core.ts`) with a per-task FIFO
+        queue of unpaired fails: iterate the change's folded-ledger and loose attempt events sorted
+        by id (the existing merge), and for each event, on `fail` push it onto that task's queue; on
+        `pass`, if the queue is non-empty shift its oldest entry and emit the pair (fail id, pass id,
+        fail digests, pass digests), else emit an **unpaired-pass finding**; after the loop, every
+        fail still queued emits an **unpaired-fail finding**. The rule is positional because the
+        payload is positional: `readAttemptPayload` (`src/grace-cursor.ts:2206`) returns a
+        `FailureSignature` **only on fail events** (`recordAttempt` throws when a fail has no
+        signature and never attaches one to a pass), so a pair cannot be keyed by the *pass's*
+        signature — *"every fail in order with the next pass for that task"* is the only rule the
+        recorded data can implement. The existing identical-tree comparison (`auditAttemptPairWriteEvidence`)
+        runs unchanged over the pairs the new rule produces. The audit line
+        `Attempt-pair audit: ran over N fail→pass pair(s) …` keeps its form; `N` is now the true pair
+        count, and unpaired attempts surface as findings, not as a suppressed count.
+      </Goal>
+      <Goal>
+        **`F250` second half — two review findings, one per unpaired shape.** Add two exported
+        constants and two `REVIEW_CATALOG` guides in `src/review/catalog.ts` — the same file and the
+        same constant-plus-catalog-entry shape `ATTEMPT_PAIR_FINDING_CODE` uses (the precedent's
+        registration site): `ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE =
+        "review.attempt-pair-unpaired-fail"` at severity `warning` (a red never resolved), and
+        `ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE = "review.attempt-pair-unpaired-pass"` at severity
+        `info` (a green with no preceding red). One severity per code is forced by the engine: a
+        finding's severity comes from its catalog guide, `makeFinding` (`src/review/core.ts:367`
+        at this commit) reads `guide?.severity ?? "error"`, and no per-finding severity override
+        exists. Two codes, not one, because the two shapes carry different costs: an unpaired **fail**
+        is an unresolved red and deserves the same `warning` as
+        `review.attempt-pair-identical-tree` ("detection requiring adjudication"); an unpaired
+        **pass** was measured as an artifact of the verification-only closing task and is `info`, the
+        first `info` code in `REVIEW_CATALOG`, so it sits below the default `warning` threshold and
+        appears only on request. Both findings carry the stable anchor
+        `attempt-pair:unpaired:&lt;task&gt;:&lt;eventId&gt;` (one per unpaired attempt); each message
+        names the task, the event id and its outcome and states its half — *red-first not
+        corroborated* or *the red was never resolved*. Registering two codes forces the four
+        catalog-completeness/cardinality instruments plus the severity-vocabulary pin, named in the
+        Constraints.
+      </Goal>
+      <Goal>
+        **`F251` product half — read the branch from the project the mint writes into.** Thread the
+        already-resolved `--path` root into the branch resolver: `resolveBranch(raw, root)` passes
+        `cwd: root` to `execFileSync("git", …)`; `resolveSpecMint(args, root)` and its two callers
+        (`mintBundle(root, …)` at `src/grace-generate.ts:245` and the `spec new` handler at
+        `:344`, which both already hold the resolved root) forward it. The `--branch` and
+        `NGRACE_SPEC_BRANCH` precedence and the refusal message are unchanged; only the git
+        invocation's working directory changes. The `mint:` line already prints the resolved
+        `branch=`, so a reader can see which branch was hashed.
+      </Goal>
+      <Goal>
+        **`F250` teaching half — one sentence, two homes.** Append to `ngrace-execute`'s
+        `&lt;kind id="attempt"&gt;` ordering sentence (`skills/ngrace/ngrace-execute/SKILL.md:71` and
+        its `plugins/` mirror): *"A task with more than one red-first pair interleaves them — fail A,
+        pass A, fail B, pass B — so each fail is paired with its own pass and every pair is audited."*
+        The sentence stays necessary after the product half lands: pairing is positional (the pass
+        carries no signature), so `fail, fail, pass, pass` yields two pairs whose *attribution* is
+        only truthful when the passes are interleaved. The taught sentence names no `F`/`D` token and
+        no governed record file, so `checkRecordTokens` stays green.
+      </Goal>
+      <Goal>
+        **The teaching instrument.** Add one section-scoped needle to
+        `scripts/check-teaching-surface.ts`'s existing `TAUGHT_RULES` table —
+        `{ skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "interleaves them" }`
+        — and mirror it, with a red direction, in `scripts/check-teaching-surface.test.ts`. This makes
+        the new sentence load-bearing in both trees the way the existing ordering sentence is pinned
+        by its `report evidence` needle.
+      </Goal>
+      <Goal>
+        **The flush.** Land exactly two `&lt;Finding&gt;` elements — anchor ids `f250`, `f251`,
+        selected by their `&lt;a id="…" name="…"&gt;&lt;/a&gt;` forms in the buffer, never by position
+        — into `docs/plans/active/RM-GOVERNED-PATH/findings.xml` in the shipped `renderFinding`
+        shape (open tag, `&lt;Title&gt;` carrying the heading line, `&lt;Body&gt;` carrying the
+        shipped escape of the staged body, close tag), appended after the last live element and
+        before the root close tag; two index
+        `&lt;Entry id="…" token="…" genre="finding" layer="live" /&gt;` lines into
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.xml` after the last existing entry; then one
+        `bun ./scripts/validate-record-retirement.ts --rewrite-roots`, the only sanctioned writer of
+        the roots. Bodies embed through the shipped `xmlEscape` and no other transform. The driven
+        projection: findings `7561 / 272 / 7833`, index `270 / 26 / 296`, registry `13 / 13 / 26`
+        after the row mint's rewrite, rulings unchanged.
+      </Goal>
+      <Goal>
+        **The payment.** Mint one live chartered row into
+        `docs/plans/active/RM-GOVERNED-PATH/registry.xml`:
+        `&lt;Row name="C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22" status="live" kind="chartered"&gt;`
+        with an empty `&lt;Number&gt;`, a `&lt;Charter&gt;` carrying the searched-before-minting
+        statement in its two halves (the tool's `mint-search:` line verbatim, and the author's scope
+        search over the archive), `&lt;Pays&gt;F250 F251&lt;/Pays&gt;`, and a `&lt;StatusText&gt;`
+        naming no `F` token outside `Pays` and carrying no `Closed with` sentence. The row's name is
+        not an archive directory until the close, so the shipped `derivePayerMap` mints nothing from
+        it while the bundle is active. At the close the authority archives the bundle and runs
+        `--retire`; the row's name now equals an archive directory and the move takes three elements
+        — `f250`, `f251` (each stamped
+        `&lt;PaidBy&gt;C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22&lt;/PaidBy&gt;` in
+        `findings-retired.xml`) and the row — while flipping the two index layers in place. The plan
+        extends the payer-derivation baseline in `scripts/validate-record-retirement.test.ts`
+        (`bundleMinted`) with `F250` and `F251` — the house form for a new payer, consulted only for
+        tokens the derivation actually mints — and adds a payment-invariant carrier-and-row walk over
+        the two tokens and the row name.
+      </Goal>
+      <Goal>
+        **The derived pins the teaching moves.** The `ngrace-execute` sentence changes the
+        skill-footprint totals: re-measure `skillTextLines()` from the tree (never write toward a
+        number) and update `src/test-support/token-accounting.test.ts` (currently `864` lines /
+        `75626` bytes) and the `README.md` measurement cell at `README.md:304` to the same two
+        figures, which the shipped test cross-checks against the live measurement.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T2** (cross-cutting: two `src/` packages — `M-REVIEW` and `M-CLI` — plus a
+        governed skill and its packaged mirror, a `validate:ci` script and its suite, a test-support
+        pin, the `README.md` cell, and the record's findings/index/registry). Roadmap:
+        `RM-GOVERNED-PATH` (record integrity, review honesty, and the hashed-mint path). Binding live
+        rulings applied: `D11` (nothing deferred — every out-of-scope item is a named NonGoal with an
+        owner), `D27` (nothing is approved unread; ratification is the maintainer's), `D28`/`D28.1`
+        (the flush lands inside the findings window and the close's move re-opens it; figures live in
+        Assumptions and expire), `D30` (scoped, not skirted — findings raised while this bundle is
+        open go to the staged buffer under the next number; the scalar figures the "Windows" and
+        "flush's order" Constraints state are dated measurements of the record at this base commit,
+        and no criterion binds the plan to any of them), `D31` (the index has no retired sibling; its eligible
+        `Entry` layers flip in place), and `F43` (escape markup as character data — `&lt;`, `&gt;`,
+        `&amp;` — and never paraphrase brackets away). This bundle runs no `ngrace review`, no gate,
+        no cursor or supersede verb, and no commit: the executor authors this spec at
+        `status="draft"` and stops; the approval write and the close's move are the authority's.
+      </Constraint>
+      <Constraint>
+        **The pairing rule, pinned — and what it is not.** `loadAttemptPairsFromBundle`
+        (`src/review/core.ts`) keeps its input (folded ledger events plus loose `run/` events, merged
+        and sorted by id), its `kind === "attempt"` filter, its `readAttemptPayload` read, and its
+        `contentDigestsFromEvidence` extraction; only the pairing state changes from one last-fail
+        slot per task to a FIFO queue per task, and the unpaired attempts emit the new finding. The
+        audit's public shape is unchanged: `auditAttemptPairWriteEvidence(input)` keeps its signature
+        and its identical-tree rule, `AttemptPairAuditReport.status`/`pairCount`/`findingCount` keep
+        their meaning, and `formatAttemptPairAuditLine` keeps its form. **Do not** key a pair by
+        signature (the pass carries none), do not change the identical-tree rule's
+        `nonNgraceContentDiffers`/`isNgraceLedgerPath` semantics, do not widen it to test- or
+        skills-only movement (`F9.10`), and do not make `findLatestFailPassPair`
+        (`src/verification/localize.ts:535`, the flake-localization "latest pair", adjacency-based
+        and a different consumer) share the new rule — it is a NonGoal.
+      </Constraint>
+      <Constraint>
+        **The two new finding ids, registered where the precedent is registered.** `src/review/catalog.ts`
+        gains `ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE = "review.attempt-pair-unpaired-fail"` and
+        `ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE = "review.attempt-pair-unpaired-pass"`, both added to
+        its `START_MODULE_MAP`, and two `REVIEW_CATALOG` guides with `family: "process-audit"`,
+        `derivedFrom: "F250 / F9.7"`, and remediation naming the `gate verdict` adjudication path
+        (mirroring the identical-tree entry's remediation): the fail code at `severity: "warning"`,
+        the pass code at `severity: "info"`. `src/review/core.ts` emits each through its exported
+        constant, never a re-typed literal. Adding catalog codes forces five instruments, named so no
+        task has to find them: **`src/lint/catalog.test.ts`** — `collectEmittedIssueCodes` scans
+        string literals and cannot resolve a constant reference, so each constant-emitted code is
+        hard-listed in its "Bound expansions of dynamic emitters" block
+        (`src/lint/catalog.test.ts:122` at this commit is the identical-tree entry); both new codes
+        must be added there or the `allReviewCodes()`-completeness walk reddens. This is also why
+        `src/lint/catalog.test.ts` names the attempt-pair code at all. **`src/review/core.test.ts`** —
+        the two length pins (`:2070`, `:2417` at this commit) move `18` → `20`, and the
+        severity-vocabulary pin `no live REVIEW_CATALOG code has severity info` (`:3259` at this
+        commit) is **falsified by this bundle** — the pass code is the first `info` review code — and
+        must be replaced by an assertion that the `info` set is exactly
+        `{"review.attempt-pair-unpaired-pass"}` (or an equivalently bounded positive form), not
+        deleted. **`src/verification/localize.test.ts`** — the catalog-length pin (`:430` at this
+        commit) moves `18` → `20` and the excluded-from-localization pin (`:436` at this commit)
+        moves `15` → `17`; both new codes are excluded by derivation, not named. These numbers were
+        measured, not assumed: a clean copy carrying the two codes and no other change reports
+        `allReviewCodes().length` 20, exactly one `info` code
+        (`review.attempt-pair-unpaired-pass`), and `excludedReviewCodesForLocalization().length` 17;
+        the three pins above redden exactly as stated. Registration must also satisfy the shipped
+        completeness walk (`src/lint/catalog.test.ts` `F10` block) that every `REVIEW_CATALOG` code
+        is emitted through the scanner's bound list and has an exact guide. **The other severity
+        consumers were checked and need no change**: the localization admissibility filter derives
+        its excluded set from `allReviewCodes()` (`src/verification/localize.ts:809` at this commit);
+        `REVIEW_SEVERITY_RANK` already ranks `info` 0 and `applyReviewSeverityThreshold(findings,
+        options.severity ?? "warning")` (`src/review/core.ts:1755` at this commit) drops `info` at
+        the default threshold; `ReviewResult.summary` already carries an `infos` counter
+        (`src/review/core.ts:1771` at this commit); `formatReviewResult` renders `[info]` for a
+        displayed finding and the JSON envelope's top-level keys are unchanged.
+      </Constraint>
+      <Constraint>
+        **The two unpaired shapes, pinned, and their severities.** The audit raises
+        `review.attempt-pair-unpaired-pass` (`info`) for a **pass with no queued fail** for its task
+        — `F9.7`'s pass-only blind spot — and `review.attempt-pair-unpaired-fail` (`warning`) for a
+        **fail with no following pass** for its task, after all events are consumed. Both carry the
+        stable anchor `attempt-pair:unpaired:&lt;task&gt;:&lt;eventId&gt;` and a `findingId` suitable
+        for `gate verdict --ack-finding` (the shipped `makeFinding` hash). The audit raises **no**
+        finding for a task with no attempts at all (the `F9.6` table's "no attempts" row), and raises
+        **no** unpaired finding for the `fail, fail, pass, pass` fixture (both fails consume a pass).
+        A trailing fail is a finding here, not "already covered": the cursor state after an attempt is
+        `in-progress` whether the attempt passed or failed (`src/grace-cursor.ts:330-334` at this
+        commit), so the ledger surfaces no "task left red" fact on any other review output, and the
+        audit is where an attempt that its rule cannot pair belongs. **Why the pass half is `info`
+        and not `warning`:** measured over the archive's 96 `run-ledger.xml` files, 76 hold attempt
+        events and 73 of those (161 unpaired attempts — 106 passes, 55 fails) would fire the drafted
+        single-warning rule, and the cause is structural — the verification-only closing task every
+        bundle carries records pass-only attempts because a suite drive has nothing to fail first
+        (driven: `C-TEACH-DRIVE-BEFORE-APPROVE-2` `T-003` events 20 and 31 are unpaired passes;
+        `C-HASHED-BUNDLE-IDS-2` `T-006` event 35). A `warning` on every such pass would demand an ack
+        on every close; `info` is below the default threshold and remains visible on request. The
+        maintainer's ruling (V-B) is the source of the split.
+      </Constraint>
+      <Constraint>
+        **The `F251` fix, pinned.** `resolveBranch(raw: unknown, root: string): string` passes
+        `cwd: root` to `execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { encoding:
+        "utf8", stdio: ["ignore", "pipe", "ignore"], cwd: root })`; the `--branch` and
+        `NGRACE_SPEC_BRANCH` precedence and the refusal
+        `spec new requires --branch, NGRACE_SPEC_BRANCH, or a git working tree.` are unchanged.
+        `resolveSpecMint(args, root)` takes the resolved root so it reaches `resolveBranch`; both
+        callers already hold it — `mintBundle(root, …)` (`src/grace-generate.ts:245`, the path
+        `grace-supersede.ts:114` uses for a successor) and the `spec new` handler
+        (`src/grace-generate.ts:343-344`, `const root = resolveRoot(context.args.path)` immediately
+        before). No hash input changes (`mintHash` stays `sha256(branch \n timestamp)`, uppercase,
+        8 hex), no `mint:` output form changes, and no new flag is added. The `supersede` route
+        inherits the fix through `mintBundle`.
+      </Constraint>
+      <Constraint>
+        **The teaching sentence, pinned, and its needle.** Both trees
+        (`skills/ngrace/ngrace-execute/SKILL.md` and
+        `plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md`) carry, at the end of the
+        `&lt;kind id="attempt"&gt;` `Ordering for honest red-first:` sentence and in the skill's own
+        voice, exactly: *"A task with more than one red-first pair interleaves them — fail A, pass A,
+        fail B, pass B — so each fail is paired with its own pass and every pair is audited."* — and
+        the two files stay byte-identical. `scripts/check-teaching-surface.ts`'s `TAUGHT_RULES` gains
+        the needle `{ skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token:
+        "interleaves them" }`, and `scripts/check-teaching-surface.test.ts` mirrors it with a red
+        direction. **When a needle is added the two trees must be updated together** — they are
+        byte-compared — and the change must not introduce an `F`/`D` token or a governed record file
+        name into the governed skill (`checkRecordTokens` refuses those outright). The sentence stays
+        necessary after the product half lands because the pairing is positional; if a future bundle
+        makes a pass carry a signature, this sentence is that bundle's to revisit, not this one's to
+        omit.
+      </Constraint>
+      <Constraint>
+        **Windows, measured, not assumed.** At this base commit the findings live root reads
+        `base="7522" headroom="311" ceiling="7833"` (207 live `&lt;Finding&gt;`); the two rendered
+        elements measure **22** and **17** line spans (the shipped
+        `newlineCount(elementSpan) + 1` over the `renderFinding` shape), 39 total, inside the window.
+        The index root reads `base="268" headroom="28" ceiling="296"` with **268** live `Entry`
+        lines; two entries drive it to `base="270" headroom="26"`. The registry root reads
+        `base="12" headroom="14" ceiling="26"`; after the row mint, `--rewrite-roots` rewrites it to
+        `&lt;Registry base="13" headroom="13" ceiling="26"&gt;` (13 live rows). The rulings root reads
+        `base="1697" headroom="186" ceiling="1883"` and is untouched. **Driven on a whole-repository
+        copy** (`rsync -a` of the working tree preserving a real `.git` on `c-pair-audit-mint-cwd`
+        and a real `node_modules` directory, `.ngrace/scratch` excluded so the hold-out buffer keeps
+        one copy; the record files mutated only in the copy): post-flush findings
+        `&lt;Findings base="7561" headroom="272" ceiling="7833"&gt;` — inside the ceiling with margin
+        272 — index `base="270" headroom="26" ceiling="296"`, registry `base="13" headroom="13"` and
+        rulings unchanged; the shipped validator returns zero findings and a mid-bundle `--retire`
+        reports `moved 0` with every root unchanged.
+      </Constraint>
+      <Constraint>
+        **The flush's order and the close, pinned.** The committed sequence is: land the two findings
+        and the two index `Entry` lines, mint the row live, `--rewrite-roots`, then validation exits
+        0; then the product and teaching halves and their instruments; then the close (status
+        `applied`, the bundle's directory renamed into `.ngrace/changes/archive/`, the authority's
+        `--retire`, validation exits 0). `--rewrite-roots` follows every hand write of a live genre
+        root. **Driven on the copy:** with the bundle still under `active/`, `--retire` reports
+        `moved 0`; with the bundle's directory moved into the archive, `--retire` reports **`moved
+        3`**, findings `7522 / 277 / 7799` (both elements out; the move's `persistSnapshot` re-derives
+        the ceiling, which falls from 7833 and is never raised), index `268 / 28 / 296` (two layers
+        flipped in place), registry `12 / 14 / 26`, and `findings-retired.xml` carries
+        `&lt;PaidBy&gt;C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22&lt;/PaidBy&gt;` on both moved findings; a
+        second `--retire` reports `moved 0`; the shipped validator and
+        `prove-record-preservation.ts` each return zero. A read-back above a held ceiling stops the
+        task and reports; it does not raise the ceiling and does not trim a staged body.
+      </Constraint>
+      <Constraint>
+        **The row's prose law, and the searched-before-minting statement.** The shipped
+        `derivePayerMap` mints payments from an archived row's `&lt;Pays&gt;` and from `Closed with`
+        sentences in its `&lt;StatusText&gt;`, gated on the row's name being a directory under
+        `.ngrace/changes/archive/`, first-row-wins. The row's `&lt;StatusText&gt;` therefore names no
+        `F` token outside `&lt;Pays&gt;` and carries no `Closed with` sentence; `&lt;Pays&gt;`
+        contains `F250` and `F251` (containment, never an exact set). The row's `&lt;Charter&gt;`
+        carries the searched-before-minting statement in two halves. **Tool half (verbatim):**
+        `mint-search: 0 active, 0 archive prior bundle(s) share slug PAIR-AUDIT-MINT-CWD`. **Author
+        half (the scope search):** over the 101 archive directories and both registry layers, the
+        surfaces this bundle opens are owned by `C-SUBSTANTIATION-HONESTY` (created the live
+        identical-tree audit and the `attempt-pair` pairing), `C-HASHED-BUNDLE-IDS-2` (built the
+        hashed mint and `resolveBranch`), and the review-surface precedents
+        `C-DECLARED-WRITES`, `C-CRITERION-CLOSE-EVIDENCE`, `C-REVIEW-SELF-SCOPE-2`; 43 archived
+        bundles name `src/review/core.ts`, 23 name `src/review/catalog.ts`, 10 name
+        `src/grace-generate.ts`; none is a colliding or better-fitting prior name for this bundle.
+        The `&lt;Charter&gt;` names no `F` token.
+      </Constraint>
+      <Constraint>
+        **Write scope, anchors, and enumeration — stated once, derived from the Goals.** Files the
+        Goals force into write scope, and no others:
+        `src/review/core.ts`, `src/review/catalog.ts`, `src/grace-generate.ts`;
+        `src/review/core.test.ts`, `src/grace-generate.test.ts`, `src/lint/catalog.test.ts`,
+        `src/verification/localize.test.ts`, `src/test-support/token-accounting.test.ts`;
+        `skills/ngrace/ngrace-execute/SKILL.md` and
+        `plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md`;
+        `scripts/check-teaching-surface.ts`, `scripts/check-teaching-surface.test.ts`,
+        `scripts/validate-record-retirement.test.ts`; `README.md` (the measurement cell only); this
+        bundle's own artifacts under
+        `.ngrace/changes/active/C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22/`; and the record files the flush
+        and the close write — `findings.xml`, `decisions.xml`, `registry.xml`,
+        `findings-retired.xml`, `registry-retired.xml` (the `--retire` move, the only sanctioned
+        writer of the retired siblings and of the `PaidBy` stamp). `src/` is linted and
+        module-owned; `.ngrace-lint.json` ignores `scripts/`. **The anchor enumeration, once:** the
+        non-test `src/` files link `M-REVIEW` (`src/review/core.ts:5`, `src/review/catalog.ts:5`) and
+        `M-CLI` (`src/grace-generate.ts:5`); every `.test.ts` write is a test file that
+        `isModuleOwnableWritePath` does not own, so `change.graph-anchors-miss-write-scope` cannot
+        fire on them; the skill files carry no file-local `LINKS:` header; the `scripts/` files are
+        lint-ignored; the record files and `README.md` are owned by no module. The module list is
+        `M-REVIEW`, `M-CLI`, `M-SKILLS` (the canonical skill tree) and `M-TEST-SUPPORT` (the pin this
+        bundle re-measures) — named once here and once in `AffectedAreas`, the only two module
+        enumerations this spec carries. Do not mint a synthetic module and do not add a second list.
+      </Constraint>
+      <Constraint>
+        **Criterion mapping, stated on its face.** Every `AC-*` below except `AC-NO-CURRENT-MODE` is
+        close-bound by its own `CloseEvidence` child; a task `Satisfies` naming any of them is the
+        shipped error (`change.close-evidence-and-satisfied`). Exactly one criterion —
+        `AC-NO-CURRENT-MODE` — carries no `CloseEvidence` and is mapped by exactly one task
+        `Satisfies` in the later plan; unmapped it is a warning, and `AC-CLOSE-LINT`'s
+        `--fail-on warnings` turns that warning into an uncloseable bundle. Every `CloseEvidence` is
+        evaluated only in the applied-archive state, after the close's own move has run (`F196`'s
+        rule), so every criterion is written to hold there.
+      </Constraint>
+      <Constraint>
+        **Evidence hygiene, the rules this bundle teaches applied to its own criteria.** Every
+        byte-invariance baseline is this spec's base commit
+        `deccaedb42157fd88a08e2f984d6b893ae5a9f53` (`deccaed`) — the base-less `git diff` form
+        cannot fail, and a criterion whose baseline cannot fail was never a guard (`F210`'s rule).
+        The base commit is `deccaed`, **not** `a09e9dd`, because `deccaed` rides this branch (see the
+        NonGoal naming it). The window is this bundle's own diff, over tracked paths only (`F174`),
+        probed in the post-close state (`F215`'s rule). The archive pathspec excludes this bundle's
+        own archive arrival with its reason — the close itself renames the bundle's directory into
+        the archive (`F188`) — and the record files the flush and the close do touch are covered by
+        the parse-based relations in `AC-FLUSH-LANDED`, `AC-ROW-PAYS` and `AC-RECORD-VALID`, never by
+        byte-invariance. Every `CloseEvidence` `Command` matches a shipped discriminating shape —
+        `bun test` for the suites, the `ngrace lint … --fail-on` shape for close-time lint, and the
+        configured `bun run ./scripts/validate-marketplace.ts` prefix for mirror sync. Structural
+        counts come from the shipped parser (`parseFrozenMarkdown`, `parseGraceXmlArtifact`,
+        `newlineCount`), never `grep -c`; exit codes are read directly, never through a pipe; any test
+        the later plan adds that measures the real repository carries an explicit generous timeout
+        (`F185`). Probes mutate copies, never the production record. A criterion is producible: it
+        asserts no state the shipped engine will not produce, requires no change another criterion
+        forbids, and names no probe that cannot be run.
+      </Constraint>
+      <Constraint>
+        **Stop and re-spec rather than touching:** the other fourteen skills and their mirrors; the
+        four spec/plan teaching templates and every other `references/` file; any `src/` production
+        file other than the three named; any `scripts/` file other than the three named;
+        `src/artifact/grammar.ts`, `src/lint/catalog.ts`, `src/lint/core.ts`, `src/gates/**`,
+        `src/verification/localize.ts` (its `findLatestFailPassPair` is out of scope);
+        `spec new`'s hash inputs and `mint:`/`mint-search:` output forms beyond `cwd`; the record
+        engine's functions (`parseFrozenMarkdown`, `renderFinding`, `derivePayerMap`,
+        `persistSnapshot`, `--retire`, `--rewrite-roots`); `examples/**`; `docs/plans/**` outside the
+        record files this bundle and its close touch; `docs/plans/archive/`; tracked paths under
+        `.ngrace/changes/archive/` except this bundle's own later arrival; `CHANGELOG.md`; any
+        version surface; `package.json` and `bun.lock`; `.ngrace-lint.json`; `CONTRIBUTING.md`;
+        `CLAUDE.md`; `AGENTS.md`; and the staged buffer `.ngrace/scratch/staged-findings.md` (read,
+        never written).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `examples/` unchanged; no user-visible surface there and no polyglot evidence rebalance.
+        Owner: unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        A product version bump, a `package.json`/`bun.lock` change, a new CLI verb, a new **lint**
+        issue code, or a grammar/schema-reference section. The one new catalog entry is a `review.*`
+        finding in `REVIEW_CATALOG`, never a lint code and never a schema member. A version is a
+        release act; packaged version at authoring `6.2.0`; `validate:marketplace` enforces version
+        sync across `README.md`, `openpackage.yml`, `.claude-plugin/marketplace.json` and
+        `package.json`. `CHANGELOG.md` is generated and untouched. `README.md` is written only in the
+        footprint measurement cell (a Goal), never in a Skills Overview row — the edited skill's
+        frontmatter description does not change. Owner: unchanged; release surfaces.
+      </NonGoal>
+      <NonGoal>
+        `spec new`'s hash inputs or output form beyond the branch's source: `mintHash`, the
+        `--timestamp` handling, the `--supersedes` path, the slug refusals, and the `mint:` and
+        `mint-search:` line shapes are not this bundle's. Owner: unchanged; `D38`'s builder as shipped.
+      </NonGoal>
+      <NonGoal>
+        `findLatestFailPassPair` in `src/verification/localize.ts` and its flake-localization tests:
+        that consumer wants the *latest* fail→pass adjacency for flake classification, not every
+        pair, and it is a different rule for a different purpose. Owner: the next opener of
+        `src/verification/localize.ts` for a flake-localization finding, if one is raised.
+      </NonGoal>
+      <NonGoal>
+        The `scripts/` adoption bundle `F242` (`.ngrace-lint.json` excludes `scripts/`, so
+        `scripts/*.test.ts` is never typechecked), and the record schema-and-serializer work
+        `F207`, `F221`, `F235`. Owner: the deferred `C-*` `.ngrace-lint.json` names, and the
+        schema/serializer chartered bundles respectively.
+      </NonGoal>
+      <NonGoal>
+        **Commit `deccaedb42157fd88a08e2f984d6b893ae5a9f53` (`deccaed`) is not this bundle's work.**
+        It corrected one sentence of `docs/plans/README.md` (an archived bundle was described as a
+        draft under `active/`) and rides this branch outside the bundle; no criterion in this spec
+        produced it and no criterion guards it beyond the base-commit pinning above. Owner: the
+        authority's prior correction.
+      </NonGoal>
+      <NonGoal>
+        Editing `docs/plans/**` outside the record files this bundle and its close write,
+        `docs/plans/archive/`, `CLAUDE.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/plans/README.md`,
+        `package.json`, `bun.lock`, `.ngrace-lint.json`, the other fourteen skills, the teaching
+        templates, or any archived bundle. Owner: unchanged surfaces; their pins stay green by
+        non-edit.
+      </NonGoal>
+      <NonGoal>
+        Writing or pruning the staged buffer, re-flushing any entry already in the record, or
+        rendering any entry this spec does not pin. Pruning the two flushed entries is post-merge
+        hygiene owned by the authority, after the flush PR merges. Owner: the authority.
+      </NonGoal>
+      <NonGoal>
+        Running `ngrace review`, any gate or cursor or supersede verb, or committing: authoring this
+        bundle's artifacts is the executor's act; ratification is the maintainer's; the approval
+        write and the close's move are the authority's. This spec is written at `status="draft"` and
+        the bundle stops there. Owner: the authority.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-PAIR-PAIRING>
+        A task whose recorded attempts are, in id order, fail, fail, pass, pass yields exactly two
+        audited fail→pass pairs — pair 1 the first fail with the first pass, pair 2 the second fail
+        with the second pass — and no unpaired finding (neither `review.attempt-pair-unpaired-fail`
+        nor `review.attempt-pair-unpaired-pass`); the review's
+        `attemptPairAudit.pairCount` is 2 and the identical-tree rule runs over both pairs. A single
+        fail→pass pair still yields one pair, and a task with no attempts yields none. The instrument
+        is a production assertion the plan adds to `src/review/core.test.ts` (a fixture bundle whose
+        `run/` holds the four attempt events, driven through the public review surface, or a newly
+        exported pure pairing helper). Red direction, driven at this commit on a throwaway copy:
+        before the fix the same four-attempt fixture reports `pairCount=1`. This criterion is
+        invariant under the close: the close's ceremony edits no `src/` file.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 src/review/core.test.ts</Command>
+        </CloseEvidence>
+      </AC-PAIR-PAIRING>
+      <AC-UNPAIRED-FINDING>
+        Two codes are declared once each as exported constants and registered in `REVIEW_CATALOG`
+        with `family: "process-audit"`: `review.attempt-pair-unpaired-fail`
+        (`ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE`, severity `warning`) and
+        `review.attempt-pair-unpaired-pass` (`ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE`, severity
+        `info`). The audit raises the pass code for a pass with no queued fail for its task (a
+        pass-only task raises one finding; a `fail, pass, pass` task raises one for the second pass)
+        and the fail code for a trailing fail with no following pass (a `fail, pass, fail` task
+        raises one for the third event). The `fail, fail, pass, pass` fixture raises neither, and a
+        task with no attempts raises neither. Each finding carries a stable `findingId` and the
+        anchor `attempt-pair:unpaired:&lt;task&gt;:&lt;eventId&gt;`. The `info` severity is below the
+        review's default `warning` threshold, so an unpaired pass is absent from a default report and
+        present under `--severity info`, while an unpaired fail appears by default. The instruments
+        are the production assertions the plan adds to `src/review/core.test.ts`. Red direction,
+        driven at this commit on a throwaway copy: the same fixtures raise nothing today. This
+        criterion is invariant under the close.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 src/review/core.test.ts</Command>
+        </CloseEvidence>
+      </AC-UNPAIRED-FINDING>
+      <AC-CATALOG-CARDINALITY>
+        Every `REVIEW_CATALOG` code, including `review.attempt-pair-unpaired-fail` and
+        `review.attempt-pair-unpaired-pass`, is emitted-visible to `collectEmittedIssueCodes` (both
+        constants are listed in the dynamic-emitter block at `src/lint/catalog.test.ts`), has an
+        exact `REVIEW_CATALOG` guide, is not on either prefix allowlist, and resolves as a
+        review-surface guide rather than a lint exact guide. The cardinality pins agree with the
+        catalog — `allReviewCodes()` length `20`, catalog length `20`, excluded-from-localization
+        length `17` — at the pins named in the "two new finding ids" Constraint (their line numbers
+        there are marked at this commit because they move when the files are edited). The
+        severity-vocabulary pin is positive: the set of `info` codes in `REVIEW_CATALOG` is exactly
+        `{"review.attempt-pair-unpaired-pass"}`, not empty. The instruments are the shipped
+        completeness and cardinality assertions in `src/lint/catalog.test.ts`,
+        `src/review/core.test.ts` and `src/verification/localize.test.ts`. Red direction, measured on
+        a clean copy at this commit: with the two codes registered and no other change, the
+        completeness walk reddens on `F10: scanner sees makeFinding positional codes; all review
+        catalog codes are guided`, the localize exhaustive-length walk reddens, and the
+        severity-vocabulary pin reddens — the three instruments the plan must repair. This criterion
+        is invariant under the close.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 src/lint/catalog.test.ts src/review/core.test.ts src/verification/localize.test.ts</Command>
+        </CloseEvidence>
+      </AC-CATALOG-CARDINALITY>
+      <AC-MINT-CWD>
+        `spec new` hashes the branch of the project named by `--path`, not the process's working
+        directory, in both directions. **Direction A:** a mint run from this git working tree against
+        a `--path` that is a git repository on another branch, with `--branch` and
+        `NGRACE_SPEC_BRANCH` unset, exits 0 and prints a `mint:` line whose `branch=` is the
+        `--path` repository's branch. **Direction B:** a mint run from this git working tree against
+        a gitless `--path`, with `--branch` and `NGRACE_SPEC_BRANCH` unset, refuses non-zero with
+        `spec new requires --branch, NGRACE_SPEC_BRANCH, or a git working tree.` and writes no
+        bundle. The instrument is the production assertions the plan adds to
+        `src/grace-generate.test.ts`. Red direction, driven at this commit on a throwaway copy:
+        Direction A prints `branch=c-pair-audit-mint-cwd` (the cwd's branch), and Direction B exits 0
+        and mints. This criterion is invariant under the close.
+        <CloseEvidence>
+          <Command>bun test src/grace-generate.test.ts</Command>
+        </CloseEvidence>
+      </AC-MINT-CWD>
+      <AC-TAUGHT-SENTENCE>
+        The interleaving sentence sits at the end of `ngrace-execute`'s attempt-kind ordering prose in
+        both trees, byte-identical between canonical and packaged, and the extended teaching-surface
+        check asserts the `interleaves them` token inside `&lt;cursor_kinds&gt;` kind `attempt` in
+        both trees. The instruments are the production assertions the plan adds to
+        `scripts/check-teaching-surface.test.ts` (over isolated roots plus this repository with an
+        explicit generous timeout) and `bun run ./scripts/validate-marketplace.ts` for the mirror.
+        Red direction, driven on a copy at this commit: deleting the sentence (or its token) from one
+        tree turns `bun ./scripts/check-teaching-surface.ts check` non-zero, refusing with the file,
+        the section and the missing token; restoring the bytes returns zero. This criterion is
+        invariant under the close.
+        <CloseEvidence>
+          <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+        </CloseEvidence>
+      </AC-TAUGHT-SENTENCE>
+      <AC-FOOTPRINT-PIN>
+        The skill-footprint pin reports the true re-measured values after the teaching lands — the
+        line total and the UTF-8 byte total from the tree, never written toward — and the `README.md`
+        measurement cell at `README.md:304` publishes the same two figures, which the shipped test
+        cross-checks against the live measurement. At this commit the pin reads 864 lines / 75626
+        bytes. The pin is a transcription reconciled by re-measure, not a ratchet: it moves to
+        whatever the true value is and never by deletion or loosening. Its red direction is the
+        shipped test's own cross-check failing when the cell and the tree disagree. This criterion is
+        invariant under the close.
+        <CloseEvidence>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+        </CloseEvidence>
+      </AC-FOOTPRINT-PIN>
+      <AC-FLUSH-LANDED>
+        After the wave, each of `f250` and `f251` exists exactly once across the findings pair
+        (`findings.xml` and `findings-retired.xml`), with no fixed expectation of which file holds
+        it: the element's `status` agrees with the holding file, its token and genre agree, and the
+        single index `&lt;Entry&gt;` for the id has `genre` and `layer` agreeing with that holding
+        file — the relation survives the close's own move, which retires the two, flips their index
+        layers, and leaves every clause true. The wave's written findings root base equals the file's
+        `newlineCount` after the write and the index base equals its live-`Entry` count, both via
+        `--rewrite-roots`; the post-flush root is
+        `&lt;Findings base="7561" headroom="272" ceiling="7833"&gt;` and the index base 270 (measured
+        on a driven whole-repository copy). Neither body cites a fragment, so no citation resolves or
+        breaks; the plan asserts the relation read-only through the shipped `validateStubAndIndex`
+        entry point with a generous timeout. The instrument is the production assertion the plan adds
+        to `scripts/validate-record-retirement.test.ts` in the flush-invariant house form. Red
+        direction, driven on a copy: duplicating one flushed `&lt;Finding&gt;` reddens the
+        at-most-once clause; flipping a flushed index layer against its holding file reddens the
+        layer clause and the shipped roots tripwire.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-FLUSH-LANDED>
+      <AC-ROW-PAYS>
+        This bundle's registry row exists exactly once across `registry.xml` and
+        `registry-retired.xml`, with no fixed expectation of which file holds it: the `Row`'s `status`
+        agrees with the holding file, `kind="chartered"`, its `&lt;Pays&gt;` contains `F250` and
+        `F251`, and its `&lt;StatusText&gt;` names no `F` token outside `&lt;Pays&gt;` and carries no
+        `Closed with` sentence. The `Pays` assertion is containment, never an exact set, so a later
+        lawful retired-row append cannot expire it. The relation survives the row's own retirement at
+        the close. The instrument is the production assertion the plan adds to
+        `scripts/validate-record-retirement.test.ts`, parsed with the shipped parser over both
+        registry layers, payment-invariant by construction. Red direction, driven on mutated copies:
+        a second row with the same name, or a `StatusText` naming a token outside `Pays`, each turn
+        the assertion non-zero.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROW-PAYS>
+      <AC-RECORD-VALID>
+        The record is valid at every committed point of this bundle's life and in the applied-archive
+        state. Before the close: the shipped `validateRecordRetirement` returns zero findings with the
+        two findings flushed and the row minted live (the row's name is not yet an archive directory,
+        so the payer map mints nothing and no element is eligible); a mid-bundle `--retire` reports
+        `moved 0`. At the close: the move reports **three** (the two findings and the row), stamps
+        `&lt;PaidBy&gt;C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22&lt;/PaidBy&gt;` on each moved finding in the
+        retired sibling, flips the two index `Entry` layers in place, and a second `--retire` reports
+        zero. After the close: the shipped `validateRecordRetirement` returns zero findings; the
+        shipped `validateStubAndIndex` returns zero findings; and the shipped
+        `proveRecordPreservation` returns zero. Both validators export their entry points and the
+        plan's suite imports and asserts them read-only on the production record with a generous
+        timeout. The instrument is the production assertions in
+        `scripts/validate-record-retirement.test.ts` — the read-only `validateRecordRetirement` run,
+        the imported `validateStubAndIndex` and `proveRecordPreservation` runs, the carrier/row walks
+        — plus the payer-derivation baseline extension (`bundleMinted`) with `F250` and `F251`. Red
+        direction, driven on mutated copies: a planted eligibility, a duplicated carrier, or a minted
+        token missing from the extended baseline each turn the suite non-zero; the driven full close
+        reports `moved 3`, validator 0, preservation 0, second `--retire` `moved 0`.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-VALID>
+      <AC-ROOTS-HELD>
+        The four live roots satisfy the shipped relations and no ceiling moved across the bundle: for
+        `findings.xml`, `rulings.xml`, `registry.xml` and `decisions.xml` — `base + headroom = ceiling`
+        and each `base` equals its shipped metric read back (`newlineCount` for findings and rulings,
+        the live `&lt;Entry&gt;` rule for the index, the live `Row` count for registry). The relations
+        are payment-invariant by construction: the only shipped writers of the roots,
+        `persistSnapshot` and `--rewrite-roots`, rewrite them in exactly this form, and a ceiling
+        holds or falls, never rises. Measured on the driven copy: pre-flush findings
+        `7522 / 311 / 7833`, post-flush `7561 / 272 / 7833`, post-close `7522 / 277 / 7799`; index
+        pre-flush `268 / 28 / 296`, post-flush `270 / 26 / 296`, post-close `268 / 28 / 296`;
+        registry `12 / 14 / 26` pre-mint and post-close, `13 / 13 / 26` after the row mint's
+        `--rewrite-roots` (13 live rows); rulings unchanged at `1697 / 186 / 1883`. The instrument is
+        the shipped roots-invariant tripwire in `scripts/validate-record-retirement.test.ts`. Red
+        direction, driven on a copy: a root whose `headroom` no longer sums against its ceiling
+        reddens the tripwire.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROOTS-HELD>
+      <AC-MIRROR-SYNC>
+        The interleaving sentence is present in the canonical skill and its packaged mirror,
+        byte-identical, and the version surfaces stay synchronized. The instrument is
+        `bun run ./scripts/validate-marketplace.ts`, which compares each packaged path to its
+        canonical source and enforces version sync; both trees change together, so it stays green.
+        <CloseEvidence>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </CloseEvidence>
+      </AC-MIRROR-SYNC>
+      <AC-NO-SRC>
+        No file under `src/` changes relative to this spec's base commit
+        `deccaedb42157fd88a08e2f984d6b893ae5a9f53` except the files the Goals force, named here and
+        in the command's excludes: `src/review/core.ts`, `src/review/catalog.ts`,
+        `src/grace-generate.ts`, `src/review/core.test.ts`, `src/grace-generate.test.ts`,
+        `src/lint/catalog.test.ts`, `src/verification/localize.test.ts`,
+        `src/test-support/token-accounting.test.ts`. No file under `scripts/` changes except
+        `scripts/check-teaching-surface.ts`, `scripts/check-teaching-surface.test.ts`,
+        `scripts/validate-record-retirement.test.ts`. Prose and command name the same pathset.
+        Failure: any other `src/` or `scripts/` path differs at close. `src/artifact/grammar.ts`,
+        `src/lint/catalog.ts`, `src/lint/core.ts`, `src/gates/**` and `src/verification/localize.ts`
+        are unchanged.
+        <CloseEvidence>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- src/ scripts/ ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/grace-generate.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/grace-generate.test.ts' ':(exclude)src/lint/catalog.test.ts' ':(exclude)src/verification/localize.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-SRC>
+      <AC-RECORD-PRESERVED>
+        The record files the flush and the close provably do not change are byte-identical to this
+        spec's base commit: `docs/plans/active/RM-GOVERNED-PATH/rulings.xml`,
+        `rulings-retired.xml`, `decisions.md`, `record-inventory.json`, `plan.md`, `review.md`,
+        `brownfield-findings.md`, `brownfield-run4-findings.md`, `p0-calibration-derivation.md`,
+        `p0-cursor-derivation.md`, `p0-derivation.md`, `p0-report-honesty-derivation.md`, and the
+        `sources/` subtree — driven, not assumed: the flush writes `findings.xml`, `decisions.xml`
+        and the row into `registry.xml`, and the close writes only the findings pair, the registry
+        pair and the index. The files the flush and the close do change are deliberately absent from
+        this criterion and are covered by the parse-based relations in `AC-FLUSH-LANDED`,
+        `AC-ROW-PAYS` and `AC-RECORD-VALID`. The window is this bundle's own diff, over tracked paths
+        only.
+        <CloseEvidence>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- docs/plans/active/RM-GOVERNED-PATH/rulings.xml docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </CloseEvidence>
+      </AC-RECORD-PRESERVED>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and `.ngrace/changes/archive/` are not modified;
+        this bundle's own later arrival under
+        `.ngrace/changes/archive/C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22/` is not a modification — the close
+        itself renames this bundle's directory into the archive, and the pathspec excludes that
+        arrival so the close's own rename cannot redden the criterion. The record's sanctioned writes
+        in this bundle's window touch no path under either archive root. The prose claims tracked
+        paths only. Probed in the post-close state.
+        <CloseEvidence>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-DOCS-EXAMPLES>
+        Every surface this bundle does not write is byte-identical to this spec's base commit:
+        `examples/`, `CLAUDE.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/plans/README.md`,
+        `docs/plans/archive/`, `package.json`, `bun.lock`, `CHANGELOG.md`, `.ngrace-lint.json`, and
+        every published skill except the one `SKILL.md` the deliverable rewrites — that file is
+        excluded with its reason (the teaching) and its mirror identity is asserted by
+        `AC-MIRROR-SYNC`, while every `references/` file stays byte-identical and the teaching
+        templates are not regenerated. `README.md` sits outside this pathset because the measurement
+        cell is a forced write; it is covered by `AC-FOOTPRINT-PIN`'s cross-check. Prose and command
+        name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- examples/ CLAUDE.md CONTRIBUTING.md AGENTS.md docs/plans/README.md docs/plans/archive/ package.json bun.lock CHANGELOG.md .ngrace-lint.json skills/ngrace/ plugins/ngrace/skills/ngrace/ ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md'</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task `Verification` commands and `TargetAssertions` contain no current-mode
+        lint of this project root, checked by hand (the shipped detector misses the house
+        `bun ./src/grace.ts lint` form). Failure: a `Command` whose text contains
+        `--assertions current`, or that invokes lint of this root and omits `--assertions`. This is
+        the spec's single `Satisfies`-mapped criterion; it carries no `CloseEvidence` and must be
+        mapped by exactly one task `Satisfies` in the later plan.
+      </AC-NO-CURRENT-MODE>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+      <M-CLI />
+      <M-SKILLS />
+      <M-TEST-SUPPORT />
+      The two non-test `src/` files this bundle opens are `src/review/core.ts` and
+      `src/review/catalog.ts` (both `LINKS: M-REVIEW`) and `src/grace-generate.ts`
+      (`LINKS: M-CLI`); every `.test.ts` write is a test file that `isModuleOwnableWritePath` does
+      not own, so `change.graph-anchors-miss-write-scope` cannot fire on it; the two skill files
+      carry no file-local `LINKS:` header; `scripts/` is lint-ignored; the record files and
+      `README.md` are owned by no module in the graph. The four anchors name every module the plan's
+      `DurableScope` needs: `M-REVIEW` owns `src/review`, `M-CLI` owns the CLI entry the generate
+      file links, `M-SKILLS` owns the canonical skill tree the sentence lands in, and
+      `M-TEST-SUPPORT` owns `src/test-support`, whose pin this deliverable re-measures. The module
+      enumeration is these four anchors and no more; do not mint a synthetic module.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=30000 src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/grace-generate.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=30000 src/lint/catalog.test.ts src/review/core.test.ts src/verification/localize.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/check-teaching-surface.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/check-teaching-surface.ts check</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): the attempt-pair audit pairs every fail with the next pass for its task so
+        a four-attempt fail, fail, pass, pass fixture audits two pairs, the two new `review.*` codes
+        cover the unpaired fail (`warning`) and unpaired pass (`info`) shapes with a stable finding
+        anchor, the catalog and its five completeness/cardinality/severity instruments agree at 20,
+        `spec new`
+        hashes the `--path` project's branch in both directions, the interleaving sentence sits in
+        both skill trees with its teaching-surface needle, the footprint pin and `README.md` cell
+        agree with the live measurement, the two staged findings are in the record with their index
+        entries, the row is minted live and validates clean before the close, the mid-bundle
+        `--retire` reports `moved 0`, the close's move reports three and flips the two index layers,
+        the applied-archive record validates clean with the citation validator and the preservation
+        proof (asserted through the suite's imported `validateStubAndIndex` and
+        `proveRecordPreservation`), the payer-derivation baseline carries the two minted tokens, and
+        every `CloseEvidence` command and the full `validate:ci` run green inside a faithful copy of
+        the post-close state (rsync of the working tree including untracked files, the bundle
+        archived, the close's `--retire` run) with both directions driven for every criterion and
+        every exit code read directly. Structural counts come from the shipped parser, never
+        `grep -c`; the record's copy-drive runs from inside a whole-repository copy (`F235`). The
+        reds are ledger-recorded fail/pass pairs, not claims.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Authoring commit `deccaedb42157fd88a08e2f984d6b893ae5a9f53`, branch
+        `c-pair-audit-mint-cwd`, tree clean, 2026-09-14.** `bun ./src/grace.ts lint --path .` exits 0
+        at 0/0 with this spec in the tree; `bun run validate:ci` exits 0; `.ngrace/changes/active/`
+        held only `.gitkeep` before this bundle's mint. Every count here expires; the implementation
+        re-measures (`D30`).
+      </Assumption>
+      <Assumption>
+        **First hashed mint, measured.** The mint verb printed, verbatim:
+        `mint: C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 slug=PAIR-AUDIT-MINT-CWD lineage=1 hash=ED6B7D22 branch=c-pair-audit-mint-cwd timestamp=2026-09-14T17:11:43.000Z`
+        and `mint-search: 0 active, 0 archive prior bundle(s) share slug PAIR-AUDIT-MINT-CWD`. The
+        path printed is
+        `.ngrace/changes/active/C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22/spec.xml`. The id was never
+        hand-typed and the clock was handed in with `--timestamp`. The name search for the tool's
+        collision half is this `mint-search:` line; the author's scope half is the Constraint's.
+      </Assumption>
+      <Assumption>
+        **The buffer, parsed not read.** `.ngrace/scratch/staged-findings.md` holds exactly two
+        entries as of 2026-09-14 — `f250` and `f251`, both findings genre on `###` headings, anchors
+        adjacent to their headings, **no staged charter row and no registry heading** (measured by
+        the shipped `parseFrozenMarkdown`: `chartered` 0, `sweep` 0, `registryHeadingIndex` -1).
+        Per-entry rendered element line counts by the shipped rule: `F250` 22 (body 18 newlines),
+        `F251` 17 (body 13), 39 total — the whole wave. Neither body cites an internal fragment. The
+        buffer is untracked and `.gitignore`d, one copy; nothing here writes it.
+      </Assumption>
+      <Assumption>
+        **Windows, by the shipped parser over the real record.** findings `7522 / 311 / 7833` with 207
+        live `&lt;Finding&gt;` children and 0 retired; rulings `1697 / 186 / 1883`; index
+        `268 / 28 / 296` with 268 live and 118 retired `Entry` lines; registry `12 / 14 / 26` with 12
+        live rows. Every live root satisfies the tripwire relations at this commit.
+      </Assumption>
+      <Assumption>
+        **The driven flush and close, on a whole-repository copy (`F235`).** a faithful
+        whole-repository copy (`rsync -a` of the working tree preserving a real `.git` on
+        `c-pair-audit-mint-cwd` and a real `node_modules` directory; `.ngrace/scratch` excluded so the
+        hold-out buffer stays one copy and is read from the source, never copied or written); the two
+        `&lt;Finding&gt;` elements rendered
+        through the shipped shape and the two index `Entry` lines appended, then `--rewrite-roots`:
+        findings `7561 / 272 / 7833`, index `270 / 26 / 296`, registry `13 / 13 / 26`, rulings
+        unchanged; the shipped validator returns zero findings. A mid-bundle `--retire` reports
+        `moved 0` and leaves every root unchanged. The bundle directory moved into the archive and
+        `--retire` run from inside the copy: **`moved 3`**; findings `7522 / 277 / 7799` (the move's
+        `persistSnapshot` re-derives the ceiling, which falls and is never raised), index
+        `268 / 28 / 296` (two layers flipped in place), registry back to `12 / 14 / 26`; validator 0;
+        `prove-record-preservation` 0; a second `--retire` `moved 0`. The two retired carriers carry
+        `&lt;PaidBy&gt;C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22&lt;/PaidBy&gt;` in `findings-retired.xml`.
+      </Assumption>
+      <Assumption>
+        **The V-B split, measured over the whole archive.** Of the archive's 96 `run-ledger.xml`
+        files, 76 hold `kind="attempt"` events (folded ledger plus loose `run/`, read with the
+        shipped `listLedgerEvents`/`listLooseEvents`/`readAttemptPayload`); applying the drafted FIFO
+        rule to those 76, 73 are flagged and the unpaired population is 161 attempts — **106 unpaired
+        passes, 55 unpaired fails** (571 attempts in total). The three bundles archived in this
+        bundle's week are among them; the pass half is structural, not carelessness: the
+        verification-only closing task records pass-only attempts because a suite drive has nothing
+        to fail first (driven: `C-TEACH-DRIVE-BEFORE-APPROVE-2` `T-003` events 20 and 31;
+        `C-HASHED-BUNDLE-IDS-2` `T-006` event 35). A warning on every such pass would demand an ack
+        on every close, so the maintainer ruled (V-B) the pass half `info` and the fail half
+        `warning`. Two codes, not a per-finding severity override: a finding's severity is
+        `guide?.severity ?? "error"` (`src/review/core.ts:367` at this commit) and no override
+        exists, so a single code cannot carry two severities without new engine surface the ruling
+        did not ask for.
+      </Assumption>
+      <Assumption>
+        **The product facts the findings state, re-driven at this commit.** `F250`: a hand-built
+        `run/` fixture driven through `runReview` reports `pairCount=1` for `fail, fail, pass, pass`,
+        `pairCount=0` and zero findings for a pass-only task, and `pairCount=1` and zero findings for
+        `fail, pass, fail` — the pairing defect and both blind spots, live. `F251`: from this working
+        tree with `NGRACE_SPEC_BRANCH` unset, `--path` a git repo on `branch-b` mints with
+        `branch=c-pair-audit-mint-cwd`; `--path` a gitless directory exits 0 and mints with the cwd's
+        branch. Both directions of both findings were driven before this spec was written.
+      </Assumption>
+      <Assumption>
+        **The payload is positional, measured.** `readAttemptPayload` (`src/grace-cursor.ts:2206`)
+        returns `{ outcome, signature, writeEvidence }`; `recordAttempt` attaches a
+        `FailureSignature` only when `outcome === "fail"` and throws when a fail lacks one, so every
+        pass event carries no signature and a pair cannot be keyed by the pass's signature. This is
+        why the rule is order-based and why the teaching sentence is still necessary after the
+        product half lands.
+      </Assumption>
+      <Assumption>
+        **Name search, re-measured 2026-09-14 at this base commit.** Over the 101 archive directories
+        and both registry layers: **zero hits** for `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22`. Per surface:
+        43 archived bundles name `src/review/core.ts`, 23 name `src/review/catalog.ts`, 10 name
+        `src/grace-generate.ts`; the closest priors are `C-SUBSTANTIATION-HONESTY` (created the live
+        attempt-pair audit), `C-HASHED-BUNDLE-IDS-2` (built the hashed mint and `resolveBranch`), and
+        the review-surface bundles `C-DECLARED-WRITES`, `C-CRITERION-CLOSE-EVIDENCE`,
+        `C-REVIEW-SELF-SCOPE-2`. No colliding or better-fitting prior name.
+      </Assumption>
+      <Assumption>
+        **Pins the change falsifies, measured at this commit.** `src/review/core.test.ts:2070` and
+        `:2417` pin `allReviewCodes()).toHaveLength(18)` → `20`; `:3259` pins
+        `no live REVIEW_CATALOG code has severity info` and is falsified by the first `info` review
+        code, so it must become a bounded positive assertion; `src/verification/localize.test.ts:430`
+        pins the catalog length 18 → `20` and `:436` the excluded length 15 → `17`;
+        `src/lint/catalog.test.ts:122` hard-lists `review.attempt-pair-identical-tree` in the
+        dynamic-emitter block that `collectEmittedIssueCodes` cannot derive from the constant, and
+        must gain both new codes. The skill-footprint pin reads `864` lines / `75626` bytes and the
+        `README.md:304` cell publishes the same pair. `scripts/skill-contracts.test.ts` pins no text
+        of the attempt-kind ordering sentence (grep for `own tool round trip`, `retrospective red`,
+        `interleave` finds none), so it is not forced.
+      </Assumption>
+      <Assumption>
+        **No decision is chartered, measured.** A search of the 61 live rulings for `attempt`,
+        `pair`, `cwd` and `branch` finds no decision that codifies the attempt-pair pairing rule or
+        the spec mint's branch source; the hits are incidental prose (`D8.4`, `D25`, `D1.3`). `D38`
+        is retired in `rulings-retired.xml`. This bundle adds no decision.
+      </Assumption>
+      <Assumption>
+        **Versions and packaging, decided the way the review-surface precedents decided them.** No
+        product version bump: a version is a release act, not this bundle's. Packaged version at
+        authoring `6.2.0`; `validate:marketplace` enforces version sync across `README.md`,
+        `openpackage.yml`, `.claude-plugin/marketplace.json` and `package.json`, and packaged-versus-
+        canonical byte identity — both skill trees change together, so it stays green.
+        `CHANGELOG.md` is generated and untouched; `README.md` is written only in the footprint cell;
+        `examples/` is untouched.
+      </Assumption>
+    </Assumptions>
+  </C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22>
+</NgraceChangeSpec>

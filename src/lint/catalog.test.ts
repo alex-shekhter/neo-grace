@@ -120,6 +120,10 @@ function collectEmittedIssueCodes(srcRoot: string): string[] {
     "markup.module-map-mismatch",
     // makeFinding(ATTEMPT_PAIR_FINDING_CODE, …) in review/core.ts — constant, not a string literal
     "review.attempt-pair-identical-tree",
+    // makeFinding(ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE, …) — constant, not a string literal
+    "review.attempt-pair-unpaired-fail",
+    // makeFinding(ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE, …) — constant, not a string literal
+    "review.attempt-pair-unpaired-pass",
     // makeFinding(WRITE_EVIDENCE_SCOPE_FINDING_CODE, …) — constant, not a string literal
     "review.write-evidence-outside-scope",
     // makeFinding(CLOSE_EVIDENCE_ABSENCE_FINDING_CODE, …) — constant, not a string literal

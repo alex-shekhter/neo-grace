@@ -1,0 +1,704 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22>
+    <IntentSummary>
+      Author the execution for the approved, fingerprinted spec
+      `.ngrace/changes/active/C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22/spec.xml` (ratified `approved` with
+      the maintainer's phrase, `ngrace review` 0 findings, `ngrace gate approve` permit and
+      fingerprint recorded in the bundle's `run-ledger.xml`, commit `dc83c3c` on
+      `c-pair-audit-mint-cwd`) and only within it; the plan conforms to the spec, it does not extend,
+      narrow or reinterpret it. Five sequential tasks carry the committed sequence.
+
+      **T-001** is the review surface: red-first, it adds the two new `review.*` codes' behavior
+      tests to `src/review/core.test.ts` and moves the five catalog instruments (`src/lint/catalog.test.ts`'s
+      dynamic-emitter block, the two `allReviewCodes()` length pins and the
+      `C-FINDING-SEVERITIES` severity-vocabulary pin in `core.test.ts`, and the two
+      `src/verification/localize.test.ts` pins), then lands the ordered FIFO pairing and the two
+      codes in `src/review/core.ts` and `src/review/catalog.ts`. **T-002** is the mint branch source:
+      red-first, it adds the two-direction test to `src/grace-generate.test.ts`, then threads the
+      resolved `--path` root into `resolveBranch`. **T-003** is the teaching: red-first, it adds the
+      `interleaves them` needle to `scripts/check-teaching-surface.ts` and mirrors it with a
+      red-direction case in `scripts/check-teaching-surface.test.ts`, then lands the sentence in both
+      `ngrace-execute` trees and re-measures the skill footprint into
+      `src/test-support/token-accounting.test.ts` and the `README.md` cell. **T-004** is the record:
+      two interleaved red-first pairs flush `f250`/`f251` into `findings.xml` with two index `Entry`
+      lines, mint the live row into `registry.xml`, extend `bundleMinted`, add the carrier and row
+      walks to `scripts/validate-record-retirement.test.ts`, and hold every ceiling with
+      `--rewrite-roots`. **T-005** is verification and the post-close reachability drive: the leaf
+      suites, `bun run validate:ci`, the predicted plan-approve review, and a faithful
+      whole-repository post-close copy that reaches the applied-archive state and evaluates every
+      `CloseEvidence` command.
+
+      **The red-first pairs, driven on copies at the spec's base commit `deccaed` (the approval
+      commit `dc83c3c` differs from it only under the bundle's own directory).** (1) T-001, key
+      `pair-audit-red`: the behavior tests and the five instrument moves land before any production
+      edit — red, `src/review/core.test.ts` **177 pass / 6 fail** (the three ordered-pairing
+      directions the fix changes, the two length pins reading 20 against 18, and the
+      severity-vocabulary pin), `src/lint/catalog.test.ts` **32 pass / 2 fail** (`requires every
+      emitted production code to have an exact surface guide or frozen allowlist seat` and `every
+      collectEmittedIssueCodes member resolves via a surface-specific guide path`), and
+      `src/verification/localize.test.ts` **64 pass / 1 fail** (the exhaustive length walk); the two
+      production edits are the pass, **183 / 0**, **34 / 0**, **65 / 0**. (2) T-002, key
+      `mint-cwd-red`: the two-direction test lands before the production edit — red,
+      `src/grace-generate.test.ts` **21 pass / 1 fail**; the `cwd` thread is the pass, **22 / 0**.
+      (3) T-003, key `teaching-red`: the needle lands before the sentence — red,
+      `bun ./scripts/check-teaching-surface.ts check` exits **1** refusing
+      `missing token "interleaves them"`; the sentence in both trees plus the re-measured footprint
+      is the pass, check exits **0** and `scripts/check-teaching-surface.test.ts` **50 / 0**.
+      (4) T-004, two interleaved pairs — `flush-red`: the flush-invariant walk lands before any
+      record write, red **116 pass / 2 fail**, the flush plus `--rewrite-roots` is the pass
+      **118 / 0**; `row-red`: the carrier/row walk and the `bundleMinted` extension land before the
+      row, red **119 pass / 2 fail**, the live row plus `--rewrite-roots` is the pass
+      **121 / 0**. Every drive is inside a throwaway whole-repository copy; the production record is
+      never mutated.
+
+      **Interleaving, and the info code this bundle raises on itself.** The executor records its
+      own attempts interleaved — fail A in one tool round trip, the fix, pass A, then fail B, the
+      fix, pass B — so the code this bundle ships pairs each fail with its own pass positionally.
+      The verification task's attempts are **pass-only** (a verification drive has no red to record),
+      so at the close `ngrace review --change C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 --severity info` is
+      expected to show one `review.attempt-pair-unpaired-pass` finding on the closing task — the
+      shipped V-B behavior on its own ledger, not a defect. The default report (no `--severity`)
+      does not show it, and no gate is refused by it.
+
+      **Why five tasks and not fewer or more.** The fix budgets bind per task
+      (`src/grace-cursor.ts` `FIX_SIGNATURE_REPEAT_BUDGET = 2` and `FIX_DISTINCT_SIGNATURE_BUDGET = 4`):
+      T-001 one distinct key, T-002 one, T-003 one, T-004 two distinct keys, T-005 none (pass-only).
+      Every task stays inside one repeat and four distinct signatures. Folding T-002 into T-001 would
+      put two independent production modules in one budget for no gain; splitting T-005 is impossible
+      because the post-close drive needs every prior surface landed. The last task's `src/` /
+      `scripts/` exclusion set is exactly `AC-NO-SRC`'s 11-file pathset.
+
+      **Why the scope names the record files no task in T-001..T-003 writes.**
+      `ObservedWriteScope` declares the five record files the flush and the close write —
+      `findings.xml`, `decisions.xml`, `registry.xml`, `findings-retired.xml`,
+      `registry-retired.xml` — in addition to the `src/`, `scripts/`, skill and `README.md` files the
+      tasks edit. The close's `--retire` writes `findings-retired.xml` and `registry-retired.xml`
+      while the plan is still under `active/`, and the scope audit runs at the close, so a path the
+      close writes must already be declared; declaring it is permission, not obligation (F27.2).
+      The bundle's own `spec.xml`, `plan.xml` and `design-context.xml` are **not** declared — the
+      review already skips them by identity.
+
+      **The close is the authority's act and this plan's tasks end before it.** Execution ends when
+      T-005 is verified and its cursor events are recorded; no task performs `terminal`, `fold`, the
+      close's `review`, a verdict, `gate apply`, `gate archive`, `ngrace apply`, the close's
+      `--retire`, any production `CloseEvidence` run, or the archive move. T-001..T-003 leave their
+      surfaces green; T-004 leaves `f250`, `f251` and the row **live** in the record with
+      `--rewrite-roots` applied and the shipped validators at zero; T-005 drives every
+      `CloseEvidence` command and `bun run validate:ci` inside a faithful post-close copy and leaves
+      the production bundle active, its plan still `draft`, no status hand-written and no directory
+      moved.
+
+      **The mapping, fixed by the spec's own Constraint.** Exactly one criterion —
+      `AC-NO-CURRENT-MODE` — carries no `CloseEvidence` and is mapped by exactly one task
+      `Satisfies`; it is carried by T-005, this plan's only `Satisfies`. The other sixteen criteria
+      are close-bound and stay unmapped, because a `Satisfies` of a close-bound criterion is the
+      shipped error `change.close-evidence-and-satisfied` and an unmapped non-CloseEvidence
+      criterion is the warning `AC-CLOSE-LINT`'s `--fail-on warnings` turns into an uncloseable
+      bundle.
+
+      **Baseline against target.** This bundle creates no `src/` file, so
+      `change.graph-anchors-miss-write-scope` has no window. `BaselineAssertions` assert only what
+      the bundle leaves unchanged or what is true today and stays true: shipped module and file
+      existence, shipped-green spellings, and the seven shipped suites, all green at the spec's base
+      commit `deccaed`. The
+      two new code constants and their guides do not exist at HEAD
+      (`grep -c attempt-pair-unpaired src/review/catalog.ts` is 0), so they are **target** spellings,
+      never baseline needles. No baseline `MustNotContain` is used: every spelling this bundle flips
+      (`lastFailByTask`, the severity-vocabulary pin's sentence, the footprint byte count) belongs to
+      the target or to a test, never to a whole-file baseline needle.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22/spec.xml</Value></MustExist>
+      <MustContain><File>src/review/core.ts</File><Text>loadAttemptPairsFromBundle</Text></MustContain>
+      <MustContain><File>src/review/core.ts</File><Text>contentDigestsFromEvidence</Text></MustContain>
+      <MustContain><File>src/review/catalog.ts</File><Text>ATTEMPT_PAIR_FINDING_CODE</Text></MustContain>
+      <MustContain><File>src/grace-generate.ts</File><Text>function resolveBranch</Text></MustContain>
+      <MustContain><File>src/lint/catalog.test.ts</File><Text>review.attempt-pair-identical-tree</Text></MustContain>
+      <MustContain><File>skills/ngrace/ngrace-execute/SKILL.md</File><Text>report evidence</Text></MustContain>
+      <MustContain><File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File><Text>report evidence</Text></MustContain>
+      <MustContain><File>scripts/check-teaching-surface.ts</File><Text>cursor_kinds</Text></MustContain>
+      <MustPassCommand><Command>bun test --timeout=30000 src/review/core.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test src/grace-generate.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/lint/catalog.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/verification/localize.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/check-teaching-surface.ts check</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test scripts/check-teaching-surface.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test src/test-support/token-accounting.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-citation-anchors.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/prove-record-preservation.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run ./scripts/validate-marketplace.ts</Command></MustPassCommand>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22/plan.xml</Value></MustExist>
+      <MustContain><File>src/review/catalog.ts</File><Text>review.attempt-pair-unpaired-fail</Text></MustContain>
+      <MustContain><File>src/review/catalog.ts</File><Text>review.attempt-pair-unpaired-pass</Text></MustContain>
+      <MustContain><File>src/review/catalog.ts</File><Text>ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE</Text></MustContain>
+      <MustContain><File>src/review/catalog.ts</File><Text>ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE</Text></MustContain>
+      <MustContain><File>src/review/core.ts</File><Text>ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE</Text></MustContain>
+      <MustContain><File>src/review/core.ts</File><Text>ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE</Text></MustContain>
+      <MustContain><File>src/review/core.ts</File><Text>pendingFailsByTask</Text></MustContain>
+      <MustContain><File>src/lint/catalog.test.ts</File><Text>review.attempt-pair-unpaired-fail</Text></MustContain>
+      <MustContain><File>src/lint/catalog.test.ts</File><Text>review.attempt-pair-unpaired-pass</Text></MustContain>
+      <MustContain><File>src/review/core.test.ts</File><Text>C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 ordered attempt pairing</Text></MustContain>
+      <MustContain><File>src/review/core.test.ts</File><Text>the only live REVIEW_CATALOG code at severity info is the unpaired-pass code</Text></MustContain>
+      <MustContain><File>src/grace-generate.ts</File><Text>resolveBranch(args.branch, root)</Text></MustContain>
+      <MustContain><File>src/grace-generate.test.ts</File><Text>hashes the --path repository's branch, not the process cwd's</Text></MustContain>
+      <MustContain><File>skills/ngrace/ngrace-execute/SKILL.md</File><Text>interleaves them</Text></MustContain>
+      <MustContain><File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File><Text>interleaves them</Text></MustContain>
+      <MustContain><File>scripts/check-teaching-surface.ts</File><Text>interleaves them</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>F250: "C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22"</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>F251: "C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22"</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>expectPairFlushInvariant</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>expectPairCarrierAndRowRelations</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File><Text>&lt;Finding id="f250"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File><Text>&lt;Finding id="f251"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File><Text>&lt;Entry id="f250"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File><Text>&lt;Entry id="f251"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Row name="C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Pays&gt;F250 F251&lt;/Pays&gt;</Text></MustContain>
+      <MustPassCommand><Command>bun test --timeout=30000 src/review/core.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test src/grace-generate.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/lint/catalog.test.ts src/review/core.test.ts src/verification/localize.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/check-teaching-surface.ts check</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test scripts/check-teaching-surface.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test src/test-support/token-accounting.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-citation-anchors.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/prove-record-preservation.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run ./scripts/validate-marketplace.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+        <M-CLI />
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+        <V-M-CLI />
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/grace-generate.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/grace-generate.test.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/verification/localize.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>README.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Ordered attempt pairing and the two unpaired codes in review core and catalog, with the
+          five catalog instruments and the two unpaired behavior tests
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (`pair-audit-red`): in its own tool round trip, before any production edit in
+            `src/review/core.ts` or `src/review/catalog.ts`, land the test-side moves:
+            in `src/review/core.test.ts`, add a
+            `describe("C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 ordered attempt pairing (F250)")` with five
+            `it`s driven through the shipped `runReview` over a temporary project whose active bundle
+            holds four loose `run/` attempt events with `WriteEvidence` content digests —
+            (a) `fail, fail, pass, pass` audits `attemptPairAudit.pairCount === 2` and raises neither
+            unpaired code (assert the codes as the literals `"review.attempt-pair-unpaired-fail"` /
+            `"review.attempt-pair-unpaired-pass"`, not the not-yet-exported constants, so the red is a
+            clean assertion failure rather than an import error); (b) a single `fail, pass` audits one
+            pair; (c) a task with no attempts audits none; (d) a pass-only task raises one
+            `"review.attempt-pair-unpaired-pass"` at severity `info` with anchor
+            `attempt-pair:unpaired:T-001:&lt;id&gt;`, absent from a default report (`summary.infos`
+            0) and present under `severity: "info"`; (e) a `fail, pass, fail` task raises one
+            `"review.attempt-pair-unpaired-fail"` at severity `warning` and the trailing event's
+            anchor; move the two `allReviewCodes()` pins in `core.test.ts` from `18` to `20`; replace
+            the severity-vocabulary test `no live REVIEW_CATALOG code has severity info` with
+            `the only live REVIEW_CATALOG code at severity info is the unpaired-pass code`, asserting
+            the `info` code set is exactly `["review.attempt-pair-unpaired-pass"]` (never deleted).
+            In `src/lint/catalog.test.ts`, add both new codes to the "Bound expansions of dynamic
+            emitters" block beside `review.attempt-pair-identical-tree`. In
+            `src/verification/localize.test.ts`, move the catalog-length pin `18` → `20` and the
+            excluded-from-localization pin `15` → `17`. Drive
+            `bun test --timeout=30000 src/review/core.test.ts` (red, **177 pass / 6 fail**),
+            `bun test --timeout=30000 src/lint/catalog.test.ts` (red, **32 pass / 2 fail**:
+            `requires every emitted production code to have an exact surface guide or frozen
+            allowlist seat` and `every collectEmittedIssueCodes member resolves via a
+            surface-specific guide path`), and
+            `bun test --timeout=30000 src/verification/localize.test.ts` (red, **64 pass / 1 fail**).
+            Record the cursor attempt with outcome fail, signature-kind `test`, signature-key
+            `pair-audit-red`. Do not edit `src/review/core.ts` or `src/review/catalog.ts` in this
+            round trip. Failure conditions: the red is an import error rather than a failed
+            assertion; the two length pins or the severity-vocabulary pin are left at their old
+            values; the new behavior tests import the not-yet-exported constants.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED pass (`pair-audit-red`): implement the ordered pairing and the two codes.
+            In `src/review/core.ts`, replace the `lastFailByTask` single-slot `Map` in
+            `loadAttemptPairsFromBundle` with a per-task FIFO `pendingFailsByTask` queue: on `fail`
+            push; on `pass` shift the oldest queued fail and emit the pair, else collect the pass as
+            unpaired; after the loop collect every still-queued fail as unpaired; return
+            `{ pairs, unpaired }`. In `runReview`, map the unpaired events to `makeFinding` with
+            `ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE` for a pass and
+            `ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE` for a fail, the stable anchor
+            `attempt-pair:unpaired:&lt;task&gt;:&lt;eventId&gt;`, the rule ids
+            `attempt-pair-unpaired-pass` / `attempt-pair-unpaired-fail`, and a message naming the
+            task, the event id and its outcome; count them in `findingCount`. In
+            `src/review/catalog.ts`, add
+            `ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE = "review.attempt-pair-unpaired-fail"`
+            (`severity: "warning"`) and
+            `ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE = "review.attempt-pair-unpaired-pass"`
+            (`severity: "info"`), both to `START_MODULE_MAP`, each with a `REVIEW_CATALOG` guide
+            (`family: "process-audit"`, `derivedFrom: "F250 / F9.7"`, remediation naming the
+            `gate verdict` adjudication path). Do not key a pair by signature, do not change
+            `auditAttemptPairWriteEvidence`'s identical-tree rule, and do not touch
+            `findLatestFailPassPair`. Drive the three suites green:
+            `bun test --timeout=30000 src/review/core.test.ts` **183 / 0**,
+            `bun test --timeout=30000 src/lint/catalog.test.ts` **34 / 0**,
+            `bun test --timeout=30000 src/verification/localize.test.ts` **65 / 0**. Then record
+            the cursor attempt with outcome pass for signature-key `pair-audit-red`.
+          </Criterion>
+          <Criterion>
+            The boundary and the close. This task's `Verification` commands and the plan's
+            `TargetAssertions` contain no current-mode lint of this project root, checked by hand:
+            no `--assertions current`, and no `ngrace lint` of this root omitting `--assertions`.
+            Each recorded command exits 0 at this task's boundary, driven at this plan's commit on a
+            copy at exactly this stage; the `git diff --exit-code
+            deccaedb42157fd88a08e2f984d6b893ae5a9f53` command excludes every file this task writes.
+            The executor emits its own cursor events inside the open epoch and performs no close act;
+            the terminal event, the cursor fold, every gate, both status writes, the archive move,
+            the close's `--retire` and every `CloseEvidence` evaluation are the authority's. Findings
+            raised while this bundle is open go to `.ngrace/scratch/staged-findings.md` under the
+            next staged number.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 src/review/core.test.ts</Command>
+          <Command>bun test --timeout=30000 src/lint/catalog.test.ts</Command>
+          <Command>bun test --timeout=30000 src/verification/localize.test.ts</Command>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- src/ scripts/ ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/lint/catalog.test.ts' ':(exclude)src/verification/localize.test.ts'</Command>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- docs/plans/active/RM-GOVERNED-PATH/ examples/ README.md skills/ plugins/ CHANGELOG.md package.json openpackage.yml .claude-plugin/marketplace.json plugins/ngrace/.claude-plugin/plugin.json</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>
+          Red-first two-direction test for the mint branch source, then thread the resolved --path
+          root into resolveBranch
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (`mint-cwd-red`): in its own tool round trip, before the production edit in
+            `src/grace-generate.ts`, add to `src/grace-generate.test.ts` one test
+            `hashes the --path repository's branch, not the process cwd's, and refuses a gitless
+            --path` with a small `runGit` helper and a `runGenerateIn(root, argv, env, cwd)` that
+            keeps `cwd` = the repository root (a git working tree) while `--path` names a foreign
+            root. **Direction A:** a foreign temp root `git init`-ed, committed and
+            `checkout -b probe-other-branch`-ed; with `--branch` and `NGRACE_SPEC_BRANCH` unset, the
+            mint exits 0 and its `mint:` line names `branch=probe-other-branch`. **Direction B:** a
+            gitless temp `--path` from the same git cwd exits non-zero with `spec new requires
+            --branch, NGRACE_SPEC_BRANCH, or a git working tree.` and writes no bundle
+            (`expectNoActiveFor`). Drive `bun test src/grace-generate.test.ts` (red, **21 pass /
+            1 fail**). Record the cursor attempt with outcome fail, signature-kind `test`,
+            signature-key `mint-cwd-red`. Do not edit `src/grace-generate.ts` in this round trip.
+            Failure conditions: the test keeps `--branch` set; the red is an import or setup error.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED pass (`mint-cwd-red`): thread the resolved root into the branch resolver. In
+            `src/grace-generate.ts`, `resolveBranch(raw: unknown, root: string): string` passes
+            `cwd: root` to `execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { encoding:
+            "utf8", stdio: ["ignore", "pipe", "ignore"], cwd: root })`; `resolveSpecMint(args, root)`
+            takes the root and calls `resolveBranch(args.branch, root)`; both callers forward it —
+            `mintBundle(root, input)` at `resolveSpecMint(input, root)` and the `spec new` handler at
+            `resolveSpecMint(context.args, root)` (its `root` is already resolved). The `--branch`
+            and `NGRACE_SPEC_BRANCH` precedence, `mintHash`, the `mint:`/`mint-search:` output forms
+            and the refusal message are unchanged. Drive `bun test src/grace-generate.test.ts`
+            **22 / 0**. Then record the cursor attempt with outcome pass for signature-key
+            `mint-cwd-red`.
+          </Criterion>
+          <Criterion>
+            The boundary and the close. This task's `Verification` commands and the plan's
+            `TargetAssertions` contain no current-mode lint of this project root, checked by hand.
+            Each recorded command exits 0 at this task's boundary; the `git diff --exit-code
+            deccaedb42157fd88a08e2f984d6b893ae5a9f53` command excludes every file this task and the
+            earlier task write. The executor emits its own cursor events and performs no close act.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-generate.test.ts</Command>
+          <Command>bun test --timeout=30000 src/review/core.test.ts</Command>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- src/ scripts/ ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/grace-generate.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/grace-generate.test.ts' ':(exclude)src/lint/catalog.test.ts' ':(exclude)src/verification/localize.test.ts'</Command>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- docs/plans/active/RM-GOVERNED-PATH/ examples/ README.md skills/ plugins/ CHANGELOG.md package.json openpackage.yml .claude-plugin/marketplace.json plugins/ngrace/.claude-plugin/plugin.json</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>
+          Red-first TAUGHT_RULES needle for the interleaving sentence, then the sentence in both
+          ngrace-execute trees and the re-measured skill footprint
+        </Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (`teaching-red`): in its own tool round trip, before either skill file is
+            edited, add to `scripts/check-teaching-surface.ts`'s `TAUGHT_RULES` table
+            `{ skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "interleaves
+            them" }` beside the existing `report evidence` needle, and mirror the same entry in
+            `scripts/check-teaching-surface.test.ts`'s local table, move that suite's
+            "twenty-nine taught tokens" title to "thirty", and add a red-direction case that deletes
+            the `interleaves them` token from one tree and asserts the refusal names the file, the
+            section and the token. Drive `bun ./scripts/check-teaching-surface.ts check` (red, exit
+            **1**, refusing `missing token "interleaves them"` in
+            `skills/ngrace/ngrace-execute/SKILL.md`). Record the cursor attempt with outcome fail,
+            signature-kind `test`, signature-key `teaching-red`. Do not edit either `SKILL.md` in
+            this round trip. Failure conditions: the needle is added to the production table but not
+            the suite's local table; this round trip also edits a skill.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED pass (`teaching-red`): land the sentence and re-measure the footprint. Append
+            to the end of the `&lt;kind id="attempt"&gt;` `Ordering for honest red-first:` sentence in
+            `skills/ngrace/ngrace-execute/SKILL.md` and copy the file byte-identically onto
+            `plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md`: *"A task with more than one
+            red-first pair interleaves them — fail A, pass A, fail B, pass B — so each fail is paired
+            with its own pass and every pair is audited."* The sentence names no `F`/`D` token and no
+            governed record file, so `checkRecordTokens` stays green; the two trees are byte-compared,
+            so they move together. Re-measure `skillTextLines()` from the tree — never write toward a
+            number — and update `src/test-support/token-accounting.test.ts` and the `README.md`
+            measurement cell at `README.md:304` to the true values together; measured on the copy, the
+            sentence is line-neutral at **864 lines** and moves the byte total **75626 → 75791**, so
+            both `measured.total` pins stay `864` and the `measured.totalBytes` pin and the README
+            cell move to `75791`, with the house comment entry for this bundle added. Drive
+            `bun ./scripts/check-teaching-surface.ts check` **exit 0**,
+            `bun test scripts/check-teaching-surface.test.ts` **50 / 0**,
+            `bun run ./scripts/validate-marketplace.ts` **exit 0**, and
+            `bun test src/test-support/token-accounting.test.ts` **9 / 0**. Then record the cursor
+            attempt with outcome pass for signature-key `teaching-red`.
+          </Criterion>
+          <Criterion>
+            The boundary and the close. This task's `Verification` commands and the plan's
+            `TargetAssertions` contain no current-mode lint of this project root, checked by hand.
+            Each recorded command exits 0 at this task's boundary; the `git diff --exit-code
+            deccaedb42157fd88a08e2f984d6b893ae5a9f53` commands exclude every file the three tasks
+            so far write. The executor emits its own cursor events and performs no close act.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun ./scripts/check-teaching-surface.ts check</Command>
+          <Command>bun test scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- src/ scripts/ ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/grace-generate.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/grace-generate.test.ts' ':(exclude)src/lint/catalog.test.ts' ':(exclude)src/verification/localize.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts'</Command>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- docs/plans/active/RM-GOVERNED-PATH/ examples/ README.md skills/ plugins/ CHANGELOG.md package.json openpackage.yml .claude-plugin/marketplace.json plugins/ngrace/.claude-plugin/plugin.json ':(exclude)README.md' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md'</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>
+          Two interleaved red-first record pairs: flush F250 and F251 with their index entries and
+          the carrier walk, then mint the live row with the row walk and the payer-map extension
+        </Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (`flush-red`): in its own tool round trip, before any record write, append
+            `expectPairFlushInvariant(recordDir)` to `scripts/validate-record-retirement.test.ts` in
+            the C-TEACH-DRIVE-BEFORE-APPROVE-2 flush-invariant house form: for each of `f250` and
+            `f251`, exactly one `Finding` across `findings.xml` and `findings-retired.xml` with no
+            fixed expectation of which file holds it, its `status` agreeing with the holding file,
+            its `token` agreeing with the id, its single index `Entry` carrying the agreeing `genre`
+            and a `layer` agreeing with the holding file, plus the read-back arithmetic (`base` equals
+            the file's `newlineCount`, `base + headroom = ceiling`); with an explicit generous
+            timeout and a red-direction test that duplicates `f250` in whichever layer holds it and
+            asserts the at-most-once clause throws. Drive
+            `bun test --timeout=30000 scripts/validate-record-retirement.test.ts` (red, **116 pass /
+            2 fail**: the production walk and its red-direction case, whose mutation target does not
+            exist yet). Record the cursor attempt with outcome fail, signature-kind `test`,
+            signature-key `flush-red`. Do not flush in this round trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED pass (`flush-red`): flush. Read
+            `.ngrace/scratch/staged-findings.md` (read, never write), parse it with the shipped
+            `parseFrozenMarkdown`, select `f250` and `f251` by anchor id (never by position), and
+            render two `&lt;Finding&gt;` elements through the shipped `renderFinding` shape — the
+            function is not exported, so render the same bytes from the parsed `headingLine` and
+            `bodyRaw` through the shipped `xmlEscape`: open tag, `Title` carrying the heading line,
+            `Body` carrying the escaped body, close tag (**22** and **17** element lines, **39**
+            total) — appended to `docs/plans/active/RM-GOVERNED-PATH/findings.xml` after the last
+            live element and before the root close tag; append
+            `&lt;Entry id="f250" token="F250" genre="finding" layer="live" /&gt;` and the `f251`
+            twin to `docs/plans/active/RM-GOVERNED-PATH/decisions.xml` after the last existing entry;
+            then run
+            `bun ./scripts/validate-record-retirement.ts --rewrite-roots docs/plans/active/RM-GOVERNED-PATH`
+            — never hand-write a root attribute. The findings root reads
+            `&lt;Findings base="7561" headroom="272" ceiling="7833"&gt;` and the index root
+            `&lt;RecordIndex base="270" headroom="26" ceiling="296"&gt;`; the flush walk greens and
+            the two red-direction cases green. Drive the suite **118 pass / 0 fail**. Then record the
+            cursor attempt with outcome pass for signature-key `flush-red`.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (`row-red`): in its own tool round trip, before the row is minted, append
+            `expectPairCarrierAndRowRelations(recordDir)` and a
+            `describe("C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 carrier and row relations")` in the
+            payment-invariant house form — the row exists exactly once across `registry.xml` and
+            `registry-retired.xml` with no fixed expectation of which file holds it, its `status`
+            agreeing with the holding file, `kind="chartered"`, its `Pays` **contains** `F250` and
+            `F251` (containment, never an exact set), and its `StatusText` names no `F` token outside
+            `Pays`; parsed with the shipped parser over both registry layers, with a generous timeout
+            — plus the read-only production assertions that `validateStubAndIndex` and
+            `proveRecordPreservation` return zero, and a red-direction test that plants a second row
+            with the same name into whichever layer holds it and asserts the exactly-once clause
+            throws. Extend the `bundleMinted` map in the payer-derivation test with
+            `F250: "C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22"` and the `F251` twin (consulted only for tokens
+            the derivation actually mints, so it is inert while the row is live and required once the
+            bundle's name is an archive directory). Drive the suite (red, **119 pass / 2 fail**: the
+            production row walk and its red-direction case). Record the cursor attempt with outcome
+            fail, signature-kind `test`, signature-key `row-red`. Do not mint the row in this round
+            trip.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED pass (`row-red`): mint the live row. Append the
+            `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22` row to
+            `docs/plans/active/RM-GOVERNED-PATH/registry.xml` before `&lt;/Registry&gt;`,
+            `status="live" kind="chartered"`, an empty `&lt;Number&gt;`, a
+            `&lt;Pays&gt;F250 F251&lt;/Pays&gt;`, a `&lt;StatusText&gt;` naming no `F` token outside
+            `Pays` and carrying no `Closed with` sentence, and a `&lt;Charter&gt;` carrying the
+            searched-before-minting statement in two halves — the tool's collision half verbatim
+            (`mint-search: 0 active, 0 archive prior bundle(s) share slug PAIR-AUDIT-MINT-CWD`) and
+            the author's scope half over the 101 archive directories and both registry layers (the
+            closest priors `C-SUBSTANTIATION-HONESTY`, `C-HASHED-BUNDLE-IDS-2`,
+            `C-DECLARED-WRITES`, `C-CRITERION-CLOSE-EVIDENCE`, `C-REVIEW-SELF-SCOPE-2`; 43 archived
+            bundles name `src/review/core.ts`, 23 `src/review/catalog.ts`, 10
+            `src/grace-generate.ts`; no colliding or better-fitting prior name) — and naming no `F`
+            token. Then run `bun ./scripts/validate-record-retirement.ts --rewrite-roots
+            docs/plans/active/RM-GOVERNED-PATH`; the registry root reads
+            `&lt;Registry base="13" headroom="13" ceiling="26"&gt;` (13 live rows). Drive the suite
+            **121 pass / 0 fail**, and the shipped
+            `bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH`,
+            `bun ./scripts/validate-citation-anchors.ts` and
+            `bun ./scripts/prove-record-preservation.ts` each exit 0; a mid-bundle
+            `bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH`
+            on a throwaway copy reports `moved 0`. Do not run `--retire` against the production
+            record, do not set `applied`, do not archive the bundle and do not write
+            `.ngrace/scratch/staged-findings.md`. Then record the cursor attempt with outcome pass
+            for signature-key `row-red`.
+          </Criterion>
+          <Criterion>
+            The boundary and the close. This task's `Verification` commands and the plan's
+            `TargetAssertions` contain no current-mode lint of this project root, checked by hand.
+            Each recorded command exits 0 at this task's boundary; the `src/` / `scripts/` diff
+            excludes all 11 files the bundle writes (this task adds
+            `scripts/validate-record-retirement.test.ts`), and the `docs/plans/` diff excludes the
+            five record files the flush and the close write. The executor emits its own cursor events
+            and performs no close act; `f250`, `f251` and the row are left live for the close's
+            `--retire`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- src/ scripts/ ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/grace-generate.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/grace-generate.test.ts' ':(exclude)src/lint/catalog.test.ts' ':(exclude)src/verification/localize.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- docs/plans/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml'</Command>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- examples/ README.md skills/ plugins/ CHANGELOG.md package.json openpackage.yml .claude-plugin/marketplace.json plugins/ngrace/.claude-plugin/plugin.json ':(exclude)README.md' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md'</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>
+          Leaf suites, validate:ci, the predicted plan-approve review, and the faithful post-close
+          applied-archive drive over every CloseEvidence command
+        </Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Task-observable suites, not manufactured reds. `bun run validate:ci` exits 0; the shipped
+            `bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH`,
+            `bun ./scripts/validate-citation-anchors.ts`, `bun ./scripts/prove-record-preservation.ts`
+            and `bun run ./scripts/validate-marketplace.ts` each exit 0. A root lint of this project
+            is **not** a task command: it belongs to the authority's close-time `AC-CLOSE-LINT`, run
+            post-archive, and no task claims it here. Do not manufacture a red for the suites being
+            green at the prior task's state. This task carries the plan's single
+            `Satisfies` (`AC-NO-CURRENT-MODE`): no task `Verification` command or `TargetAssertions`
+            entry contains a current-mode lint of this project root, checked by hand. Do not claim
+            post-archive lint 0/0 at this task pass. This task's own attempts are pass-only — a
+            verification drive has no red to record — so at the close
+            `ngrace review --change C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 --severity info` is expected to
+            show one `review.attempt-pair-unpaired-pass` finding on this task, which the default
+            report omits; it is the shipped V-B behavior on this bundle's own ledger, not a defect,
+            and it refuses no gate.
+          </Criterion>
+          <Criterion>
+            The predicted plan-approve review and the anchors window, on a copy. This bundle creates
+            no file under `src/`, so `change.graph-anchors-miss-write-scope` has no window: on a copy
+            with this `spec.xml` and `plan.xml` set to `approved`,
+            `bun ./src/grace.ts lint --path . --assertions target` and
+            `bun ./src/grace.ts review --path . --change C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22` report no
+            miss-write-scope error, because every module-ownable path in `ObservedWriteScope`
+            (`src/review/core.ts`, `src/review/catalog.ts`, `src/grace-generate.ts`) exists and links
+            a `DurableScope` anchor, and every `.test.ts` write is not module-ownable. Report exactly
+            what `ngrace review --change` prints at plan-approve on the copy — the bundle's own
+            `spec.xml` and `plan.xml` are identity-skipped, so a `review.scope-outside-write-scope`
+            naming either is **not** expected and would be a finding, and a finding naming any file
+            in `ObservedWriteScope` is a defect to report; the expected result is 0 findings, and the
+            approval commit names it. Also check `change.graph-anchors-miss-write-scope` and
+            `change.plan-scope-exceeds-spec` against the copy, since `AC-CLOSE-LINT` runs
+            `--fail-on warnings`.
+          </Criterion>
+          <Criterion>
+            The post-close applied-archive drive, on a faithful whole-repository copy, before
+            recording pass — `ngrace-plan` row 19 applied to this bundle. Copy the working tree
+            **including `.git`** and untracked files (rsync without `--exclude .git`), with
+            `node_modules` copied as a real directory — a symlink is untracked to git and yields a
+            spurious `review.scope-outside-write-scope node_modules` (measured) — and with
+            `.ngrace/scratch` included read-only (never written): the review's `confidently-wrong`
+            detector reads archived plans whose `BaselineAssertions` name
+            `.ngrace/scratch/staged-findings.md`, so a copy without it spuriously reddens six
+            archived-plan findings that the production tree does not (measured). From inside the
+            copy reach the state the ceremony produces: approve the copy's `plan.xml` through
+            `bun ./src/grace.ts gate approve --change C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 --artifact plan
+            --path .`, then run
+            `bun ./src/grace.ts apply --change C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 --force --reason
+            "post-close drive"` — the verb archives the bundle and writes `applied` on both
+            artifacts (a hand `applied` write is the fallback only if the verb refuses, and the
+            refusal reason is named in the report). Then run the shipped
+            `bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH`
+            from inside the copy: it reports **`moved 3`** (`f250`, `f251` and the row), the row sits
+            in `registry-retired.xml` with `status="retired"`, the two findings sit in
+            `findings-retired.xml` stamped
+            `&lt;PaidBy&gt;C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22&lt;/PaidBy&gt;`, the two index layers are
+            retired in place with their `Entry` lines still present, and the roots re-derive to
+            findings `7522 / 277 / 7799`, index `268 / 28 / 296`, registry `12 / 14 / 26`, rulings
+            unchanged `1697 / 186 / 1883`; a second `--retire` reports `moved 0`. Then run **every**
+            `CloseEvidence` `Command` the spec carries, extracted from the spec's own bytes, exit
+            codes read directly:
+            `bun test --timeout=30000 src/review/core.test.ts` (AC-PAIR-PAIRING, AC-UNPAIRED-FINDING);
+            `bun test --timeout=30000 src/lint/catalog.test.ts src/review/core.test.ts
+            src/verification/localize.test.ts` (AC-CATALOG-CARDINALITY);
+            `bun test src/grace-generate.test.ts` (AC-MINT-CWD);
+            `bun test scripts/check-teaching-surface.test.ts` (AC-TAUGHT-SENTENCE);
+            `bun test src/test-support/token-accounting.test.ts` (AC-FOOTPRINT-PIN);
+            `bun test scripts/validate-record-retirement.test.ts` (AC-FLUSH-LANDED, AC-ROW-PAYS,
+            AC-RECORD-VALID, AC-ROOTS-HELD);
+            `bun run ./scripts/validate-marketplace.ts` (AC-MIRROR-SYNC); the five
+            `git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- …` byte-invariance
+            criteria exactly as the spec writes them (AC-NO-SRC, AC-RECORD-PRESERVED,
+            AC-NO-ARCHIVE-EDIT, AC-DOCS-EXAMPLES), which is why the copy carries `.git`; and
+            `bun ./src/grace.ts lint --path . --fail-on warnings` (AC-CLOSE-LINT). A warning from
+            `--fail-on warnings` is a finding for the report, never a reason to drop the command.
+            Then run `bun run validate:ci` inside the copy, exit code read directly. Finally drive
+            the red directions in the post-close state: the row walk reds on a second row with the
+            same name or a `StatusText` naming a token outside `Pays`, mutating whichever layer holds
+            the row; the flush-invariant walk reds on a duplicated carrier or a flipped index layer.
+            The production record and the production bundle are never mutated by this drive. Leave
+            the copy's path in place and name it in the report. Record the cursor attempt with
+            outcome pass, signature-kind `test`, signature-key `post-close-drive`. Failure conditions:
+            the drive copies only the record directory or omits `.git`; the drive stops at the
+            in-tree suites and skips the `git diff` criteria and `--fail-on warnings`; a warning is
+            dropped rather than reported; the production record is mutated.
+          </Criterion>
+          <Criterion>
+            The close boundary. This task ends at the live row, `--rewrite-roots` applied, the
+            shipped validators at zero, and the sentence in both trees. The `--retire`
+            (`moved 3`), the gate-applied Decisions, the `apply` verb, the archive move, and every
+            `CloseEvidence` evaluation on the production record are the authority's close acts; the
+            executor performs no gate, no status write, no archive move and no production `--retire`.
+            Findings raised while this bundle is open go to
+            `.ngrace/scratch/staged-findings.md` under the next staged number.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:ci</Command>
+          <Command>bun ./scripts/check-teaching-surface.ts check</Command>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- src/ scripts/ ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/grace-generate.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/grace-generate.test.ts' ':(exclude)src/lint/catalog.test.ts' ':(exclude)src/verification/localize.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- docs/plans/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml'</Command>
+          <Command>git diff --exit-code deccaedb42157fd88a08e2f984d6b893ae5a9f53 -- examples/ README.md skills/ plugins/ CHANGELOG.md package.json openpackage.yml .claude-plugin/marketplace.json plugins/ngrace/.claude-plugin/plugin.json ':(exclude)README.md' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md'</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22>
+</NgraceChangePlan>

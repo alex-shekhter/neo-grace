@@ -399,6 +399,7 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-execute", section: "execution_rules", token: "no declared task is in scope" },
   { skill: "ngrace-execute", section: "execution_rules", token: "pass-only cycle" },
   { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "report evidence" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "interleaves them" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "artifact whole" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "is a claim" },
   { skill: "ngrace-reviewer", section: "review_judgment", token: "forced-file set" },

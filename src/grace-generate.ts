@@ -145,7 +145,7 @@ function resolveTimestamp(raw: unknown): string {
   return new Date(parsed).toISOString();
 }
 
-function resolveBranch(raw: unknown): string {
+function resolveBranch(raw: unknown, root: string): string {
   const branch = String(raw ?? process.env.NGRACE_SPEC_BRANCH ?? "").trim();
   if (branch !== "") {
     return branch;
@@ -154,6 +154,7 @@ function resolveBranch(raw: unknown): string {
     const detected = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
+      cwd: root,
     }).trim();
     if (detected !== "") {
       return detected;
@@ -197,7 +198,7 @@ type SpecMint = {
 };
 
 /** Resolve the minted id from exactly one of the bare slug or a predecessor; never guesses. */
-function resolveSpecMint(args: { slug?: unknown; supersedes?: unknown; timestamp?: unknown; branch?: unknown }): SpecMint {
+function resolveSpecMint(args: { slug?: unknown; supersedes?: unknown; timestamp?: unknown; branch?: unknown }, root: string): SpecMint {
   const rawSlug = String(args.slug ?? "").trim();
   const rawSupersedes = String(args.supersedes ?? "").trim();
   if ((rawSlug === "") === (rawSupersedes === "")) {
@@ -223,7 +224,7 @@ function resolveSpecMint(args: { slug?: unknown; supersedes?: unknown; timestamp
     lineage = 1;
   }
   const timestamp = resolveTimestamp(args.timestamp);
-  const branch = resolveBranch(args.branch);
+  const branch = resolveBranch(args.branch, root);
   return {
     id: `C-${slug}-${lineage}-${mintHash(branch, timestamp)}`,
     slug,
@@ -242,7 +243,7 @@ export function mintBundle(
   root: string,
   input: { slug?: unknown; supersedes?: unknown; timestamp?: unknown; branch?: unknown },
 ): SpecMint & { relative: string } {
-  const mint = resolveSpecMint(input);
+  const mint = resolveSpecMint(input, root);
   const relative = writeSpecNew(root, mint.id);
   return { ...mint, relative };
 }
@@ -341,7 +342,7 @@ export const specCommand = defineGraceCommand({
       args: specNewArgs,
       async run(context) {
         const root = resolveRoot(context.args.path);
-        const mint = resolveSpecMint(context.args);
+        const mint = resolveSpecMint(context.args, root);
         const priorActive = countPriorSlug(root, "active", mint.slug);
         const priorArchive = countPriorSlug(root, "archive", mint.slug);
         const relative = writeSpecNew(root, mint.id);

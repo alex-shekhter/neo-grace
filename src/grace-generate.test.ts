@@ -21,6 +21,20 @@ function runGenerate(root: string, argv: string[]) {
   });
 }
 
+function runGit(cwd: string, args: string[]) {
+  return Bun.spawnSync({ cmd: ["git", ...args], cwd, stdout: "pipe", stderr: "pipe" });
+}
+
+function runGenerateIn(root: string, argv: string[], env: NodeJS.ProcessEnv, cwd = repoRoot) {
+  return Bun.spawnSync({
+    cmd: [process.execPath, graceBin, ...argv, "--path", root],
+    cwd,
+    stdout: "pipe",
+    stderr: "pipe",
+    env,
+  });
+}
+
 function stdoutText(result: ReturnType<typeof runGenerate>): string {
   return Buffer.from(result.stdout).toString("utf8");
 }
@@ -168,6 +182,32 @@ describe("spec new", () => {
     const third = runGenerate(root, mintArgs("DUP"));
     expect(third.exitCode).not.toBe(0);
     expect(stderrText(third)).toMatch(/archive/);
+  });
+
+  it("hashes the --path repository's branch, not the process cwd's, and refuses a gitless --path", () => {
+    const env = { ...process.env };
+    delete env.NGRACE_SPEC_BRANCH;
+
+    // Direction A: a foreign git cwd against a --path on another branch hashes the --path branch.
+    const foreign = createTempProject("grace-spec-cwd-a-");
+    runGit(foreign, ["init"]);
+    runGit(foreign, ["config", "user.email", "t@example.invalid"]);
+    runGit(foreign, ["config", "user.name", "t"]);
+    runGit(foreign, ["config", "commit.gpgsign", "false"]);
+    writeFileSync(path.join(foreign, "x.txt"), "x\n");
+    runGit(foreign, ["add", "."]);
+    runGit(foreign, ["commit", "-m", "base"]);
+    runGit(foreign, ["checkout", "-b", "probe-other-branch"]);
+    const directionA = runGenerateIn(foreign, ["spec", "new", "CWD-A", "--timestamp", TIMESTAMP_A], env);
+    expect(directionA.exitCode).toBe(0);
+    expect(stdoutText(directionA)).toContain("branch=probe-other-branch");
+
+    // Direction B: a git cwd against a gitless --path refuses.
+    const gitless = createTempProject("grace-spec-cwd-b-");
+    const directionB = runGenerateIn(gitless, ["spec", "new", "CWD-B", "--timestamp", TIMESTAMP_A], env);
+    expect(directionB.exitCode).not.toBe(0);
+    expect(stderrText(directionB)).toContain("requires --branch");
+    expectNoActiveFor(gitless, /CWD-B/);
   });
 
   it("mints the successor with --supersedes from a minted or legacy predecessor", () => {

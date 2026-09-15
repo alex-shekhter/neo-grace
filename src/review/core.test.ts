@@ -34,6 +34,8 @@ import {
 } from "./core";
 import {
   ATTEMPT_PAIR_FINDING_CODE,
+  ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE,
+  ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE,
   REVIEW_CATALOG,
   REVIEW_ISSUE_SEVERITIES,
   WRITE_EVIDENCE_SCOPE_FINDING_CODE,
@@ -2067,7 +2069,7 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     expect(allReviewCodes()).toContain(ATTEMPT_PAIR_FINDING_CODE);
     expect(allReviewCodes()).not.toContain(RETIRED_ATTEMPT_PAIR_CODE);
     // C-CRITERION-CLOSE-EVIDENCE adds review.close-evidence-unevaluated (15 → 16).
-    expect(allReviewCodes()).toHaveLength(18);
+    expect(allReviewCodes()).toHaveLength(20);
     expect(guideFor(RETIRED_ATTEMPT_PAIR_CODE)).toBeUndefined();
     const catalogTest = readFileSync(
       path.join(import.meta.dir, "../lint/catalog.test.ts"),
@@ -2118,6 +2120,117 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
 });
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 — ordered attempt pairing and unpaired attempts
+// ---------------------------------------------------------------------------
+
+type FixtureAttempt = {
+  id: number;
+  task: string;
+  outcome: "fail" | "pass";
+  digests: Array<[string, string]>;
+  signature?: { kind: string; key: string };
+};
+
+/** One loose run/ attempt event carrying WriteEvidence content digests. */
+function renderAttemptEvent(e: FixtureAttempt): string {
+  const sig = e.signature
+    ? `  <FailureSignature kind="${e.signature.kind}" key="${e.signature.key}" />\n`
+    : "";
+  const files = e.digests.map(([p, d]) => `    <File digest="${d}">${p}</File>`).join("\n");
+  return `<Attempt id="${e.id}" task="${e.task}" kind="attempt" outcome="${e.outcome}">\n${sig}  <WriteEvidence available="true">\n${files}\n  </WriteEvidence>\n</Attempt>\n`;
+}
+
+/** A minimal active bundle whose run/ holds the given attempt events. */
+function writeAttemptPairBundle(root: string, changeId: string, events: FixtureAttempt[]): void {
+  const bundleDir = path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
+  const runDir = path.join(bundleDir, "run");
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(
+    path.join(bundleDir, "spec.xml"),
+    `<NgraceChangeSpec graceVersion="1.0" status="draft"><${changeId}><Summary>fixture</Summary></${changeId}></NgraceChangeSpec>`,
+  );
+  for (const e of events) {
+    writeFileSync(path.join(runDir, `${e.id}-${e.task}-attempt.xml`), renderAttemptEvent(e));
+  }
+}
+
+describe("C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 ordered attempt pairing (F250)", () => {
+  it("fail, fail, pass, pass audits two pairs and raises no unpaired finding", () => {
+    const root = ensureTempRoot();
+    writeAttemptPairBundle(root, "C-PAIR-FIX", [
+      { id: 10, task: "T-001", outcome: "fail", digests: [["src/impl.ts", "a1"]], signature: { kind: "verification", key: "flush-invariant" } },
+      { id: 11, task: "T-001", outcome: "fail", digests: [["src/impl.ts", "a2"]], signature: { kind: "verification", key: "record-row" } },
+      { id: 12, task: "T-001", outcome: "pass", digests: [["src/impl.ts", "a3"]] },
+      { id: 13, task: "T-001", outcome: "pass", digests: [["src/impl.ts", "a4"]] },
+    ]);
+    const report = runReview(root, { changeId: "C-PAIR-FIX", changedFiles: [], patterns: false, joinEngine: false, severity: "info" });
+    expect(report.attemptPairAudit?.pairCount).toBe(2);
+    expect(report.findings.filter((f) => f.code === "review.attempt-pair-unpaired-fail")).toHaveLength(0);
+    expect(report.findings.filter((f) => f.code === "review.attempt-pair-unpaired-pass")).toHaveLength(0);
+  });
+
+  it("a single fail, pass audits one pair and raises nothing", () => {
+    const root = ensureTempRoot();
+    writeAttemptPairBundle(root, "C-PAIR-ONE", [
+      { id: 1, task: "T-001", outcome: "fail", digests: [["src/impl.ts", "x"]], signature: { kind: "verification", key: "k" } },
+      { id: 2, task: "T-001", outcome: "pass", digests: [["src/impl.ts", "y"]] },
+    ]);
+    const report = runReview(root, { changeId: "C-PAIR-ONE", changedFiles: [], patterns: false, joinEngine: false, severity: "info" });
+    expect(report.attemptPairAudit?.pairCount).toBe(1);
+    expect(report.findings.filter((f) => f.code.includes("unpaired"))).toHaveLength(0);
+  });
+
+  it("a task with no attempts audits none", () => {
+    const root = ensureTempRoot();
+    writeAttemptPairBundle(root, "C-PAIR-ZERO", []);
+    const report = runReview(root, { changeId: "C-PAIR-ZERO", changedFiles: [], patterns: false, joinEngine: false, severity: "info" });
+    expect(report.attemptPairAudit?.pairCount).toBe(0);
+    expect(report.findings.filter((f) => f.code.includes("unpaired"))).toHaveLength(0);
+  });
+
+  it("a pass with no preceding fail raises the info pass code, absent by default and present at --severity info", () => {
+    const root = ensureTempRoot();
+    writeAttemptPairBundle(root, "C-PAIR-PASSONLY", [
+      { id: 5, task: "T-001", outcome: "pass", digests: [["src/impl.ts", "p"]] },
+    ]);
+    const byDefault = runReview(root, { changeId: "C-PAIR-PASSONLY", changedFiles: [], patterns: false, joinEngine: false });
+    expect(byDefault.findings.filter((f) => f.code === "review.attempt-pair-unpaired-pass")).toHaveLength(0);
+    expect(byDefault.summary.infos).toBe(0);
+    const withInfo = runReview(root, { changeId: "C-PAIR-PASSONLY", changedFiles: [], patterns: false, joinEngine: false, severity: "info" });
+    const passFindings = withInfo.findings.filter((f) => f.code === "review.attempt-pair-unpaired-pass");
+    expect(passFindings).toHaveLength(1);
+    expect(passFindings[0]!.severity).toBe("info");
+    expect(passFindings[0]!.anchorOrHunkKey).toBe("attempt-pair:unpaired:T-001:5");
+  });
+
+  it("a trailing fail with no following pass raises the warning fail code by default", () => {
+    const root = ensureTempRoot();
+    writeAttemptPairBundle(root, "C-PAIR-TAIL", [
+      { id: 1, task: "T-001", outcome: "fail", digests: [["src/impl.ts", "f1"]], signature: { kind: "verification", key: "k1" } },
+      { id: 2, task: "T-001", outcome: "pass", digests: [["src/impl.ts", "p1"]] },
+      { id: 3, task: "T-001", outcome: "fail", digests: [["src/impl.ts", "f2"]], signature: { kind: "verification", key: "k2" } },
+    ]);
+    const report = runReview(root, { changeId: "C-PAIR-TAIL", changedFiles: [], patterns: false, joinEngine: false });
+    expect(report.attemptPairAudit?.pairCount).toBe(1);
+    const failFindings = report.findings.filter((f) => f.code === "review.attempt-pair-unpaired-fail");
+    expect(failFindings).toHaveLength(1);
+    expect(failFindings[0]!.severity).toBe("warning");
+    expect(failFindings[0]!.anchorOrHunkKey).toBe("attempt-pair:unpaired:T-001:3");
+  });
+
+  it("both unpaired codes' guides name the gate verdict adjudication path at their pinned severities", () => {
+    const fail = guideFor(ATTEMPT_PAIR_UNPAIRED_FAIL_FINDING_CODE);
+    const pass = guideFor(ATTEMPT_PAIR_UNPAIRED_PASS_FINDING_CODE);
+    expect(fail).toBeDefined();
+    expect(pass).toBeDefined();
+    expect(fail!.remediation.some((r) => /gate verdict/i.test(r))).toBe(true);
+    expect(pass!.remediation.some((r) => /gate verdict/i.test(r))).toBe(true);
+    expect(fail!.severity).toBe("warning");
+    expect(pass!.severity).toBe("info");
+  });
+});
+
 // C-SUBSTANTIATION-HONESTY T-002 — skill failure-shape prose agreement
 // ---------------------------------------------------------------------------
 
@@ -2414,7 +2527,7 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     expect(guide!.code).toBe(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
     expect(guide!.severity).toBe("error");
     expect(allReviewCodes()).toContain(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
-    expect(allReviewCodes()).toHaveLength(18);
+    expect(allReviewCodes()).toHaveLength(20);
     // Porcelain sibling still distinct.
     expect(guideFor("review.scope-outside-write-scope")!.severity).toBe("error");
   });
@@ -3256,8 +3369,12 @@ describe("C-FINDING-SEVERITIES T-001 vocabulary", () => {
     expect([...REVIEW_ISSUE_SEVERITIES]).toEqual(["error", "warning", "info"]);
   });
 
-  it("no live REVIEW_CATALOG code has severity info", () => {
-    expect(Object.values(REVIEW_CATALOG).filter((guide) => guide.severity === "info")).toEqual([]);
+  it("the only live REVIEW_CATALOG code at severity info is the unpaired-pass code", () => {
+    expect(
+      Object.values(REVIEW_CATALOG)
+        .filter((guide) => guide.severity === "info")
+        .map((guide) => guide.code),
+    ).toEqual(["review.attempt-pair-unpaired-pass"]);
   });
 
   it("guideFor of the two warnings and the two live scope errors stay", () => {
