@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-TEACH-PLAN-DRIVES-CORRECTIONS-1-14457871>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-TEACH-PLAN-DRIVES-CORRECTIONS-1-14457871><Replacement>C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA</Replacement>
     <Summary>
       The fourth teaching increment of the `RM-GOVERNED-PATH` record: flush the two staged findings
       this bundle pays, teach the four `ngrace-plan` drives and the three `ngrace-execute` correction

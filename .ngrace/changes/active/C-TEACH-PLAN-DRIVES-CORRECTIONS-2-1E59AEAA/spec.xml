@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA>
+    <Summary>Summary of C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA.</Summary>
+    <Goals>
+      <Goal>Goal for C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA; replace this placeholder by deciding README.md and examples/. Owner: the author.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA>
+</NgraceChangeSpec>
