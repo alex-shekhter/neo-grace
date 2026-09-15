@@ -86,6 +86,13 @@ type AsStateScratch = {
 
 const asStateScratchByResult = new WeakMap<LintResult, AsStateScratch>();
 
+/**
+ * Module-private record of the commands this run spawned (F257). Populated on the
+ * onCommandRun path; read only by formatTextReport. Not on LintResult — JSON.stringify
+ * must not gain a key (D13).
+ */
+const commandRunRecordsByResult = new WeakMap<LintResult, CommandRunRecord[]>();
+
 function overlayChangeStatus(artifact: ParsedGraceXmlArtifact, status: string): ParsedGraceXmlArtifact {
   if (!artifact.root) {
     return artifact;
@@ -493,14 +500,17 @@ function validateAssertions(
   // never import the write surface (avoids assertions → grace-cursor cycle).
   const commandRunSource =
     assertionMode === "final" ? "assertions-final" : "lint-run-commands";
+  const commandRuns: CommandRunRecord[] = [];
+  commandRunRecordsByResult.set(result, commandRuns);
   const onCommandRun =
-    options.asStatus
-      ? undefined
-      : options.runCommands === true && options.changeId
-        ? (record: CommandRunRecord) => {
-            appendCommandRunEvent(root, options.changeId!, record);
+    options.runCommands === true
+      ? (record: CommandRunRecord) => {
+          commandRuns.push(record);
+          if (!options.asStatus && options.changeId) {
+            appendCommandRunEvent(root, options.changeId, record);
           }
-        : undefined;
+        }
+      : undefined;
   const context: AssertionContext = {
     root,
     graph,
@@ -806,6 +816,12 @@ export function formatTextReport(result: LintResult, options: { remediate?: bool
     const mLabel = m === 1 ? "class" : "classes";
     const reasons = m > 0 ? ` (${result.summary.asState.unevaluable.join(", ")})` : "";
     lines.push(`evaluated ${n} ${nLabel}; ${m} ${mLabel} not evaluable at this state${reasons}`);
+  }
+
+  const commandRuns = commandRunRecordsByResult.get(result) ?? [];
+  if (commandRuns.length > 0) {
+    const exitZero = commandRuns.filter((run) => run.exitCode === 0).length;
+    lines.push(`Commands: ${commandRuns.length} evaluated, ${exitZero} exit 0`);
   }
 
   if (result.assertionMode === "target" && result.commandsEnabled === false) {

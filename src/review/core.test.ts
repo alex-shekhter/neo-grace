@@ -3998,3 +3998,82 @@ describe("C-REVIEW-SELF-SCOPE-2 narrowed MustExist check (F240)", () => {
   });
 });
 
+
+// ---------------------------------------------------------------------------
+// C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA (F256): anchor-key injectivity. Two
+// claims of one rule in one file are two findings with two distinct ids, at
+// the four collapsible emit sites.
+// ---------------------------------------------------------------------------
+describe("C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA anchor-key injectivity", () => {
+  function anchorProbeRoot(): string {
+    const root = track(
+      path.join(os.tmpdir(), `cea-anchor-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    );
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    return root;
+  }
+  function writeAnchorProbePlan(root: string, changeId: string, body: string): void {
+    const dir = path.join(root, ".ngrace/changes/active", changeId);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, "plan.xml"),
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><${changeId}><IntentSummary>probe</IntentSummary>${body}<DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors><VerificationAnchors><V-M-EXAMPLE /></VerificationAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan></${changeId}></NgraceChangePlan>`,
+    );
+  }
+  function expectInjective(code: string, root: string, ruleId: string): void {
+    const findings = runPatternDetectors(root).filter(
+      (f) => f.code === code && f.ruleId === ruleId,
+    );
+    expect(findings.length, `${ruleId}: count`).toBeGreaterThan(1);
+    expect(new Set(findings.map((f) => f.findingId)).size, `${ruleId}: distinct ids`).toBe(
+      findings.length,
+    );
+  }
+
+  it("two same-target absent MustExist in one plan are two findings with two distinct ids", () => {
+    const root = anchorProbeRoot();
+    writeAnchorProbePlan(
+      root,
+      "C-ANCHOR-MUSTEXIST",
+      `<BaselineAssertions><MustExist><Value>build/artifacts/held-out-absent.bin</Value></MustExist><MustExist><Value>build/artifacts/held-out-absent.bin</Value></MustExist></BaselineAssertions><TargetAssertions></TargetAssertions>`,
+    );
+    expectInjective("review.confidently-wrong", root, "must-exist-missing");
+  });
+
+  it("two identical unemitted markers in one verification file are two findings with two distinct ids", () => {
+    const root = anchorProbeRoot();
+    const ver = path.join(root, ".ngrace/verification/main.xml");
+    writeFileSync(
+      ver,
+      readFileSync(ver, "utf8").replace(
+        "</V-M-EXAMPLE>",
+        "<Marker>[Z][z][BLOCK_UNEMITTED]</Marker><Marker>[Z][z][BLOCK_UNEMITTED]</Marker></V-M-EXAMPLE>",
+      ),
+    );
+    expectInjective("review.confidently-wrong", root, "marker-not-emitted");
+  });
+
+  it("two same-file MustMatchPattern in one plan are two findings with two distinct ids", () => {
+    const root = anchorProbeRoot();
+    writeAnchorProbePlan(
+      root,
+      "C-ANCHOR-MUSTMATCH",
+      `<BaselineAssertions><MustMatchPattern><File>.ngrace/changes/active/C-ANCHOR-MUSTMATCH/plan.xml</File><Pattern>x</Pattern></MustMatchPattern><MustMatchPattern><File>.ngrace/changes/active/C-ANCHOR-MUSTMATCH/plan.xml</File><Pattern>y</Pattern></MustMatchPattern></BaselineAssertions><TargetAssertions></TargetAssertions>`,
+    );
+    expectInjective("review.self-referential-comparison", root, "plan-matches-self");
+  });
+
+  it("two same-tag unthreaded verification children are two findings with two distinct ids", () => {
+    const root = anchorProbeRoot();
+    const ver = path.join(root, ".ngrace/verification/main.xml");
+    writeFileSync(
+      ver,
+      readFileSync(ver, "utf8").replace(
+        "</V-M-EXAMPLE>",
+        '<FutureHook mode="a" /><FutureHook mode="b" /></V-M-EXAMPLE>',
+      ),
+    );
+    expectInjective("review.unthreaded-construct", root, "unknown-verification-child");
+  });
+});

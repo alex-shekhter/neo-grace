@@ -14,7 +14,7 @@ description: Interview the user and create an approved neo-grace NgraceChangeSpe
 
 <shape_sources>
 Registered change-spec shape: `docs/schema-reference.md` (heading change-spec). That document is not a complete grammar — it excludes imperative validators and file-local markup.
-Explain a shape or code: `ngrace lint --explain <code|shape>`.
+Explain a shape or code: `ngrace lint --explain <code|shape>`. Issue codes are namespaced (`change.…`, `assertion.…`, `review.…`).
 Primary write path: `ngrace spec new &lt;SLUG&gt;` mints `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;` from a bare slug, a handed-in `--timestamp` and the branch. The minted skeleton is a starting shape, not a verdict: when a rich, precedent-shaped artifact does not fit it, the skeleton is rewritten wholesale after the mint — the command is the write path, never the source of the final section shape.
 Optional-section teaching source: `references/change-spec-template.xml`. That path is relative to this skill's directory, as every `references/` path a skill cites is.
 Optional design-context copy-source: `references/design-context-template.xml`.

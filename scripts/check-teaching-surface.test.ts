@@ -501,6 +501,7 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-spec", section: "workflow", token: "stand in for the interview" },
   { skill: "ngrace-spec", section: "shape_sources", token: "rewritten wholesale" },
   { skill: "ngrace-spec", section: "shape_sources", token: "relative to this skill's directory" },
+  { skill: "ngrace-spec", section: "shape_sources", token: "codes are namespaced" },
   { skill: "ngrace-spec", section: "status_rules", token: "revised in place" },
   { skill: "ngrace-plan", section: "must_do", token: "placeholders" },
   { skill: "ngrace-plan", section: "must_do", token: "re-home" },
@@ -620,6 +621,19 @@ describe("checkTaughtRules", () => {
     expect(output).toContain("skills/ngrace/ngrace-execute/SKILL.md");
     expect(output).toContain("cursor_kinds");
     expect(output).toContain("interleaves them");
+  });
+
+  it("returns non-zero naming the file, section and token when the namespaced-codes sentence is deleted from one tree", () => {
+    const root = isolatedRoot();
+    plantTaughtSkills(root, {
+      relative: "skills/ngrace/ngrace-spec/SKILL.md",
+      body: taughtSkillBody("ngrace-spec", { section: "shape_sources", token: "codes are namespaced" }),
+    });
+    const { code, output } = captureStderr(() => checkTaughtRules(root));
+    expect(code).not.toBe(0);
+    expect(output).toContain("skills/ngrace/ngrace-spec/SKILL.md");
+    expect(output).toContain("shape_sources");
+    expect(output).toContain("codes are namespaced");
   });
 
   it("returns non-zero naming the file and block when the review_judgment block is deleted from one tree", () => {

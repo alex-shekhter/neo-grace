@@ -1,4 +1,4 @@
-<Findings base="7522" headroom="274" ceiling="7796">
+<Findings base="7567" headroom="229" ceiling="7796">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7518,5 +7518,50 @@ later `C-*`, and this rides with it or ahead of it. Neighbour to F125.
 
 ---
 </Body>
+  </Finding>
+  <Finding id="f255" token="F255" status="live">
+    <Title>### F255 — `ngrace lint --explain &lt;code&gt;` answers a namespaced issue code typed without its namespace with `Unknown shape: &lt;code&gt;` and the shape list, so a reader who typed a code learns nothing about codes and is told to look among shapes. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-15 at `dfc5405`, by the executor authoring `C-TEACH-PLAN-DRIVES-CORRECTIONS-1-14457871` and re-driven by the authority.**
+`bun ./src/grace.ts lint --explain close-evidence-and-satisfied` exits 1 with `Unknown shape: close-evidence-and-satisfied` followed by
+`Registered shapes: artifact-root, root-metadata, …`; `--explain change.close-evidence-and-satisfied` prints the issue guide. The fallback at
+`src/grace-lint.ts:259` treats any argument that is not a registered code as a shape name, so the message names the wrong universe; the
+`ngrace-spec` skill's `shape_sources` (`ngrace lint --explain &lt;code|shape&gt;`) does not say that codes carry their namespace prefix, and neither does
+any brief form. Every catalog code carries a namespace (`change.`, `assertion.`, `review.`, …), so a bare last segment is the likeliest
+mis-typing.
+
+**The rule.** When the argument matches no code and no shape, the message says both universes were searched and, when the bare argument is the
+last segment of exactly one registered code, names that code (`Unknown code or shape: X; did you mean change.X?`). One sentence in
+`ngrace-spec` `shape_sources`: issue codes are namespaced (`change.…`, `assertion.…`, `review.…`). Owner: the next opener of
+`src/grace-lint.ts`; the sentence, the next teaching increment.</Body>
+  </Finding>
+  <Finding id="f256" token="F256" status="live">
+    <Title>### F256 — `review.confidently-wrong`'s `must-exist-missing` anchor key is `must-exist:&lt;target&gt;`, so two `MustExist` elements naming the same path in one plan emit two findings with one id; the review counts six where three ids exist, and an `--ack-finding` of one id silently covers both. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-15 at `dfc5405`, by the authority's subagent on a whole-repository copy with `.ngrace/scratch` removed.** `ngrace review --path .`
+exits 1 with six `review.confidently-wrong` lines carrying three distinct ids — `f9e50fe2046d7a5b` twice (`C-FLUSH-AND-REPAIR/plan.xml`),
+`9d745b619589d9ca` twice (`C-FLUSH-AND-UNPIN`), `44c49d73260e7cb4` twice (`C-FLUSH-TWO-WAVES`). Each plan carries the buffer path in two
+`MustExist` values (`C-FLUSH-AND-REPAIR/plan.xml:278` and `:328`, a baseline and a target assertion). `findingId` (`src/review/core.ts:340`)
+hashes `auditOrPatternId`, file, `anchorOrHunkKey`, `ruleId`; the emit site at `src/review/core.ts:547` passes `must-exist:${target}` as the
+anchor key with nothing that names the assertion block, so both elements hash identically. Discovered while re-driving `F253`'s third claim,
+which counts &quot;six&quot; — a count of lines, not of findings.
+
+**The rule.** The anchor key carries the assertion's position (block kind and index, or the element's line), so two claims are two ids; or the
+audit de-duplicates identical claims and reports one finding with a count. Either way the review's total and its id set agree. Owner: the next
+opener of `src/review/core.ts`.</Body>
+  </Finding>
+  <Finding id="f257" token="F257" status="live">
+    <Title>### F257 — a green `lint --assertions baseline|target --run-commands` report says nothing about the commands it ran: the only evidence that the `MustPassCommand`s were evaluated is the `command-run` loose events under `run/`, and a reader of the printed report cannot tell a run with commands from one without. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-15 at `43a547f` on an approved-shaped whole-repository copy of `C-TEACH-PLAN-DRIVES-CORRECTIONS-1-14457871`, by the authority.**
+`bun ./src/grace.ts lint --path . --change C-… --assertions baseline --run-commands` exits 0 and prints the standard report (`Errors: 0`,
+`Warnings: 0`, `No issues found.`); `grep -ciE 'command' &lt;report&gt;` → 0. The same command without `--run-commands` exits 1 with eight
+`assertion.command-not-evaluated` errors (`F253`), so the red side names the commands and the green side is silent. The eight evaluations
+are visible only as sixteen `command-run` events (`exitCode=&quot;0&quot;`) across two drives under the copy's `run/` directory. A report that a
+brief or a finding pastes as evidence of &quot;baseline green with commands&quot; therefore carries no such evidence in its bytes.
+
+**The rule.** The report of a selected-assertion run states how many `MustPassCommand`s were evaluated and their exit codes (one line,
+`Commands: 8 evaluated, 8 exit 0`), or lists the evaluated commands under the assertion section, so the pasted tail is evidence. Owner:
+the next opener of `src/lint/core.ts` (the report writer) — with `F256` if the same bundle opens `src/review/core.ts`.</Body>
   </Finding>
 </Findings>

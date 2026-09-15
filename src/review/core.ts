@@ -482,6 +482,7 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
     if (!existsSync(abs)) continue;
     const artifact = readGraceXmlArtifact(abs);
     if (!artifact.root) continue;
+    let markerOrdinal = 0;
     for (const node of walkNodes(artifact.root)) {
       if (node.tag !== "Marker") continue;
       const marker = node.text.trim();
@@ -493,7 +494,7 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
             verificationRel,
             `Verification requires marker ${marker} that no runtime source emits.`,
             "marker-not-emitted",
-            `marker:${marker}`,
+            `marker:${marker}#${markerOrdinal++}`,
           ),
         );
       }
@@ -521,6 +522,7 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
       globs: expandScopePathsForArchiveIdentity(observed.globs, identity),
     };
     const unapplied = planStatus !== "applied";
+    let mustExistOrdinal = 0;
     const sectionNodes = [...walkNodes(artifact.root)].filter(
       (n) => n.tag === "BaselineAssertions" || n.tag === "TargetAssertions",
     );
@@ -545,7 +547,7 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
               planRel,
               `MustExist claims ${target} which is not present on disk.`,
               "must-exist-missing",
-              `must-exist:${target}`,
+              `must-exist:${target}#${mustExistOrdinal++}`,
             ),
           );
         }
@@ -608,6 +610,7 @@ function detectSelfReferential(root: string): ReviewFinding[] {
     const artifact = readGraceXmlArtifact(abs);
     if (!artifact.root) continue;
     const posixPlan = planRel.replaceAll("\\", "/");
+    let mustMatchOrdinal = 0;
     for (const node of walkNodes(artifact.root)) {
       if (node.tag !== "MustMatchPattern") continue;
       const fileNode = node.children.find((c) => c.tag === "File");
@@ -620,7 +623,7 @@ function detectSelfReferential(root: string): ReviewFinding[] {
             planRel,
             "Baseline MustMatchPattern targets the plan itself as oracle.",
             "plan-matches-self",
-            `must-match:${file}`,
+            `must-match:${file}#${mustMatchOrdinal++}`,
           ),
         );
       }
@@ -875,6 +878,7 @@ function detectUnthreadedConstruct(root: string): ReviewFinding[] {
     const abs = path.join(root, verificationRel);
     const artifact = readGraceXmlArtifact(abs);
     if (!artifact.root) continue;
+    let vmChildOrdinal = 0;
     for (const node of walkNodes(artifact.root)) {
       if (!/^V-M-/.test(node.tag)) continue;
       for (const child of node.children) {
@@ -886,7 +890,7 @@ function detectUnthreadedConstruct(root: string): ReviewFinding[] {
             verificationRel,
             `Verification child <${child.tag}> under ${node.tag} is not threaded through health or assertion evaluation.`,
             "unknown-verification-child",
-            `vm-child:${node.tag}:${child.tag}`,
+            `vm-child:${node.tag}:${child.tag}#${vmChildOrdinal++}`,
           ),
         );
       }

@@ -91,9 +91,12 @@ describe("token-accounting (D15)", () => {
     // C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA T-002: the seven taught
     // sentences landed in ngrace-plan and ngrace-execute, both trees
     // (line-neutral, byte-moving): 864 → 864 lines and 75791 → 77124 bytes.
+    // C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA T-005: the namespaced-codes sentence
+    // landed in ngrace-spec, both trees (line-neutral, byte-moving): 864 → 864
+    // lines and 77124 → 77198 bytes.
     const measured = skillTextLines();
     expect(measured.total).toBe(864);
-    expect(measured.totalBytes).toBe(77124);
+    expect(measured.totalBytes).toBe(77198);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);
