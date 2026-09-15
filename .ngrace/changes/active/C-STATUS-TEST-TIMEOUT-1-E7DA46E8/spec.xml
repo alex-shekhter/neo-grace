@@ -1,0 +1,189 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-STATUS-TEST-TIMEOUT-1-E7DA46E8>
+    <Summary>
+      T0 hotfix on the `RM-GOVERNED-PATH` record: give `src/grace-status.test.ts`'s live-repo
+      `reRatificationCount` test an explicit generous timeout, flush the one staged finding `F263`
+      into the record with one index `Entry`, and mint its chartered row. The one production write is
+      a single line in `src/grace-status.test.ts` (the `it` gains `}, 60_000);`). The close's
+      `--retire` moves two elements — `F263` and the row. No skill text, no `src/` production file,
+      no version surface.
+    </Summary>
+    <Problem>
+      **The CI failure, measured.** GitHub run `35017776037` (the push of PR #100 to `main`) failed
+      the `validate` step in `src/grace-status.test.ts:1131` — `it("live repo reports measured
+      reRatificationCount table, both keys as numbers, and measured chain depths")` — with
+      `(fail) … [30230.55ms]` and `^ this test timed out after 30000ms.`
+      (`gh run view 35017776037 --log-failed | grep -E 'timed out|reRatificationCount'`). The test
+      calls `collectProjectStatus(REPO_ROOT)` over the whole archive (**106** directories) and
+      carries no explicit timeout (`grep -c '}, [0-9_]*);' src/grace-status.test.ts` = **0**).
+      Driven locally with a generous timeout it is green: `bun test --timeout=120000
+      src/grace-status.test.ts -t "live repo reports"` → `1 pass` in `[9811.89ms]` (wall `9.905s`).
+      The rule it violates is already the repository's (`ngrace-spec` `acceptance_criteria_anchors`,
+      `F185`): any test driven against a real repository carries an explicit generous timeout.
+      **The base commit.** Branch `c-teach-copy-drives-lineage` at `aa97022`, the close of
+      `C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F`; tree clean; `active/` held `.gitkeep` only. The record's
+      live roots read `&lt;Findings base="7522" headroom="274" ceiling="7796"&gt;`,
+      `&lt;RecordIndex base="268" headroom="28" ceiling="296"&gt;`,
+      `&lt;Registry base="12" headroom="14" ceiling="26"&gt;` and `&lt;Rulings base="1697"
+      headroom="186" ceiling="1883"&gt;`.
+    </Problem>
+    <Goals>
+      <Goal>
+        **The timeout.** `src/grace-status.test.ts`'s `it("live repo reports …")` at line 1131 gains
+        the house explicit generous timeout at its close (`}, 60_000);`, replacing `});`), so the
+        whole-archive walk cannot time out on the 30 s default. The suite stays green and no other
+        line of the file changes.
+      </Goal>
+      <Goal>
+        **The payment.** The plan flushes `F263` (cut at its trailing `---` separator, rendered
+        through the shipped `xmlEscape`) into
+        `docs/plans/active/RM-GOVERNED-PATH/findings.xml` with one index
+        `&lt;Entry id="f263" token="F263" genre="finding" layer="live" /&gt;`, and mints the chartered
+        row into `registry.xml` with `&lt;Pays&gt;F263&lt;/Pays&gt;`, then runs `--rewrite-roots`.
+        Expected: findings `&lt;Findings base="7529" headroom="267" ceiling="7796"&gt;` (the
+        seven-element body), index `&lt;RecordIndex base="269" headroom="27" ceiling="296"&gt;`,
+        registry `&lt;Registry base="13" headroom="13" ceiling="26"&gt;`, rulings untouched. At the
+        close the authority archives the bundle and runs `--retire`, which moves **two** — `F263` to
+        `findings-retired.xml` stamped
+        `&lt;PaidBy&gt;C-STATUS-TEST-TIMEOUT-1-E7DA46E8&lt;/PaidBy&gt;` and the row — and flips the
+        index layer in place; a second `--retire` reports `moved 0`.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T0** (hotfix: one test's timeout plus the record flush for `F263`). Issue:
+        CI run `35017776037` (`src/grace-status.test.ts:1131`, `this test timed out after 30000ms`),
+        staged as `F263` in `.ngrace/scratch/staged-findings.md`. Base commit `aa97022`. The one
+        production write is a single line in `src/grace-status.test.ts`; `scripts/validate-record-retirement.test.ts`
+        gains the flush-invariant and row walks the plan's suite needs. Binding live rulings: `D28`/
+        `D28.1` (the flush lands in the findings window and the close's move re-opens it), `D30`
+        (findings raised while this bundle is open go to the staged buffer under the next staged
+        number; nothing is staged here), `D31` (the index has no retired sibling; its `Entry` layer
+        flips in place), `D11` (nothing deferred), `D20` (the authority owns the close), `F43`
+        (escape markup as character data). No skill carries a teaching sentence this bundle lands;
+        no `src/` production file changes. This spec is written at `status="draft"` and stops there:
+        the approval write, the gates, the applied close and the `--retire` are the authority's.
+      </Constraint>
+      <Constraint>
+        **What the T0 tier drops, and what it keeps.** The last five specs (the `RM-GOVERNED-PATH`
+        teaching increments) carried teaching-sentence Goals, instrument Goals, footprint Goals, a
+        criterion-mapping Constraint, a roots-held criterion, a mirror-sync criterion and a
+        no-current-mode criterion; T0 makes those optional and none is needed here (no skill text,
+        no instruments, no `README.md`). Kept: the flush of `F263` and its row (`AC-FLUSH-LANDED`,
+        `AC-ROW-PAYS`), one base-pinned `git diff` byte-invariance guard naming `aa97022`
+        (`AC-NO-OTHER-SRC`), and the post-archive close-lint criterion (`AC-CLOSE-LINT`). Every
+        `CloseEvidence` `Command` matches a shipped discriminating shape (`bun test` for the suites,
+        the `git-diff-exit-code` shape with the named base commit, the `grace-ts-lint-fail-on` shape
+        for close-time lint). Structural counts come from the shipped parser, never `grep -c`; probes
+        mutate copies, never the production record.
+      </Constraint>
+      <Constraint>
+        **Write scope, stated once.** Files this bundle forces into write scope:
+        `src/grace-status.test.ts` (the one-line timeout),
+        `scripts/validate-record-retirement.test.ts` (the flush-invariant and row walks),
+        `docs/plans/active/RM-GOVERNED-PATH/findings.xml`, `decisions.xml`, `registry.xml` (the flush
+        and the row, plus `--rewrite-roots`), `findings-retired.xml` and `registry-retired.xml` (the
+        close's `--retire`), and this bundle's own artifacts under
+        `.ngrace/changes/active/C-STATUS-TEST-TIMEOUT-1-E7DA46E8/`. Nothing else: no skill, no
+        `README.md`, no `examples/`, no version surface, no lint catalog. The one `src/` write is a
+        `.test.ts`, for which `isModuleOwnableWritePath` is false, so
+        `change.graph-anchors-miss-write-scope` cannot fire; `scripts/` is lint-ignored
+        (`.ngrace-lint.json` `ignoredDirs`).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` unchanged: the fix is a test timeout with no user-visible surface, and no
+        measurement cell moves. Owner: unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        `examples/` unchanged; no polyglot surface, no evidence rebalance. Owner: unchanged; no
+        user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        The 106 archived bundles, all skill text and their packaged mirrors, the teaching
+        templates, the lint catalog, `package.json`/`bun.lock`, and any version surface — unchanged.
+        Owner: unchanged surfaces; their pins stay green by non-edit.
+      </NonGoal>
+      <NonGoal>
+        A new lint issue code, a new CLI verb, or a generic "all tests get timeouts" sweep: the rule
+        already exists and the fix is the one failing `it`. Owner: unchanged; the repository's
+        `acceptance_criteria_anchors` sentence suffices.
+      </NonGoal>
+      <NonGoal>
+        Running a gate, a cursor or supersede verb, `ngrace review`, or committing against the
+        production bundle. Owner: the authority; this spec is authored at `status="draft"`.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-TIMEOUT>
+        `src/grace-status.test.ts`'s live-repo `reRatificationCount` test carries an explicit generous
+        timeout at its close (the house `}, 60_000);` form) and the file is green.
+        <CloseEvidence>
+          <Command>bun test src/grace-status.test.ts</Command>
+        </CloseEvidence>
+      </AC-TIMEOUT>
+      <AC-FLUSH-LANDED>
+        After the flush, `f263` exists exactly once across `findings.xml` and `findings-retired.xml`
+        with no fixed expectation of which file holds it: its `status` agrees with the holding file,
+        its `token` and `genre` agree, and its single index `&lt;Entry&gt;` has `genre` and `layer`
+        agreeing with that holding file; no landed `Body` ends with a `---` separator line; the
+        findings root `base` equals the file's `newlineCount` and the index `base` equals its live
+        `Entry` count. The plan's suite adds the flush-invariant walk to
+        `scripts/validate-record-retirement.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-FLUSH-LANDED>
+      <AC-ROW-PAYS>
+        This bundle's registry row exists exactly once across `registry.xml` and
+        `registry-retired.xml` with no fixed expectation of which file holds it: `status` agrees with
+        the holding file, `kind="chartered"`, its `&lt;Pays&gt;` contains `F263` (containment, never
+        an exact set), and its `&lt;StatusText&gt;` names no `F` token outside `Pays` and carries no
+        `Closed with` sentence.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROW-PAYS>
+      <AC-NO-OTHER-SRC>
+        No file under `src/` or `scripts/` changes relative to this spec's base commit `aa97022`
+        except `src/grace-status.test.ts` and `scripts/validate-record-retirement.test.ts`, named
+        here and in the command's excludes.
+        <CloseEvidence>
+          <Command>git diff --exit-code aa97022 -- src/ scripts/ ':(exclude)src/grace-status.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-OTHER-SRC>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-STATUS />
+      `src/grace-status.test.ts` is the one production write. It is a `.test.ts`, which
+      `isModuleOwnableWritePath` does not own, and it carries no file-local module contract: its only
+      `LINKS:` occurrence (`src/grace-status.test.ts:63`, `LINKS: M-EXAMPLE`) is fixture text for a
+      sample contract the tests construct, not the file's header. The module under test is
+      `M-STATUS` (graph `Path: src/grace-status.ts`), and it is the only module this spec anchors;
+      no synthetic module is minted.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/grace-status.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        T0 integration: the live-repo `reRatificationCount` test carries an explicit generous timeout
+        and its suite exits 0; `F263` is flushed with one index `Entry` and its row is minted live
+        before the close; a mid-bundle `--retire` reports `moved 0`; the close's move reports
+        `moved 2` and flips the one index layer, and a second `--retire` reports `moved 0`; the
+        applied-archive record validates clean; every `CloseEvidence` command and the full
+        `validate:ci` run green inside a faithful copy of the post-close state, with both directions
+        driven for each criterion. Structural counts come from the shipped parser; exit codes read
+        directly.
+      </ExpectedEvidence>
+    </VerificationIntent>
+  </C-STATUS-TEST-TIMEOUT-1-E7DA46E8>
+</NgraceChangeSpec>
