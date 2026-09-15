@@ -88,9 +88,12 @@ describe("token-accounting (D15)", () => {
     // C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 T-003: the interleaving sentence landed in
     // ngrace-execute, both trees (line-neutral, byte-moving): 864 → 864 lines
     // and 75626 → 75791 bytes.
+    // C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA T-002: the seven taught
+    // sentences landed in ngrace-plan and ngrace-execute, both trees
+    // (line-neutral, byte-moving): 864 → 864 lines and 75791 → 77124 bytes.
     const measured = skillTextLines();
     expect(measured.total).toBe(864);
-    expect(measured.totalBytes).toBe(75791);
+    expect(measured.totalBytes).toBe(77124);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

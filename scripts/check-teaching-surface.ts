@@ -429,6 +429,14 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-reviewer", section: "mechanized_first", token: "skips the bundle's own" },
   { skill: "ngrace-reviewer", section: "mechanized_first", token: "by identity" },
   { skill: "ngrace-reviewer", section: "mechanized_first", token: "design-context.xml" },
+  { skill: "ngrace-plan", section: "must_do", token: "assertion.command-not-evaluated" },
+  { skill: "ngrace-plan", section: "validation", token: "assertion.change-required" },
+  { skill: "ngrace-plan", section: "must_do", token: "review.confidently-wrong" },
+  { skill: "ngrace-plan", section: "spec_plan_traceability", token: "maps only criteria without" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "task that owns the surface" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "pass-only correction" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "attributes to it" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "the intended task" },
 ];
 
 // ---------------------------------------------------------------------------

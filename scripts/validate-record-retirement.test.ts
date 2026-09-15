@@ -2106,6 +2106,12 @@ ${names
         // applied-archive state (the close's mint).
         F250: "C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22",
         F251: "C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22",
+        // C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA T-001: the chartered row's two
+        // minted tokens. The extension is consulted only for tokens the derivation
+        // actually mints, so the walk is green with the row live and green in the
+        // applied-archive state (the close's mint).
+        F253: "C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA",
+        F254: "C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
@@ -5375,4 +5381,61 @@ describe("C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 carrier and row relations", () => {
     expect(hits.length, `the mutated copy carries two ${PAIR_ROW.name} rows`).toBe(2);
     expect(() => expectPairCarrierAndRowRelations(recordDir)).toThrow(/exactly one Row across the registry layers/);
   });
+});
+
+describe("C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA flush invariant", () => {
+  it("the two flushed ids are exactly once across the findings pair with status, token, index genre and layer agreeing, and the roots arithmetic holds", () => {
+    const flushed = ["f253", "f254"];
+    const liveParsed = parseGraceXmlArtifact("findings.xml", readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings.xml"), "utf8"));
+    const retiredParsed = parseGraceXmlArtifact("findings-retired.xml", readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings-retired.xml"), "utf8"));
+    const indexParsed = parseGraceXmlArtifact("decisions.xml", readFileSync(path.join(REPO_ROOT, RECORD_REL, "decisions.xml"), "utf8"));
+    for (const id of flushed) {
+      const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+        const parsed = file === "findings.xml" ? liveParsed : retiredParsed;
+        return [...walkNodes(parsed.root!)].filter((n) => n.tag === "Finding" && n.attributes.id === id).map((n) => ({ file, node: n }));
+      });
+      expect(carriers.length, id).toBe(1);
+      const { file, node } = carriers[0]!;
+      const expectedStatus = file === "findings.xml" ? "live" : "retired";
+      expect(node.attributes.status, id).toBe(expectedStatus);
+      expect(node.attributes.token, id).toBe("F" + id.slice(1));
+      const entries = [...walkNodes(indexParsed.root!)].filter((e) => e.tag === "Entry" && e.attributes.id === id);
+      expect(entries.length, id).toBe(1);
+      expect(entries[0]!.attributes.genre, id).toBe("finding");
+      expect(entries[0]!.attributes.layer, id).toBe(expectedStatus);
+      const body = childText(node, "Body") ?? "";
+      const lines = body.split("\n");
+      let i = lines.length - 1;
+      while (i >= 0 && lines[i]!.trim() === "") i--;
+      expect(lines[i]?.trim(), id + " separator tail").not.toBe("---");
+    }
+    const findingsText = readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings.xml"), "utf8");
+    const root = parseGraceXmlArtifact("findings.xml", findingsText).root!;
+    expect(Number(root.attributes.base)).toBe(newlineCount(findingsText));
+    expect(Number(root.attributes.base) + Number(root.attributes.headroom)).toBe(Number(root.attributes.ceiling));
+    expect(validateStubAndIndex(path.join(REPO_ROOT, RECORD_REL, "decisions.md"))).toEqual([]);
+    expect(proveRecordPreservation(path.join(REPO_ROOT, RECORD_REL))).toEqual([]);
+  }, 60_000);
+
+  it("the row is exactly once across the registry layers with Pays containing F253 and F254 and StatusText naming no F token outside Pays", () => {
+    const rowName = "C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA";
+    const rows: Array<{ file: string; node: { attributes: Record<string, string> } }> = [];
+    for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"));
+      for (const node of walkNodes(parsed.root!)) {
+        if (node.tag === "Row" && node.attributes.name === rowName) rows.push({ file, node });
+      }
+    }
+    expect(rows.length).toBe(1);
+    const { file, node } = rows[0]!;
+    expect(node.attributes.status).toBe(file === "registry.xml" ? "live" : "retired");
+    expect(node.attributes.kind).toBe("chartered");
+    const pays = childText(node as never, "Pays") ?? "";
+    expect(pays).toContain("F253");
+    expect(pays).toContain("F254");
+    const statusText = childText(node as never, "StatusText") ?? "";
+    expect(statusText.includes("Closed with")).toBe(false);
+    const outside = (statusText.match(/\bF\d+(?:\.\d+)*\b/g) ?? []).filter((t) => !pays.includes(t));
+    expect(outside).toEqual([]);
+  }, 60_000);
 });

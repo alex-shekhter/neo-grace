@@ -546,6 +546,14 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-reviewer", section: "mechanized_first", token: "skips the bundle's own" },
   { skill: "ngrace-reviewer", section: "mechanized_first", token: "by identity" },
   { skill: "ngrace-reviewer", section: "mechanized_first", token: "design-context.xml" },
+  { skill: "ngrace-plan", section: "must_do", token: "assertion.command-not-evaluated" },
+  { skill: "ngrace-plan", section: "validation", token: "assertion.change-required" },
+  { skill: "ngrace-plan", section: "must_do", token: "review.confidently-wrong" },
+  { skill: "ngrace-plan", section: "spec_plan_traceability", token: "maps only criteria without" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "task that owns the surface" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "pass-only correction" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "attributes to it" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "the intended task" },
 ];
 
 function taughtSkillBody(skill: string, drop?: { section: string; token?: string }): string {
@@ -582,7 +590,7 @@ function plantTaughtSkills(root: string, override?: { relative: string; body: st
 }
 
 describe("checkTaughtRules", () => {
-  it("returns zero when the thirty taught tokens sit at their named section homes in both trees", () => {
+  it("returns zero when every taught token sits at its named section home in both trees", () => {
     const root = isolatedRoot();
     plantTaughtSkills(root);
     expect(checkTaughtRules(root)).toBe(0);
@@ -865,4 +873,30 @@ describe("checkStaleReviewClaims", () => {
     },
     60_000,
   );
+});
+
+const NEW_NEEDLES = [
+  { skill: "ngrace-plan", section: "must_do", token: "assertion.command-not-evaluated" },
+  { skill: "ngrace-plan", section: "validation", token: "assertion.change-required" },
+  { skill: "ngrace-plan", section: "must_do", token: "review.confidently-wrong" },
+  { skill: "ngrace-plan", section: "spec_plan_traceability", token: "maps only criteria without" },
+  { skill: "ngrace-execute", section: "cursor_kinds", token: "task that owns the surface" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "pass-only correction" },
+  { skill: "ngrace-execute", section: "cursor_kinds", token: "attributes to it" },
+  { skill: "ngrace-execute", section: "cursor_kinds", token: "the intended task" },
+];
+
+describe("C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA red directions", () => {
+  for (const needle of NEW_NEEDLES) {
+    it("returns non-zero naming the file, section and token when " + needle.token + " is deleted from one tree", () => {
+      const root = isolatedRoot();
+      plantTaughtSkills(root, {
+        relative: "skills/ngrace/" + needle.skill + "/SKILL.md",
+        body: taughtSkillBody(needle.skill, { section: needle.section, token: needle.token }),
+      });
+      const { code, output } = captureStderr(() => checkTaughtRules(root));
+      expect(code).not.toBe(0);
+      expect(output).toContain(needle.token);
+    });
+  }
 });
