@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA>
     <Summary>
       Three staged findings, one bundle. **`F255`** — `ngrace lint --explain &lt;code&gt;` answers a

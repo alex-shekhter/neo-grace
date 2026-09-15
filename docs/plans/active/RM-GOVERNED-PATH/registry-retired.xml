@@ -350,4 +350,10 @@
     <Pays>F253 F254</Pays>
     <StatusText>Fourth teaching increment of the `RM-GOVERNED-PATH` record; live while the bundle is active and retired by the close's own move.</StatusText>
   </Row>
+  <Row name="C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Searched before minting.** **Tool half (verbatim):** `mint-search: 0 active, 0 archive prior bundle(s) share slug EXPLAIN-ANCHOR-COMMANDS`. **Author half (scope search), measured 2026-09-15 at `3844741`:** over the 104 archive directories and both registry layers, the last bundle to open each of the three `src/` files this bundle opens is, for `src/grace-lint.ts` and `src/lint/core.ts`, `C-LINT-PHASE-HONESTY-2`, and, for `src/review/core.ts`, `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22`; 8 archived bundles name `src/grace-lint.ts`, 23 name `src/review/core.ts`, 13 name `src/lint/core.ts`; the last bundle to open `skills/ngrace/ngrace-spec/SKILL.md` is `C-HASHED-BUNDLE-IDS-2` and 14 archived bundles name it. None is a colliding or better-fitting prior name for a bundle that repairs the `--explain` fallback, the review anchor keys and the run-commands report line.</Charter>
+    <Pays>F255 F256 F257</Pays>
+    <StatusText>Pays the three staged findings this bundle names; the record-schema work stays with its own owner.</StatusText>
+  </Row>
 </Registry>
