@@ -227,6 +227,59 @@ describe("C-CALIBRATION-COMMAND-EVIDENCE T-001: lint --run-commands writes comma
   });
 });
 
+describe("C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA Commands report line (F257)", () => {
+  function commandFixture(changeId: string, commands: string[]): string {
+    const root = mkdtempSync(path.join(os.tmpdir(), "cea-commands-"));
+    tempRoots.push(root);
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId,
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+      planTargetAssertions:
+        `<MustExist><Value>src/example.ts</Value></MustExist>`
+        + commands.map((c) => `<MustPassCommand><Command>${c}</Command></MustPassCommand>`).join(""),
+    });
+    advanceCursor(root, changeId, { task: "T-001", openEpoch: true, worker: "w0", from: 1, to: 20 });
+    return root;
+  }
+
+  it("a green --run-commands report names the evaluated commands and their exit codes", () => {
+    const root = commandFixture("C-CEA-COMMANDS", ["exit 0", "true"]);
+    const result = lintGraceProject(root, {
+      assertionMode: "target",
+      changeId: "C-CEA-COMMANDS",
+      runCommands: true,
+    });
+    expect(result.summary.errors).toBe(0);
+    const report = formatTextReport(result);
+    expect(report).toContain("Commands: 2 evaluated, 2 exit 0");
+  });
+
+  it("a run that evaluates no command prints no Commands line", () => {
+    const root = commandFixture("C-CEA-NO-COMMANDS", []);
+    const result = lintGraceProject(root, {
+      assertionMode: "target",
+      changeId: "C-CEA-NO-COMMANDS",
+      runCommands: true,
+    });
+    expect(formatTextReport(result)).not.toContain("Commands:");
+  });
+
+  it("the Commands line adds no JSON top-level key", () => {
+    const root = commandFixture("C-CEA-JSON", ["exit 0"]);
+    const result = lintGraceProject(root, {
+      assertionMode: "target",
+      changeId: "C-CEA-JSON",
+      runCommands: true,
+    });
+    const keys = Object.keys(JSON.parse(JSON.stringify(result)) as Record<string, unknown>).sort();
+    expect(keys).not.toContain("commandRuns");
+    expect(keys).not.toContain("commands");
+  });
+});
+
 describe("C-REPORT-HONESTY T-006: AC-BASELINE-LINT-FRAMING", () => {
   /** Keys emitted by JSON.stringify of a lint result without changeId (undefined is dropped). */
   function jsonTopLevelKeys(result: ReturnType<typeof lintGraceProject>): string[] {

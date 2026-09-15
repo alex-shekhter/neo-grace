@@ -36,7 +36,9 @@ import { GRAMMAR_INVENTORIES } from "./artifact/grammar";
 import { ARTIFACT_DIR } from "./artifact/paths";
 import { isRegisteredSchemaShape, renderSchemaShape, SCHEMA_SHAPE_REGISTRY } from "./artifact/schema-reference";
 import { ANCHOR_PATTERNS, CHANGE_STATUSES } from "./artifact/types";
-import { classifyIssueCode, formatLintExplanation, getLintIssueGuide } from "./lint/catalog";
+import { allGateCodes } from "./gates/catalog";
+import { allReviewCodes } from "./review/catalog";
+import { classifyIssueCode, formatLintExplanation, getLintIssueGuide, listExactGuideCodes } from "./lint/catalog";
 import { formatTextReport, isValidTextFormat, lintGraceProject } from "./lint/core";
 import type { LintAssertionMode, LintOptions, LintProfile, LintResult } from "./lint/types";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -251,12 +253,20 @@ export const lintCommand = defineGraceCommand({
         }
         if (!code.includes(".")) {
           const registered = Object.keys(SCHEMA_SHAPE_REGISTRY);
+          const registeredCodes = [...new Set([...listExactGuideCodes(), ...allReviewCodes(), ...allGateCodes()])];
+          const suggestedCodes = registeredCodes.filter((c) => c.split(".").pop() === code).sort();
           if (format === "json") {
             process.stdout.write(
-              `${JSON.stringify({ kind: "unknown-shape", token: code, registered }, null, 2)}\n`,
+              `${JSON.stringify({ kind: "unknown-code-or-shape", token: code, suggestedCodes, registered }, null, 2)}\n`,
             );
           } else {
-            process.stdout.write(`Unknown shape: ${code}\n\nRegistered shapes: ${registered.join(", ")}.\n`);
+            const hint =
+              suggestedCodes.length === 1
+                ? `; did you mean ${suggestedCodes[0]}?`
+                : suggestedCodes.length > 1
+                  ? `; candidates: ${suggestedCodes.join(", ")}`
+                  : "";
+            process.stdout.write(`Unknown code or shape: ${code}${hint}\n\nRegistered shapes: ${registered.join(", ")}.\n`);
           }
           process.exitCode = 1;
           return;

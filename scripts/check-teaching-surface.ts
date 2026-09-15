@@ -394,6 +394,7 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-plan", section: "must_do", token: "red-direction fixture" },
   { skill: "ngrace-plan", section: "must_do", token: "change.graph-anchors-miss-write-scope" },
   { skill: "ngrace-spec", section: "shape_sources", token: "relative to this skill's directory" },
+  { skill: "ngrace-spec", section: "shape_sources", token: "codes are namespaced" },
   { skill: "ngrace-plan", section: "spec_plan_traceability", token: "uncloseable bundle" },
   { skill: "ngrace-plan", section: "command_phase_rules", token: "stage the task runs" },
   { skill: "ngrace-execute", section: "execution_rules", token: "no declared task is in scope" },

@@ -1,0 +1,782 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA>
+    <IntentSummary>
+      This plan converts the approved, fingerprinted spec
+      `.ngrace/changes/active/C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA/spec.xml` (ratified `approved` by
+      `ngrace gate approve` at `9fa797d`, base `3844741`, lint `--fail-on warnings` 0/0 after the
+      status write) into six sequential tasks and only within it; the plan conforms to the spec, it
+      does not extend, narrow or reinterpret it. Three production findings (`F255`, `F256`, `F257`),
+      one taught sentence, one record flush/row, and the post-close reachability drive. Ceremony tier
+      **T2** per the spec's `Constraints`.
+
+      **Precedents, and what carries.** From
+      `.ngrace/changes/archive/C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA/plan.xml` this plan carries:
+      the flush-first committed sequence with a `--rewrite-roots` after every live-root hand write; the
+      flush-invariant and payment-invariant walks in the house form already in
+      `scripts/validate-record-retirement.test.ts` (`expectFlushedFindingInvariants`,
+      `walkCftRow`/`expectCftRowInvariants` and the `C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA flush
+      invariant` describe at `:5386`); the `bundleMinted` payer-derivation extension; the needle-first
+      teaching pair with a red-direction case per added needle; the pass-only closing task carrying the
+      plan's single `Satisfies` and the faithful whole-repository post-close copy drive; and the
+      `git diff --exit-code BASE -- …` byte-invariance mirrors of the spec's pathset. What does **not**
+      carry: that plan's `src/`-write-free shape (this bundle writes three `src/` production files) and
+      its two-task split (this plan separates the three independent production fixes so each keeps its
+      own signature budget). From
+      `.ngrace/changes/archive/C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22/plan.xml` this plan carries: one
+      red-first pair per production fix, the red a failing assertion in the surface's own suite, the
+      interleaved fail-in-its-own-tool-round-trip → fix → pass ordering, the post-close drive that
+      reaches the applied-archive state with `apply --force`, and the `CloseEvidence` extraction from
+      the spec's own bytes through `sh -lc`. What does not carry: its module list and its
+      five-task budget, because the fixes here are three different files in three different modules.
+
+      **The red-first pairs, driven on whole-repository prototype copies from `9fa797d` (the approval
+      commit differs from the spec's base `3844741` only under the bundle's own directory).** Every
+      drive below was executed on a throwaway copy; the production record and bundle were never
+      mutated. The task/pair table with its signature keys:
+
+      | Task | Pair key | Red (driven) | Pass (driven) |
+      |---|---|---|---|
+      | T-001 | `flush-invariant` | `bun test --timeout=30000 scripts/validate-record-retirement.test.ts` **123 pass / 1 fail** (the walk, elements absent) | flush + `--rewrite-roots`, **124 / 0**; roots `7567 / 229 / 7796`, index `271 / 25 / 296` |
+      | T-001 | `record-row` | same suite **124 pass / 1 fail** (the row walk, row absent) | row mint + `--rewrite-roots`, **125 / 0**; registry `13 / 13 / 26`; validators 0 |
+      | T-002 | `explain-fallback` | `bun test --timeout=30000 src/grace-lint.test.ts` **111 pass / 4 fail** (the three branch tests and the JSON-shape test) | the `--explain` rewrite, **115 / 0**; `bun run typecheck` 0 |
+      | T-003 | `anchor-injective` | `bun test --timeout=30000 src/review/core.test.ts` **184 pass / 4 fail** (the four injectivity cases) | the four key discriminators, **188 / 0**; determinism chain 0 (196 tests, ratchet ok 14) |
+      | T-004 | `commands-line` | `bun test --timeout=30000 src/lint/core.test.ts` **25 pass / 1 fail** (the green-report test) | the module-private capture + report line, **26 / 0** |
+      | T-005 | `teaching-needle` | `bun ./scripts/check-teaching-surface.ts check` **exit 1**, `missing token "codes are namespaced"` | sentence in both trees, check **0**; teaching suite **59 / 0**; footprint **9 / 0**; marketplace **0** |
+      | T-006 | `post-close-drive` | pass-only (a verification drive has no red to record) | the post-close applied-archive drive over every `CloseEvidence` command |
+
+      The reds are the spec's own red directions (`AC-EXPLAIN-FALLBACK`, `AC-EXPLAIN-JSON`,
+      `AC-ANCHOR-INJECTIVE`, `AC-COMMANDS-REPORTED`, `AC-TAUGHT-SENTENCES`, the flush and row walks),
+      not manufactured failures.
+
+      **Row 4's trap, decided.** `unknown-shape` (`src/grace-lint.ts:256`), `must-exist:${target}`
+      (`src/review/core.ts:548`) and the absence of a `Commands:` line are things this bundle
+      **flips**, so they are **test reds, never `BaselineAssertions` needles**. A baseline `MustContain`
+      of `kind: "unknown-shape"` would be false after T-002 and a baseline `MustNotContain` of
+      `unknown-code-or-shape` would be false before it — the flipped spelling belongs to the target or
+      to a test. The baseline honestly pins only what the bundle leaves unchanged: the four modules and
+      their shipped files, shipped spellings that stay (`isRegisteredSchemaShape`, `findingId`,
+      `baselineExpectationCounts`, `GOVERNED_SKILLS`, `rewritten wholesale`, `bundleMinted`) and the
+      shipped-green commands at `3844741` (`src/grace-lint.test.ts` 111/0, `src/review/core.test.ts`
+      184/0, `src/lint/core.test.ts` 23/0, the teaching/record/token suites, the three validators,
+      `validate:marketplace`, `validate:determinism`, `validate:ci`). No baseline `MustNotContain` is
+      used at all: every spelling this bundle flips is a target or a test assertion.
+
+      **The D13 mechanism, and the pinned bytes it must not move.** `src/lint/core.ts:79`
+      (`baselineExpectationCounts`) and `:87` (`asStateScratchByResult`) are the module-private
+      `WeakMap&lt;LintResult, …&gt;` pattern the spec's F257 Constraint names; the capture attaches on the
+      `onCommandRun` path (`:494`–`:510`), which is the same path that calls `appendCommandRunEvent`.
+      `formatTextReport` (`:780`) reads the new `commandRunRecordsByResult` WeakMap and appends
+      `Commands: &lt;N&gt; evaluated, &lt;M&gt; exit 0` after the `Warnings:` line (and after the `asState` line
+      when present), before the `Issues`/`No issues found.` block. The line is emitted only when the run
+      evaluated at least one command. `LintResult` gains no field and `--format json` gains no key. The
+      ruling's pinned tests stay green by non-edit — in `src/lint/core.test.ts`
+      `summary.errors equals error-severity count in every mode, including structural target`,
+      `plural structural-query note uses they-do-not-fail wording`, the `AC-BASELINE-LINT-FRAMING`
+      lead tests and `--format json / JSON.stringify result gains no new top-level key (D13)`; in
+      `src/grace-lint.test.ts` `requires explicit command opt-in and exposes selected assertion CLI
+      flags` and `treats selected target without --run-commands as a structural query` — because the
+      line appears only when commands were evaluated and those tests omit `--run-commands` or assert
+      only JSON keys and exit codes. A throwaway implementation on a copy (T-004's prototype) was
+      driven to prove the green is producible.
+
+      **The F256 ordinal source, and the corpus check.** The discriminator is **document order among
+      that rule's emits in the file**: a per-file 0-based counter incremented on each emit
+      (`marker:${marker}#&lt;n&gt;`, `must-exist:${target}#&lt;n&gt;`, `must-match:${file}#&lt;n&gt;`,
+      `vm-child:${node.tag}:${child.tag}#&lt;n&gt;`), so two runs of one tree agree. The held-out fixture is
+      expressible through the raw-string builder the held-out controls already use
+      (`src/review/core.test.ts:178` writes a plan whose `BaselineAssertions`/`TargetAssertions` carry
+      `MustExist` values directly; the new fixture puts two same-target absent `MustExist` in
+      `BaselineAssertions`). Corpus check, measured over `.ngrace/changes/archive/*/run-ledger.xml`:
+      41 archived verdicts persist `&lt;Finding … findingId=…&gt;` and the codes present are
+      `review.close-evidence-unevaluated` (285), `review.scope-outside-write-scope` (70) and
+      `review.zero-or-more-swallow` (6) — **zero** `review.confidently-wrong`, and none of those three
+      codes' anchor keys is one of the four collapsible sites
+      (`file:${changed}`, `id`, `task:${node.tag}:empty-depends`). `evaluateApplyGate`
+      (`src/gates/core.ts:423`) reads the verdict's own persisted `findings`, not a fresh review, so no
+      archived verdict's persisted id is re-derived by the gate and the remedy un-acks no archived
+      verdict. `scripts/validate-determinism.ts` compares two runs of one tree and the ratchet keys on
+      `(entryId, surface, code)` (`src/review/scorer.ts:321`).
+
+      **The F255 import boundary, answered before any task assumes the import.** `src/grace-lint.ts`
+      declares `LINKS: M-LINT-CORE` and `DEPENDS: none`. `DEPENDS` names `M-*` graph anchors, not file
+      imports (`D12.1`), so importing `allReviewCodes` from `src/review/catalog.ts` (`M-REVIEW`) and
+      `allGateCodes` from `src/gates/catalog.ts` crosses no forbidden boundary; both catalogs have no
+      imports of their own, so no cycle is created; and `src/lint/catalog.ts` already imports both
+      `GATE_CATALOG`/`isGateIssueCode` and `guideFor`/`isReviewIssueCode`, so the dependency is already
+      on the lint core's side. The prototype drove `bun run typecheck` 0 and `bun ./src/grace.ts lint
+      --path .` clean with the imports in place. No catalog entry changes, so `M-LINT-CATALOG` stays
+      out of scope.
+
+      **Scope (row 6).** `ObservedWriteScope` names every path `WriteEvidence` will digest: the seven
+      `src/` files (three production, three test, the test-support pin), the skill and its packaged
+      mirror, the three `scripts/` files, `README.md`, and the five record files the flush and the close
+      write. `.ngrace/` lifecycle paths (this bundle's own `spec.xml`, `plan.xml`, `run-ledger.xml`)
+      are F11-exempt and are not declared — the review skips the bundle's own artifacts by identity.
+      `DurableScope` carries the spec's four `AffectedAreas` modules and their four `V-M-*` peers; no
+      `OutOfPlanScope` entry is needed.
+
+      **The copy drive, and the F11 order the skill does not teach.** On the post-close copy, **commit
+      the approved plan before opening the epoch**: an uncommitted `plan.xml` enters every attempt's
+      `WriteEvidence` and the archive ratchet reddens by design (`F11`). Then `gate approve --artifact
+      plan`, open an epoch on `T-001`, drive `--assertions baseline --run-commands`, then
+      `--assertions target`, then `ngrace review --change` at plan-approve, then reach the
+      applied-archive state with `apply --force --reason`, run the close's `--retire` (expected
+      **`moved 4`** then `moved 0`), evaluate every `CloseEvidence` command from the spec's bytes
+      through `sh -lc`, and run `bun run validate:ci` inside the copy.
+
+      **Zero current-mode `&lt;Command&gt;`s.** `AC-NO-CURRENT-MODE` is this plan's single `Satisfies`-mapped
+      criterion, carried by T-006; no task `Verification` command or `TargetAssertions` entry contains
+      `--assertions current` or a lint of this root omitting `--assertions`
+      (`grep -c '&lt;Command&gt;bun ./src/grace.ts lint --path .' plan.xml` is 0). The close's post-archive
+      0/0 lint is the authority's `AC-CLOSE-LINT`.
+
+      **The close is the authority's act.** No task performs `terminal`, `fold`, the close's `review`, a
+      verdict, `gate apply`, `gate archive`, `ngrace apply`, the close's `--retire`, any production
+      `CloseEvidence` run, or the archive move. T-001 leaves `f255`, `f256`, `f257` and the row **live**
+      with `--rewrite-roots` applied; T-002..T-004 leave their suites green; T-005 leaves the sentence in
+      both trees and the footprint re-measured; T-006 drives the post-close copy and leaves the
+      production bundle active, its plan still `draft`. Findings raised while this bundle is open go to
+      `.ngrace/scratch/staged-findings.md` under the next staged number (`D30`).
+
+      **Why six tasks.** Each fix is a different file in a different module and gets its own red-first
+      pair; the record gets two interleaved pairs; the teaching gets one; the verification is pass-only.
+      At most two distinct failing signatures in any task window (`FIX_SIGNATURE_REPEAT_BUDGET = 2`,
+      `FIX_DISTINCT_SIGNATURE_BUDGET = 4` in `src/grace-cursor.ts`).
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>src/grace-lint.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA/plan.xml</Value></MustExist>
+      <MustContain><File>src/grace-lint.ts</File><Text>isRegisteredSchemaShape</Text></MustContain>
+      <MustContain><File>src/review/core.ts</File><Text>findingId</Text></MustContain>
+      <MustContain><File>src/lint/core.ts</File><Text>baselineExpectationCounts</Text></MustContain>
+      <MustContain><File>scripts/check-teaching-surface.ts</File><Text>GOVERNED_SKILLS</Text></MustContain>
+      <MustContain><File>skills/ngrace/ngrace-spec/SKILL.md</File><Text>rewritten wholesale</Text></MustContain>
+      <MustContain><File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File><Text>rewritten wholesale</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>bundleMinted</Text></MustContain>
+      <MustPassCommand><Command>bun test --timeout=30000 src/grace-lint.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/review/core.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/lint/core.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/check-teaching-surface.ts check</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run ./scripts/validate-marketplace.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:determinism</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-citation-anchors.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/prove-record-preservation.ts</Command></MustPassCommand>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>src/grace-lint.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA/plan.xml</Value></MustExist>
+      <MustContain><File>src/grace-lint.ts</File><Text>unknown-code-or-shape</Text></MustContain>
+      <MustContain><File>src/grace-lint.ts</File><Text>suggestedCodes</Text></MustContain>
+      <MustContain><File>src/grace-lint.ts</File><Text>allReviewCodes</Text></MustContain>
+      <MustContain><File>src/grace-lint.ts</File><Text>allGateCodes</Text></MustContain>
+      <MustContain><File>src/grace-lint.test.ts</File><Text>did you mean change.close-evidence-and-satisfied</Text></MustContain>
+      <MustContain><File>src/review/core.ts</File><Text>markerOrdinal</Text></MustContain>
+      <MustContain><File>src/review/core.ts</File><Text>mustExistOrdinal</Text></MustContain>
+      <MustContain><File>src/review/core.ts</File><Text>mustMatchOrdinal</Text></MustContain>
+      <MustContain><File>src/review/core.ts</File><Text>vmChildOrdinal</Text></MustContain>
+      <MustContain><File>src/review/core.test.ts</File><Text>anchor-key injectivity</Text></MustContain>
+      <MustContain><File>src/lint/core.ts</File><Text>commandRunRecordsByResult</Text></MustContain>
+      <MustContain><File>src/lint/core.ts</File><Text>Commands: ${commandRuns.length} evaluated</Text></MustContain>
+      <MustContain><File>src/lint/core.test.ts</File><Text>Commands: 2 evaluated, 2 exit 0</Text></MustContain>
+      <MustContain><File>skills/ngrace/ngrace-spec/SKILL.md</File><Text>codes are namespaced</Text></MustContain>
+      <MustContain><File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File><Text>codes are namespaced</Text></MustContain>
+      <MustContain><File>scripts/check-teaching-surface.ts</File><Text>codes are namespaced</Text></MustContain>
+      <MustContain><File>scripts/check-teaching-surface.test.ts</File><Text>codes are namespaced</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA flush invariant</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>F255: "C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File><Text>&lt;Finding id="f255"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File><Text>&lt;Finding id="f256"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File><Text>&lt;Finding id="f257"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File><Text>&lt;Entry id="f255"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File><Text>&lt;Entry id="f256"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File><Text>&lt;Entry id="f257"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Row name="C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Pays&gt;F255 F256 F257&lt;/Pays&gt;</Text></MustContain>
+      <MustPassCommand><Command>bun test --timeout=30000 src/grace-lint.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/review/core.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/lint/core.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/check-teaching-surface.ts check</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run ./scripts/validate-marketplace.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:determinism</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-citation-anchors.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/prove-record-preservation.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-LINT-CORE />
+        <M-REVIEW />
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-LINT-CORE />
+        <V-M-REVIEW />
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-lint.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>src/review/core.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/lint/core.ts</File>
+      <File>src/lint/core.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>README.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Flush f255, f256 and f257 cut at the separator, mint the
+          C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA row, hold every ceiling, and assert the flush-invariant
+          and row relations in interleaved red-first pairs
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (flush-invariant), pair A fail: in its own tool round trip, before any record
+            write, append the flush-invariant walk for `f255`, `f256` and `f257` to
+            `scripts/validate-record-retirement.test.ts` in the house form already at `:5386` for
+            `C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA`: for each id, exactly one `Finding` across
+            `findings.xml` and `findings-retired.xml` with no fixed expectation of which file holds it,
+            its `status` agreeing with the holding file, its `token` agreeing with the id, its single
+            index `Entry` carrying the agreeing `genre` and a `layer` agreeing with the holding file,
+            plus the shipped read-back arithmetic (`base` equals the file's `newlineCount`,
+            `base + headroom = ceiling`), the assertion that the landed `Body` does not end with a `---`
+            separator line, and read-only `validateStubAndIndex` and `proveRecordPreservation` returning
+            zero — with an explicit generous timeout. The three elements are absent at this state, so
+            the walk reds: `bun test --timeout=30000 scripts/validate-record-retirement.test.ts` is
+            **123 pass / 1 fail**. Record the cursor attempt with outcome fail, signature-kind `test`,
+            signature-key `flush-invariant`. Run only this case. Do not flush in this round trip.
+            Failure conditions: this round trip also flushes; the walk is bound to a fixed carrier file
+            (a duplicate would satisfy it); the walk compares a landed body to the buffer's uncut text
+            rather than asserting the `---` tail; the red is recorded against a mutated copy instead of
+            the production record the elements are absent from.
+          </Criterion>
+          <Criterion>
+            Pair A pass: flush `f255`, `f256` and `f257` into
+            `docs/plans/active/RM-GOVERNED-PATH/findings.xml`. Read
+            `.ngrace/scratch/staged-findings.md` (read, never write), select the three by anchor id
+            matched as `&lt;a id="…" name="…"&gt;&lt;/a&gt;` forms (never by position), and render three
+            `&lt;Finding&gt;` elements through the shipped `renderFinding` shape — the function is not
+            exported, so render the same bytes: open tag, `Title` carrying the heading line, `Body`
+            carrying the shipped `xmlEscape` of the **cut** body, close tag. The cut is mandatory:
+            `f255` and `f256` carry a trailing `---` separator because `f257` follows them, so remove
+            the separator line and the blank lines around it before `xmlEscape`; the measured element
+            lines are `f255` **16**, `f256` **15**, `f257` **14** (14 because it is the buffer's last),
+            **45** total. Append the three elements after the last live element and before the root
+            close tag; append three `Entry id token genre="finding" layer="live"` lines to
+            `docs/plans/active/RM-GOVERNED-PATH/decisions.xml` after the last existing entry; then run
+            `bun ./scripts/validate-record-retirement.ts --rewrite-roots
+            docs/plans/active/RM-GOVERNED-PATH` — never hand-write a root attribute. Then the walk
+            greens and the roots read `&lt;Findings base="7567" headroom="229" ceiling="7796"&gt;` and
+            `&lt;RecordIndex base="271" headroom="25" ceiling="296"&gt;`, the registry root still
+            `&lt;Registry base="12" headroom="14" ceiling="26"&gt;`, rulings unchanged at
+            `1697 / 186 / 1883`; the suite is **124 pass / 0 fail** and the shipped validator, citation
+            validator and preservation proof return zero. Record the cursor attempt with outcome pass
+            for signature-key `flush-invariant`. Do not mint the row in this round trip. Failure
+            conditions: a body left uncut or normalized beyond the shipped escape; `f252` flushed; the
+            root written by hand; the buffer written or pruned.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (record-row), pair B fail: in its own tool round trip, before the row is minted,
+            append the `C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA` row walk to
+            `scripts/validate-record-retirement.test.ts` in the payment-invariant house form: the row
+            exists exactly once across `registry.xml` and `registry-retired.xml` with no fixed
+            expectation of which file holds it, its `status` agreeing with the holding file,
+            `kind="chartered"`, its `Pays` **contains** `F255`, `F256` and `F257` (containment, never
+            an exact set), and its `StatusText` names no `F` token outside `Pays` and carries no
+            `Closed with` sentence; parsed with the shipped parser over both registry layers, with an
+            explicit generous timeout. Also extend the shipped payer-derivation baseline `bundleMinted`
+            with `F255`, `F256` and `F257` to `C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA`, consulted only
+            for tokens the derivation actually mints. The row is absent at this state, so the walk reds:
+            the suite is **124 pass / 1 fail**. Record the cursor attempt with outcome fail,
+            signature-kind `test`, signature-key `record-row`. Do not mint in this round trip. Failure
+            conditions: this round trip also mints; the walk hardcodes `registry.xml`; the `Pays` clause
+            pins an exact set; the red is recorded against an isolated fixture instead of the production
+            record the row is absent from.
+          </Criterion>
+          <Criterion>
+            Pair B pass: mint the live row into `docs/plans/active/RM-GOVERNED-PATH/registry.xml`,
+            appended after the last live row in the house shape — an empty `Number`, a `Charter`
+            carrying the searched-before-minting statement in its two halves (the tool's `mint-search:`
+            line verbatim, `mint-search: 0 active, 0 archive prior bundle(s) share slug
+            EXPLAIN-ANCHOR-COMMANDS`, and the author's scope search over the 104 archive directories and
+            both registry layers: the last bundle to open `src/grace-lint.ts` and `src/lint/core.ts` is
+            `C-LINT-PHASE-HONESTY-2`, the last to open `src/review/core.ts` is
+            `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22`, 8 archived bundles name `src/grace-lint.ts`, 23 name
+            `src/review/core.ts`, 13 name `src/lint/core.ts`; the last to open
+            `skills/ngrace/ngrace-spec/SKILL.md` is `C-HASHED-BUNDLE-IDS-2`, 14 name it; no `F` token in
+            the `Charter`), a `Pays` naming exactly `F255 F256 F257`, and a `StatusText` naming no `F`
+            token outside `Pays` and carrying no `Closed with` sentence; then run
+            `bun ./scripts/validate-record-retirement.ts --rewrite-roots
+            docs/plans/active/RM-GOVERNED-PATH`. Then the row walk greens, the flush-invariant walk
+            stays green, the registry root reads
+            `&lt;Registry base="13" headroom="13" ceiling="26"&gt;` (13 live rows), the findings and
+            index roots are unchanged from pair A, the suite is **125 pass / 0 fail**, the shipped
+            `validate-record-retirement.ts`, `validate-citation-anchors.ts` and
+            `prove-record-preservation.ts` each exit 0, and a mid-bundle
+            `bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH`
+            on a throwaway whole-repository copy reports `moved 0` (nothing is eligible while the row's
+            name is not an archive directory). Record the cursor attempt with outcome pass for
+            signature-key `record-row`. Do not run `--retire` against the production record, do not set
+            `applied`, do not archive the bundle, and do not touch
+            `.ngrace/scratch/staged-findings.md`. Failure conditions: the row minted without the
+            post-mint `--rewrite-roots`; a `Pays` or `StatusText` naming an extra token; the
+            `bundleMinted` extension absent so the post-close suite would red; the buffer written or
+            pruned.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>git diff --exit-code 3844741 -- src/ scripts/ ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code 3844741 -- docs/plans/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml'</Command>
+          <Command>git diff --exit-code 3844741 -- examples/ CLAUDE.md CONTRIBUTING.md AGENTS.md docs/plans/README.md package.json bun.lock CHANGELOG.md .ngrace-lint.json skills/ plugins/ngrace/skills/ngrace/</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>
+          Red-first --explain fallback tests, then the honest code-or-shape fallback and the JSON form
+          in src/grace-lint.ts
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (`explain-fallback`): in its own tool round trip, before any edit to
+            `src/grace-lint.ts`, add to `src/grace-lint.test.ts`'s `AC-SHAPE-CODE-SPLIT` describe:
+            (a) an undotted token that is the last segment of exactly one registered code
+            (`close-evidence-and-satisfied`) has first line `Unknown code or shape:
+            close-evidence-and-satisfied; did you mean change.close-evidence-and-satisfied?`, keeps
+            `Registered shapes:`, carries no `Classification` and exits 1; (b) an undotted token with no
+            candidate (`graph-module`) has first line `Unknown code or shape: graph-module` and names
+            neither a `did you mean` nor `candidates:`; (c) an undotted token shared by two codes
+            (`document-too-large`) has first line `Unknown code or shape: document-too-large;
+            candidates: graph.document-too-large, verification.document-too-large`; (d) the
+            undotted-unknown JSON object has `kind` `"unknown-code-or-shape"` and `suggestedCodes`
+            `["change.close-evidence-and-satisfied"]` (or `[]` for `graph-module`), no `classification`,
+            exit 1; and (e) the existing dotted-unknown and shape tests are left intact. The shipped
+            code prints `Unknown shape:` / `kind: "unknown-shape"` and has no `suggestedCodes`, so the
+            suite reds: `bun test --timeout=30000 src/grace-lint.test.ts` is **111 pass / 4 fail**.
+            Record the cursor attempt with outcome fail, signature-kind `test`, signature-key
+            `explain-fallback`. Do not edit `src/grace-lint.ts` in this round trip. Failure conditions:
+            this round trip also edits production; the red is an import or parse error rather than a
+            failed assertion; a branch test asserts a message the spec did not pin.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED pass (`explain-fallback`): rewrite the undotted fallback at
+            `src/grace-lint.ts:252`. Import `listExactGuideCodes` from `./lint/catalog`,
+            `allReviewCodes` from `./review/catalog` and `allGateCodes` from `./gates/catalog` (the
+            boundary check is in the `IntentSummary`: `DEPENDS` names `M-*` anchors, not file imports,
+            and both catalogs are import-free, so no cycle and no forbidden boundary). Compute the
+            candidate set as the deduped union of the three lists filtered by last dot-segment equality
+            and sorted; the text first line is `Unknown code or shape: &lt;token&gt;` plus
+            `; did you mean &lt;code&gt;?` for exactly one candidate or `; candidates: &lt;a&gt;, &lt;b&gt;, …` for two or
+            more, followed by the byte-unchanged blank line and `Registered shapes:` sentence; the JSON
+            object is exactly `{ kind: "unknown-code-or-shape", token, suggestedCodes, registered }`.
+            Exit stays 1; the dotted-unknown path, the dotted exact path and the shape path are
+            untouched. Drive `bun test --timeout=30000 src/grace-lint.test.ts` **115 pass / 0 fail**
+            and `bun run typecheck` **exit 0**. Then record the cursor attempt with outcome pass for
+            signature-key `explain-fallback`. Failure conditions: the dotted-unknown branch changes; the
+            candidate set is invented rather than read from the three shipped catalogs; `Registered
+            shapes:` bytes move; `kind` is left `"unknown-shape"`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 src/grace-lint.test.ts</Command>
+          <Command>bun run typecheck</Command>
+          <Command>git diff --exit-code 3844741 -- src/ scripts/ ':(exclude)src/grace-lint.ts' ':(exclude)src/grace-lint.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code 3844741 -- docs/plans/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml'</Command>
+          <Command>git diff --exit-code 3844741 -- examples/ CLAUDE.md CONTRIBUTING.md AGENTS.md docs/plans/README.md package.json bun.lock CHANGELOG.md .ngrace-lint.json skills/ plugins/ngrace/skills/ngrace/</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>
+          Red-first anchor-key injectivity tests, then the document-order discriminators at the four
+          collapsible emit sites in src/review/core.ts
+        </Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (`anchor-injective`): in its own tool round trip, before any edit to
+            `src/review/core.ts`, append to `src/review/core.test.ts` a
+            `describe("C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA anchor-key injectivity")` with four cases
+            driven through the shipped `runPatternDetectors` over a `writeMinimalNgraceProject` root:
+            (a) a plan whose `BaselineAssertions` carry two same-target absent `MustExist` values
+            (`build/artifacts/held-out-absent.bin`) reports exactly two `review.confidently-wrong`
+            findings with `ruleId` `must-exist-missing` and two distinct ids; (b) a verification file
+            with two identical unemitted `Marker` texts reports two `marker-not-emitted` findings with
+            two distinct ids; (c) a plan with two same-file `MustMatchPattern` nodes reports two
+            `plan-matches-self` findings with two distinct ids; (d) a verification file with two
+            same-tag unthreaded children reports two `unknown-verification-child` findings with two
+            distinct ids. The shipped keys `marker:`, `must-exist:`, `must-match:` and `vm-child:` are
+            per-target, so the suite reds: `bun test --timeout=30000 src/review/core.test.ts` is
+            **184 pass / 4 fail**. Record the cursor attempt with outcome fail, signature-kind `test`,
+            signature-key `anchor-injective`. Do not edit `src/review/core.ts` in this round trip.
+            Failure conditions: the fixture builder cannot express the two-same-target plan and no
+            alternative is stated; a case asserts a count a duplicate could satisfy; the red is an
+            error rather than a failed assertion.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED pass (`anchor-injective`): implement the document-order discriminator at the
+            four emit sites in `src/review/core.ts` — `marker:${marker}#&lt;n&gt;` (`:496`),
+            `must-exist:${target}#&lt;n&gt;` (`:548`), `must-match:${file}#&lt;n&gt;` (`:623`) and
+            `vm-child:${node.tag}:${child.tag}#&lt;n&gt;` (`:889`) — where `&lt;n&gt;` is a per-artifact 0-based
+            counter incremented on each emit of that rule in document order. Two claims therefore never
+            share an `anchorOrHunkKey` and never share a `findingId` (`:340`), and `ngrace gate verdict`
+            keeps its one-`--ack-finding`-per-displayed-id binding (`src/gates/core.ts:436`). Drive
+            `bun test --timeout=30000 src/review/core.test.ts` **188 pass / 0 fail** and the spec's
+            determinism chain `bun test --timeout=120000 src/review/core.test.ts
+            src/review/scorer.test.ts &amp;&amp; bun run ./scripts/validate-determinism.ts` **exit 0** (196
+            tests, ratchet ok 14). Then record the cursor attempt with outcome pass for signature-key
+            `anchor-injective`. Failure conditions: the discriminator is derived from anything but
+            document order (a timestamp, a hash of a `Set`, a memory address); an emit site's key is
+            changed without the matching case; `review.confidently-wrong`'s code, severity or message
+            changes.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 src/review/core.test.ts</Command>
+          <Command>bun test --timeout=120000 src/review/core.test.ts src/review/scorer.test.ts &amp;&amp; bun run ./scripts/validate-determinism.ts</Command>
+          <Command>bun run typecheck</Command>
+          <Command>git diff --exit-code 3844741 -- src/ scripts/ ':(exclude)src/grace-lint.ts' ':(exclude)src/grace-lint.test.ts' ':(exclude)src/review/core.ts' ':(exclude)src/review/core.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code 3844741 -- docs/plans/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml'</Command>
+          <Command>git diff --exit-code 3844741 -- examples/ CLAUDE.md CONTRIBUTING.md AGENTS.md docs/plans/README.md package.json bun.lock CHANGELOG.md .ngrace-lint.json skills/ plugins/ngrace/skills/ngrace/</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>
+          Red-first Commands-line tests, then the module-private command capture and the Commands
+          report line in src/lint/core.ts
+        </Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (`commands-line`): in its own tool round trip, before any edit to
+            `src/lint/core.ts`, add to `src/lint/core.test.ts` a
+            `describe("C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA Commands report line (F257)")` with:
+            (a) a green fixture with two `MustPassCommand`s over an open epoch and `runCommands: true`
+            whose `formatTextReport(result)` contains `Commands: 2 evaluated, 2 exit 0`;
+            (b) a fixture with no `MustPassCommand` whose report contains no `Commands:` line; (c) a
+            JSON-key check that `JSON.stringify(result)` gains no `commandRuns`/`commands` key. The
+            shipped report contains no `Commands:` line, so the suite reds:
+            `bun test --timeout=30000 src/lint/core.test.ts` is **25 pass / 1 fail** (the zero-command
+            and JSON cases are green at base by construction; only the green-report case reds). Record
+            the cursor attempt with outcome fail, signature-kind `test`, signature-key `commands-line`.
+            Do not edit `src/lint/core.ts` in this round trip. Failure conditions: this round trip also
+            edits production; the red is an import or setup error.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED pass (`commands-line`): add a module-private
+            `WeakMap&lt;LintResult, CommandRunRecord[]&gt;` in `src/lint/core.ts` beside
+            `baselineExpectationCounts` (`:79`) and `asStateScratchByResult` (`:87`) (the `D13`
+            pattern); populate it on the `onCommandRun` path (`:494`–`:510`) whenever
+            `runCommands === true`, continuing to call `appendCommandRunEvent` only under the existing
+            `!asStatus &amp;&amp; changeId` conditions; and in `formatTextReport` (`:780`) append
+            `Commands: &lt;N&gt; evaluated, &lt;M&gt; exit 0` after the `Warnings:` line (and after the
+            `asState` coverage line when present), before the `Issues`/`No issues found.` block, only
+            when at least one command was evaluated. `LintResult` gains no field and `--format json`
+            gains no top-level key. Drive `bun test --timeout=30000 src/lint/core.test.ts` **26 pass /
+            0 fail**, and confirm the ruling's pinned tests stay green by non-edit:
+            `bun test --timeout=30000 src/grace-lint.test.ts` **115 pass / 0 fail**. Then record the
+            cursor attempt with outcome pass for signature-key `commands-line`. Failure conditions: the
+            capture is stored on `LintResult` (a JSON key leak); the line is emitted on a zero-command
+            run; the `Errors:` line, the structural-query note or the current-mode baseline lead moves;
+            a pinned test is edited to accommodate the line.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 src/lint/core.test.ts</Command>
+          <Command>bun test --timeout=30000 src/grace-lint.test.ts</Command>
+          <Command>bun run typecheck</Command>
+          <Command>git diff --exit-code 3844741 -- src/ scripts/ ':(exclude)src/grace-lint.ts' ':(exclude)src/grace-lint.test.ts' ':(exclude)src/review/core.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/lint/core.ts' ':(exclude)src/lint/core.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code 3844741 -- docs/plans/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml'</Command>
+          <Command>git diff --exit-code 3844741 -- examples/ CLAUDE.md CONTRIBUTING.md AGENTS.md docs/plans/README.md package.json bun.lock CHANGELOG.md .ngrace-lint.json skills/ plugins/ngrace/skills/ngrace/</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>
+          Red-first namespaced-codes needle, then the sentence in both ngrace-spec trees and the
+          re-measured skill footprint
+        </Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (`teaching-needle`): in its own tool round trip, add
+            `{ skill: "ngrace-spec", section: "shape_sources", token: "codes are namespaced" }` to the
+            `TAUGHT_RULES` table in `scripts/check-teaching-surface.ts` and mirror the same entry in
+            `scripts/check-teaching-surface.test.ts`'s local table, and add a red-direction case that
+            deletes the `codes are namespaced` token from one tree and asserts the refusal names the
+            file, the section and the token. The sentence is absent at this state, so
+            `bun ./scripts/check-teaching-surface.ts check` exits **1**, refusing
+            `missing token "codes are namespaced"` in `skills/ngrace/ngrace-spec/SKILL.md`. Record the
+            cursor attempt with outcome fail, signature-kind `test`, signature-key `teaching-needle`.
+            Do not edit either `SKILL.md` in this round trip. Failure conditions: the needle is added to
+            the production table but not the suite's local table; this round trip also edits a skill;
+            the red is recorded against an isolated fixture instead of the production trees.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED pass (`teaching-needle`): append exactly one sentence to the existing
+            `Explain a shape or code:` line in `ngrace-spec` `shape_sources` —
+            *"Issue codes are namespaced (`change.…`, `assertion.…`, `review.…`)."* — in
+            `skills/ngrace/ngrace-spec/SKILL.md` and copy the file byte-identically onto
+            `plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md`. The sentence names no `F`/`D` token
+            and no governed record file, so `checkRecordTokens` stays green; the two trees are
+            byte-compared, so they move together. Re-measure `skillTextLines()` from the tree — never
+            write toward a number — and update `src/test-support/token-accounting.test.ts` and the
+            `README.md` measurement cell at `README.md:304` to the true values together; measured on the
+            prototype, the sentence is line-neutral at **864 lines** and moves the byte total
+            **77124 → 77198**, so both `measured.total` pins stay `864` and the `measured.totalBytes`
+            pin and the README cell move to `77198`, with the house comment entry for this bundle
+            added. Drive `bun ./scripts/check-teaching-surface.ts check` **exit 0**,
+            `bun test --timeout=30000 scripts/check-teaching-surface.test.ts` **59 pass / 0 fail**,
+            `bun test --timeout=30000 src/test-support/token-accounting.test.ts` **9 pass / 0 fail** and
+            `bun run ./scripts/validate-marketplace.ts` **exit 0**. Then record the cursor attempt with
+            outcome pass for signature-key `teaching-needle`. Failure conditions: the sentence
+            paraphrased rather than landed verbatim; a mirror left stale; the footprint written toward
+            rather than re-measured; a second section edited.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun ./scripts/check-teaching-surface.ts check</Command>
+          <Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>git diff --exit-code 3844741 -- src/ scripts/ ':(exclude)src/grace-lint.ts' ':(exclude)src/grace-lint.test.ts' ':(exclude)src/review/core.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/lint/core.ts' ':(exclude)src/lint/core.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code 3844741 -- docs/plans/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml'</Command>
+          <Command>git diff --exit-code 3844741 -- examples/ CLAUDE.md CONTRIBUTING.md AGENTS.md docs/plans/README.md package.json bun.lock CHANGELOG.md .ngrace-lint.json skills/ plugins/ngrace/skills/ngrace/ ':(exclude)README.md' ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md'</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>
+          Leaf suites, validate:ci, the predicted plan-approve review, and the faithful post-close
+          applied-archive drive over every CloseEvidence command
+        </Title>
+        <DependsOn>
+          <Task>T-005</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Task-observable suites, not manufactured reds. `bun run validate:ci` exits 0;
+            `bun ./scripts/check-teaching-surface.ts check` exits 0; and the leaf suites
+            `bun test --timeout=30000 src/grace-lint.test.ts`,
+            `bun test --timeout=30000 src/review/core.test.ts`,
+            `bun test --timeout=30000 src/lint/core.test.ts`,
+            `bun test --timeout=30000 scripts/check-teaching-surface.test.ts`,
+            `bun test --timeout=30000 scripts/validate-record-retirement.test.ts`,
+            `bun test --timeout=30000 src/test-support/token-accounting.test.ts`,
+            `bun run ./scripts/validate-marketplace.ts`, the determinism chain, and the three shipped
+            validators each exit 0. A root lint of this project is **not** a task command: it belongs to
+            the authority's close-time `AC-CLOSE-LINT`, run post-archive, and no task claims it here. Do
+            not manufacture a red for the suites being green at the prior task's state. This task
+            carries the plan's single `Satisfies` (`AC-NO-CURRENT-MODE`): no task `Verification` command
+            or `TargetAssertions` entry contains a current-mode lint of this project root, checked by
+            hand. Do not claim post-archive lint 0/0 at this task pass. This task's own attempts are
+            pass-only — a verification drive has no red to record — so at the close
+            `ngrace review --change C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA --severity=info` is expected
+            to show one `review.attempt-pair-unpaired-pass` finding on this task, which the default
+            report omits; it is the shipped V-B behavior on this bundle's own ledger, not a defect, and
+            it refuses no gate.
+          </Criterion>
+          <Criterion>
+            The predicted plan-approve review, on a copy. This bundle writes module-ownable paths that
+            already exist and are declared: on a whole-repository copy with this `spec.xml` and
+            `plan.xml` set to `approved`, `bun ./src/grace.ts lint --path . --change
+            C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA --assertions target` and
+            `bun ./src/grace.ts review --path . --change C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA` report
+            no `change.graph-anchors-miss-write-scope` (every module-ownable `ObservedWriteScope` path
+            links a `DurableScope` anchor, and every `.test.ts` write is not module-ownable) and no
+            `change.plan-scope-exceeds-spec` (the four `DurableScope` modules are exactly the four
+            `AffectedAreas` modules). Report exactly what `ngrace review --change` prints at plan-approve
+            on the copy — the bundle's own `spec.xml` and `plan.xml` are identity-skipped, so a
+            `review.scope-outside-write-scope` naming either is **not** expected and would be a finding,
+            and a finding naming any file in `ObservedWriteScope` is a defect to report; the expected
+            result is 0 findings, and the approval commit names it. The copy is whole-repository
+            (`rsync -a` including `.git` and untracked files, a real `node_modules` directory,
+            `.ngrace/scratch` present read-only).
+          </Criterion>
+          <Criterion>
+            The baseline and target drives, on the approved-shaped copy, before the post-close drive.
+            With the copy's `plan.xml` approved through `bun ./src/grace.ts gate approve --change
+            C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA --artifact plan --path .` and an epoch opened on a
+            declared task through `bun ./src/grace.ts cursor advance --task T-001 --open-epoch --path .`,
+            `bun ./src/grace.ts lint --path . --change C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA
+            --assertions baseline --run-commands` exits 0 with every baseline `MustContain` and every
+            baseline `MustPassCommand` evaluated (without `--run-commands` the same run reports
+            `assertion.command-not-evaluated` for each declared command, a report that reads like
+            breakage and is not — `F253`). Then `bun ./src/grace.ts lint --path . --change
+            C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA --assertions target` exits 0 with every target
+            `MustContain` present. Record both tails and exits in the report. The production bundle's
+            baseline is never driven; only the copy's.
+          </Criterion>
+          <Criterion>
+            The post-close applied-archive drive, on a faithful whole-repository copy, before recording
+            pass — `ngrace-plan` row 19 applied to this bundle. Copy the working tree **including
+            `.git`** and untracked files (rsync without `--exclude .git`), with `node_modules` copied as
+            a real directory — a symlink is untracked to git and yields a spurious
+            `review.scope-outside-write-scope node_modules` (measured) — and with `.ngrace/scratch`
+            included read-only (never written): the review's `confidently-wrong` detector reads archived
+            plans whose `BaselineAssertions` name `.ngrace/scratch/staged-findings.md`, so a copy
+            without it spuriously reddens six archived-plan findings the production tree does not
+            (measured). **Before opening the epoch, commit the approved plan on the copy** (`F11`): an
+            uncommitted `plan.xml` enters every attempt's `WriteEvidence` and the archive ratchet reddens
+            by design. Then, from inside the copy, run
+            `bun ./src/grace.ts gate approve --change C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA --artifact
+            plan --path .`, then
+            `bun ./src/grace.ts apply --change C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA --force --reason
+            "post-close drive"` — the verb archives the bundle and writes `applied` on both artifacts
+            (a hand `applied` write is the fallback only if the verb refuses, and the refusal reason is
+            named in the report). Then run the shipped
+            `bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH`
+            from inside the copy: it reports **`moved 4`** (`f255`, `f256`, `f257` and the row), the row
+            sits in `registry-retired.xml` with `status="retired"`, the three findings sit in
+            `findings-retired.xml` stamped
+            `&lt;PaidBy&gt;C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA&lt;/PaidBy&gt;`, the three index layers
+            are retired in place with their `Entry` lines still present, and the roots re-derive to
+            findings `7522 / 274 / 7796`, index `268 / 28 / 296`, registry `12 / 14 / 26`, rulings
+            unchanged `1697 / 186 / 1883`; a second `--retire` reports `moved 0`. Then run **every**
+            `CloseEvidence` `Command` the spec carries, extracted from the spec's own bytes, unescaped
+            (`&lt;`, `&gt;`, `&amp;`, `&apos;`) through `sh -lc` and with the exit read on the command:
+            `bun test --timeout=30000 src/grace-lint.test.ts` (AC-EXPLAIN-FALLBACK, AC-EXPLAIN-JSON);
+            `bun test --timeout=30000 src/review/core.test.ts` (AC-ANCHOR-INJECTIVE);
+            `bun test --timeout=30000 src/lint/core.test.ts` (AC-COMMANDS-REPORTED);
+            `bun test --timeout=30000 scripts/check-teaching-surface.test.ts` (AC-TAUGHT-SENTENCES);
+            `bun test --timeout=30000 scripts/validate-record-retirement.test.ts` (AC-FLUSH-LANDED,
+            AC-ROW-PAYS, AC-RECORD-VALID, AC-ROOTS-HELD);
+            `bun test --timeout=30000 src/test-support/token-accounting.test.ts` (AC-FOOTPRINT-PIN);
+            `bun test --timeout=120000 src/review/core.test.ts src/review/scorer.test.ts &amp;&amp; bun run
+            ./scripts/validate-determinism.ts` (AC-DETERMINISM); the four
+            `git diff --exit-code 3844741 -- …` byte-invariance criteria exactly as the spec writes
+            them (AC-NO-SRC, AC-RECORD-PRESERVED, AC-NO-ARCHIVE-EDIT, AC-DOCS-EXAMPLES), which is why
+            the copy carries `.git` — AC-NO-ARCHIVE-EDIT excludes this bundle's own arrival so the
+            close's own rename cannot redden it; `bun run ./scripts/validate-marketplace.ts`
+            (AC-MIRROR-SYNC); and `bun ./src/grace.ts lint --path . --fail-on warnings` (AC-CLOSE-LINT).
+            A warning from `--fail-on warnings` is a finding for the report, never a reason to drop the
+            command. Then run `bun run validate:ci` inside the copy, exit code read directly. Finally
+            drive the red directions in the post-close state: the row walk reds on a second row with the
+            same name, a `Pays` token outside the three, or a `StatusText` naming an outside token,
+            mutating whichever layer holds the row; the flush-invariant walk reds on a duplicated
+            carrier or a flipped index layer. The production record and the production bundle are never
+            mutated by this drive. Leave the copy's path in place and name it in the report. Record the
+            cursor attempt with outcome pass, signature-kind `test`, signature-key `post-close-drive`.
+            Failure conditions: the drive copies only the record directory or omits `.git` (the base
+            commit cannot resolve and the byte-invariance criteria cannot run); the drive opens the
+            epoch before committing the approved plan; the drive stops at the in-tree suites and skips
+            the `git diff` criteria and `--fail-on warnings`; a warning is dropped rather than reported;
+            the production record is mutated.
+          </Criterion>
+          <Criterion>
+            The close boundary. This task ends at the live row, `--rewrite-roots` applied, the shipped
+            validators at zero, the sentence in both trees and the footprint re-measured. The `--retire`
+            (`moved 4`), the gate-applied Decisions, the `apply` verb, the archive move, and every
+            `CloseEvidence` evaluation on the production record are the authority's close acts; the
+            executor performs no gate, no status write, no archive move and no production `--retire`.
+            No decision is chartered, so there is no `CodifiedIn` hand write. Findings raised while this
+            bundle is open go to `.ngrace/scratch/staged-findings.md` under the next staged number
+            (`D30`).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 src/grace-lint.test.ts</Command>
+          <Command>bun test --timeout=30000 src/review/core.test.ts</Command>
+          <Command>bun test --timeout=30000 src/lint/core.test.ts</Command>
+          <Command>bun ./scripts/check-teaching-surface.ts check</Command>
+          <Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun run validate:ci</Command>
+          <Command>git diff --exit-code 3844741 -- src/ scripts/ ':(exclude)src/grace-lint.ts' ':(exclude)src/grace-lint.test.ts' ':(exclude)src/review/core.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/lint/core.ts' ':(exclude)src/lint/core.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+          <Command>git diff --exit-code 3844741 -- examples/ CLAUDE.md CONTRIBUTING.md AGENTS.md docs/plans/README.md package.json bun.lock CHANGELOG.md .ngrace-lint.json skills/ plugins/ngrace/skills/ngrace/ ':(exclude)README.md' ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md'</Command>
+        </Verification>
+      </T-006>
+    </ImplementationPlan>
+  </C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA>
+</NgraceChangePlan>

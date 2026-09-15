@@ -1862,6 +1862,48 @@ describe("AC-SHAPE-CODE-SPLIT", () => {
     expect(out).toContain("Classification: unknown");
   });
 
+  it("AC-EXPLAIN-FALLBACK: an undotted suffix of exactly one registered code names it", () => {
+    const result = spawnLintExplain(["--explain", "close-evidence-and-satisfied"]);
+    expect(result.exitCode).toBe(1);
+    const out = Buffer.from(result.stdout).toString("utf8");
+    expect(out.split("\n")[0]).toBe(
+      "Unknown code or shape: close-evidence-and-satisfied; did you mean change.close-evidence-and-satisfied?",
+    );
+    expect(out).toContain("Registered shapes:");
+    expect(out).not.toMatch(/Classification/);
+  });
+
+  it("AC-EXPLAIN-FALLBACK: an undotted token with no candidate names neither universe", () => {
+    const result = spawnLintExplain(["--explain", "graph-module"]);
+    expect(result.exitCode).toBe(1);
+    const out = Buffer.from(result.stdout).toString("utf8");
+    expect(out.split("\n")[0]).toBe("Unknown code or shape: graph-module");
+    expect(out).not.toContain("did you mean");
+    expect(out).not.toContain("candidates:");
+  });
+
+  it("AC-EXPLAIN-FALLBACK: an undotted token shared by two codes lists every candidate", () => {
+    const result = spawnLintExplain(["--explain", "document-too-large"]);
+    expect(result.exitCode).toBe(1);
+    const out = Buffer.from(result.stdout).toString("utf8");
+    expect(out.split("\n")[0]).toBe(
+      "Unknown code or shape: document-too-large; candidates: graph.document-too-large, verification.document-too-large",
+    );
+  });
+
+  it("AC-EXPLAIN-JSON: undotted-unknown JSON carries suggestedCodes and kind unknown-code-or-shape", () => {
+    const one = JSON.parse(
+      Buffer.from(spawnLintExplain(["--explain", "close-evidence-and-satisfied", "--format", "json"]).stdout).toString("utf8"),
+    ) as Record<string, unknown>;
+    expect(one.kind).toBe("unknown-code-or-shape");
+    expect(one.suggestedCodes).toEqual(["change.close-evidence-and-satisfied"]);
+    expect(one).not.toHaveProperty("classification");
+    const none = JSON.parse(
+      Buffer.from(spawnLintExplain(["--explain", "graph-module", "--format", "json"]).stdout).toString("utf8"),
+    ) as Record<string, unknown>;
+    expect(none.suggestedCodes).toEqual([]);
+  });
+
   it("does not change lint-result JSON schemaVersion", () => {
     const root = createProject();
     writeMinimalNgraceProject(root);
