@@ -18,6 +18,7 @@ Explain a shape or code: `ngrace lint --explain <code|shape>`. Issue codes are n
 Primary write path: `ngrace spec new &lt;SLUG&gt;` mints `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;` from a bare slug, a handed-in `--timestamp` and the branch. The minted skeleton is a starting shape, not a verdict: when a rich, precedent-shaped artifact does not fit it, the skeleton is rewritten wholesale after the mint — the command is the write path, never the source of the final section shape.
 Optional-section teaching source: `references/change-spec-template.xml`. That path is relative to this skill's directory, as every `references/` path a skill cites is.
 Optional design-context copy-source: `references/design-context-template.xml`.
+Lineage path: `ngrace spec new --supersedes &lt;C-PRED&gt;` mints the successor and requires exactly one of a bare slug or `--supersedes`; `ngrace supersede` stamps `superseded` and `&lt;Replacement&gt;` on the spec and the draft plan and moves the bundle.
 </shape_sources>
 
 <status_rules>

@@ -555,6 +555,12 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-execute", section: "execution_rules", token: "pass-only correction" },
   { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "attributes to it" },
   { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "the intended task" },
+
+  { skill: "ngrace-plan", section: "must_do", token: "commit the approved plan" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "the event carries no" },
+  { skill: "ngrace-plan", section: "approved_plan_immutability", token: "archived predecessor's draft" },
+  { skill: "ngrace-spec", section: "shape_sources", token: "exactly one of a bare slug" },
+  { skill: "ngrace-plan", section: "must_do", token: "never from a hand-rolled reader" },
 ];
 
 function taughtSkillBody(skill: string, drop?: { section: string; token?: string }): string {
@@ -634,6 +640,71 @@ describe("checkTaughtRules", () => {
     expect(output).toContain("skills/ngrace/ngrace-spec/SKILL.md");
     expect(output).toContain("shape_sources");
     expect(output).toContain("codes are namespaced");
+  });
+
+  it("returns non-zero naming the file, section and token when the copy-commit sentence is deleted from one tree", () => {
+    const root = isolatedRoot();
+    plantTaughtSkills(root, {
+      relative: "skills/ngrace/ngrace-plan/SKILL.md",
+      body: taughtSkillBody("ngrace-plan", { section: "must_do", token: "commit the approved plan" }),
+    });
+    const { code, output } = captureStderr(() => checkTaughtRules(root));
+    expect(code).not.toBe(0);
+    expect(output).toContain("skills/ngrace/ngrace-plan/SKILL.md");
+    expect(output).toContain("must_do");
+    expect(output).toContain("commit the approved plan");
+  });
+
+  it("returns non-zero naming the file, section and token when the pass-discard sentence is deleted from one tree", () => {
+    const root = isolatedRoot();
+    plantTaughtSkills(root, {
+      relative: "skills/ngrace/ngrace-execute/SKILL.md",
+      body: taughtSkillBody("ngrace-execute", { section: "cursor_kinds", token: "the event carries no" }),
+    });
+    const { code, output } = captureStderr(() => checkTaughtRules(root));
+    expect(code).not.toBe(0);
+    expect(output).toContain("skills/ngrace/ngrace-execute/SKILL.md");
+    expect(output).toContain("cursor_kinds");
+    expect(output).toContain("the event carries no");
+  });
+
+  it("returns non-zero naming the file, section and token when the archived-draft sentence is deleted from one tree", () => {
+    const root = isolatedRoot();
+    plantTaughtSkills(root, {
+      relative: "skills/ngrace/ngrace-plan/SKILL.md",
+      body: taughtSkillBody("ngrace-plan", { section: "approved_plan_immutability", token: "archived predecessor's draft" }),
+    });
+    const { code, output } = captureStderr(() => checkTaughtRules(root));
+    expect(code).not.toBe(0);
+    expect(output).toContain("skills/ngrace/ngrace-plan/SKILL.md");
+    expect(output).toContain("approved_plan_immutability");
+    expect(output).toContain("archived predecessor's draft");
+  });
+
+  it("returns non-zero naming the file, section and token when the lineage-path sentence is deleted from one tree", () => {
+    const root = isolatedRoot();
+    plantTaughtSkills(root, {
+      relative: "skills/ngrace/ngrace-spec/SKILL.md",
+      body: taughtSkillBody("ngrace-spec", { section: "shape_sources", token: "exactly one of a bare slug" }),
+    });
+    const { code, output } = captureStderr(() => checkTaughtRules(root));
+    expect(code).not.toBe(0);
+    expect(output).toContain("skills/ngrace/ngrace-spec/SKILL.md");
+    expect(output).toContain("shape_sources");
+    expect(output).toContain("exactly one of a bare slug");
+  });
+
+  it("returns non-zero naming the file, section and token when the close-evidence verdict sentence is deleted from one tree", () => {
+    const root = isolatedRoot();
+    plantTaughtSkills(root, {
+      relative: "plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md",
+      body: taughtSkillBody("ngrace-plan", { section: "must_do", token: "never from a hand-rolled reader" }),
+    });
+    const { code, output } = captureStderr(() => checkTaughtRules(root));
+    expect(code).not.toBe(0);
+    expect(output).toContain("plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md");
+    expect(output).toContain("must_do");
+    expect(output).toContain("never from a hand-rolled reader");
   });
 
   it("returns non-zero naming the file and block when the review_judgment block is deleted from one tree", () => {
