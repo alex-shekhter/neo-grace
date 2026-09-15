@@ -1,0 +1,1008 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA>
+    <Summary>
+      Three staged findings, one bundle. **`F255`** — `ngrace lint --explain &lt;code&gt;` answers a
+      namespaced issue code typed without its namespace with `Unknown shape: &lt;code&gt;` and the shape
+      list, so a reader who typed a code is told to look among shapes — is paid in full: the code half
+      in `src/grace-lint.ts` (the fallback names both universes it searched and, when the bare token is
+      the last segment of a registered code, names that code) and the one teaching sentence in
+      `ngrace-spec` `shape_sources` (codes are namespaced) with its `TAUGHT_RULES` needle. **`F256`**
+      — `review.confidently-wrong`'s `must-exist:&lt;target&gt;` anchor key gives two `MustExist` elements
+      naming the same path in one plan a single finding id, so the review prints six lines carrying three
+      ids and an `--ack-finding` of one id silently covers both claims — is paid, and the same
+      per-target collapse at the three sibling emit sites in the same file (`marker:`, `must-match:`,
+      `vm-child:`) is repaired with it, because a key derived from a repeatable value instead of the
+      claim's position is one defect. **`F257`** — a green `lint --assertions baseline|target
+      --run-commands` report says nothing about the commands it ran — is paid by a `Commands:` line in
+      `formatTextReport`, sourced from module-private state on the result (`D13`), never from a new field
+      on the versioned `LintResult`. The bundle flushes the three findings it pays into
+      `docs/plans/active/RM-GOVERNED-PATH/` with their index entries, mints one live chartered row with
+      `&lt;Pays&gt;F255 F256 F257&lt;/Pays&gt;`, and re-measures the skill-footprint pin and the
+      `README.md` measurement cell for the one appended sentence. `F252` stays staged and unpaid.
+    </Summary>
+    <Problem>
+      **Three findings are staged, not in the record, and all three are this bundle's to pay.**
+      `.ngrace/scratch/staged-findings.md` holds four entries as of 2026-09-15 — `f252`, `f255`, `f256`,
+      `f257` (measured by the shipped `parseFrozenMarkdown`: 4 entries, `chartered` 0, `sweep` 0,
+      `registryHeadingIndex` -1). `F252` (the buffer's `---` separator lands in every non-last rendered
+      `&lt;Body&gt;`) is the record-schema bundle's (`F207`/`F221`) and is a NonGoal here. `F255`, `F256`
+      and `F257` are paid here and flushed.
+      **`F255`, re-driven at this base commit `3844741` on the production tree, both directions.**
+      `bun ./src/grace.ts lint --explain close-evidence-and-satisfied --path .` exits 1 with first line
+      `Unknown shape: close-evidence-and-satisfied` followed by `Registered shapes: artifact-root,
+      root-metadata, change-status, change-spec, change-plan, change-task, assertion, durable-scope,
+      observed-write-scope, anchor-family, context-artifact, ledger-verdict, gate-decision,
+      clarification, design-reference.`; `bun ./src/grace.ts lint --explain
+      change.close-evidence-and-satisfied --path .` exits 0 with `Code:
+      change.close-evidence-and-satisfied`, `Classification: exact`. The fallback is
+      `src/grace-lint.ts:252` (`if (!code.includes("."))`): any argument with no dot that is not a
+      registered shape is treated as a shape name, at `:256` (`kind: "unknown-shape"` in JSON) and
+      `:259` (`Unknown shape: &lt;code&gt;`). An argument **with** a dot that matches no registered code
+      does not take that branch: it reaches `classifyIssueCode` (`src/lint/catalog.ts:1149`) and
+      `getLintIssueGuide` (`:1266`), is classified `unknown`, prints the `neo-grace Lint Issue Guide`
+      with `Classification: unknown` and exits 1 (`bun ./src/grace.ts lint --explain not.a.real.code
+      --path .`, exit 1, measured). So only the undotted path is the defect. The universes `--explain`
+      can answer from are the concrete registered codes: the exact-guide keys
+      (`listExactGuideCodes`, `src/lint/catalog.ts:1159`), the review catalog (`allReviewCodes`,
+      `src/review/catalog.ts:430`) and the gate catalog (`allGateCodes`, `src/gates/catalog.ts:186`) —
+      152 codes with 143 distinct last segments at this commit, six of which are shared. The rule
+      therefore needs a decided answer when the bare token is the last segment of **two or more** codes.
+      **`F256`, re-driven on a whole-repository copy with `.ngrace/scratch` removed.** `bun
+      ./src/grace.ts review --path .` exits 1 with six `review.confidently-wrong` lines carrying three
+      distinct ids: `f9e50fe2046d7a5b` twice (`.ngrace/changes/archive/C-FLUSH-AND-REPAIR/plan.xml`),
+      `9d745b619589d9ca` twice (`C-FLUSH-AND-UNPIN`), `44c49d73260e7cb4` twice (`C-FLUSH-TWO-WAVES`).
+      The emit is `src/review/core.ts:548`, `must-exist:${target}`; `findingId` (`:340`) hashes
+      `auditOrPatternId`, file, `anchorOrHunkKey` and `ruleId`, so two `MustExist` of one path in one plan
+      hash identically. The same file has three more emit sites whose key is derived from a repeatable
+      value rather than the claim's position, driven on a crafted fixture at this commit: `marker:
+      ${marker}` (`:496`, three findings, two ids), `must-match:${file}` (`:623`, two findings, one id)
+      and `vm-child:${node.tag}:${child.tag}` (`:889`, two findings, one id). The other nineteen
+      `makeFinding` sites carry keys that are unique by construction (changed path, hunk key, event id,
+      artifact name, criterion id) or are emitted at most once per file; the survey is in Assumptions.
+      **`F257`, re-driven on an approved-shaped fixture at this commit.** A green `lintGraceProject`
+      with `assertionMode: "target"`, `changeId` set and `runCommands: true` returns `summary
+      {issues:0,errors:0,warnings:0}` and `formatTextReport` prints the standard report — `Errors: 0`,
+      `Warnings: 0`, `No issues found.` — with zero occurrences of the string `command`; the same run
+      with `runCommands: false` exits non-zero and prints `2 command assertions not evaluated; they do
+      not fail this structural target query.` The exit code of each spawned command is **not** in
+      `LintResult` at all: `evaluateMustPassCommand` (`src/artifact/assertions.ts:360`) hands each
+      `CommandRunRecord` to `context.onCommandRun`, and the only consumer `src/lint/core.ts:501` calls
+      `appendCommandRunEvent` to write a loose `command-run` event. `formatTextReport` (`:780`) receives
+      only `LintResult`, so a report describing *that* run needs the records captured on the result path,
+      not read back from the append-only event log. `D13` forbids the obvious fix: presentation state
+      for `formatTextReport` is a module-private `WeakMap` in `src/lint/core.ts`, never a field on
+      `LintResult`, and `M-LINT-TYPES` stays out of `AffectedAreas`.
+      **The ruling this bundle must not disturb.** `C-LINT-PHASE-HONESTY-2` (archived) pins the report's
+      `Errors:` line to `summary.errors`, keeps `assertion.command-not-evaluated` at severity `error`,
+      exempts only the exit on a structural target query, and pins the note "N command assertions not
+      evaluated; they do not fail this structural target query" in singular and plural; current mode has
+      its own pinned lead (`Baseline assertion failures: N. Current mode cannot tell…`). The F257 line is
+      the **green** counterpart of that note and must alter no byte any of those criteria pins.
+      **No live decision codifies any of the three remedies.** A token and decoded-body search of the
+      live `rulings.xml` (61 decision `token=` attributes) for `findingId`, `finding id`, `anchor`,
+      `de-dup`, `distinct id`, `must-exist`, `confidently-wrong`, `explain`, `run-commands` finds only
+      `D8.6` (attaching a finding to the gate verdict note keyed by `findingId`, at warning severity, is
+      accepted; the reviewer's reason is recorded) — which permits keying by id but requires no
+      injectivity — and the `anchor` hits, which are graph-anchor rules. None mandates either F256 remedy
+      or the F257 line. The bundle adds no decision; the remedies state shipped behaviour, as the two
+      preceding increments did.
+      **The base commit and the freeze.** HEAD is `3844741` on branch `c-explain-anchor-commands`, tree
+      clean, `.ngrace/changes/active/` held only `.gitkeep` before this bundle's mint. The record's four
+      live roots at this commit read `&lt;Findings base="7522" headroom="274" ceiling="7796"&gt;`,
+      `&lt;RecordIndex base="268" headroom="28" ceiling="296"&gt;`,
+      `&lt;Registry base="12" headroom="14" ceiling="26"&gt;` and
+      `&lt;Rulings base="1697" headroom="186" ceiling="1883"&gt;`.
+    </Problem>
+    <Goals>
+      <Goal>
+        **The `--explain` fallback is honest about what it searched (`F255`, code half, in
+        `src/grace-lint.ts`).** On the undotted path, when the token is not a registered shape and is not
+        the last segment of any registered code, the text first line is `Unknown code or shape:
+        &lt;token&gt;` and the `Registered shapes:` sentence that follows is byte-unchanged. When the
+        token **is** the last segment of exactly one registered code, the first line is `Unknown code or
+        shape: &lt;token&gt;; did you mean &lt;code&gt;?`. When it is the last segment of two or more, the
+        first line names each candidate: `Unknown code or shape: &lt;token&gt;; candidates: &lt;a&gt;,
+        &lt;b&gt;, …` — it never guesses one. Exit stays 1. The JSON form becomes
+        `{ "kind": "unknown-code-or-shape", "token": &lt;token&gt;, "suggestedCodes": [ … ],
+        "registered": [ … ] }` — `kind` no longer asserts the token was treated as a shape, and the
+        candidate list is machine-readable. The dotted unknown path
+        (`not.a.real.code` → Lint Issue Guide, `Classification: unknown`, exit 1) and the shape path are
+        unchanged. The registered-code universe is the concrete codes `--explain` can answer from — the
+        exact-guide keys plus the review and gate catalogs — and the suggestion is the subset of those
+        whose last dot-segment equals the token, in sorted order.
+      </Goal>
+      <Goal>
+        **One sentence teaches the namespace (`F255`, teaching half).** `ngrace-spec` `shape_sources`
+        gains exactly one sentence: "Issue codes are namespaced (`change.…`, `assertion.…`,
+        `review.…`)." The needle token is `codes are namespaced`. It lands in the canonical skill and
+        its packaged mirror together. It is generic
+        product instruction: it names no bundle, no `F`-token, no `D`-token and no governed record file
+        name — `ngrace-spec` is in `scripts/check-teaching-surface.ts`'s governed set, whose
+        `checkRecordTokens` refuses those tokens outright.
+      </Goal>
+      <Goal>
+        **One id per claim, everywhere the anchor key is per-target (`F256`).** Every `makeFinding` site
+        in `src/review/core.ts` whose `anchorOrHunkKey` is derived from a value that can repeat within
+        one artifact rather than from the claim's position is repaired so that two claims never share an
+        id: `must-exist:${target}` (`:548`), `marker:${marker}` (`:496`), `must-match:${file}` (`:623`)
+        and `vm-child:${node.tag}:${child.tag}` (`:889`). The chosen remedy is **position in the key**:
+        the key carries a document-order discriminator unique among that rule's emits in the file, so
+        each claim keeps its own finding and its own id. The review's reported finding count equals its
+        distinct-id count for every `review.*` code, and `--ack-finding` for outcome `pass` remains
+        one-for-one with the displayed findings, so acknowledging one claim can never silently cover a
+        different one. The de-duplication-with-a-count remedy is rejected: it recreates the same
+        one-ack-covers-two-claims defect at the message level, and it lets a claim be acknowledged that
+        the reviewer has not fixed.
+      </Goal>
+      <Goal>
+        **The green run names the commands it ran (`F257`, in `src/lint/core.ts`).** When a lint run
+        evaluates commands, `formatTextReport` emits one line `Commands: &lt;N&gt; evaluated, &lt;M&gt;
+        exit 0`, where `N` is the number of commands the run spawned and `M` is the number that exited 0;
+        all-pass reads `Commands: &lt;N&gt; evaluated, &lt;N&gt; exit 0`. The count comes from the
+        `CommandRunRecord`s this run produced, captured on the result path, including `MustPassBudget`
+        evaluations because they too spawn a command. The line is sourced from module-private state keyed
+        on the result per `D13`; `LintResult` gains no field, `M-LINT-TYPES` stays out of
+        `AffectedAreas`, and `--format json` gains no top-level key. The line appends without altering
+        any byte `C-LINT-PHASE-HONESTY-2` pins: the `Errors:`/`Warnings:` lines, the singular and plural
+        structural-query note, and the current-mode baseline lead stay byte-identical, and the line
+        appears only when commands were actually evaluated.
+      </Goal>
+      <Goal>
+        **The flush, in one wave, cut at the separator.** Land exactly three `&lt;Finding&gt;` elements
+        for the anchor ids `f255`, `f256` and `f257` — selected by the `&lt;a id="…" name="…"&gt;&lt;/a&gt;`
+        forms in the buffer, never by position — into
+        `docs/plans/active/RM-GOVERNED-PATH/findings.xml` in the house `renderFinding` shape (open tag,
+        `&lt;Title&gt;` carrying the heading line, `&lt;Body&gt;` carrying the shipped escape of the cut
+        body, close tag), appended after the last live element and before the root close tag; three index
+        `&lt;Entry id="…" token="…" genre="finding" layer="live" /&gt;` lines into
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.xml` after the last existing entry; then one
+        `bun ./scripts/validate-record-retirement.ts --rewrite-roots`, the only sanctioned writer of the
+        roots. Each body is the parser's returned body text cut at its trailing `---` separator (the
+        separator line and the blank lines around it removed) before `xmlEscape`; `f255` and `f256` carry
+        a trailing separator because `f257` follows them, and `f257`, the buffer's last entry, does not.
+        `F252` is not flushed. The decode round trip returns the cut staged bytes for all three.
+      </Goal>
+      <Goal>
+        **The payment.** The plan mints one live chartered row into
+        `docs/plans/active/RM-GOVERNED-PATH/registry.xml`:
+        `&lt;Row name="C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA" status="live" kind="chartered"&gt;` with an
+        empty `&lt;Number&gt;`, a `&lt;Charter&gt;` carrying the searched-before-minting statement in its
+        two halves, `&lt;Pays&gt;F255 F256 F257&lt;/Pays&gt;`, and a `&lt;StatusText&gt;` naming no `F`
+        token outside `Pays` and carrying no `Closed with` sentence. The row's name is not an archive
+        directory until the close, so the shipped `derivePayerMap` mints nothing from it while the bundle
+        is active. At the close the authority archives the bundle and runs `--retire`; the row's name now
+        equals an archive directory, the payer map mints the three tokens, and the shipped writer moves
+        four elements — `f255`, `f256` and `f257`, each stamped
+        `&lt;PaidBy&gt;C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA&lt;/PaidBy&gt;` in `findings-retired.xml`, and
+        the row — while flipping the three index layers in place. The plan extends the payer-derivation
+        baseline in `scripts/validate-record-retirement.test.ts` (`bundleMinted`) with the three tokens
+        and adds a payment-invariant carrier-and-row walk over the three ids.
+      </Goal>
+      <Goal>
+        **The footprint the teaching moves.** The skill-footprint pin
+        `src/test-support/token-accounting.test.ts` reports the true re-measured line total and UTF-8 byte
+        total after the sentence lands (never written toward), and the `README.md` measurement cell at
+        `README.md:304` publishes the same two figures, which the shipped test cross-checks against the
+        live measurement. The sentence is appended to the existing `shape_sources` line (line-neutral,
+        byte-moving), as the recent teaching increments were. The pin is a transcription reconciled by
+        re-measure, not a ratchet.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T2** (cross-cutting: two `src/` modules plus their test files, one governed skill
+        plus its packaged mirror, two `validate:ci` scripts, one test-support pin, the `README.md`
+        measurement cell, and the record's findings/index/registry). Roadmap: `RM-GOVERNED-PATH`
+        (product honesty and record integrity). Binding live rulings applied: `D13` (presentation state
+        for `formatTextReport` is a module-private `WeakMap` in `src/lint/core.ts`, never a field on the
+        versioned `LintResult`; `M-LINT-TYPES` stays out of `AffectedAreas`); `D8.6` (a finding is keyed
+        to the gate verdict note by `findingId` — the mechanism the F256 remedy keeps one-for-one);
+        `D28`/`D28.1` (every genre carries a retirement rule and a size ratchet — the flush lands inside
+        the findings window and the close's move re-opens it; figures live in Constraints and Assumptions
+        and expire); `D30` (scoped, not skirted — findings raised while this bundle is open go to the
+        staged buffer under the next staged number; no hard Constraint transcribes a scalar count of a
+        file this bundle writes); `D31` (the index has no retired sibling; its eligible `Entry` layers
+        flip in place); `D27` (nothing is approved unread; ratification is the maintainer's); `D11`
+        (nothing is deferred — every out-of-scope entry is a named NonGoal with an owner); `D20` (the
+        authority owns the close); `F43` (escape markup as character data — `&lt;`, `&gt;`, `&amp;` —
+        and never paraphrase brackets away). This bundle runs no `ngrace review`, no gate, no cursor or
+        supersede verb, and no commit: the executor authors this spec at `status="draft"` and stops; the
+        approval write and the close's move are the authority's.
+      </Constraint>
+      <Constraint>
+        **The F255 fallback, pinned — line, candidate rule, and the collision answer.** The undotted
+        fallback at `src/grace-lint.ts:252` is rewritten so the searched universes are named. **Zero
+        candidates** (`graph-module`, measured): first line `Unknown code or shape: graph-module`, then a
+        blank line and the byte-unchanged `Registered shapes:` sentence. **Exactly one candidate**
+        (`close-evidence-and-satisfied`, measured: the unique registered code is
+        `change.close-evidence-and-satisfied`): first line `Unknown code or shape:
+        close-evidence-and-satisfied; did you mean change.close-evidence-and-satisfied?`. **Two or more**
+        (`document-too-large`, measured: `graph.document-too-large`, `verification.document-too-large`;
+        `bundle-id-mismatch`, measured: `cursor.bundle-id-mismatch`,
+        `design-context.bundle-id-mismatch`, `ledger.bundle-id-mismatch`): first line `Unknown code or
+        shape: document-too-large; candidates: graph.document-too-large,
+        verification.document-too-large`. The candidate set is the concrete registered codes — exact
+        guides ∪ review catalog ∪ gate catalog — filtered by last dot-segment equality and sorted; the
+        six shared suffixes at this commit are `bundle-id-mismatch` (3),
+        `clarification-unresolved` (2), `document-too-large` (2), `invalid-change-id` (3),
+        `invalid-root-tag` (3) and `invalid-verdict` (2). A prefix-only emittable code (for example
+        `project.not-found`, `scope.overlap-durable`, `projection.graph.wrapper-mismatch`,
+        `health.module-missing` — each `classifyIssueCode` `emittable-uncatalogued`, measured) is not a
+        concrete registered code and is not suggested. Exit stays 1 on all three branches. The
+        dotted-unknown path is untouched.
+      </Constraint>
+      <Constraint>
+        **The F255 JSON form, pinned.** The undotted-unknown JSON object becomes exactly
+        `{ "kind": "unknown-code-or-shape", "token": &lt;token&gt;, "suggestedCodes": [ … ], "registered": [
+        … ] }`, with `suggestedCodes` empty when there is no candidate and the sorted candidate list
+        otherwise, and `registered` the shape list byte-unchanged. It carries no `classification` key.
+        The dotted-unknown JSON (`{schemaVersion, tool, classification, guide}`) is untouched. No test at
+        this commit pins `kind` — a search of `src/` and `scripts/` for the string `unknown-shape` finds
+        only `src/grace-lint.ts:256` — so the rename is a deliberate JSON-shape change, not a silent
+        one, and the plan pins the new shape in `src/grace-lint.test.ts`.
+      </Constraint>
+      <Constraint>
+        **The taught sentence, pinned — sentence, section and token.** The sentence "Issue codes are
+        namespaced (`change.…`, `assertion.…`, `review.…`)." lands in `ngrace-spec` `shape_sources` in
+        both trees, appended to the existing `Explain a shape or code:` line so the line total is
+        unchanged. What reddens a criterion checking it: deleting the sentence from one tree turns the
+        new `checkTeachingSurface` needle non-zero with a refusal naming the file, the section and the
+        missing token; restoring the bytes returns zero. The needle is one entry in the existing
+        `TAUGHT_RULES` table (67 entries at this commit, 68 after this change): `{ skill: "ngrace-spec",
+        section: "shape_sources", token: "codes are namespaced" }`.
+      </Constraint>
+      <Constraint>
+        **The instruments, pinned.** `scripts/check-teaching-surface.ts` gains exactly one entry in its
+        existing `TAUGHT_RULES` table — `{ skill: "ngrace-spec", section: "shape_sources", token:
+        "codes are namespaced" }` — which scans `GOVERNED_SKILLS` (`ngrace-spec`, `ngrace-plan`,
+        `ngrace-execute`, `ngrace-reviewer`) in both `GOVERNED_TREES`. `scripts/check-teaching-surface.test.ts`
+        mirrors the same entry in its local `TAUGHT_RULES` table so `taughtSkillBody`/`plantTaughtSkills`
+        and the all-tokens-green test cover it, and drives a red direction by dropping the token from one
+        tree and asserting `checkTaughtRules` returns non-zero naming the file, the section and the
+        missing token. `ngrace-spec` is already in the governed set; its existing `shape_sources` needles
+        (`rewritten wholesale`, `relative to this skill's directory`) are untouched. Every refusal path
+        names the file, the rule and the missing token before exiting non-zero; check mode writes
+        nothing.
+      </Constraint>
+      <Constraint>
+        **The anchor-key remedy, pinned — the class, the shape, and the ack binding.** The four collapsible
+        sites in `src/review/core.ts` (`:496`, `:548`, `:623`, `:889`) each gain a document-order
+        discriminator so that no two claims of one rule in one file share an `anchorOrHunkKey`, and
+        therefore no two share a `findingId` (`:340`). The remedy is position in the key: the key carries
+        the offending element's 0-based ordinal among that rule's emits in the artifact (the plan fixes
+        the exact bytes, for example `must-exist:&lt;target&gt;#&lt;n&gt;`). The property the plan asserts is
+        injectivity, not the ordinal spelling: on a held-out `confidently-wrong` fixture whose plan carries
+        two same-target absent `MustExist` values, `runPatternDetectors` reports exactly two
+        `review.confidently-wrong` findings with two distinct ids; on crafted fixtures carrying two
+        identical unemitted markers, two same-file `MustMatchPattern`, and two same-tag unthreaded
+        children, each rule's finding count equals its distinct-id count. The ack binding is
+        one-for-one by construction: `ngrace gate verdict` re-runs review, persists each displayed
+        finding with its `findingId`, computes `snapshotDigest` over them, and `evaluateApplyGate`'s
+        `oneForOne` block (`src/gates/core.ts:436`) requires `ackIds.length === findingIds.length &amp;&amp;
+        ackSet.size === findingSet.size &amp;&amp; every finding id acked`. Two ids for two claims therefore
+        require two acks.
+        An archived verdict is not re-derived: it carries its own persisted `findings` and `acks` and
+        `evaluateApplyGate` checks them against each other, so the remedy un-acks no archived verdict.
+        The determinism gate (`scripts/validate-determinism.ts`) compares id sets across two runs of one
+        tree and the corpus ratchet keys on `(entryId, surface, code)` (`src/review/scorer.ts:321`),
+        neither of which pins a finding id; no test, fixture or ratchet at this commit pins a
+        `review.confidently-wrong` id — verified by searching `src/` and `scripts/` for the three ids
+        `f9e50fe2046d7a5b`, `9d745b619589d9ca`, `44c49d73260e7cb4`, which occur nowhere except the staged
+        buffer and the archived specs of the two preceding increments.
+      </Constraint>
+      <Constraint>
+        **The anchor-key survey, stated once — every `anchorOrHunkKey` argument.** Across the 23
+        `makeFinding` call sites in `src/review/core.ts` at this commit, exactly four keys are derived
+        from a value that can repeat within one artifact and are therefore collapsible, and all four are
+        in scope above: `marker:${marker}`, `must-exist:${target}`, `must-match:${file}` and
+        `vm-child:${node.tag}:${child.tag}`. The other nineteen are per-claim by construction:
+        `pattern:${markupPattern.slice(0, 48)}` (`:814`) is emitted once per file (the first matching
+        pattern is selected at `:805`, then `continue`); `expect-self` (`:590`),
+        `marker-line-unstripped` (`:827`), `strict-to-loose` (`:1249`) and `asserts:${before}-&gt;${after}`
+        (`:1233`) are emitted at most once per file, and `strict-to-loose` and
+        `assert-count-drop` share a file but differ in `ruleId` and therefore in id; the changed path
+        (`file:${changed}`, `:1094`, `:1158`), the hunk key (`:1293`), the attempt-pair and unpaired keys
+        (`:1427`, `:1659`), the counterpart keys (`scope:`, `writer:`, `cond:`, `diag:`, `:935`–`:973`),
+        the task key (`task:${node.tag}:empty-depends`, `:861`), the code key (`:1276`), the artifact
+        key (`:1826`, `:1836`) and the criterion id (`:1885`) are unique by construction. The class fix
+        is the same defect F256 names; the four sites are repaired together because they live in one file
+        and one test can cover them.
+      </Constraint>
+      <Constraint>
+        **The F257 remedy and `D13`, pinned.** `src/lint/core.ts` gains module-private state that maps a
+        `LintResult` to the `CommandRunRecord`s its run produced, populated on the same path that calls
+        `appendCommandRunEvent` (`:501`) and, so the report is never silent when no `changeId` selected a
+        write target, whenever `runCommands` is true. `formatTextReport` (`:780`) reads that state and
+        appends `Commands: &lt;N&gt; evaluated, &lt;M&gt; exit 0` after the `Warnings:` line (and after the
+        `asState` coverage line when present), before the `Issues`/`No issues found.` block. The line is
+        emitted only when the run evaluated at least one command. `LintResult` gains no field; the
+        `--format json` top-level key set is unchanged; the pinned `Errors:` line, the singular and plural
+        structural-query note, and the current-mode baseline lead are byte-identical. The failing-command
+        direction stays honest through the existing `[error] assertion.MustPassCommand … Command failed
+        (&lt;K&gt;): …` issue line, so the new line never claims a success the run did not have.
+      </Constraint>
+      <Constraint>
+        **Windows, measured, not assumed.** At this base commit the findings live root reads
+        `base="7522" headroom="274" ceiling="7796"` (321 bodies across the findings pair); the index root
+        reads `&lt;RecordIndex base="268" headroom="28" ceiling="296"&gt;`; the registry root reads
+        `&lt;Registry base="12" headroom="14" ceiling="26"&gt;` (12 live rows); the rulings root reads
+        `&lt;Rulings base="1697" headroom="186" ceiling="1883"&gt;` and is untouched. The three cut bodies
+        render **16** (`f255`), **15** (`f256`) and **14** (`f257`) element lines by the shipped rule
+        (`newlineCount(elementSpan) + 1` over the `renderFinding` shape), **45** total; uncut they render
+        19, 18 and 14 (51 total) and `f255` and `f256` end with a `---` line. **Driven on a whole-repository
+        copy** (a faithful copy of the working tree with a real `node_modules`, `.git` included,
+        `.ngrace/scratch` present; the record mutated only in the copy): post-flush-and-`--rewrite-roots`
+        findings `&lt;Findings base="7567" headroom="229" ceiling="7796"&gt;`, index
+        `&lt;RecordIndex base="271" headroom="25" ceiling="296"&gt;`; after the row mint's
+        `--rewrite-roots`, registry `&lt;Registry base="13" headroom="13" ceiling="26"&gt;` (13 live
+        rows), rulings unchanged. The counterfactual, driven: without the separator cut the three bodies
+        render 51 element lines and `f255` and `f256` end with a `---` line — the shape the buffer header
+        forbids. A read-back above a held ceiling stops the task and reports; it does not raise the
+        ceiling and does not trim a staged body.
+      </Constraint>
+      <Constraint>
+        **The flush's order, the mid-bundle state, and the close, driven.** The committed sequence is:
+        land the three findings, land the three index `&lt;Entry&gt;` lines, mint the row live,
+        `--rewrite-roots`, then validation exits 0; then the production fixes and their tests; then the
+        teaching and its instruments; then the close (statuses `applied`, the bundle's directory renamed
+        into `.ngrace/changes/archive/C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA/`, the authority's `--retire`,
+        validation exits 0). `--rewrite-roots` follows every hand write of a live genre root. **Driven on
+        the copy:** a mid-bundle `--retire` reports `moved 0` with every root unchanged; with the bundle's
+        directory in the archive, `--retire` reports **`moved 4`** (three findings and the row), findings
+        `&lt;Findings base="7522" headroom="274" ceiling="7796"&gt;` (the ceiling holds, never rises), and
+        the index `&lt;RecordIndex base="268" headroom="28" ceiling="296"&gt;` (three layers flipped in
+        place), registry back to `&lt;Registry base="12" headroom="14" ceiling="26"&gt;`;
+        `findings-retired.xml` carries `&lt;PaidBy&gt;C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA&lt;/PaidBy&gt;`
+        on all three moved findings; a second `--retire` reports `moved 0`; the shipped
+        `validate-record-retirement.ts`, `validate-citation-anchors.ts` and
+        `prove-record-preservation.ts` each return 0.
+      </Constraint>
+      <Constraint>
+        **The row's prose law, and the searched-before-minting statement.** The shipped `derivePayerMap`
+        mints payments from an archived row's `&lt;Pays&gt;` and from `Closed with` sentences in its
+        `&lt;StatusText&gt;`, gated on the row's name being a directory under
+        `.ngrace/changes/archive/`, first-row-wins. The row's `&lt;StatusText&gt;` therefore names no `F`
+        token outside `&lt;Pays&gt;` and contains no `Closed with` sentence; `&lt;Pays&gt;` contains `F255`,
+        `F256` and `F257` (containment, never an exact set). The row's `&lt;Charter&gt;` carries the
+        searched-before-minting statement in two halves. **Tool half (verbatim):** `mint-search: 0 active,
+        0 archive prior bundle(s) share slug EXPLAIN-ANCHOR-COMMANDS`. **Author half (the scope
+        search), measured at this commit:** the last bundle to open each of the three `src/` files this
+        bundle opens is, for `src/grace-lint.ts` and `src/lint/core.ts`, `C-LINT-PHASE-HONESTY-2`, and,
+        for `src/review/core.ts`, `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22`; 8 archived bundles name
+        `src/grace-lint.ts`, 23 name `src/review/core.ts`, 13 name `src/lint/core.ts`; the last bundle
+        to open `skills/ngrace/ngrace-spec/SKILL.md` is `C-HASHED-BUNDLE-IDS-2` and 14 archived bundles
+        name it. None is a colliding or better-fitting prior name for a bundle that repairs the
+        `--explain` fallback, the review anchor keys and the run-commands report line. The
+        `&lt;Charter&gt;` names no `F` token.
+      </Constraint>
+      <Constraint>
+        **Write scope, anchors, and enumeration — stated once (`F136.1`'s rule), derived from the Goals
+        (`F227`'s rule).** Files the Goals force into write scope: `src/grace-lint.ts`,
+        `src/grace-lint.test.ts`, `src/review/core.ts`, `src/review/core.test.ts`, `src/lint/core.ts`,
+        `src/lint/core.test.ts`, `src/test-support/token-accounting.test.ts` (the footprint pin,
+        re-measured); `skills/ngrace/ngrace-spec/SKILL.md` and its packaged mirror under
+        `plugins/ngrace/skills/ngrace/`; `scripts/check-teaching-surface.ts`;
+        `scripts/check-teaching-surface.test.ts`; `scripts/validate-record-retirement.test.ts`;
+        `README.md` (the measurement cell at `:304`, the only `README.md` write); this bundle's own
+        artifacts under `.ngrace/changes/active/C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA/`; and the record
+        files the flush and the close write — `findings.xml`, `decisions.xml`, `registry.xml` (flush,
+        hand write and `--rewrite-roots`), and `findings-retired.xml` and `registry-retired.xml` (the
+        close's `--retire`, the only sanctioned writer of the retired siblings and the `PaidBy` stamp).
+        The three `.test.ts` `src/` writes are not module-ownable (`isModuleOwnableWritePath`,
+        `src/lint/core.ts:724`), so `change.graph-anchors-miss-write-scope` cannot fire on them;
+        `scripts/` is lint-ignored (`.ngrace-lint.json` `ignoredDirs`); the skill `SKILL.md` carries no
+        file-local `LINKS:` header (skills carry none). The four real anchors are named once here and
+        once in `AffectedAreas`, the only module list this spec carries: `M-LINT-CORE` owns
+        `src/grace-lint.ts` and `src/lint/core.ts` (both LINKS: M-LINT-CORE), `M-REVIEW` owns
+        `src/review/core.ts` (LINKS: M-REVIEW), `M-SKILLS` owns the canonical skill tree, and
+        `M-TEST-SUPPORT` owns `src/test-support`. `M-LINT-TYPES` stays out of `AffectedAreas` (`D13`) —
+        `src/lint/types.ts` is not written. No catalog entry changes: `src/lint/catalog.ts`
+        (`M-LINT-CATALOG`), `src/review/catalog.ts` (`M-REVIEW` catalog) and `src/gates/catalog.ts` are
+        read, not written; `review.confidently-wrong` keeps its code, severity and message. Do not mint
+        a synthetic module, do not repeat this list as a second module list, do not add a lint issue
+        code, and do not register the record files as `CONTEXT_ARTIFACTS`.
+      </Constraint>
+      <Constraint>
+        **Criterion mapping, stated on its face.** Every `AC-*` below except `AC-NO-CURRENT-MODE` is
+        close-bound by its own `CloseEvidence` child; a task `Satisfies` naming any of them is the
+        shipped error (`change.close-evidence-and-satisfied`). Exactly one criterion —
+        `AC-NO-CURRENT-MODE` — carries no `CloseEvidence` and is mapped by exactly one task `Satisfies`
+        in the later plan; unmapped it is a warning, and `AC-CLOSE-LINT`'s `--fail-on warnings` turns
+        that warning into an uncloseable bundle. Every `CloseEvidence` is evaluated only in the
+        applied-archive state, after the close's own move has run (`F196`'s rule), so every criterion is
+        written to hold there.
+      </Constraint>
+      <Constraint>
+        **Evidence hygiene, the rules this repository teaches applied to its own criteria.** Every
+        byte-invariance baseline is this spec's base commit `3844741` — the base-less `git diff` form
+        cannot fail, and a criterion whose baseline cannot fail was never a guard (`F210`'s rule). The
+        window is this bundle's own diff, over tracked paths only (`F174`), probed in the post-close
+        state (`F215`'s rule). The archive pathspec excludes this bundle's own archive arrival with its
+        reason — the close itself renames the bundle's directory into the archive (`F188`) — and the
+        record files the flush and the close do touch are covered by the parse-based relations in
+        `AC-FLUSH-LANDED`, `AC-ROW-PAYS` and `AC-RECORD-VALID`, never by byte-invariance. Every
+        `CloseEvidence` `Command` matches a shipped discriminating shape — `bun test` for the suites, the
+        `grace-ts-lint-fail-on` shape for close-time lint, the `git-diff-exit-code` shape with the named
+        base commit for every byte-invariance claim, and the configured
+        `bun run ./scripts/validate-marketplace.ts` prefix for mirror sync. Structural counts come from
+        the shipped parser (`parseFrozenMarkdown`, `parseGraceXmlArtifact`, `newlineCount`), never
+        `grep -c`; exit codes are read directly, never through a pipe; any test the later plan adds that
+        measures the real repository carries an explicit generous timeout (`F185`). Probes mutate copies,
+        never the production record. A criterion is producible: it asserts no state the shipped engine
+        will not produce, requires no change another criterion forbids, and names no probe that cannot be
+        run.
+      </Constraint>
+      <Constraint>
+        **Stop and re-spec rather than touching:** any `src/` production file other than
+        `src/grace-lint.ts`, `src/review/core.ts` and `src/lint/core.ts` — in particular
+        `src/lint/types.ts` (`D13`), `src/lint/catalog.ts`, `src/review/catalog.ts`,
+        `src/gates/**`, `src/artifact/assertions.ts` and `src/artifact/grammar.ts`; any `scripts/`
+        file other than the three named; the parser and render step of
+        `scripts/validate-record-retirement.ts` (`parseFrozenMarkdown`, `renderFinding`,
+        `renderDecision`, `derivePayerMap`, `persistSnapshot`, `--retire`, `--rewrite-roots`) and the
+        existing separator-laden bodies — the cut this bundle applies is to its own three bodies' bytes
+        only, and `F252`'s remedy belongs to the record-schema bundle; the other fifteen skills and
+        their mirrors except the one pinned sentence; the spec and plan teaching templates and every
+        other `references/` file; `examples/**`; `docs/plans/**` outside the record files this bundle and
+        its close touch; `docs/plans/archive/`; tracked paths under `.ngrace/changes/archive/` except
+        this bundle's own later arrival there; `CHANGELOG.md`; any version surface; `package.json` and
+        `bun.lock`; `.ngrace-lint.json`; `CONTRIBUTING.md`; `CLAUDE.md`; `AGENTS.md`; and the staged
+        buffer `.ngrace/scratch/staged-findings.md` (read, never written — in particular `F252` is
+        neither flushed nor pruned).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `examples/` unchanged; no user-visible surface there, and no polyglot evidence rebalance. Owner:
+        unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        `F252` — the `---` separator in rendered bodies, the `parseFrozenMarkdown`/render-step trim, the
+        flush-invariant tail walk, and the sweep of the existing separator-laden bodies. It is left
+        staged and unpaid here; the cut this bundle applies is to its own three bodies only. Owner: the
+        record-schema bundle (`F207`/`F221`).
+      </NonGoal>
+      <NonGoal>
+        The structural-target report shape `C-LINT-PHASE-HONESTY-2` pins — the `Errors:` line tied to
+        `summary.errors`, `assertion.command-not-evaluated` at severity `error`, the singular and plural
+        structural-query note, the exit exemption on a structural target query, and the current-mode
+        baseline lead. The authority measured that shape and it is by design, not a defect. Owner:
+        unchanged; the ruling stands and this bundle adds the green counterpart line beside it.
+      </NonGoal>
+      <NonGoal>
+        The `scripts/` adoption bundle `F242` (`tsconfig.json` `include` names `src/**` only, so every
+        `scripts/*.test.ts` is never typechecked — the lint ignore in `.ngrace-lint.json` is a separate
+        fact — and `bun run typecheck` is green while those suites carry type errors), and the
+        schema-and-serializer work `F207` `F221` `F235`. Owner: the deferred `C-*` that brings `scripts/`
+        into the typecheck, and the schema/serializer chartered bundles respectively.
+      </NonGoal>
+      <NonGoal>
+        The five unstaged teaching candidates the maintainer left for the next increment: a pass attempt
+        that drops a supplied signature; row-19 copy driving commit-the-approved-plan-before-opening-the-epoch
+        (`F11`); lineage re-homing; a post-close copy drive kind in `ngrace-execute`; `ngrace-spec`
+        lineage guidance. None is an `F`, none is staged, and none is this bundle's. Owner: the next
+        teaching increment that stages them as findings.
+      </NonGoal>
+      <NonGoal>
+        A product version bump, a `package.json`/`bun.lock` change, a new CLI verb, a new lint issue
+        code, or a grammar/schema-reference section. A version is a release act, not this bundle's;
+        packaged version at authoring `6.2.0`; `validate:marketplace` enforces version sync across
+        `README.md`, `openpackage.yml`, `.claude-plugin/marketplace.json` and `package.json`, and
+        packaged-versus-canonical byte identity — both skill trees change together, so it stays green.
+        `CHANGELOG.md` is generated and untouched. `README.md` is written only in the footprint
+        measurement cell at `:304` (a Goal), never in a Skills Overview row — the edited skill's
+        frontmatter description does not change. Owner: unchanged; release surfaces.
+      </NonGoal>
+      <NonGoal>
+        A new decision in the record, or a change to an existing one. `D8.6` is applied, not amended;
+        the three remedies state shipped behaviour. Owner: the authority; this bundle adds findings,
+        index entries and one chartered row only.
+      </NonGoal>
+      <NonGoal>
+        Editing `docs/plans/**` outside the record files this bundle and its close write,
+        `docs/plans/archive/`, `CLAUDE.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/plans/README.md`,
+        `package.json`, `bun.lock`, `.ngrace-lint.json`, the other fifteen skills, the teaching
+        templates, or any archived bundle. Owner: unchanged surfaces; their pins stay green by
+        non-edit.
+      </NonGoal>
+      <NonGoal>
+        Writing or pruning the staged buffer, re-flushing any entry already in the record, or rendering
+        any entry this spec does not pin. `F252` stays staged; pruning the three flushed entries is
+        post-merge hygiene owned by the authority, after the flush PR merges. Owner: the authority.
+      </NonGoal>
+      <NonGoal>
+        Running `ngrace review`, any gate or cursor or supersede verb, or committing: authoring this
+        bundle's artifacts is the executor's act; ratification is the maintainer's; the approval write
+        and the close's move are the authority's. This spec is written at `status="draft"` and the
+        bundle stops there. Owner: the authority.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-EXPLAIN-FALLBACK>
+        The undotted unknown fallback names both universes it searched and never presents a code lookup
+        as a shape lookup. Zero candidates: first line `Unknown code or shape: &lt;token&gt;`. Exactly
+        one: first line `Unknown code or shape: &lt;token&gt;; did you mean &lt;code&gt;?`. Two or more:
+        first line names every candidate. All three exit 1 and keep the byte-unchanged `Registered
+        shapes:` sentence. The dotted-unknown path (`not.a.real.code` → Lint Issue Guide,
+        `Classification: unknown`, exit 1), the dotted exact path and the shape path are unchanged. Red
+        direction, driven at base: the shipped message is `Unknown shape: close-evidence-and-satisfied`
+        and asserts nothing about codes, so the criterion reddens on the pre-fix tree. The instrument is
+        the production assertions the plan adds to `src/grace-lint.test.ts`, including a fixture for each
+        of the zero-, one- and two-candidate branches on the real catalogs.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 src/grace-lint.test.ts</Command>
+        </CloseEvidence>
+      </AC-EXPLAIN-FALLBACK>
+      <AC-EXPLAIN-JSON>
+        The undotted-unknown JSON object is exactly `{ "kind": "unknown-code-or-shape", "token":
+        &lt;token&gt;, "suggestedCodes": [ … ], "registered": [ … ] }`, with `suggestedCodes` empty when
+        there is no candidate and the sorted candidate list otherwise, `registered` unchanged, and no
+        `classification` key; exit is 1. Red direction: the shipped `kind` is `"unknown-shape"` and there
+        is no `suggestedCodes`, so the criterion reddens at base. The instrument is the assertions the
+        plan adds to `src/grace-lint.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 src/grace-lint.test.ts</Command>
+        </CloseEvidence>
+      </AC-EXPLAIN-JSON>
+      <AC-ANCHOR-INJECTIVE>
+        No two `review.*` findings in one file share an id. On a held-out `confidently-wrong` fixture
+        whose plan carries two same-target absent `MustExist` values, `runPatternDetectors` reports
+        exactly two `review.confidently-wrong` findings with two distinct ids; on crafted fixtures
+        carrying two identical unemitted markers, two same-file `MustMatchPattern` nodes, and two
+        same-tag unthreaded verification children, each rule's finding count equals its distinct-id
+        count. The relation is one-finding-per-claim: `ngrace gate verdict` requires one `--ack-finding`
+        per displayed finding id. Red direction, driven at base: on a whole-repository copy with
+        `.ngrace/scratch` removed, `ngrace review` prints six `review.confidently-wrong` lines carrying
+        three ids; on the crafted fixture, `marker-not-emitted` prints three findings and two ids,
+        `plan-matches-self` two and one, `unknown-verification-child` two and one. The instrument is the
+        production assertions the plan adds to `src/review/core.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 src/review/core.test.ts</Command>
+        </CloseEvidence>
+      </AC-ANCHOR-INJECTIVE>
+      <AC-COMMANDS-REPORTED>
+        A lint run that evaluates commands prints one line `Commands: &lt;N&gt; evaluated, &lt;M&gt; exit
+        0` after the `Warnings:` line (and after the `asState` coverage line when present), before the
+        `Issues`/`No issues found.` block, where `N` is the commands the run spawned and `M` the number
+        that exited 0; a run that evaluates no command prints no such line. `LintResult` gains no field
+        and `--format json` gains no top-level key. No byte `C-LINT-PHASE-HONESTY-2` pins changes: the
+        `Errors:` line still equals `summary.errors`, the singular and plural structural-query note are
+        byte-identical, and the current-mode baseline lead is byte-identical. Red direction, driven at
+        base: the green `--run-commands` report contains zero occurrences of the string `command`; the
+        red `--run-commands`-less run prints the structural note and no `Commands:` line. The instrument
+        is the production assertions the plan adds to `src/lint/core.test.ts` (the green fixture with
+        `runCommands: true` over an open epoch, the zero-command fixture, and the JSON-key-set
+        assertion), with the ruling's own tests staying green by non-edit:
+        `summary.errors equals error-severity count in every mode, including structural target`,
+        `plural structural-query note uses they-do-not-fail wording`, the `AC-BASELINE-LINT-FRAMING`
+        lead tests, and `--format json / JSON.stringify result gains no new top-level key (D13)` in
+        `src/lint/core.test.ts`; `requires explicit command opt-in and exposes selected assertion CLI
+        flags` and `treats selected target without --run-commands as a structural query` in
+        `src/grace-lint.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 src/lint/core.test.ts</Command>
+        </CloseEvidence>
+      </AC-COMMANDS-REPORTED>
+      <AC-TAUGHT-SENTENCES>
+        The sentence "Issue codes are namespaced (`change.…`, `assertion.…`, `review.…`)." sits in
+        `ngrace-spec` `shape_sources` in both trees, byte-identical between canonical and packaged, and
+        the extended teaching-surface check asserts its load-bearing token — `codes are namespaced` —
+        through the new `TAUGHT_RULES` needle. The instrument is the production assertions the plan adds to
+        `scripts/check-teaching-surface.test.ts` over isolated roots plus this repository measured with
+        an explicit generous timeout, and `bun run ./scripts/validate-marketplace.ts` for the mirror.
+        Red direction, driven on a copy at this commit: deleting the sentence from one tree turns `bun
+        ./scripts/check-teaching-surface.ts check` non-zero, refusing with the file, the section and the
+        missing token; restoring the bytes returns zero. This criterion is invariant under the close:
+        the close's ceremony edits no skill.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</Command>
+        </CloseEvidence>
+      </AC-TAUGHT-SENTENCES>
+      <AC-FLUSH-LANDED>
+        After the wave, each of `f255`, `f256` and `f257` exists exactly once across the findings pair
+        (`findings.xml` and `findings-retired.xml`), with no fixed expectation of which file holds it:
+        the element's `status` agrees with the holding file, its token and genre agree, and the single
+        index `&lt;Entry&gt;` for the id has `genre` and `layer` agreeing with that holding file — the
+        relation survives the close's own move, which retires the three, flips their index layers, and
+        leaves every clause true. No landed body ends with a `---` separator line (a criterion property;
+        the criterion does not compare a landed body to the buffer's uncut text, because the house-form
+        suite never reads the buffer and the buffer moves under a live spec, `D30`). The wave's written
+        findings root base equals
+        the file's `newlineCount` after the write and the index base equals its live-`Entry` count, both
+        via `--rewrite-roots`; the post-flush root is `&lt;Findings base="7567" headroom="229"
+        ceiling="7796"&gt;` and the index base 271 (measured on a driven whole-repository copy).
+        `F252` is not among the flushed ids. All three bodies' fragment citations resolve on the
+        post-flush record; the plan's suite asserts this read-only through the shipped `validateStubAndIndex` entry
+        point with a generous timeout. The instrument is the production assertion the plan adds to
+        `scripts/validate-record-retirement.test.ts` in the flush-invariant house form. Red direction,
+        driven on a copy: duplicating one flushed `&lt;Finding&gt;` reddens the at-most-once clause;
+        flipping a flushed index layer against its holding file reddens the layer clause and the shipped
+        roots tripwire.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-FLUSH-LANDED>
+      <AC-ROW-PAYS>
+        This bundle's registry row exists exactly once across `registry.xml` and
+        `registry-retired.xml`, with no fixed expectation of which file holds it: the `Row`'s `status`
+        agrees with the holding file, `kind="chartered"`, its `&lt;Pays&gt;` contains `F255`, `F256` and
+        `F257`, and its `&lt;StatusText&gt;` names no `F` token outside `&lt;Pays&gt;` and carries no
+        `Closed with` sentence. The `Pays` assertion is containment, never an exact set, so a later
+        lawful retired-row append cannot expire it. The relation survives the row's own retirement at the
+        close. The instrument is the production assertion the plan adds to
+        `scripts/validate-record-retirement.test.ts`, parsed with the shipped parser over both registry
+        layers, payment-invariant by construction. Red direction, driven on mutated copies: a second row
+        with the same name, or a `StatusText` naming a token outside `Pays`, each turn the assertion
+        non-zero.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROW-PAYS>
+      <AC-RECORD-VALID>
+        The record is valid at every committed point of this bundle's life and in the applied-archive
+        state. Before the close: the shipped `validateRecordRetirement` returns zero findings with the
+        three findings flushed and the row minted live (the row's name is not yet an archive directory,
+        so the payer map mints nothing and no element is eligible); a mid-bundle `--retire` reports
+        `moved 0`. At the close: the move reports four (the three findings and the row), stamps
+        `&lt;PaidBy&gt;C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA&lt;/PaidBy&gt;` on each moved finding in the
+        retired sibling, flips the three index `&lt;Entry&gt;` layers in place, and a second `--retire`
+        reports zero. After the close: the shipped `validateRecordRetirement` returns zero findings; the
+        shipped `validateStubAndIndex` returns zero findings (the flushed bodies' fragment citations
+        resolve); and the shipped `proveRecordPreservation` returns zero. Both validators export their
+        entry points and the plan's suite imports them and asserts zero findings read-only on the
+        production record with a generous timeout. The instrument is the production assertions in
+        `scripts/validate-record-retirement.test.ts` — the read-only `validateRecordRetirement` run, the
+        imported `validateStubAndIndex` and `proveRecordPreservation` runs, the carrier/row walks — plus
+        the payer-derivation baseline extension (`bundleMinted`) with the three tokens. Red direction,
+        driven on mutated copies: a planted eligibility, a duplicated carrier, or a minted token missing
+        from the extended baseline each turn the suite non-zero; the driven full close reports `moved 4`,
+        validator 0, citation 0, preservation 0, second `--retire` `moved 0`.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-VALID>
+      <AC-ROOTS-HELD>
+        The four live roots satisfy the shipped relations and no ceiling rose across the bundle: for
+        `findings.xml`, `rulings.xml`, `registry.xml` and `decisions.xml` — `base + headroom = ceiling`
+        and each `base` equals its shipped metric read back (`newlineCount` for findings and rulings, the
+        live `&lt;Entry&gt;` rule for the index, the live `Row` count for registry). The relations are
+        payment-invariant by construction: the only shipped writers of the roots, `persistSnapshot` and
+        `--rewrite-roots`, rewrite them in exactly this form, and a ceiling holds or falls, never rises.
+        Measured on the driven copy: pre-flush findings `7522 / 274 / 7796`, post-flush `7567 / 229 /
+        7796`, post-close `7522 / 274 / 7796` (the ceiling held, it never rose); index `268 / 28 / 296`
+        pre-flush, `271 / 25 / 296` post-flush, `268 / 28 / 296` post-close; registry `12 / 14 / 26`
+        pre-mint and post-close, `13 / 13 / 26` after the row mint's `--rewrite-roots` (13 live rows);
+        rulings unchanged at `1697 / 186 / 1883`. The instrument is the shipped roots-invariant tripwire
+        in `scripts/validate-record-retirement.test.ts`. Red direction, driven on a copy: a root whose
+        `headroom` no longer sums against its ceiling reddens the tripwire.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROOTS-HELD>
+      <AC-MIRROR-SYNC>
+        The taught sentence is present in the canonical skill and its packaged mirror, byte-identical,
+        and the version surfaces stay synchronized. The instrument is
+        `bun run ./scripts/validate-marketplace.ts`, which compares each packaged path to its canonical
+        source and enforces version sync; both trees change together, so it stays green.
+        <CloseEvidence>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </CloseEvidence>
+      </AC-MIRROR-SYNC>
+      <AC-FOOTPRINT-PIN>
+        The skill-footprint pin reports the true re-measured values after the teaching lands — the line
+        total and the UTF-8 byte total from the tree, never written toward — and the `README.md`
+        measurement cell at `README.md:304` publishes the same two figures, which the shipped test
+        cross-checks against the live measurement. At this commit the pin reads 864 lines / 77124 bytes.
+        The sentence is appended to an existing line, so the line total stays 864 and only the byte total
+        moves; the plan re-measures both. The pin is a transcription reconciled by re-measure, not a
+        ratchet: it moves to whatever the true value is and never by deletion or loosening. Its red
+        direction is the shipped test's own cross-check failing when the cell and the tree disagree. This
+        criterion is invariant under the close.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 src/test-support/token-accounting.test.ts</Command>
+        </CloseEvidence>
+      </AC-FOOTPRINT-PIN>
+      <AC-DETERMINISM>
+        The two-run id identity and the corpus ratchet stay green with the anchor keys repaired: the
+        determinism gate compares the id sets of two runs of one tree, which change together, and the
+        ratchet keys on `(entryId, surface, code)`, not on any finding id. No test, fixture or ratchet
+        pins a `review.confidently-wrong` id. The instrument is the scorer suite chained to the
+        determinism script (`bun run validate:determinism` runs exactly that suite and that script);
+        the `CloseEvidence` command spells the chain so it carries the shipped `bun test` shape. Red
+        direction, driven on a copy: replace the document-order discriminator with one derived from a
+        non-document order — a counter that advances per emit across the process — so two runs of one
+        tree produce different id sets and the gate reports `determinism gate FAILED: two runs
+        diverged` (exit 1); restoring the document-order discriminator returns the gate to zero. A
+        reordering under document-order discriminators does not change the id set and cannot redden
+        this criterion.
+        <CloseEvidence>
+          <Command>bun test --timeout=120000 src/review/core.test.ts src/review/scorer.test.ts &amp;&amp; bun run ./scripts/validate-determinism.ts</Command>
+        </CloseEvidence>
+      </AC-DETERMINISM>
+      <AC-NO-SRC>
+        No file under `src/` or `scripts/` changes relative to this spec's base commit `3844741` except
+        the files the Goals force, named here and in the command's excludes: `src/grace-lint.ts`,
+        `src/grace-lint.test.ts`, `src/review/core.ts`, `src/review/core.test.ts`, `src/lint/core.ts`,
+        `src/lint/core.test.ts`, `src/test-support/token-accounting.test.ts`,
+        `scripts/check-teaching-surface.ts`, `scripts/check-teaching-surface.test.ts` and
+        `scripts/validate-record-retirement.test.ts`. Prose and command name the same pathset. Failure:
+        any other `src/` or `scripts/` path, in particular `src/lint/types.ts`, `src/lint/catalog.ts`,
+        `src/review/catalog.ts`, `src/gates/**` and `src/artifact/**`, differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code 3844741 -- src/ scripts/ ':(exclude)src/grace-lint.ts' ':(exclude)src/grace-lint.test.ts' ':(exclude)src/review/core.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/lint/core.ts' ':(exclude)src/lint/core.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-SRC>
+      <AC-RECORD-PRESERVED>
+        The record files the flush and the close provably do not change are byte-identical to this
+        spec's base commit: `docs/plans/active/RM-GOVERNED-PATH/rulings.xml`,
+        `rulings-retired.xml`, `decisions.md`, `record-inventory.json`, `plan.md`, `review.md`,
+        `brownfield-findings.md`, `brownfield-run4-findings.md`, `p0-calibration-derivation.md`,
+        `p0-cursor-derivation.md`, `p0-derivation.md`, `p0-report-honesty-derivation.md`, and the
+        `sources/` subtree — driven, not assumed: the flush writes `findings.xml`, `decisions.xml` and
+        the row into `registry.xml`, and the close writes only the findings pair, the registry pair and
+        the index. The files the flush and the close do change are deliberately absent from this
+        criterion and are covered by the parse-based relations in `AC-FLUSH-LANDED`, `AC-ROW-PAYS` and
+        `AC-RECORD-VALID`. The window is this bundle's own diff, over tracked paths only. Probed in the
+        post-close state.
+        <CloseEvidence>
+          <Command>git diff --exit-code 3844741 -- docs/plans/active/RM-GOVERNED-PATH/rulings.xml docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </CloseEvidence>
+      </AC-RECORD-PRESERVED>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and `.ngrace/changes/archive/` are not modified; this
+        bundle's own later arrival under
+        `.ngrace/changes/archive/C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA/` is excluded with its reason: the
+        close itself renames this bundle's directory into the archive, and the pathspec excludes that
+        arrival so the close's own rename cannot redden the criterion. The record's sanctioned writes in
+        this bundle's window touch no path under either archive root. The prose claims tracked paths
+        only. Probed in the post-close state.
+        <CloseEvidence>
+          <Command>git diff --exit-code 3844741 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-DOCS-EXAMPLES>
+        Every surface this bundle does not write is byte-identical to this spec's base commit:
+        `examples/`, `CLAUDE.md`, `CONTRIBUTING.md`, `AGENTS.md`, `docs/plans/README.md`,
+        `docs/plans/archive/`, `package.json`, `bun.lock`, `CHANGELOG.md`, `.ngrace-lint.json`, and every
+        published skill except `ngrace-spec/SKILL.md` in both trees — that one is excluded with its
+        reason (the teaching) and its mirror identity is asserted by `AC-MIRROR-SYNC`, while every
+        `references/` file stays byte-identical and the teaching templates are not regenerated.
+        `README.md` sits outside this pathset because the measurement cell is a forced write; it is
+        covered by `AC-FOOTPRINT-PIN`'s cross-check. Prose and command name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code 3844741 -- examples/ CLAUDE.md CONTRIBUTING.md AGENTS.md docs/plans/README.md docs/plans/archive/ package.json bun.lock CHANGELOG.md .ngrace-lint.json skills/ngrace/ plugins/ngrace/skills/ngrace/ ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md'</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task `Verification` commands and `TargetAssertions` contain no current-mode lint
+        of this project root, checked by hand (the shipped detector misses the house
+        `bun ./src/grace.ts lint` form). Failure: a `Command` whose text contains `--assertions current`,
+        or that invokes lint of this root and omits `--assertions`. This is the spec's single
+        `Satisfies`-mapped criterion; it carries no `CloseEvidence` and must be mapped by exactly one
+        task `Satisfies` in the later plan.
+      </AC-NO-CURRENT-MODE>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-LINT-CORE />
+      <M-REVIEW />
+      <M-SKILLS />
+      <M-TEST-SUPPORT />
+      No module-ownable path is created. `M-LINT-CORE` owns `src/grace-lint.ts` and `src/lint/core.ts`
+      (both LINKS: M-LINT-CORE); `M-REVIEW` owns `src/review/core.ts` (LINKS: M-REVIEW); `M-SKILLS`
+      owns the canonical skill tree the one edited skill lives in; `M-TEST-SUPPORT` owns
+      `src/test-support`, whose pin this deliverable re-measures. The three `.test.ts` `src/` writes are
+      not module-ownable (`isModuleOwnableWritePath` is false for them), so
+      `change.graph-anchors-miss-write-scope` cannot fire on them; `scripts/` is lint-ignored;
+      `ngrace-spec/SKILL.md` carries no file-local `LINKS:` header; `README.md` and the record files are
+      owned by no module in the graph. `M-LINT-TYPES` is deliberately absent (`D13`):
+      `src/lint/types.ts` is not written, and presentation state for the report lives module-private in
+      `src/lint/core.ts`. The module enumeration is these four anchors and no more; do not mint a
+      synthetic module.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=30000 src/grace-lint.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=30000 src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=30000 src/lint/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=30000 scripts/check-teaching-surface.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=30000 src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:determinism</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/check-teaching-surface.ts check</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bash -c 'T=$(mktemp -d) &amp;&amp; rsync -a . "$T/repo" &amp;&amp; mkdir -p "$T/repo/.ngrace/changes/archive" &amp;&amp; mv "$T/repo/.ngrace/changes/active/C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA" "$T/repo/.ngrace/changes/archive/C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA" &amp;&amp; cd "$T/repo" &amp;&amp; bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH &amp;&amp; bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH &amp;&amp; rm -rf "$T"'</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): the `--explain` fallback names both universes in text and JSON, the
+        anchor-key injectivity holds at all four collapsible sites with the determinism gate and the
+        corpus ratchet green, the green `--run-commands` report names the commands it ran without a new
+        `LintResult` field or JSON key, the one taught sentence is at its named section home in both
+        trees with its teaching-surface needle reddening on a planted deletion, the three paid staged
+        findings are in the record with their index entries, the row is minted live and validates clean
+        before the close, the mid-bundle `--retire` reports `moved 0`, the close's move reports four and
+        flips the three index layers, the applied-archive record validates clean with the citation
+        validator and the preservation proof (asserted through the suite's imported `validateStubAndIndex`
+        and `proveRecordPreservation`), the payer-derivation baseline carries the three minted tokens, the
+        footprint pin and README cell agree with the live measurement, and every `CloseEvidence` command
+        and the full `validate:ci` run green inside a faithful copy of the post-close state (a
+        whole-repository copy, the bundle archived, the close's `--retire` run) with both directions
+        driven for every criterion and every exit code read directly. Structural counts come from the
+        shipped parser, never `grep -c`; the record's copy-drive runs from inside a whole-repository
+        copy. The reds are ledger-recorded fail/pass pairs, not claims.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Base commit `3844741` (inherited by this bundle's plan); authored at `3844741`, branch
+        `c-explain-anchor-commands`, tree clean, 2026-09-15.** `bun ./src/grace.ts lint --path .` exits
+        0 at 0/0 with this spec in the tree; `bun run validate:ci` exits 0; `.ngrace/changes/active/`
+        held only `.gitkeep` before the mint. Every count here expires; the implementation re-measures
+        (`D30`).
+      </Assumption>
+      <Assumption>
+        **The mint, verbatim.** The verb printed
+        `mint: C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA slug=EXPLAIN-ANCHOR-COMMANDS lineage=1
+        hash=FC0ED3DA branch=c-explain-anchor-commands timestamp=2026-09-15T16:26:41.000Z` and
+        `mint-search: 0 active, 0 archive prior bundle(s) share slug EXPLAIN-ANCHOR-COMMANDS`. The path
+        printed is
+        `.ngrace/changes/active/C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA/spec.xml`. The id was never
+        hand-typed and the clock was handed in with `--timestamp`. The tool's collision half is the
+        `mint-search:` line; the author's scope half is the row-Constraint search.
+      </Assumption>
+      <Assumption>
+        **The buffer, parsed not read.** `.ngrace/scratch/staged-findings.md` holds exactly four entries
+        as of 2026-09-15 — `f252`, `f255`, `f256`, `f257`, all findings genre on `###` headings, anchors
+        adjacent to their headings, no staged charter row and no registry heading (measured by the
+        shipped `parseFrozenMarkdown`: 4 entries, `chartered` 0, `sweep` 0, `registryHeadingIndex` -1).
+        The buffer is untracked and `.gitignore`d, one copy; nothing here writes it.
+      </Assumption>
+      <Assumption>
+        **The cut bodies, measured both ways.** `parseFrozenMarkdown` returns `f252`, `f255` and `f256`
+        bodies ending with a blank line, a `---` line and a blank line (the section separator); `f257`
+        (last) does not. Cut at the separator: `f255` renders a 13-line body (16 element lines), `f256`
+        a 12-line body (15 element lines) and `f257` an 11-line body (14 element lines), 45 total.
+        Uncut: 19, 18 and 14 element lines, 51 total, and `f255` and `f256` end with `---`.
+      </Assumption>
+      <Assumption>
+        **The F255 candidate universe, measured.** The concrete registered codes are the exact-guide
+        keys (119), the review catalog (20) and the gate catalog (13) — 152 codes, 143 distinct last
+        dot-segments, six shared: `bundle-id-mismatch` (cursor, design-context, ledger),
+        `clarification-unresolved` (gate.apply, gate.approve), `document-too-large` (graph,
+        verification), `invalid-change-id` (cursor, design-context, ledger), `invalid-root-tag` (cursor,
+        design-context, ledger), `invalid-verdict` (gate.apply, ledger). `close-evidence-and-satisfied`
+        is the last segment of exactly one registered code
+        (`change.close-evidence-and-satisfied`); `graph-module` and `module-contract` are of none.
+        Prefix-only emittable codes (`project.not-found`, `scope.overlap-durable`,
+        `projection.graph.wrapper-mismatch`, `health.module-missing`) are not concrete registered codes
+        and are not suggested; that residual is recorded, not hidden.
+      </Assumption>
+      <Assumption>
+        **The F256 anchor-key survey, measured.** The reproduction, driven at this base on a
+        whole-repository copy with `.ngrace/scratch` removed: six `review.confidently-wrong` lines, three
+        ids (`f9e50fe2046d7a5b` twice, `9d745b619589d9ca` twice, `44c49d73260e7cb4` twice). The class,
+        driven on a crafted fixture: `marker-not-emitted` three findings and two ids, `plan-matches-self`
+        two and one, `unknown-verification-child` two and one. The 23 `makeFinding` call sites were
+        enumerated; the four collapsible keys and the nineteen non-collapsible keys are listed in the
+        survey Constraint. No pin: `f9e50fe2046d7a5b`, `9d745b619589d9ca` and `44c49d73260e7cb4` occur
+        in `src/` and `scripts/` nowhere; `src/review/core.test.ts` asserts only id stability and shape
+        (`/^[a-f0-9]{16}$/`), and `scripts/validate-determinism.ts` compares two runs of one tree; the
+        corpus ratchet keys on entry, surface and code.
+      </Assumption>
+      <Assumption>
+        **The F256 ack binding, measured.** `ngrace gate verdict` (`src/gates/command.ts:388`) persists
+        each displayed finding with its `findingId` and computes `snapshotDigest` over them;
+        `evaluateApplyGate` (`src/gates/core.ts:436`) requires the ack set to be one-for-one with the
+        persisted finding ids and every ack digest-aligned. With the collapse, a pass verdict acks one
+        id for two claims (`ackIds.length === findingIds.length` at 1); after the remedy it needs two.
+        An archived verdict re-checks only its own persisted `findings` and `acks`, both immutable, so
+        no archived verdict is un-acked.
+      </Assumption>
+      <Assumption>
+        **The F257 mechanism, measured.** `LintResult` carries `commandsEnabled` and `issues` but no
+        command record; `evaluateMustPassCommand` (`src/artifact/assertions.ts:360`) hands each
+        `CommandRunRecord` to `onCommandRun`, and `src/lint/core.ts:501` is the only consumer, calling
+        `appendCommandRunEvent`. Driven on an approved-shaped fixture with an open epoch: the green
+        `--run-commands` report contains zero occurrences of `command`; the red no-`--run-commands`
+        report prints `2 command assertions not evaluated; they do not fail this structural target
+        query.` and the JSON top-level key set is unchanged. The remedy follows `D13`: module-private
+        state in `src/lint/core.ts`, no new key.
+      </Assumption>
+      <Assumption>
+        **The pinned bytes the F257 line must not move, driven and named.** In `src/lint/core.test.ts`:
+        `summary.errors equals error-severity count in every mode, including structural target`,
+        `plural structural-query note uses they-do-not-fail wording`, the `AC-BASELINE-LINT-FRAMING`
+        lead tests, and `--format json / JSON.stringify result gains no new top-level key (D13)`. In
+        `src/grace-lint.test.ts`: `requires explicit command opt-in and exposes selected assertion CLI
+        flags` and `treats selected target without --run-commands as a structural query`. All stay green
+        by non-edit because the new line is emitted only when commands were evaluated, and those tests
+        either omit `--run-commands` or assert only JSON keys and exit codes.
+      </Assumption>
+      <Assumption>
+        **Windows, by the shipped parser over the real record.** findings `7522 / 274 / 7796` with 321
+        bodies across the pair; rulings `1697 / 186 / 1883`; index `268 / 28 / 296` with 268 live
+        `Entry` lines; registry `12 / 14 / 26` with 12 live rows. Every live root satisfies the tripwire
+        relations at this commit.
+      </Assumption>
+      <Assumption>
+        **The driven flush and close, on a whole-repository copy.** A faithful copy (`rsync -a` of the
+        working tree, `.git` included, a real `node_modules` directory, `.ngrace/scratch` present; the
+        record mutated only in the copy). The three cut `&lt;Finding&gt;` elements and three index
+        `&lt;Entry&gt;` lines landed, then `--rewrite-roots`: findings `7567 / 229 / 7796`, index
+        `271 / 25 / 296`, registry `13 / 13 / 26` after the row mint, rulings unchanged; the shipped
+        validator returns zero findings and a mid-bundle `--retire` reports `moved 0` with every root
+        unchanged. The bundle directory moved into the archive and `--retire` run from inside the copy:
+        **`moved 4`**; findings `7522 / 274 / 7796` (the ceiling holds, it never rises), index
+        `268 / 28 / 296` (three layers flipped in place), registry back to `12 / 14 / 26`; validator 0;
+        citation 0; preservation 0; a second `--retire` `moved 0`. The three retired carriers carry
+        `&lt;PaidBy&gt;C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA&lt;/PaidBy&gt;`. The no-cut counterfactual was
+        driven too: post-flush findings `&lt;Findings base="7573" headroom="223" ceiling="7796"&gt;`
+        and `f255` and `f256` end with a `---` line (`f257`, last, does not).
+      </Assumption>
+      <Assumption>
+        **No decision is chartered, measured.** Searching the live `rulings.xml` decisions by token and
+        decoded body for `findingId`, `finding id`, `anchor`, `de-dup`, `dedup`, `distinct id`,
+        `must-exist`, `confidently-wrong`, `explain`, `run-commands` finds `D8.6` (a finding keyed to
+        the gate verdict note by `findingId`, at warning severity; the reviewer's reason recorded) and
+        the graph-anchor rules; none codifies an F255, F256 or F257 remedy. `D13` binds the F257
+        mechanism, `D31` the index's in-place layer flip, `D30` the freeze, `D20` the close's actor. This
+        bundle adds no decision.
+      </Assumption>
+      <Assumption>
+        **The instruments' current state, measured.** `scripts/check-teaching-surface.ts` and
+        `scripts/check-teaching-surface.test.ts` each hold a 67-entry `TAUGHT_RULES` table (68 after
+        this change); `ngrace-spec` is already a `GOVERNED_SKILLS` member and its `shape_sources` block
+        already carries two needles (`rewritten wholesale`, `relative to this skill's directory`).
+        The new needle is `{ skill: "ngrace-spec", section: "shape_sources", token: "codes are namespaced" }`;
+        `checkTaughtRules` matches with `body.includes(rule.token)`
+        (`scripts/check-teaching-surface.ts:528`, no case folding), so the token must be a byte-substring
+        of the sentence, and the sentence's capitalised opening means the token may not begin at the
+        sentence's first word.
+        `scripts/check-teaching-surface.test.ts` has no stale count in its title
+        (`returns zero when every taught token sits at its named section home in both trees`).
+      </Assumption>
+      <Assumption>
+        **Skill footprint, snapshot.** 16 skills, 864 lines, 77124 bytes; the README cell at
+        `README.md:304` publishes `**864 lines** / **77124 UTF-8 bytes**` and
+        `token-accounting.test.ts` cross-checks it. The sentence is appended to an existing line, so the
+        line total stays 864 and only the byte total moves; the exact post-teaching values are
+        re-measured by the plan, never written toward. The edited skill's frontmatter description does
+        not change, so no Skills Overview row moves.
+      </Assumption>
+      <Assumption>
+        **Name search, measured 2026-09-15 at `3844741`.** Over the 104 archive directories and both
+        registry layers: the last bundle to open `src/grace-lint.ts` is `C-LINT-PHASE-HONESTY-2` (8
+        archived bundles name the path); the last to open `src/review/core.ts` is
+        `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22` (23 name it); the last to open `src/lint/core.ts` is
+        `C-LINT-PHASE-HONESTY-2` (13 name it); the last to open
+        `skills/ngrace/ngrace-spec/SKILL.md` is `C-HASHED-BUNDLE-IDS-2` (14 name it). No colliding or
+        better-fitting prior name.
+      </Assumption>
+      <Assumption>
+        **Payer surface, measured.** The shipped `derivePayerMap` over the real archive and both
+        registry layers names neither `F255`, `F256` nor `F257` at this commit. Mid-bundle `--retire` on
+        the driven copy reports `moved 0`. The `bundleMinted` extension in
+        `scripts/validate-record-retirement.test.ts` is the house form for a new payer, consulted only
+        for tokens the derivation actually mints, so the walk is green with the row live and green in
+        the applied-archive state.
+      </Assumption>
+      <Assumption>
+        **Versions and packaging, decided the way the teaching-surface precedents decided them.** No
+        product version bump: a version is a release act, not this bundle's. Packaged version at
+        authoring `6.2.0`; `validate:marketplace` enforces version sync across `README.md`,
+        `openpackage.yml`, `.claude-plugin/marketplace.json` and `package.json`, and
+        packaged-versus-canonical byte identity — both trees change together, so it stays green.
+        `CHANGELOG.md` is generated and untouched; `README.md` is written only in the footprint cell;
+        `examples/` is untouched.
+      </Assumption>
+    </Assumptions>
+  </C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA>
+</NgraceChangeSpec>
