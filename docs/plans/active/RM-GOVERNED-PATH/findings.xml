@@ -1,4 +1,4 @@
-<Findings base="7558" headroom="241" ceiling="7799">
+<Findings base="7522" headroom="274" ceiling="7796">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7518,41 +7518,5 @@ later `C-*`, and this rides with it or ahead of it. Neighbour to F125.
 
 ---
 </Body>
-  </Finding>
-  <Finding id="f253" token="F253" status="live">
-    <Title>### F253 — `ngrace-plan` is silent on three things the plan of the first hashed-id bundle had to learn by driving: a `--assertions baseline` run over `MustPassCommand`s needs `--run-commands` and an open epoch, selected-assertion commands need `--change`, and a faithful post-close copy needs `.ngrace/scratch`. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-14 across the plan and execution dispatches of `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22` (executor `SKILL GAPS` and `WRONG`,
-re-driven by the authority).** (1) `&lt;validation&gt;` (line 116) and row 19 (line 74) name `--run-commands` beside `--assertions target`/`final`
-only; a baseline run of a plan carrying twelve `MustPassCommand`s without it returns exit 1 with twelve `assertion.command-not-evaluated`
-errors that read like breakage; with `--run-commands` inside an open epoch it is green. The authority's plan brief carried the same omission.
-(2) The approved plan's T-005 criterion wrote `bun ./src/grace.ts lint --path . --assertions target` — the CLI refuses
-`assertion.change-required … requires one --change C-* identifier`; the skill's assertion rows never say `--change` is required, and the
-prose slipped past approval because no instrument reads criterion prose. (3) Row 19's &quot;faithful post-close copy&quot; does not say the copy must
-carry `.ngrace/scratch`: without it, `review.confidently-wrong` fires six times on archived plans whose `BaselineAssertions` `MustExist`
-the buffer path (measured on two copies), and a planner reads six defects the production tree does not show. Also measured: the
-`spec_plan_traceability` sentence &quot;each task that implements one should list it under `Satisfies`&quot; reads against the later rule that
-close-bound criteria are never `Satisfies` targets; with sixteen of seventeen criteria close-bound, the first sentence is the trap.
-
-**The rule.** Four sentences in `ngrace-plan`: baseline drives carry `--run-commands` inside an open epoch on an approved-shaped copy;
-every selected-assertion command names `--change`; the post-close copy carries `.ngrace/scratch` read-only; `Satisfies` maps only
-criteria without `CloseEvidence`. Each pinned by a `TAUGHT_RULES` needle. Owner: the next teaching increment.</Body>
-  </Finding>
-  <Finding id="f254" token="F254" status="live">
-    <Title>### F254 — `ngrace-execute` has no rule for a post-pass correction to an earlier task, and does not say that an `attempt` moves the cursor's current task — so a later `--run-commands` is attributed to the corrected task. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-14 on the ledger of `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22` (executor fix rounds 1 and 2, verified by the authority).**
-After T-005 had passed, a spec-pinned remediation line was found missing from two `REVIEW_CATALOG` guides. The skill's `cursor_kinds`
-define `attempt` for &quot;every verification cycle for a task&quot; and rule 13 covers a pass-only cycle, but nothing says which task a correction
-attaches to, how a correction with no shipped red is recorded, or what happens to the task pointer. The executor inferred `cursor attempt`
-on T-001 with a `fix` signature (`catalog-remediation-gate-verdict`, fail 41 / pass 42), then a pass-only cycle for the instrument
-(55); each left T-001 current, so the two subsequent `--assertions target --run-commands` runs wrote their twelve `command-run` events
-(43–54, 56–67) under T-001 instead of T-005. Harmless to every gate, and the audit paired correctly, but the ledger now says T-001 ran the
-target commands twice. Both fix rounds also confirmed the remedy shape: the instrument should have been written with the criterion, so the
-correction would have been one honest pair instead of a driven inline red plus a pass-only cycle.
-
-**The rule.** `ngrace-execute` gains: a correction to an already-passed task is recorded as an `attempt` on the task that owns the
-surface, with a `fix` signature on the fail; a pass-only correction is disclosed under rule 13; and the note that `attempt` sets the
-current task, so commands whose attribution matters are run after a `progress` on the intended task. Owner: the next teaching increment.</Body>
   </Finding>
 </Findings>
