@@ -344,4 +344,10 @@
     <Pays>F250 F251</Pays>
     <StatusText>Paid at the close of C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22.</StatusText>
   </Row>
+  <Row name="C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>Fourth teaching increment of the `RM-GOVERNED-PATH` record: it flushes the two staged findings it pays, teaches the four `ngrace-plan` drives and the three `ngrace-execute` correction rules, and pins every taught sentence with a `scripts/check-teaching-surface.ts` needle in both trees. Searched before minting — tool half: `mint-search: 1 active, 0 archive prior bundle(s) share slug TEACH-PLAN-DRIVES-CORRECTIONS`. Author half: over the 103 archive directories and both registry layers, the only name hit for `C-TEACH-PLAN-DRIVES-CORRECTIONS` is the lineage predecessor `C-TEACH-PLAN-DRIVES-CORRECTIONS-1-14457871`, which is not a collision; the teaching-surface increments that touched these skills are `C-TAUGHT-RULES`, `C-TEACHING-SURFACE`, `C-FLUSH-AND-TEACH`, `C-TEACH-DRIVE-BEFORE-APPROVE`, `C-TEACH-DRIVE-BEFORE-APPROVE-2` and `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22`; 23 archived bundles name `ngrace-plan/SKILL.md` and 34 name `ngrace-execute/SKILL.md`; none is a colliding or better-fitting prior name for an increment that adds exactly these drives.</Charter>
+    <Pays>F253 F254</Pays>
+    <StatusText>Fourth teaching increment of the `RM-GOVERNED-PATH` record; live while the bundle is active and retired by the close's own move.</StatusText>
+  </Row>
 </Registry>
