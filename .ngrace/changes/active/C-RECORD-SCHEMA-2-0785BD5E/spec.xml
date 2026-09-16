@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-RECORD-SCHEMA-2-0785BD5E>
+    <Summary>Summary of C-RECORD-SCHEMA-2-0785BD5E.</Summary>
+    <Goals>
+      <Goal>Goal for C-RECORD-SCHEMA-2-0785BD5E.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-RECORD-SCHEMA-2-0785BD5E.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-RECORD-SCHEMA-2-0785BD5E; replace this placeholder by deciding README.md and examples/. Owner: the author.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-RECORD-SCHEMA-2-0785BD5E.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-RECORD-SCHEMA-2-0785BD5E.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-RECORD-SCHEMA-2-0785BD5E>
+</NgraceChangeSpec>

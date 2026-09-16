@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-RECORD-SCHEMA-1-1D8D868F>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-RECORD-SCHEMA-1-1D8D868F><Replacement>C-RECORD-SCHEMA-2-0785BD5E</Replacement>
     <Summary>
       Step (1) of the maintainer's `D40` sequence, and the bundle that pays `F207`, `F221`, `F235`
       and `F252`. Author a declared **shape schema** for the seven record files and a **canonical
