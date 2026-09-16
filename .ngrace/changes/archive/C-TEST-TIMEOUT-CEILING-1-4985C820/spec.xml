@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-TEST-TIMEOUT-CEILING-1-4985C820>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-TEST-TIMEOUT-CEILING-1-4985C820><Replacement>C-TEST-TIMEOUT-CEILING-2-7AD2A006</Replacement>
     <Summary>
       T0 hotfix on `RM-GOVERNED-PATH`: **no per-test timeout; one job ceiling.** Every `bun test`
       invocation in `package.json` carries `--timeout=0`; all **82** per-test timeout pins across six
