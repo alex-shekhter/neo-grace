@@ -1,0 +1,451 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-TEST-TIMEOUT-CEILING-2-7AD2A006>
+    <IntentSummary>
+      This T0 plan converts the approved `C-TEST-TIMEOUT-CEILING-2-7AD2A006` spec into two
+      sequential tasks. **T-001 — the mechanism:** the three `package.json` scripts carry
+      `--timeout=0`; the **82** per-test pins across six test files are removed; the four
+      suite-running workflow jobs carry `timeout-minutes: 30`; the pin guard and the workflow guard
+      land in `scripts/audit-regressions.test.ts`; the taught `ngrace-spec` sentence is rewritten in
+      both trees, both `TAUGHT_RULES` token tables change from `explicit generous timeout` to
+      `only ceiling`; `README.md:382` becomes `bun run test`; and the skill-text footprint pin **and** the README
+      cell are set to the footprint **measured after the rewrite** (`skillTextLines().total` /
+      `.totalBytes` at that tree state), never to this plan's projected figures. **T-002 — the
+      payment:** flush `F266` and `F267` through the shipped parser, `xmlEscape` and canonical
+      serializer, add one index `Entry` each, mint the chartered row
+      `C-TEST-TIMEOUT-CEILING-2-7AD2A006` with `Pays F266 F267`, run `--rewrite-roots`, then land
+      the flush-invariant and row walks and drive the faithful post-close applied-archive copy.
+
+      **The footprint is in the spec's scope now, not forced by discovery.** The successor spec's
+      write-scope Constraint names `src/test-support/token-accounting.test.ts` (the skill-footprint
+      pins the taught-sentence rewrite forces) and the README cell, so the plan's
+      `ObservedWriteScope` inherits both. That file is a `.test.ts`, so
+      `isModuleOwnableWritePath` is false and `change.graph-anchors-miss-write-scope` cannot fire;
+      `src/test-support/token-accounting.ts` (module-ownable under `M-TEST-SUPPORT`) is **not**
+      written (F267).
+
+      **The two-entry flush projection is measured, not inherited.** Driven through the shipped
+      serializer on a `405a748` copy, flushing `F266` and `F267` and `--rewrite-roots` leaves
+      findings `7396 / 319 / 7715`, index `267 / 29 / 296`, registry `13 / 13 / 26`, rulings
+      `1715 / 168 / 1883`; the close's `--retire` moves 3 and leaves findings `7343 / 291 / 7634`,
+      index `265 / 31 / 296`, registry `12 / 14 / 26`. No criterion pins a root number, only
+      `base == newlineCount` and `base + headroom = ceiling`. (The spec's `Assumptions` keep the
+      draft-sentence footprint figures and the predecessor's one-entry roots as dated projections.)
+
+      **What this T0 plan drops from the T2 house form, and why each drop is safe.** No teaching task
+      (the teaching moves inside T-001), no instruments task, no footprint task (T-001 carries the
+      one footprint pin), no separate third task (the closing copy drive has no recordable red and
+      shares T-002's final on-disk state). `DurableScope` is the spec's single `AffectedAreas`
+      anchor, `M-SKILLS`, covered by `V-M-SKILLS` from the shipped verification document. The
+      plan's baseline needles assert only what the bundle leaves unchanged; the pins, the old token,
+      the old byte total and the absent `f266`/`f267` are the bundle's flips and live in T-001/T-002
+      criteria, never in `BaselineAssertions`. The red-first signature keys sit inside the shipped
+      budgets (`src/grace-cursor.ts`: `FIX_SIGNATURE_REPEAT_BUDGET` = 2,
+      `FIX_DISTINCT_SIGNATURE_BUDGET` = 4): T-001 records `pin-guard`, `ceiling-guard` and
+      `footprint-pin` (one fail each); T-002
+      records `flush-invariant` and `record-row` (one fail each) plus the pass-only
+      `post-close-drive` cycle, which counts toward neither budget — at most three distinct
+      failing signatures in one task's window (inside `FIX_DISTINCT_SIGNATURE_BUDGET` = 4), none
+      repeated (inside `FIX_SIGNATURE_REPEAT_BUDGET` = 2). Every criterion in the authorizing
+      spec is close-bound (it carries `CloseEvidence`), so no task lists `&lt;Satisfies&gt;`; a
+      `Satisfies` of a close-bound `AC-*` is the shipped
+      `change.close-evidence-and-satisfied` error. The last
+      task ends at the live row, `--rewrite-roots` applied and the record validating clean; the
+      close (`terminal`, `fold`, `--assertions final --run-commands`, a second terminal, `fold`,
+      `review`, `gate verdict`, `gate apply`, `gate archive`, `apply`, the production `--retire`) is
+      the authority's.
+
+      **Lineage — the predecessor's blocker and its repair.** This plan is re-homed from the
+      archived `C-TEST-TIMEOUT-CEILING-1-4985C820` draft, whose drive found the predecessor spec's
+      `AC-NO-OTHER-SRC` unsatisfiable: its exclude list omitted the forced footprint file
+      `src/test-support/token-accounting.test.ts`, so the command exited 1 naming exactly that file
+      and `gate verdict --outcome pass` refused (F267). Under `D27` the authority superseded the
+      predecessor; the successor spec names the footprint in its write-scope `Constraint` and in
+      `AC-NO-OTHER-SRC`'s excludes, so no criterion is now unsatisfiable. The blocker paragraph that
+      stood here is history, recorded in F267.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>V-M-SKILLS</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>.github/workflows/validate.yml</Value></MustExist>
+      <MustExist><Value>.github/workflows/publish.yml</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/xml.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-context.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-TEST-TIMEOUT-CEILING-2-7AD2A006/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-TEST-TIMEOUT-CEILING-2-7AD2A006/plan.xml</Value></MustExist>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/prove-record-preservation.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run ./scripts/validate-marketplace.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:teaching-surface</Command></MustPassCommand>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>V-M-SKILLS</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>.github/workflows/validate.yml</Value></MustExist>
+      <MustExist><Value>.github/workflows/publish.yml</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-TEST-TIMEOUT-CEILING-2-7AD2A006/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-TEST-TIMEOUT-CEILING-2-7AD2A006/plan.xml</Value></MustExist>
+      <MustContain><File>package.json</File><Text>"test": "bun test --timeout=0"</Text></MustContain>
+      <MustContain><File>package.json</File><Text>"validate:cli": "bun test --timeout=0 </Text></MustContain>
+      <MustContain><File>package.json</File><Text>"validate:determinism": "bun test --timeout=0 </Text></MustContain>
+      <MustNotContain><File>package.json</File><Text>--timeout=30000</Text></MustNotContain>
+      <MustNotContain><File>package.json</File><Text>--timeout=120000</Text></MustNotContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>timeout-minutes: 30</Text></MustContain>
+      <MustContain><File>.github/workflows/publish.yml</File><Text>timeout-minutes: 30</Text></MustContain>
+      <MustContain><File>skills/ngrace/ngrace-spec/SKILL.md</File><Text>only ceiling</Text></MustContain>
+      <MustContain><File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File><Text>only ceiling</Text></MustContain>
+      <MustNotContain><File>skills/ngrace/ngrace-spec/SKILL.md</File><Text>explicit generous timeout</Text></MustNotContain>
+      <MustContain><File>scripts/check-teaching-surface.ts</File><Text>token: "only ceiling"</Text></MustContain>
+      <MustContain><File>scripts/check-teaching-surface.test.ts</File><Text>token: "only ceiling"</Text></MustContain>
+      <MustContain><File>README.md</File><Text>bun run test</Text></MustContain>
+      <MustNotContain><File>README.md</File><Text>78384 UTF-8 bytes</Text></MustNotContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>C-TEST-TIMEOUT-CEILING-2-7AD2A006 flush invariant</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>C-TEST-TIMEOUT-CEILING-2-7AD2A006 row relations</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>F266: "C-TEST-TIMEOUT-CEILING-2-7AD2A006"</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>F267: "C-TEST-TIMEOUT-CEILING-2-7AD2A006"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File><Text>&lt;Finding id="f266"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File><Text>&lt;Finding id="f267"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File><Text>&lt;Entry id="f266"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File><Text>&lt;Entry id="f267"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Row name="C-TEST-TIMEOUT-CEILING-2-7AD2A006"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Pays&gt;F266 F267&lt;/Pays&gt;</Text></MustContain>
+      <MustNotContain><File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File><Text>&lt;Finding id="f266"</Text></MustNotContain>
+      <MustNotContain><File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File><Text>&lt;Finding id="f267"</Text></MustNotContain>
+      <MustPassCommand><Command>bun run test</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:teaching-surface</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:marketplace</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/prove-record-preservation.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>package.json</File>
+      <File>.github/workflows/validate.yml</File>
+      <File>.github/workflows/publish.yml</File>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>src/grace-status.test.ts</File>
+      <File>src/artifact/xml.test.ts</File>
+      <File>src/grace-context.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Flip the runner to --timeout=0 with one 30-minute job ceiling: remove 82 pins, land both
+          guards, rewrite the taught rule, and set the skill-footprint pin to the measured footprint
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (pin-guard), fail: in its own tool round trip, before any pin is removed,
+            land the pin guard in `scripts/audit-regressions.test.ts`: walk every `*.test.ts` under
+            the repository (excluding `node_modules`, `.git`, `.ngrace`) for a numeric last argument
+            to `it(`/`test(` in either syntactic form — the one-line `}, N);` and a bare numeric line
+            whose next non-empty line is `);` — recognizing the timeout class as a group of at least
+            four digits, so the repository's four single-digit non-timeout numeric lines
+            (`scripts/release-check.test.ts:19` is the `JSON.stringify` indent that also closes
+            `);`) cannot be flagged. Run
+            `bun test --timeout=0 scripts/audit-regressions.test.ts -t "numeric per-test timeout"`.
+            It reds, naming the standing pins. Record the cursor attempt with outcome fail,
+            signature-kind `test`, signature-key `pin-guard`. Do not remove a pin in this round trip.
+            Failure conditions: this round trip also removes pins; the guard is written to pass
+            vacuously (it hardcodes a zero rather than walking); the red is recorded against a copy.
+          </Criterion>
+          <Criterion>
+            Pair pass: run `package.json`'s `test`, `validate:cli` and `validate:determinism` scripts
+            with `--timeout=0` (no numeric `--timeout`); remove all **82** pins in the six test files
+            (`scripts/audit-regressions.test.ts` 1, `scripts/validate-record-retirement.test.ts` 24
+            one-line + 49 multi-line, `scripts/check-teaching-surface.test.ts` 4,
+            `src/grace-status.test.ts` 1, `src/artifact/xml.test.ts` 2, `src/grace-context.test.ts`
+            1). Re-run the guard: it greens. Then `bun run test` greens the whole suite (1998 tests),
+            including the two walkers of `src/review/core.test.ts` that timed out on run
+            `35138369045` and the `src/grace-status.test.ts` walker. Record the cursor attempt with
+            outcome pass for signature-key `pin-guard`. Failure conditions: a pin re-introduced with
+            a value the guard recognizes; the two walkers still red; the CLI flag left numeric.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (ceiling-guard), fail: in its own tool round trip, before any workflow is
+            edited, land the workflow guard: for `.github/workflows/validate.yml` and
+            `.github/workflows/publish.yml`, a job block that names a suite invocation
+            (`bun run test`, `bun test`, `validate:ci`, `validate:cli`, `validate:determinism`) in a
+            `run:` line must also declare `timeout-minutes: 30`. Run
+            `bun test --timeout=0 scripts/audit-regressions.test.ts -t "suite-running workflow job"`.
+            It reds, naming the three `validate.yml` jobs and `verify`. Record the cursor attempt
+            with outcome fail, signature-kind `test`, signature-key `ceiling-guard`. Do not edit a
+            workflow in this round trip. Failure conditions: this round trip also edits a workflow;
+            the guard skips a job.
+          </Criterion>
+          <Criterion>
+            Pair pass: add `timeout-minutes: 30` to the four suite-running jobs (`validate`,
+            `windows-compatibility`, `dart-adapter` in `validate.yml`; `verify` in `publish.yml`).
+            The guard greens. Record the cursor attempt with outcome pass for signature-key
+            `ceiling-guard`. Failure conditions: this round trip also edits a workflow; the guard
+            skips a job.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (footprint-pin), fail: in its own tool round trip, rewrite the taught rule
+            — the `ngrace-spec` sentence in `skills/ngrace/ngrace-spec/SKILL.md` and its packaged
+            mirror teaches the `bun run test` / `bun test --timeout=0` mechanism, no per-test
+            number, and the CI job's `timeout-minutes` as the **only ceiling** (the load-bearing
+            token becomes `only ceiling`); change `token: "explicit generous timeout"` to
+            `token: "only ceiling"` in both `TAUGHT_RULES` tables
+            (`scripts/check-teaching-surface.ts`, `scripts/check-teaching-surface.test.ts`) **in
+            the same round trip** as the skill edit, so the taught-rules guard is never red between
+            them; and change `README.md:382`'s bare `bun test` to `bun run test`. Then, **before**
+            touching the footprint pins, run
+            `bun test --timeout=0 src/test-support/token-accounting.test.ts` — it reds: the rewrite
+            moved `skillTextLines().totalBytes` while the pinned `78384` and the README cell still
+            hold the pre-rewrite value. Record the cursor attempt with outcome fail, signature-kind
+            `test`, signature-key `footprint-pin`. Do not update a pin in this round trip. Failure
+            conditions: this round trip also updates the pins; the red is recorded against a copy.
+          </Criterion>
+          <Criterion>
+            Pair pass: re-measure and set the footprint relation — run `skillTextLines()` at the
+            tree state the rewrite left, then set `src/test-support/token-accounting.test.ts`'s
+            `total` and `totalBytes` assertions (and the provenance comment) and `README.md:304`'s
+            cell to the **measured** values, never to this plan's or the spec's `Assumptions`
+            figures. Then `bun test --timeout=0 src/test-support/token-accounting.test.ts` greens
+            (the pin equals the measurement and the README-cell case reads the same measurement),
+            `bun run validate:teaching-surface` and `bun run validate:marketplace` green, and
+            `bun run test` green. Record the cursor attempt with outcome pass for signature-key
+            `footprint-pin`. Failure conditions: a figure written toward the spec's Assumption; the
+            token table changed without the skill (or the reverse) so `checkTaughtRules` reds; the
+            two skill trees are not byte-identical.
+          </Criterion>
+          <Criterion>
+            The guard red directions (pass-only cycle, on throwaway copies): plant `}, 60_000);` in a
+            throwaway `*.test.ts` and re-run the pin guard — it reds; plant a bare `60_000,` before a
+            `);` and re-run — it reds; plant `JSON.stringify(x, null, 2,)` and re-run — it stays
+            green (the single-digit non-timeout line is not flagged); remove one job's
+            `timeout-minutes` line from a workflow copy and re-run the workflow guard — it reds,
+            naming that job. Restore every copy. This cycle has no production red left in it — the
+            two failing signatures were consumed above — so record the cursor attempt with outcome
+            pass and state that it is pass-only. Failure conditions: a plant mutates the production
+            tree; the red direction is claimed without running it.
+          </Criterion>
+          <Criterion>
+            The T-001 boundary: after this task no file under `docs/plans/active/RM-GOVERNED-PATH/`
+            has changed and no `src/` non-test file has changed. `F266` and `F267` are **not**
+            flushed here; the
+            buffer is read by nothing and written by nothing. Findings raised while this bundle is
+            open go to `.ngrace/scratch/staged-findings.md` under the next staged number (`D30`).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run test</Command>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+          <Command>bun run validate:teaching-surface</Command>
+          <Command>bun run validate:marketplace</Command>
+          <Command>git diff --exit-code 844acd3 -- docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>git diff --exit-code 844acd3 -- src/ ':(exclude)src/grace-status.test.ts' ':(exclude)src/artifact/xml.test.ts' ':(exclude)src/grace-context.test.ts' ':(exclude)src/test-support/token-accounting.test.ts'</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>
+          Flush f266 and f267 and mint the row in interleaved red-first pairs, then drive the faithful
+          post-close applied-archive copy
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (flush-invariant), pair A fail: in its own tool round trip, before any record
+            write, append the flush-invariant walk for `f266` and `f267` to
+            `scripts/validate-record-retirement.test.ts` in the
+            `C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F` house form (describe
+            `C-TEST-TIMEOUT-CEILING-2-7AD2A006 flush invariant`, **no per-test pin** — the suite runs
+            under `--timeout=0` and a pin would red T-001's guard): for each of `f266` and `f267`,
+            exactly one `Finding`
+            across `findings.xml` and `findings-retired.xml` with no fixed expectation of which file
+            holds it, its `status` agreeing with the holding file, its `token` agreeing with the id,
+            its single index `Entry` carrying the agreeing `genre` and a `layer` agreeing with the
+            holding file, plus the shipped read-back arithmetic (`base` equals the file's
+            `newlineCount`, `base + headroom = ceiling`, the index `base` equals its live `Entry`
+            count) and the assertion that the landed `Body` does not end with a `---` separator line.
+            Also assert read-only that the imported `validateStubAndIndex` and
+            `proveRecordPreservation` return zero findings on the post-flush record. Both ids are
+            absent
+            at this state, so the walk reds. Record the cursor attempt with outcome fail,
+            signature-kind `test`, signature-key `flush-invariant`. Run only this case. Do not flush
+            in this round trip. Failure conditions: this round trip also flushes; the walk is bound
+            to a count a duplicate would satisfy; the red is recorded against a mutated copy.
+          </Criterion>
+          <Criterion>
+            Pair A pass: flush `f266` and `f267` into
+            `docs/plans/active/RM-GOVERNED-PATH/findings.xml`. Read
+            `.ngrace/scratch/staged-findings.md` (read, never write), select `f266` by anchor id
+            matched as `&lt;a id="…" name="…"&gt;&lt;/a&gt;` (never by position), cut its body at the
+            trailing `---` separator, render it through the shipped `xmlEscape` in the
+            `renderFinding` shape, write the file through the shipped canonical serializer
+            (`serializeRecordDocument`), append one
+            `&lt;Entry id="f266" token="F266" genre="finding" layer="live" /&gt;` and one
+            `&lt;Entry id="f267" token="F267" genre="finding" layer="live" /&gt;` line to
+            `decisions.xml` (also through the serializer), then run
+            `bun ./scripts/validate-record-retirement.ts --rewrite-roots
+            docs/plans/active/RM-GOVERNED-PATH` — never hand-write a root attribute. Also extend the
+            shipped payer-derivation baseline `bundleMinted` in
+            `scripts/validate-record-retirement.test.ts` with
+            `F266: "C-TEST-TIMEOUT-CEILING-2-7AD2A006"` and
+            `F267: "C-TEST-TIMEOUT-CEILING-2-7AD2A006"` (consulted only for tokens the derivation
+            actually mints), because the applied-archive state has the close's mint and the walk
+            otherwise reds on `F266`/`F267`. Then the walk
+            greens, each written file is canonical at rest
+            (`serializeRecordDocument(file, bytes) === bytes`), and the roots read back with
+            `base` equal to each file's `newlineCount` and `base + headroom = ceiling`, ceilings
+            held (prototype copy at `405a748`: findings `7396 / 319 / 7715`, index `267 / 29 / 296`,
+            registry unchanged `12 / 14 / 26`, rulings unchanged `1715 / 168 / 1883` — readings,
+            not the criterion); the shipped validator, citation validator and preservation proof
+            return zero. Record the cursor attempt with outcome pass for signature-key
+            `flush-invariant`. Do not mint the row in this round trip. Failure conditions: the body
+            left uncut or normalized beyond the shipped escape; `f252`/`d40`/`f265` flushed; the
+            root written by hand; the buffer written or pruned.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (record-row), pair B fail: in its own tool round trip, before the row is
+            minted, append the row walk for `C-TEST-TIMEOUT-CEILING-2-7AD2A006` to
+            `scripts/validate-record-retirement.test.ts` (describe
+            `C-TEST-TIMEOUT-CEILING-2-7AD2A006 row relations`, no per-test pin) in the
+            payment-invariant house form: the row exists exactly once across `registry.xml` and
+            `registry-retired.xml` with no fixed expectation of which file holds it, its `status`
+            agreeing with the holding file, `kind="chartered"`, its `Pays` **contains** `F266` and
+            `F267` (containment, never an exact set), and its `StatusText` names no `F` token outside
+            `Pays`
+            and carries no `Closed with` sentence; parsed with the shipped parser over both registry
+            layers. The row is absent at this state, so the walk reds. Record the cursor attempt
+            with outcome fail, signature-kind `test`, signature-key `record-row`. Do not mint in
+            this round trip. Failure conditions: this round trip also mints; the walk hardcodes
+            `registry.xml`; the `Pays` clause pins an exact set.
+          </Criterion>
+          <Criterion>
+            Pair B pass: mint the live row into `docs/plans/active/RM-GOVERNED-PATH/registry.xml`
+            through the shipped serializer, placed with the live rows, in the house shape — an empty
+            `Number`, a `Charter` carrying the tool's `mint-search:` line verbatim
+            (`mint-search: 1 active, 0 archive prior bundle(s) share slug TEST-TIMEOUT-CEILING`) and
+            the author's searched-before-minting statement, with no `F` token in the `Charter`, a
+            `Pays` naming exactly `F266 F267`, and a `StatusText` naming no `F` token outside `Pays` and
+            carrying no `Closed with` sentence; then run
+            `bun ./scripts/validate-record-retirement.ts --rewrite-roots
+            docs/plans/active/RM-GOVERNED-PATH`. Then the row walk greens, the flush-invariant walk
+            stays green, the registry root re-derives with `base + headroom = ceiling` and the
+            ceiling held (prototype reading `13 / 13 / 26`), the findings and index roots are
+            unchanged from pair A, and a mid-bundle
+            `bun ./scripts/validate-record-retirement.ts --retire
+            docs/plans/active/RM-GOVERNED-PATH` on a throwaway whole-repository copy reports
+            `moved 0` (nothing is eligible while the row's name is not an archive directory and
+            neither `f266` nor `f267` carries a `PaidBy`). Record the cursor attempt with outcome pass for
+            signature-key `record-row`. Do not run `--retire` against the production record, do not
+            set `applied`, do not archive the bundle, and do not touch
+            `.ngrace/scratch/staged-findings.md`. Failure conditions: the row minted without the
+            post-mint `--rewrite-roots`; a `Pays` or `StatusText` naming an extra token; the file not
+            canonical at rest.
+          </Criterion>
+          <Criterion>
+            The closing drive (pass-only cycle): on a faithful whole-repository copy at the T-002
+            state — `cp -R` including `.git`, a real `node_modules` directory and `.ngrace/scratch` —
+            commit the approved plan before opening the epoch (row 19's copy-commit rule), then
+            `bun ./src/grace.ts gate approve --change C-TEST-TIMEOUT-CEILING-2-7AD2A006 --artifact
+            plan --path .`, `bun ./src/grace.ts cursor advance --task T-001 --open-epoch`, run the
+            baseline assertions with `--run-commands`, then `--assertions target`. Drive both
+            task states with their reds and greens in the copy (the guard reds, the pin removal, the
+            two walkers' greens, the flush, the row, the mid-bundle `moved 0`). Then the close
+            sequence: `--assertions final --run-commands`, the second `terminal` plus `fold` so
+            `gate archive` is not refused on loose events, `bun ./src/grace.ts apply --change
+            C-TEST-TIMEOUT-CEILING-2-7AD2A006 --force --reason "post-close drive"`, and the shipped
+            `bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH`
+            from inside the copy: it reports **`moved 3`** (the findings `f266` and `f267` and the
+            row), the row sits in `registry-retired.xml` with `status="retired"`, `f266` and `f267`
+            sit in `findings-retired.xml` each stamped
+            `&lt;PaidBy&gt;C-TEST-TIMEOUT-CEILING-2-7AD2A006&lt;/PaidBy&gt;`, the two index layers
+            flip in place with both `Entry` lines still present, the roots re-derive with findings
+            base back to `7343` and a ceiling that holds or falls (driven on the copy: findings
+            `7343 / 291 / 7634`, index `265 / 31 / 296`, registry `12 / 14 / 26`, rulings unchanged),
+            and a second `--retire` reports `moved 0`. Then evaluate every `CloseEvidence` through
+            the product path: `bun ./src/grace.ts review --change
+            C-TEST-TIMEOUT-CEILING-2-7AD2A006 --path .`, then
+            `bun ./src/grace.ts gate verdict --change C-TEST-TIMEOUT-CEILING-2-7AD2A006 --outcome
+            pass --ack-finding …` once per displayed finding id (separate arguments), and read the
+            verdict's `Result` and `Exit` per criterion from `run-ledger.xml` — never a hand-rolled
+            reader. Then `bun run validate:ci` exits 0 inside the copy. The production record and the
+            production bundle are never mutated by this drive. Leave the copy in place and name it in
+            the report. This cycle has no recordable red of its own, so record the cursor attempt
+            with outcome pass, signature-kind `test`, signature-key `post-close-drive`, and state
+            that it is pass-only; the attempt-pair audit reports one
+            `review.attempt-pair-unpaired-pass` (`info`) on T-002, which is expected. Failure
+            conditions: the drive copies only the record directory or omits `.git`; the drive stops
+            at the in-tree suites and skips `validate:ci`; the production record is mutated.
+          </Criterion>
+          <Criterion>
+            The close boundary. This task ends at the live row, `--rewrite-roots` applied, the
+            shipped validators at zero, and the two walks green. The `--retire` (`moved 3`), the two
+            gate-applied Decisions, the `apply` verb, the archive move, and every `CloseEvidence`
+            evaluation on the production record are the authority's close acts; the executor performs
+            no gate, no status write, no archive move and no production `--retire`. No decision is
+            chartered, so there is no `CodifiedIn` hand write. Findings raised while this bundle is
+            open go to `.ngrace/scratch/staged-findings.md` under the next staged number (`D30`).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun run validate:ci</Command>
+          <Command>git diff --exit-code 844acd3 -- src/ ':(exclude)src/grace-status.test.ts' ':(exclude)src/artifact/xml.test.ts' ':(exclude)src/grace-context.test.ts' ':(exclude)src/test-support/token-accounting.test.ts'</Command>
+          <Command>git diff --exit-code 844acd3 -- docs/ ':(exclude)docs/plans/active/RM-GOVERNED-PATH'</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-TEST-TIMEOUT-CEILING-2-7AD2A006>
+</NgraceChangePlan>
