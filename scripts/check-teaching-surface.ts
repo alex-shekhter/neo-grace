@@ -438,6 +438,12 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-execute", section: "execution_rules", token: "pass-only correction" },
   { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "attributes to it" },
   { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "the intended task" },
+
+  { skill: "ngrace-plan", section: "must_do", token: "commit the approved plan" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "the event carries no" },
+  { skill: "ngrace-plan", section: "approved_plan_immutability", token: "archived predecessor's draft" },
+  { skill: "ngrace-spec", section: "shape_sources", token: "exactly one of a bare slug" },
+  { skill: "ngrace-plan", section: "must_do", token: "never from a hand-rolled reader" },
 ];
 
 // ---------------------------------------------------------------------------

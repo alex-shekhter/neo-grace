@@ -1,0 +1,275 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-STATUS-TEST-TIMEOUT-1-E7DA46E8>
+    <IntentSummary>
+      This T0 plan converts the approved `C-STATUS-TEST-TIMEOUT-1-E7DA46E8` spec into two sequential
+      tasks: T-001 gives `src/grace-status.test.ts`'s live-repo `reRatificationCount` test an explicit
+      generous timeout in one red-first pair (`timeout`, driven by `bun test --timeout=8000 …`); T-002
+      flushes `F263` and mints its row in two interleaved red-first pairs (`flush-invariant`,
+      `record-row`) and folds the faithful post-close applied-archive copy drive into itself as the
+      pass-only cycle `post-close-drive`. **What this T0 plan drops from the T2 house form, and why
+      each drop is safe.** No teaching task (the spec lands no sentence), no instruments task (no
+      needle table changes), no footprint task (no `README.md` write), no roots-held, mirror-sync or
+      no-current-mode criterion (the spec dropped them), and no third task (T0 stays thin; the closing
+      copy drive has no recordable red and shares T-002's final on-disk state, so folding it in costs
+      nothing and keeps the task count at two). `DurableScope` is the spec's single `AffectedAreas`
+      anchor, `M-STATUS`; the one `src/` write is `src/grace-status.test.ts`, a `.test.ts` for which
+      `isModuleOwnableWritePath` is false, so `change.graph-anchors-miss-write-scope` cannot fire. The
+      plan's baseline needles assert only what the bundle leaves unchanged: the honest `f252` guard on
+      the findings pair, never `f263` or the row, which the bundle flips by design. The last task ends
+      at the live row, `--rewrite-roots` applied and the fixed test green; the close (`terminal`,
+      `fold`, `lint --assertions final --run-commands`, `review`, `gate verdict`, `gate apply`,
+      `gate archive`, `apply`, the production `--retire`) is the authority's, and no decision is
+      chartered so there is no `CodifiedIn` hand write. The red-first signature keys sit inside the
+      shipped budgets (`src/grace-cursor.ts`: `FIX_SIGNATURE_REPEAT_BUDGET` = 2,
+      `FIX_DISTINCT_SIGNATURE_BUDGET` = 4): T-001 records one key (`timeout`) with one fail, T-002 two
+      keys (`flush-invariant`, `record-row`) with one fail each and a pass-only cycle
+      (`post-close-drive`) that counts toward neither budget — three distinct failing signatures, no
+      repeated signature in any task's window.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-STATUS-TEST-TIMEOUT-1-E7DA46E8/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-STATUS-TEST-TIMEOUT-1-E7DA46E8/plan.xml</Value></MustExist>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-citation-anchors.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/prove-record-preservation.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run ./scripts/validate-marketplace.ts</Command></MustPassCommand>
+      <MustNotContain><File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File><Text>&lt;Finding id="f252"</Text></MustNotContain>
+      <MustNotContain><File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File><Text>&lt;Entry id="f252"</Text></MustNotContain>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-STATUS-TEST-TIMEOUT-1-E7DA46E8/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-STATUS-TEST-TIMEOUT-1-E7DA46E8/plan.xml</Value></MustExist>
+      <MustContain><File>src/grace-status.test.ts</File><Text>}, 60_000);</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>C-STATUS-TEST-TIMEOUT-1-E7DA46E8 flush invariant</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>C-STATUS-TEST-TIMEOUT-1-E7DA46E8 row relations</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>F263: "C-STATUS-TEST-TIMEOUT-1-E7DA46E8"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File><Text>&lt;Finding id="f263"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File><Text>&lt;Entry id="f263"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Row name="C-STATUS-TEST-TIMEOUT-1-E7DA46E8"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Pays&gt;F263&lt;/Pays&gt;</Text></MustContain>
+      <MustPassCommand><Command>bun test src/grace-status.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-citation-anchors.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/prove-record-preservation.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run ./scripts/validate-marketplace.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+      <MustNotContain><File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File><Text>&lt;Finding id="f252"</Text></MustNotContain>
+      <MustNotContain><File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File><Text>&lt;Entry id="f252"</Text></MustNotContain>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-STATUS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-STATUS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-status.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Give the live-repo reRatificationCount test an explicit generous timeout, red-first under an
+          8 s CLI timeout
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (timeout), fail: in its own tool round trip, before the edit, run
+            `bun test --timeout=8000 src/grace-status.test.ts -t "live repo reports"`. It reds —
+            the whole-archive `collectProjectStatus(REPO_ROOT)` walk takes about ten seconds and the
+            `it` carries no per-test timeout, so the 8 s CLI flag kills it
+            (`[9835.97ms] … ^ this test timed out after 8000ms.`, EXIT=1). Record the cursor attempt
+            with outcome fail, signature-kind `test`, signature-key `timeout`. Do not edit the file in
+            this round trip. Failure conditions: this round trip also edits the file; the red is
+            recorded against a copy instead of the production test; the flag is omitted so the run
+            greens on the 30 s default.
+          </Criterion>
+          <Criterion>
+            Pair pass: in `src/grace-status.test.ts`, replace the `it`'s closing `});` with
+            `}, 60_000);` — no other line changes. Re-run the same
+            `bun test --timeout=8000 src/grace-status.test.ts -t "live repo reports"`: it greens
+            (`1 pass`, EXIT=0) because a per-test timeout overrides the CLI flag. Then
+            `bun test src/grace-status.test.ts` (the default 30 s) exits 0. Record the cursor attempt
+            with outcome pass for signature-key `timeout`. Failure conditions: a second line changes;
+            the timeout is added as a `describe`-level or file-level option instead of on the `it`;
+            the green is claimed from a different command than the red.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test src/grace-status.test.ts</Command>
+          <Command>bun test --timeout=8000 src/grace-status.test.ts -t "live repo reports"</Command>
+          <Command>git diff --exit-code aa97022 -- src/ ':(exclude)src/grace-status.test.ts'</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>
+          Flush f263 and mint the row in interleaved red-first pairs, then drive the faithful
+          post-close applied-archive copy
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (flush-invariant), pair A fail: in its own tool round trip, before any record
+            write, append the flush-invariant walk for `f263` to
+            `scripts/validate-record-retirement.test.ts` in the C-TEACH-COPY-DRIVES-LINEAGE-1 house
+            form (describe `C-STATUS-TEST-TIMEOUT-1-E7DA46E8 flush invariant`): for `f263`, exactly
+            one `Finding` across `findings.xml` and `findings-retired.xml` with no fixed expectation
+            of which file holds it, its `status` agreeing with the holding file, its `token`
+            agreeing with the id, its single index `Entry` carrying the agreeing `genre` and a
+            `layer` agreeing with the holding file, plus the shipped read-back arithmetic (`base`
+            equals the file's `newlineCount`, `base + headroom = ceiling`) and the assertion that the
+            landed `Body` does not end with a `---` separator line; with an explicit generous timeout
+            (`}, 60_000);`). Also assert read-only that the imported `validateStubAndIndex` and
+            `proveRecordPreservation` return zero findings on the post-flush record. `f263` is absent
+            at this state, so the walk reds. Record the cursor attempt with outcome fail,
+            signature-kind `test`, signature-key `flush-invariant`. Run only this case. Do not flush
+            in this round trip. Failure conditions: this round trip also flushes; the walk is bound
+            to a count a duplicate would satisfy; the red is recorded against a mutated copy.
+          </Criterion>
+          <Criterion>
+            Pair A pass: flush `f263` into
+            `docs/plans/active/RM-GOVERNED-PATH/findings.xml`. Read
+            `.ngrace/scratch/staged-findings.md` (read, never write), select `f263` by anchor id
+            matched as `&lt;a id="…" name="…"&gt;&lt;/a&gt;` (never by position), cut its body at the
+            trailing `---` separator, render it through the shipped `xmlEscape` in the `renderFinding`
+            shape (seven element lines), append an
+            `&lt;Entry id="f263" token="F263" genre="finding" layer="live" /&gt;` line to
+            `decisions.xml`, then run
+            `bun ./scripts/validate-record-retirement.ts --rewrite-roots
+            docs/plans/active/RM-GOVERNED-PATH` — never hand-write a root attribute. Then the walk
+            greens and the roots read `&lt;Findings base="7529" headroom="267" ceiling="7796"&gt;`
+            and `&lt;RecordIndex base="269" headroom="27" ceiling="296"&gt;`, the registry root still
+            `&lt;Registry base="12" headroom="14" ceiling="26"&gt;`, rulings unchanged at
+            `1697 / 186 / 1883`; the shipped validator, citation validator and preservation proof
+            return zero. Record the cursor attempt with outcome pass for signature-key
+            `flush-invariant`. Do not mint the row in this round trip. Failure conditions: the body
+            left uncut or normalized beyond the shipped escape; `f252` flushed; the root written by
+            hand; the buffer written or pruned.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (record-row), pair B fail: in its own tool round trip, before the row is
+            minted, append the row walk for `C-STATUS-TEST-TIMEOUT-1-E7DA46E8` to
+            `scripts/validate-record-retirement.test.ts` (describe
+            `C-STATUS-TEST-TIMEOUT-1-E7DA46E8 row relations`) in the payment-invariant house form: the
+            row exists exactly once across `registry.xml` and `registry-retired.xml` with no fixed
+            expectation of which file holds it, its `status` agreeing with the holding file,
+            `kind="chartered"`, its `Pays` **contains** `F263` (containment, never an exact set), and
+            its `StatusText` names no `F` token outside `Pays` and carries no `Closed with` sentence;
+            parsed with the shipped parser over both registry layers, with an explicit generous
+            timeout. Also extend the shipped payer-derivation baseline `bundleMinted` with `F263` to
+            `C-STATUS-TEST-TIMEOUT-1-E7DA46E8`, consulted only for tokens the derivation actually
+            mints. The row is absent at this state, so the walk reds. Record the cursor attempt with
+            outcome fail, signature-kind `test`, signature-key `record-row`. Do not mint in this round
+            trip. Failure conditions: this round trip also mints; the walk hardcodes `registry.xml`;
+            the `Pays` clause pins an exact set.
+          </Criterion>
+          <Criterion>
+            Pair B pass: mint the live row into `docs/plans/active/RM-GOVERNED-PATH/registry.xml`,
+            appended after the last live row in the house shape — an empty `Number`, a `Charter`
+            carrying the name `C-STATUS-TEST-TIMEOUT-1-E7DA46E8` and the searched-before-minting
+            statement in its two halves (the tool's `mint-search:` line verbatim, `mint-search: 0
+            active, 0 archive prior bundle(s) share slug STATUS-TEST-TIMEOUT`, and the author's scope
+            search naming no colliding archived bundle, with no `F` token in the `Charter`), a `Pays`
+            naming exactly `F263`, and a `StatusText` naming no `F` token outside `Pays` and carrying
+            no `Closed with` sentence; then run
+            `bun ./scripts/validate-record-retirement.ts --rewrite-roots
+            docs/plans/active/RM-GOVERNED-PATH`. Then the row walk greens, the flush-invariant walk
+            stays green, the registry root reads
+            `&lt;Registry base="13" headroom="13" ceiling="26"&gt;`, the findings and index roots are
+            unchanged from pair A, and a mid-bundle
+            `bun ./scripts/validate-record-retirement.ts --retire
+            docs/plans/active/RM-GOVERNED-PATH` on a throwaway whole-repository copy reports
+            `moved 0` (nothing is eligible while the row's name is not an archive directory). Record
+            the cursor attempt with outcome pass for signature-key `record-row`. Do not run `--retire`
+            against the production record, do not set `applied`, do not archive the bundle, and do not
+            touch `.ngrace/scratch/staged-findings.md`. Failure conditions: the row minted without the
+            post-mint `--rewrite-roots`; a `Pays` or `StatusText` naming an extra token; the
+            `bundleMinted` extension absent so the post-close suite would red.
+          </Criterion>
+          <Criterion>
+            The closing drive (pass-only cycle): on a faithful whole-repository copy at the T-002
+            state — `rsync -a` including `.git` and untracked files, a real `node_modules` directory,
+            `.ngrace/scratch` present — commit the approved plan before opening the epoch (row 19's
+            copy-commit rule; the plan's approval commit satisfies it), then
+            `bun ./src/grace.ts gate approve --change C-STATUS-TEST-TIMEOUT-1-E7DA46E8 --artifact plan
+            --path .`, `bun ./src/grace.ts apply --change C-STATUS-TEST-TIMEOUT-1-E7DA46E8 --force
+            --reason "post-close drive"`, and the shipped
+            `bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH`
+            from inside the copy: it reports **`moved 2`** (the finding `f263` and the row), the row
+            sits in `registry-retired.xml` with `status="retired"`, `f263` sits in
+            `findings-retired.xml` stamped
+            `&lt;PaidBy&gt;C-STATUS-TEST-TIMEOUT-1-E7DA46E8&lt;/PaidBy&gt;`, the one index layer flips
+            in place with the `Entry` line still present, the roots re-derive with findings base back
+            to `7522` and a ceiling that holds or falls (measured on the driven copy: findings
+            `7522 / 245 / 7767` — the small hotfix bundle enters the ratchet window and the ceiling
+            falls from `7796`, never rises), index `268 / 28 / 296`, registry `12 / 14 / 26`, rulings
+            unchanged, and a second `--retire` reports `moved 0`. Then evaluate every `CloseEvidence` through the
+            product path: `bun ./src/grace.ts review --change C-STATUS-TEST-TIMEOUT-1-E7DA46E8
+            --path .` (the post-archive `review.close-evidence-unevaluated` findings), then
+            `bun ./src/grace.ts gate verdict --change C-STATUS-TEST-TIMEOUT-1-E7DA46E8 --outcome pass
+            --ack-finding …` once per displayed finding, and the verdict's `Result` and `Exit`
+            children read from `run-ledger.xml` are the evidence (five criteria). Then
+            `bun run validate:ci` and `bun run test` (the CLI `--timeout=30000`) exit 0 inside the
+            copy — the fixed test's per-test `60_000` overrides the CLI 30 s, so the walk that timed
+            out on CI passes here. The production record and the production bundle are never mutated
+            by this drive. Leave the copy's path in place and name it in the report. This cycle has no
+            recordable red — the timeout red belongs to T-001 and the record reds to pairs A and B —
+            so record the cursor attempt with outcome pass, signature-kind `test`, signature-key
+            `post-close-drive`, and state in the report that it is pass-only; the attempt-pair audit
+            reports one `review.attempt-pair-unpaired-pass` (`info`) on T-002, which is expected.
+            Failure conditions: the drive copies only the record directory or omits `.git`; the drive
+            stops at the in-tree suites and skips `validate:ci`; the production record is mutated.
+          </Criterion>
+          <Criterion>
+            The close boundary. This task ends at the live row, `--rewrite-roots` applied, the shipped
+            validators at zero, and the fixed test green. The `--retire` (`moved 2`), the two
+            gate-applied Decisions, the `apply` verb, the archive move, and every `CloseEvidence`
+            evaluation on the production record are the authority's close acts; the executor performs
+            no gate, no status write, no archive move and no production `--retire`. No decision is
+            chartered, so there is no `CodifiedIn` hand write. Findings raised while this bundle is
+            open go to `.ngrace/scratch/staged-findings.md` under the next staged number (`D30`).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun run validate:ci</Command>
+          <Command>git diff --exit-code aa97022 -- src/ scripts/ ':(exclude)src/grace-status.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-STATUS-TEST-TIMEOUT-1-E7DA46E8>
+</NgraceChangePlan>
