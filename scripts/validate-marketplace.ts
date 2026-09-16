@@ -333,10 +333,11 @@ function validateNgraceDependencies(errors: string[]): void {
   const scripts = typeof packageJson.scripts === "object" && packageJson.scripts
     ? packageJson.scripts as JsonObject
     : {};
-  if (typeof scripts["validate:release"] !== "string" || !scripts["validate:release"].includes("validate:cli")) {
+  const validateRelease = scripts["validate:release"];
+  if (typeof validateRelease !== "string" || !validateRelease.includes("validate:cli")) {
     errors.push("package.json: validate:release must invoke validate:cli");
   }
-  if (typeof scripts["validate:packed"] !== "string" || !scripts["validate:release"]?.includes("validate:packed")) {
+  if (typeof scripts["validate:packed"] !== "string" || typeof validateRelease !== "string" || !validateRelease.includes("validate:packed")) {
     errors.push("package.json: validate:release must invoke the validate:packed package smoke gate");
   }
 }

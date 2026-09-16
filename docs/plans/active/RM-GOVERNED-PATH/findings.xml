@@ -1,4 +1,4 @@
-<Findings base="7522" headroom="245" ceiling="7767">
+<Findings base="7543" headroom="224" ceiling="7767">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7518,5 +7518,26 @@ later `C-*`, and this rides with it or ahead of it. Neighbour to F125.
 
 ---
 </Body>
+  </Finding>
+  <Finding id="f264" token="F264" status="live">
+    <Title>### F264 — the approved `C-SCRIPTS-ADOPTION-1-F621B7C0` spec forbids every `src/` write while the deliverable forces one: `src/grace-lint.test.ts:1930` pins the old `ignoredDirs` deferral, so `validate:ci` and the spec's own `AC-NO-OTHER-FILES` cannot both pass. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-16 by the plan dispatch, drafting the plan against the ratified spec at `8348366` (base `5bf9723`), on a faithful
+whole-repository copy.** The spec's Constraints say &quot;no `src/` file&quot; and its `AC-NO-OTHER-FILES` asserts &quot;`src/` is byte-identical&quot;.
+`src/grace-lint.test.ts:1930` — `it(&quot;keeps scripts in ignoredDirs&quot;)` — reads the repository's `.ngrace-lint.json` and asserts
+`ignoredDirs` **contains** `scripts`. Executing the spec's own deliverable (removing `&quot;scripts&quot;` from `ignoredDirs`) makes that
+assertion false, and there is no satisfying state: with the deliverable applied, `bun run validate:ci` exits **1** on that one test
+(`AC-SHAPE-CODE-SPLIT &gt; keeps scripts in ignoredDirs`; 1970 pass, 1 fail, 3 skip) while the spec's `AC-NO-OTHER-FILES`
+`git diff --exit-code 5bf9723 …` on `src/` is green; flipping the assertion to `not.toContain(&quot;scripts&quot;)` takes `validate:ci` to **0**
+and reddens `AC-NO-OTHER-FILES` on `src/grace-lint.test.ts` (the diff is exactly that one file). Every other close-time command is
+green in the copy: the six `CloseEvidence` criteria recorded `Exit 0 / Result pass` after the close's `moved 2`, the adoption guard is
+43 pass, and root lint with `scripts/` un-ignored is 0/0.
+
+**The rule.** Every file the deliverable forces is in the spec's write scope, and every file the plan writes is excluded by the spec's
+byte-invariance criterion. The plan cannot repair this: `ngrace-plan` `must_do` 6 requires listing the forced `src/grace-lint.test.ts`
+in `ObservedWriteScope`, while the immutable `AC-NO-OTHER-FILES` command excludes no `src/` path. Owner: the maintainer's supersede of
+the approved spec (add `src/grace-lint.test.ts` to the write scope and to `AC-NO-OTHER-FILES`'s excludes), or the next `C-*` that
+adopts `scripts/`. The plan `C-SCRIPTS-ADOPTION-1-F621B7C0` is authored at `status=&quot;draft&quot;` and must not be approved ahead of that
+supersede.</Body>
   </Finding>
 </Findings>

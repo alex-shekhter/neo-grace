@@ -3,13 +3,21 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Prove the npm tarball installs and executes the GRACE CLI against valid and adversarial temporary projects.
 //   SCOPE: Dry-run package creation, temporary Bun installation, CLI navigation, structured errors, and optional Python/Dart adapter behavior.
-//   DEPENDS: [node:fs, node:child_process, src/artifact/test-fixtures.ts]
-//   LINKS: [M-RELEASE-AUTOMATION, VF-RELEASE-AUTOMATION]
+//   DEPENDS: M-TEST-SUPPORT
+//   LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]
 //   ROLE: SCRIPT
-//   MAP_MODE: EXPORTS
+//   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   PackedSmokeCase
+//   write
+//   run
+//   RuntimeState
+//   runtimeState
+//   writeBaseProject
+//   writePythonProject
+//   writeDartProject
 //   runPackedCliSmoke - Creates, installs, and exercises one package tarball without publishing.
 // END_MODULE_MAP
 
@@ -46,7 +54,7 @@ export type RuntimeState = "usable" | "missing" | "broken";
 export function runtimeState(candidates: string[]): RuntimeState {
   for (const binary of candidates) {
     const result = spawnSync(binary, ["--version"], { stdio: "ignore" });
-    if (result.error?.code === "ENOENT") continue;
+    if ((result.error as NodeJS.ErrnoException | undefined)?.code === "ENOENT") continue;
     if (result.status === 0) return "usable";
     return "broken";
   }

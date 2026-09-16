@@ -99,5 +99,9 @@
       <Path>src/calibration/report.ts</Path>
       <Type>CORE_LOGIC</Type>
     </M-CALIBRATION>
+    <M-RELEASE-AUTOMATION>
+      <Summary>Release automation: version bump, consistency and protection checks, checklist reporting, stable finalization, changelog summary generation, and the packed-tarball smoke probe, under scripts/.</Summary>
+      <Type>UTILITY</Type>
+    </M-RELEASE-AUTOMATION>
   </GD-MAIN>
 </NgraceGraphDocument>

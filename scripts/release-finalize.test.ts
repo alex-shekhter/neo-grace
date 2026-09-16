@@ -60,6 +60,8 @@ describe("stable release finalization", () => {
       localTagCommit: "wrong",
       localTagType: "commit",
       remoteTagExists: true,
+      packageName: "@neograce/cli",
+      versionAlreadyPublished: false,
     });
     expect(errors).toHaveLength(8);
     expect(errors.join(" ")).toContain("branch main");

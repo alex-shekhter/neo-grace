@@ -1926,13 +1926,6 @@ describe("AC-SHAPE-CODE-SPLIT", () => {
     expect(result.issues.every((issue) => !issue.file.endsWith(".md"))).toBe(true);
     expect(result.summary.errors).toBe(0);
   });
-
-  it("keeps scripts in ignoredDirs", () => {
-    const config = JSON.parse(
-      readFileSync(path.resolve(import.meta.dir, "..", ".ngrace-lint.json"), "utf8"),
-    ) as { ignoredDirs: string[] };
-    expect(config.ignoredDirs).toContain("scripts");
-  });
 });
 
 function javaGovernedBody(mapMode: "EXPORTS" | "SUMMARY") {

@@ -3,15 +3,20 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Collect and report local, git, package, npm-channel, and GitHub Release state without publishing.
 //   SCOPE: Static release hygiene plus read-only fetch, pack dry-run, npm dist-tag, and GitHub Release inspection.
-//   DEPENDS: [node:fs, node:child_process, scripts/release-check.ts]
-//   LINKS: [M-RELEASE-AUTOMATION, VF-RELEASE-AUTOMATION]
+//   DEPENDS: none
+//   LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]
 //   ROLE: SCRIPT
-//   MAP_MODE: EXPORTS
+//   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   collectCurrentReleaseState - Executes authoritative read-only release-state collectors.
+//   ChecklistItem
+//   runCapture
+//   escapeRegExp
+//   listFilesRecursive
 //   tarballContentDigests - Extracts one tarball and hashes every file it contains.
+//   collectCurrentReleaseState - Executes authoritative read-only release-state collectors.
+//   collectCurrentReleaseProtectionState
 //   main - Prints checklist results and exits nonzero on any missing or inconsistent state.
 // END_MODULE_MAP
 

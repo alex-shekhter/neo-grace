@@ -2121,6 +2121,11 @@ ${names
         F257: "C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA",
         // C-STATUS-TEST-TIMEOUT-1-E7DA46E8 T-001: the chartered row's one minted token.
         F263: "C-STATUS-TEST-TIMEOUT-1-E7DA46E8",
+        // C-SCRIPTS-ADOPTION-2-36DEB1BD T-003: the chartered row's two minted tokens. The
+        // extension is consulted only for tokens the derivation actually mints, so the walk is
+        // green with the row live and green in the applied-archive state (the close's mint).
+        F242: "C-SCRIPTS-ADOPTION-2-36DEB1BD",
+        F264: "C-SCRIPTS-ADOPTION-2-36DEB1BD",
         // C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F T-001: the chartered row's five
         // minted tokens. The extension is consulted only for tokens the derivation
         // actually mints, so the walk is green with the row live and green in the
@@ -2636,10 +2641,12 @@ ${names
       });
       expect(production, "the shipped validator returns zero findings on the production record").toEqual([]);
       for (const file of recordFiles) {
+        const expected = before.get(file);
+        if (expected === undefined) throw new Error(`${file}: missing pre-run snapshot`);
         expect(
           readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
           `${file}: the production run is read-only`,
-        ).toBe(before.get(file));
+        ).toBe(expected);
       }
     },
     60_000,
@@ -3820,10 +3827,12 @@ describe("C-TAUGHT-RULES row", () => {
       const production = validateRecordRetirement({ repoRoot: REPO_ROOT, recordDir });
       expect(production, "the shipped validator returns zero findings with the row minted live").toEqual([]);
       for (const file of recordFiles) {
+        const expected = before.get(file);
+        if (expected === undefined) throw new Error(`${file}: missing pre-run snapshot`);
         expect(
           readFileSync(path.join(recordDir, file), "utf8"),
           `${file}: the production run is read-only`,
-        ).toBe(before.get(file));
+        ).toBe(expected);
       }
     },
     60_000,
@@ -4081,10 +4090,12 @@ describe("C-TAUGHT-RULES row", () => {
       });
       expect(production, "the shipped validator returns zero findings on the production record").toEqual([]);
       for (const file of recordFiles) {
+        const expected = before.get(file);
+        if (expected === undefined) throw new Error(`${file}: missing pre-run snapshot`);
         expect(
           readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"),
           `${file}: the production run is read-only`,
-        ).toBe(before.get(file));
+        ).toBe(expected);
       }
       // The discriminating direction, so the absence is not vacuously empty:
       // the same derivation over an isolated archive root carrying a planted
@@ -5647,6 +5658,70 @@ describe("C-STATUS-TEST-TIMEOUT-1-E7DA46E8 row relations", () => {
     expect(node.attributes.kind).toBe("chartered");
     const pays = childText(node as never, "Pays") ?? "";
     expect(pays).toContain("F263");
+    const statusText = childText(node as never, "StatusText") ?? "";
+    expect(statusText.includes("Closed with")).toBe(false);
+    const outside = (statusText.match(/\bF\d+(?:\.\d+)*\b/g) ?? []).filter((t) => !pays.includes(t));
+    expect(outside).toEqual([]);
+  }, 60_000);
+});
+
+describe("C-SCRIPTS-ADOPTION-2-36DEB1BD flush relations", () => {
+  it("F264 is exactly once across the findings pair with its status, token and index Entry agreeing", () => {
+    const flushed = ["f264"];
+    const liveParsed = parseGraceXmlArtifact("findings.xml", readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings.xml"), "utf8"));
+    const retiredParsed = parseGraceXmlArtifact("findings-retired.xml", readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings-retired.xml"), "utf8"));
+    const indexParsed = parseGraceXmlArtifact("decisions.xml", readFileSync(path.join(REPO_ROOT, RECORD_REL, "decisions.xml"), "utf8"));
+    expect(liveParsed.root, "findings.xml parses").not.toBeNull();
+    expect(retiredParsed.root, "findings-retired.xml parses").not.toBeNull();
+    expect(indexParsed.root, "decisions.xml parses").not.toBeNull();
+    for (const id of flushed) {
+      const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+        const parsed = file === "findings.xml" ? liveParsed : retiredParsed;
+        return [...walkNodes(parsed.root!)].filter((node) => node.tag === "Finding" && node.attributes.id === id).map((node) => ({ file, node }));
+      });
+      expect(carriers.length, `${id}: exactly one Finding element across the findings pair (got ${carriers.length})`).toBe(1);
+      const { file, node } = carriers[0]!;
+      const expectedStatus = file === "findings.xml" ? "live" : "retired";
+      expect(node.attributes.status, `${id}: the carrier's status agrees with the holding file (${file})`).toBe(expectedStatus);
+      expect(node.attributes.token, `${id}: the carrier's token agrees with the id`).toBe(`F${id.slice(1)}`);
+      const entries = [...walkNodes(indexParsed.root!)].filter((entry) => entry.tag === "Entry" && entry.attributes.id === id);
+      expect(entries.length, `${id}: exactly one Entry for the id (duplicate would walk two)`).toBe(1);
+      expect(entries[0]!.attributes.genre, `${id}: the Entry's genre agrees`).toBe("finding");
+      expect(entries[0]!.attributes.layer, `${id}: the Entry's layer agrees with the holding file`).toBe(expectedStatus);
+    }
+    const findingsText = readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings.xml"), "utf8");
+    const findingsRoot = parseGraceXmlArtifact("findings.xml", findingsText).root!;
+    const base = Number(findingsRoot.attributes.base);
+    const headroom = Number(findingsRoot.attributes.headroom);
+    const ceiling = Number(findingsRoot.attributes.ceiling);
+    expect(base, "findings.xml: base equals the file's newlineCount").toBe(newlineCount(findingsText));
+    expect(base + headroom, "findings.xml: base + headroom = ceiling").toBe(ceiling);
+  }, 60_000);
+});
+
+describe("C-SCRIPTS-ADOPTION-2-36DEB1BD row relations", () => {
+  it("the chartered row is live exactly once, pays F242 and F264, and carries both searched-before-minting halves", () => {
+    const rowName = "C-SCRIPTS-ADOPTION-2-36DEB1BD";
+    const rows: Array<{ file: string; node: { attributes: Record<string, string> } }> = [];
+    for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"));
+      for (const node of walkNodes(parsed.root!)) {
+        if (node.tag === "Row" && node.attributes.name === rowName) rows.push({ file, node });
+      }
+    }
+    expect(rows.length).toBe(1);
+    const { file, node } = rows[0]!;
+    expect(node.attributes.status).toBe(file === "registry.xml" ? "live" : "retired");
+    expect(node.attributes.kind).toBe("chartered");
+    const pays = childText(node as never, "Pays") ?? "";
+    expect(pays).toContain("F242");
+    expect(pays).toContain("F264");
+    const charter = childText(node as never, "Charter") ?? "";
+    expect(charter).toContain("mint-search: 1 active, 0 archive prior bundle(s) share slug SCRIPTS-ADOPTION");
+    expect(charter).toContain("scripts");
+    expect(charter).toContain("tsconfig.json");
+    expect(charter).toContain(".ngrace-lint.json");
+    expect(charter).toContain("scripts/release-check.ts");
     const statusText = childText(node as never, "StatusText") ?? "";
     expect(statusText.includes("Closed with")).toBe(false);
     const outside = (statusText.match(/\bF\d+(?:\.\d+)*\b/g) ?? []).filter((t) => !pays.includes(t));

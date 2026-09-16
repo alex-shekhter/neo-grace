@@ -48,7 +48,7 @@ describe("runtimeState integration with spawnSync edge cases", () => {
     const result = spawnSync("binary-that-definitely-does-not-exist-12345", ["--version"], { stdio: "ignore" });
     // bun spawnSync may return undefined vs null for status on ENOENT
     // The key invariant: error.code is ENOENT
-    expect(result.error?.code).toBe("ENOENT");
+    expect((result.error as NodeJS.ErrnoException | undefined)?.code).toBe("ENOENT");
     // runtimeState should classify this as missing
     expect(runtimeState(["binary-that-definitely-does-not-exist-12345"])).toBe("missing");
   });

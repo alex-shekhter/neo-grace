@@ -23,6 +23,7 @@
         <V-M-CONTEXT />
         <V-M-TEST-SUPPORT />
         <V-M-CALIBRATION />
+        <V-M-RELEASE-AUTOMATION />
       </Owns>
     </VD-MAIN>
   </VerificationDocuments>
