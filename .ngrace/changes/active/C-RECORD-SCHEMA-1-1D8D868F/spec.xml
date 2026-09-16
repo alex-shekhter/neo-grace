@@ -1,0 +1,667 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-RECORD-SCHEMA-1-1D8D868F>
+    <Summary>
+      Step (1) of the maintainer's `D40` sequence, and the bundle that pays `F207`, `F221`, `F235`
+      and `F252`. Author a declared **shape schema** for the seven record files and a **canonical
+      serializer** for the record engine under `scripts/`, route every record write through the
+      serializer, add the **repository-boundary refusal** that `F235`'s remedy names, sweep the
+      **separator bodies** `F252` records, and flush the two staged entries (`F252` and `D40`) into
+      the record — this bundle is the last sanctioned hand flush — carrying `D40` into `rulings.xml`
+      as **not yet built** (the `D38` manner, no `CodifiedIn`). The record engine stays in
+      `scripts/` exactly as `D40` rules; no `src/` production file changes.
+
+      **Minted 2026-09-16** on branch `c-record-schema` at base commit
+      `aaae414ba89c86b1e3e7125943637b453591a9f9` (HEAD; PR #102 squash; tree clean;
+      `.ngrace/changes/active/` holding only `.gitkeep`; 109 archive directories; `validate:ci`
+      green on the runner) with `bun ./src/grace.ts spec new RECORD-SCHEMA --timestamp
+      2026-09-16T14:08:39Z --path .`. Printed path
+      `.ngrace/changes/active/C-RECORD-SCHEMA-1-1D8D868F/spec.xml`; printed lines verbatim:
+      `mint: C-RECORD-SCHEMA-1-1D8D868F slug=RECORD-SCHEMA lineage=1 hash=1D8D868F
+      branch=c-record-schema timestamp=2026-09-16T14:08:39.000Z` and `mint-search: 0 active, 0
+      archive prior bundle(s) share slug RECORD-SCHEMA`. The author's scope half of the
+      searched-before-minting statement: `.ngrace/changes/archive/` holds 42 bundle directories
+      whose `spec.xml` or `plan.xml` mention `scripts/validate-record-retirement.ts` (including 15
+      named `C-RECORD-*`, `C-FLUSH-*` and `C-PAYMENT-RECORD-*`); no archived bundle carries a shape
+      schema, a canonical serializer, or a record-path boundary refusal — the precedent bundles
+      (`C-RECORD-PARSE` for the minimal shape check, `C-ROOT-WINDOW` and `C-ROOT-WINDOW-3` for the
+      normalising pass and root modes, `C-SCRIPTS-ADOPTION-2-36DEB1BD` for how a graph module is
+      added) were read for shape, never transformed. Measured 2026-09-16 at the base commit.
+
+      **Name searched 2026-09-16** over `.ngrace/changes/archive/` (109 directories matching
+      `^C-[A-Z0-9-]+$`) and both registry layers for any prior row or directory carrying
+      `C-RECORD-SCHEMA`: none; the tool's collision half (`mint-search:`) reports zero prior
+      bundles for the slug.
+    </Summary>
+    <Problem>
+      Four live defects share one surface — the record engine in
+      `scripts/validate-record-retirement.ts` — and `D40` fixes their sequence by dependency, not
+      preference. Measured 2026-09-16 at `aaae414ba89c86b1e3e7125943637b453591a9f9`.
+
+      **`F207` — the record has no schema.** `checkRecordShape`
+      (`scripts/validate-record-retirement.ts:630`) checks only the expected root, that a genre
+      element is a direct child of the root, and that a genre element carries no same-tag
+      descendant. `grep` for `allowedChildren`, `requiredChildren` and `schema` across
+      `scripts/validate-record-retirement.ts` and `scripts/prove-record-preservation.ts` returns
+      nothing, and no rule constrains which children an element may carry, which are required, or
+      which attribute value forms are legal. Observed depth is convention: a `Finding` nested in a
+      `Finding` passed every shipped check at `b62698e` and still does. `F206`'s structural metric
+      depends on this: a metric over an undefined shape counts something undefined, which is why
+      shape ships first.
+
+      **`F221` — nothing canonicalizes.** At least three write paths treat surrounding whitespace
+      differently — the flush render, `persistSnapshot`'s root-line splice, and `--retire`'s
+      element moves. `C-ROOT-WINDOW`'s normalising pass (`normaliseGaps`, `:907`) narrowed the
+      drift on files the move wrote, but it is scoped to the move and it is one pass among
+      writers, not a contract. A byte-invariance criterion is today a bet on which writer touched a
+      file last.
+
+      **`F235` — the archive root and the record directory disagree.** Eligibility keys on
+      `&lt;cwd&gt;/.ngrace/changes/archive`: `listArchiveNames` is defined at `:136` and reads
+      `path.join(repoRoot, ".ngrace", "changes", "archive")`; every top-level entry point binds
+      that `repoRoot` to `cwd` — `main(argv, cwd = process.cwd())` at `:1768`, with `repoRoot: cwd`
+      passed at `:1785`, `:1790`, `:1796`, `:1804` — while `recordDir` is bound to the positional
+      argument at `:1783`. A drive that copies only `docs/plans/active/RM-GOVERNED-PATH` and runs
+      the move from the repository root therefore sees the copy's registry and the real archive:
+      driven 2026-09-16, the same record bytes yield `moved 2` when a whole-repository copy is run
+      from inside the copy (where the archive holds the planted row name) and `moved 0` when the
+      record directory alone is passed from the real root — a partial copy is silently
+      half-honoured.
+
+      **`F252` — the separator rides into rendered bodies.** The staged buffer's own header tells
+      the flusher to cut each body at the `---` boundary first; the shipped `parseFrozenMarkdown`
+      does not, so every non-last flushed body keeps the separator. Re-measured 2026-09-16 over
+      the two findings layers, 54 bodies end with a separator line (31 live, 23 retired), and over
+      all four genre files 68 do; each separator is the two-newline gap plus a literal `---` line.
+      The buffer holds exactly two entries today — `F252` and `D40` — and `D40` is the
+      maintainer's direction that this bundle is step (1) of, carried into the record "not yet
+      built".
+    </Problem>
+    <Goals>
+      <Goal>
+        **The shape schema (`F207`), declared and enforced.** A single declared schema for the seven
+        record files and the seven golden fixtures: per file, the expected root element and the
+        root attribute set (`base`, `headroom`, `ceiling`, present on live roots and absent on
+        retired siblings); the one genre element tag; the genre element's required attribute set
+        and value forms (`id` lower-kebab with dot-slugs, `token` upper `F`/`D` with dot-slugs,
+        `status` agreeing with the holding file; `Row.name` a `C-*` name, `Row.kind` in
+        `chartered` / `sweep-remainder` / `historical`; `Entry.genre` in `finding` / `decision`,
+        `Entry.layer` in `live` / `retired`); the required children and their order (`Finding`:
+        `PaidBy`? `Title` `Body`; `Decision`: `Title` `Body` (`CodifiedIn` | `TaughtIn`)*; `Row`:
+        `Number` `Charter` `Pays` `StatusText` `Successor`?; `Entry`: none, self-closing); the
+        optional children; and the depth bound (genre elements only as direct children of the root,
+        leaves only as their children). The schema is the **engine's contract, not a snapshot of
+        the corpus**: `TaughtIn` (`path`, `section`) is admitted by the engine's own read
+        (`resolveTaughtChildren`, `childNodes(node, "TaughtIn")`, `:1043`) with **0 corpus
+        instances** at HEAD, so it is legal even though the walk sees none; `PaidBy` is
+        layer-conditional (present on all 125 retired `Finding`s in the corpus, optional on live
+        `Finding` because `--stamp-paid-by` writes it there before the move, `:1086`); `Successor`
+        is retired-`Row`-only (3 corpus instances); `CodifiedIn`/`TaughtIn` appear on `Decision` in
+        either layer (8 retired decisions carry 10 `CodifiedIn`). Which children are
+        layer-conditional is asserted by the schema, not inferred from observed presence. The
+        schema is expressed once, in the new helper module
+        `scripts/record-serialize.ts`, and consumed by the engine's shape check. **Measured at HEAD:
+        the proposed schema has 0 violations across all seven files** (206+125 `Finding`, 61+8
+        `Decision`, 12+62 `Row`, 400 `Entry`), so no data repair is in scope — the schema is a
+        formalization, and the enforcement is what changes. The default validation and all four
+        write modes (`--split`, `--retire`, `--stamp-paid-by`, `--rewrite-roots`) check the schema
+        before any write; a violation refuses the mode (exit non-zero, nothing written) rather than
+        writing a document the serializer cannot canonicalize. This Goal touches no line metric:
+        `F206`'s structural volume metric is explicitly not this bundle's (`NonGoals`).
+      </Goal>
+      <Goal>
+        **The canonical serializer (`F221`), on every write.** Define the record's canonical form:
+        two spaces of indent per depth, a close tag at its open tag's indent, self-closing empty
+        elements, attribute order canonical per element type (root `base` `headroom` `ceiling`;
+        `Finding`/`Decision` `id` `token` `status`; `Row` `name` `status` `kind`; `Entry` `id`
+        `token` `genre` `layer`; `CodifiedIn` `kind`; `TaughtIn` `path` `section`), entity escaping
+        of `&amp;` `&lt;` `&gt;` `&quot;`, a trailing newline after the root close tag, and — the
+        load-bearing half — **body prose preserved exactly**: only structural whitespace is
+        canonicalized; no text node is re-wrapped, reindented or otherwise touched. The serializer
+        lives in `scripts/record-serialize.ts` and every record write routes through it: the 19
+        textual `writeFileSync` occurrences in `scripts/validate-record-retirement.ts` (one import
+        plus 18 call sites at `:456`, `:557`–`:563`, `:579`, `:1086`, `:1319`–`:1325`, `:1433`)
+        — the import line excluded, all 18 call sites write record artifacts (the inventory at
+        `:456`, the split's seven files and the stub at `:557`–`:579`, `--stamp-paid-by`'s
+        `findings.xml` at `:1086`, `--retire`'s seven files at `:1319`–`:1325`, and
+        `--rewrite-roots`'s up-to-four files at `:1433`). Idempotence is a shipped test:
+        `serialize(parse(serialize(x)))` is byte-equal to `serialize(x)` over the seven golden
+        fixtures and the planted test documents; the durable property over the live files is
+        **canonical at rest** (`AC-CANONICAL-AT-REST`). **The one-time reflow measured at HEAD adds
+        and removes 0 lines per file and changes 0 bytes** across all seven files — every file
+        already satisfies the canonical form (0 top-level gap anomalies, 0 nested-indent anomalies,
+        canonical attribute order, trailing newline present) — so the reflow is a byte no-op and no
+        ceiling is at risk; structural identity across it is proven by the shipped
+        `prove-record-preservation` returning 0 findings plus a parse-equality walk (decoded tree
+        equality before and after); the measurement itself lives in `Assumptions`. **Write-path
+        unification, folded here and not deferred:** routing every writer through the serializer
+        exposes the split path's dead copy of the rulings headroom formula
+        (`Math.floor(2 * median(...))` at `:522`) beside the retire path's live one
+        (`Math.floor(7 * median(...))` at `:1273`); the two are replaced by one shared headroom
+        function using the **retire path's constant** (7x, the shipped writer of existing-record
+        ceilings), the split path's copy is removed, and a test asserts both modes derive the same
+        headroom from the same input. A hash identity check is named in `NonGoals` as the
+        successor's.
+      </Goal>
+      <Goal>
+        **The repository-boundary refusal (`F235`).** The engine resolves the repository boundary
+        from the tree — the presence of `.ngrace/` at the cwd, never git (this repository carries
+        the `RM-GITLESS-INTEGRITY` plan, whose `review.md` establishes that a GRACE project need not
+        be a repository; read it before choosing) — and refuses, before any read or write and with a
+        named message, a record directory that resolves outside that boundary. The refusal is the
+        remedy `F235`'s owner names, not the walk-up: the whole-repository copy run from inside the
+        copy is accepted and moves; a partial copy of the record directory alone, passed from the
+        real root, is refused. Both directions are probed on throwaway copies (the whole-repository
+        copy is the `F231` faithful form), and the refusal message names the path, the boundary, and
+        the faithful-copy remedy.
+      </Goal>
+      <Goal>
+        **The separator sweep (`F252`).** One exported normalization (`stripBodySeparator`) removes
+        a trailing separator — the blank gap and the literal `---` line — from a body's decoded
+        text; it is applied at the parse boundary (`parseFrozenMarkdown`, so that every rendered
+        `&lt;Body&gt;` is clean and the flush writes clean bytes), in the one-time sweep of the 68
+        existing bodies (54 findings, 14 rulings), and in the preservation walk, so all three agree
+        on bytes. `record-inventory.json` is the **split's provenance snapshot** — a JSON array of
+        299 `{token, id, bodyHash}` entries written only by `--split` (`:456`), the record's 400
+        `Finding`/`Decision` ids minus the 101 entries flushed after the split — not a living
+        manifest; it keeps that role, and the sweep recomputes the 56 hashes it holds for bodies
+        whose separator tail it removes, with a parse-equality proof that only the separator tail
+        moved. The flush leaves the inventory untouched, exactly as every flush since the split
+        has. A flush-invariant walk asserts, over every layer, that no `&lt;Body&gt;` ends with a
+        separator line. **The sweep touches retired siblings, and that is a permitted write**:
+        searched 2026-09-16, no ruling in `rulings.xml` or `rulings-retired.xml` and no sentence in
+        `docs/plans/README.md` makes a retired body immutable beyond the move; ceilings are
+        live-root-only and are written only by `--retire` (never raised), so a whitespace clean of a
+        retired body neither moves an entry nor touches a ceiling. The sweep's measured line deltas
+        are recorded in `Assumptions`.
+      </Goal>
+      <Goal>
+        **The flush, and the close.** Flush the staged buffer's two entries through the shipped
+        parser and the new serializer — this is the last sanctioned hand flush; the flush/mint verb
+        is the chartered successor — writing `F252` live into `findings.xml`, `D40` live into
+        `rulings.xml` with **no `CodifiedIn`** (the `D38` manner, "not yet built"), one index
+        `Entry` per entry in `decisions.xml`, the chartered registry row
+        `C-RECORD-SCHEMA-1-1D8D868F` into `registry.xml` with `&lt;Pays&gt;F207 F221 F235
+        F252&lt;/Pays&gt;` and a token-free `StatusText` (the inventory is left untouched, exactly
+        as every flush since the split has); then `--rewrite-roots` re-derives all four live roots
+        holding ceilings. The close's `--retire` moves the four findings and the row (`moved 5`), flips the
+        four index layers in place, and leaves `D40` live. Order of operations: serializer lands
+        first; then the separator sweep (bodies and the 56 affected inventory hashes); then the
+        flush; then `--rewrite-roots`; then the close. The flush is performed at the start of
+        execution, under the `D30` window this bundle itself opens.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T3 (architectural)**: a new subsystem under `scripts/` (the shape schema
+        and the canonical serializer, plus the repository-boundary refusal), a one-time data reflow
+        across seven record files, a new refusal path, byte-pinned fixtures, and the record. The
+        skill's T3 row is met by a new subsystem and a new contract (the record's byte contract);
+        no `src/` production file changes, no version surface moves. Roadmap `RM-GOVERNED-PATH`.
+        Binding rulings carried, not re-derived: `D40` (**staged**, flushed by this Goal) fixes the
+        sequence — (1) shape schema and canonical serializer, (2) the flush/mint verb with
+        `--retire` and `--rewrite-roots` as siblings, (3) a lint rule generalizing `D1.3` — and
+        rules that the record engine lives in `scripts/` (`validate-record-retirement.ts` or a
+        helper module beside it), with no `src/` production write; this bundle is step (1) and
+        codifies nothing. `D30` — the record freezes for the lifetime of a bundle that measures it,
+        and no hard `Constraint` here transcribes a scalar count of a file it changes; every
+        occupancy, delta and root figure lives in `Assumptions` and expires. `D28`/`D28.1` — the
+        schema is enforcement and the ceiling the backstop; no ceiling is raised: the serializer
+        holds ceilings, `--rewrite-roots` holds them byte-for-byte, and the one-time sweep only
+        removes lines (loosening, never tightening). `D31` — the retired sibling is a layer, and a
+        body clean there is a permitted write, searched (Goal 4). `D27` — approved artifacts are
+        repaired only by `ngrace supersede`; drafts are revised in place, and this spec is a draft.
+        `D11` — the one deferral (the flush/mint verb) has a named owner and a real dependency
+        (the serializer), the only reason the split is legitimate. `D39` — the anti-occupancy guard
+        on ceilings is untouched: no path here raises a ceiling.
+      </Constraint>
+      <Constraint>
+        Row and payment law. The row is `C-RECORD-SCHEMA-1-1D8D868F` (the minted id, an archive
+        directory only at the close), `kind="chartered"`; its `&lt;Pays&gt;` names exactly `F207
+        F221 F235 F252` and no other `F` token; its `&lt;StatusText&gt;` names no `F` token outside
+        `&lt;Pays&gt;` and contains no `Closed with` sentence; its `&lt;Charter&gt;` carries the
+        searched-before-minting statement. `Pays` is asserted by containment. Record assertions
+        never pin `status="live"` or a ceiling value: they assert exists-once-across-layers and
+        layer-agrees, because a paid state is durable and a live one is not. `F252`'s `Pays`
+        payment is minted only when the row's name is an archive directory — at the close — so
+        `F252` is flushed live and retired by the same close.
+      </Constraint>
+      <Constraint>
+        Write scope, anchors, and modules — enumerated once (`F136.1`'s rule). The set is every
+        write a Goal makes inevitable: `scripts/record-serialize.ts` (new: the schema table and the
+        canonical serializer), `scripts/validate-record-retirement.ts` (the shape check consuming
+        the schema, every write routed through the serializer, the boundary refusal);
+        `scripts/validate-record-retirement.test.ts` (the schema, idempotence, reflow-no-op,
+        boundary, and sweep tests); `scripts/prove-record-preservation.ts` and
+        `scripts/prove-record-preservation.test.ts` (the shared trim helper in the body hash);
+        `scripts/fixtures/record-parse/golden/` (the seven golden files, regenerated only if the
+        measured fixture diff is non-empty — measured 0); the seven record files
+        `docs/plans/active/RM-GOVERNED-PATH/{findings.xml,findings-retired.xml,rulings.xml,
+        rulings-retired.xml,registry.xml,registry-retired.xml,decisions.xml}`, plus the stub
+        `decisions.md` and `record-inventory.json`; and the bundle's own artifacts under
+        `.ngrace/changes/active/C-RECORD-SCHEMA-1-1D8D868F/` with their close arrival under
+        `.ngrace/changes/archive/C-RECORD-SCHEMA-1-1D8D868F/`. **No graph module is written or
+        minted.** The record engine is a meta-artifact of this repository's governance (that is
+        `D40`'s ruling), so no honest graph module owns it: `scripts/` **is linted** —
+        `.ngrace-lint.json` holds `ignoredDirs: ["examples"]`, and
+        `C-SCRIPTS-ADOPTION-2-36DEB1BD` is the bundle that un-ignored `scripts/` — so the
+        conclusion does not rest on an ignore: a `LINKS:`-less `scripts/*.ts` file under the linted
+        directory raises nothing (probed 2026-09-16: a whole-repository copy with a header-less
+        `scripts/record-serialize.ts` planted lints `Errors: 0 Warnings: 0`).
+        `M-RELEASE-AUTOMATION` was minted for the six contract-bearing release scripts by that
+        bundle, whose `AffectedAreas` records the precedent that a `scripts/*.ts` file carrying no
+        `LINKS:` header forces no module. `scripts/validate-record-retirement.ts` and
+        `scripts/prove-record-preservation.ts` carry no `LINKS:` header (measured: zero occurrences
+        in both), and the new `scripts/record-serialize.ts` will carry none either — do not mint a
+        synthetic module, do not add a header, and do not repeat this list as a second module list
+        anywhere. `M-SKILLS` and `src/` are not touched, and no lint issue code is added.
+        `docs/plans/README.md` and `CLAUDE.md` are decided in `NonGoals`. `.ngrace/scratch/
+        staged-findings.md` is read whole and never written except to stage a **new** finding this
+        authoring run raises. Escape markup as character data (`&lt;`, `&gt;`, `&amp;`) in every
+        artifact this bundle writes; never paraphrase brackets away.
+      </Constraint>
+      <Constraint>
+        Criterion mapping, stated plainly. Every `AC-*` below except `AC-NO-CURRENT-MODE` is
+        close-bound by its own `CloseEvidence` child, and a task `Satisfies` that names any of them
+        is the shipped error (`change.close-evidence-and-satisfied`). Exactly one criterion —
+        `AC-NO-CURRENT-MODE` — carries no `CloseEvidence` and is mapped by exactly one task
+        `Satisfies` in the later plan; that single mapping is the admissible mapping set. Every
+        `CloseEvidence` is evaluated only in the applied-archive state (`F196`), and every such
+        command is additionally run inside the `F231` faithful copy before and after these criteria
+        were written. `CloseEvidence` commands match shipped discriminating shapes (`bun test`,
+        `git diff --exit-code`, `ngrace lint --fail-on`); the full `bun run validate:ci` is a drive
+        in `VerificationIntent`, never a `CloseEvidence` (it matches no default shape).
+      </Constraint>
+      <Constraint>
+        Evidence hygiene and the one check done differently. The byte-invariance baseline is the
+        full base commit `aaae414ba89c86b1e3e7125943637b453591a9f9` (`F210`'s rule — the base-less
+        diff form cannot fail). `git diff` sees tracked paths only (`F174`); the record's own
+        changes are enumerated in the `Goals` (the sweep and the flush), so no "record unmoved"
+        criterion is written — the record moves by design. Every `CloseEvidence` command and the
+        full `bun run validate:ci` are evaluated inside a faithful copy of the post-close state
+        built the way `F231` prescribes: `rsync` of the working tree with untracked files under
+        `.ngrace/changes/` included (`git clone` drops them), a real `node_modules`, `.ngrace/
+        scratch` present, the approved plan committed before the epoch opens, the close performed
+        with the real verbs, and only then the commands run, each exit code read directly and never
+        through a pipe. Every probe was run in both directions on throwaway copies before this
+        spec was written; structural counts come from the shipped parser, never `grep -c`, and
+        prose claims are matched at their structural position, not merely by string. Any test the
+        later plan adds that walks the real repository or the real archive carries the house
+        per-test timeout `60_000` (`F185`): the record suite uses it 64 times at HEAD (the brief's
+        figure of 14 measures something else; see `WRONG` in the report). No criterion pins a
+        finding `live` or a ceiling to a number. Any new finding this authoring run raises is
+        staged in `.ngrace/scratch/staged-findings.md` under the next free number (`F265` and
+        following) and reported under `AMBIGUITIES`.
+      </Constraint>
+      <Constraint>
+        Known boundary, stated rather than hidden. The serializer makes the record's bytes
+        canonical and idempotent, but it does not, by itself, *detect* a hand edit that produced
+        bytes outside the serializer: detection comes from the byte-invariance criteria over named
+        baselines, and a durable hash identity check is the successor's (`NonGoals`). The boundary
+        refusal keys on the presence of `.ngrace/` at the cwd (`RM-GITLESS-INTEGRITY`'s stance,
+        never git): a repository whose record legitimately sits outside the `.ngrace/`-rooted tree
+        would be refused, and no such layout exists here (measured: the record is under the cwd).
+        The schema's value forms are drawn from the corpus measured at HEAD; a future value form not
+        in the table is a schema edit, not a silent acceptance.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        The flush/mint **verb** — a record flush that writes findings, decisions, index entries, the
+        row and the roots in one transaction, with `--retire` and `--rewrite-roots` as siblings.
+        Owner: the chartered successor, `D40`'s step (2), sequenced after this bundle; the
+        dependency is the canonical serializer (it cannot write a byte contract before one exists),
+        which is the only reason the split is legitimate under `D11`. This bundle's own flush is a
+        hand script and is the **last sanctioned** hand flush; the next flush goes through the verb.
+      </NonGoal>
+      <NonGoal>
+        The hash identity check `F221` describes — a stored hash compared on read to prove bytes
+        unchanged. Owner: the successor flush/mint verb. Reason: a manifest with a defined scope
+        already exists — `record-inventory.json`, the split's provenance snapshot (299 entries,
+        written only by `--split`) — but a durable hash *check* needs a **growing** manifest whose
+        writer is the flush verb, so that every flushed entry has a hash to compare; the inventory
+        is that manifest's seed, not its substitute, and the flush verb is its writer. This bundle
+        proves the identity *property* (idempotence over fixtures, canonical-at-rest over the live
+        files) and leaves the durable check to step (2).
+      </NonGoal>
+      <NonGoal>
+        `src/` production surfaces under `D40`'s later steps: `spec edit` and `plan edit`
+        (replacing a named section and re-serializing), the graph-module verb, and the `D40` step
+        (3) lint rule generalizing `D1.3`. Owner: later bundles under `D40`, each its own `src/`
+        scope, sequenced by the maintainer, never folded into one in flight.
+      </NonGoal>
+      <NonGoal>
+        Any structural line-metric change (`F206`) — replacing the record's line budget with a
+        parsed-text or element metric. Owner: the structural-metric charter, which depends on this
+        bundle's shape check and is not this bundle. One measure per bundle.
+      </NonGoal>
+      <NonGoal>
+        `README.md`, `examples/`, `CLAUDE.md`, `docs/plans/README.md`, `skills/ngrace/`,
+        `plugins/ngrace/skills/ngrace/`, `package.json`, `bun.lock`, version surfaces, and
+        `plugins/ngrace/.claude-plugin/plugin.json`: **unchanged**. Owner: unchanged; no
+        user-visible surface. Decided: the serializer does not falsify `CLAUDE.md`'s or
+        `docs/plans/README.md`'s record paragraphs (the record files are meta-artifacts; the
+        ceilings-only-by-the-move sentence stays true because the serializer holds ceilings and
+        `--rewrite-roots` passes them through), and the new boundary refusal adds a precondition for
+        an out-of-boundary record path that no doc claims is accepted, so neither paragraph is
+        rewritten. `examples/` is a nested project covered by `validate:examples` and is untouched.
+      </NonGoal>
+      <NonGoal>
+        Writing or pruning `.ngrace/scratch/staged-findings.md` other than to stage a new finding
+        this authoring run raises, or rendering any entry other than `F252` and `D40`. Owner: the
+        authority's post-merge hygiene; the buffer is pruned only after the flush PR merges.
+      </NonGoal>
+      <NonGoal>
+        Running `ngrace review`, any gate or cursor verb, or committing: authoring this bundle's
+        artifacts is the executor's act (`F84`); the approving phrase is the maintainer's and the
+        approval write is the authority's. The spec is written at `status="draft"` and stops there.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SCHEMA-DECLARED>
+        The record shape schema is declared in `scripts/record-serialize.ts` and consumed by the
+        engine's shape check on the default validation and on all four write modes. A document that
+        violates it refuses (exit non-zero, nothing written) before any read-side effect: a
+        `Finding` nested in a `Finding`, a genre element nested below the root, an unexpected
+        grandchild, and a missing required child are each refused with a named code. The HEAD record
+        and the seven golden fixtures pass with zero violations. This is a content question —
+        whether the shape is enforced, not whether a particular file's current bytes match — and no
+        clause pins a count of a file the bundle changes. Failure: a planted violation that writes
+        anyway, or a shipped check that reads a schema the writer does not use. The instrument is
+        the shipped suite over the real record and over planted throwaway copies.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-SCHEMA-DECLARED>
+      <AC-SERIALIZER-CANONICAL>
+        Every record write routes through one canonical serializer, and the serializer is
+        idempotent over the fixtures: `serialize(parse(serialize(x)))` is byte-equal to
+        `serialize(x)` for the seven golden fixtures and the planted test documents. The canonical
+        form is exactly the declared one (indent per depth, close-tag indent, attribute order,
+        entity escaping, trailing newline, self-closing empty elements) and body prose is preserved
+        byte-for-byte — only structural whitespace moves. The one-time reflow's no-op measurement
+        at the base commit lives in `Assumptions`; the durable property over the live files is
+        canonical at rest (`AC-CANONICAL-AT-REST`). Failure: a second serialization differing from
+        the first, a write bypassing the serializer, or a body re-wrapped. The instrument is the
+        shipped suite.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-SERIALIZER-CANONICAL>
+      <AC-BOUNDARY-REFUSAL>
+        The engine refuses, before any read or write and with a named message, a record directory
+        that resolves outside the cwd's repository boundary (the cwd holds `.ngrace/`, never git).
+        Both directions are driven on throwaway copies: a whole-repository copy run from inside the
+        copy is accepted and moves (`moved 2`, with a planted archive name); the same record bytes
+        passed as a partial copy from the real root are refused with exit non-zero and no file
+        changed — where the shipped engine reports `moved 0` (the `F235` defect). Failure: a partial
+        copy accepted, or a whole-repository copy refused. The instrument is the shipped suite,
+        which drives both directions on isolated roots.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-BOUNDARY-REFUSAL>
+      <AC-SEPARATOR-SWEPT>
+        No `&lt;Body&gt;` in any of the four genre files ends with a separator line, asserted over
+        every layer by a flush-invariant walk; the trim is one exported helper applied at
+        `parseFrozenMarkdown`, in the one-time sweep of the 68 existing bodies (54 findings, 14
+        rulings), and in the preservation walk; the sweep removes the measured line deltas and the
+        affected bodies' text is otherwise byte-identical. The retired layers are swept and that is
+        a permitted write (searched: no ruling forbids it). `record-inventory.json`'s 56
+        separator-affected hashes are recomputed so the shipped preservation proof stays green —
+        without that update the proof reports 56 `missing-body-hash` findings (driven). Failure: a
+        body still ending in a separator, a swept body whose prose changed, or a preservation proof
+        left red. The flush-invariant walk lives in `scripts/validate-record-retirement.test.ts`
+        over isolated roots and the real record; the inventory relationship and the swept-body
+        hashes live in `scripts/prove-record-preservation.test.ts`; the criterion runs both.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+        </CloseEvidence>
+      </AC-SEPARATOR-SWEPT>
+      <AC-FLUSH-D40-LIVE>
+        The staged buffer's two entries are flushed: `F252` exists exactly once across
+        `findings.xml` and `findings-retired.xml`, and at the close its holding file is the retired
+        layer with `status="retired"` agreeing and `&lt;PaidBy&gt;C-RECORD-SCHEMA-1-1D8D868F&lt;/
+        PaidBy&gt;`; `D40` exists exactly once across `rulings.xml` and `rulings-retired.xml` and is
+        **live** in `rulings.xml` with **no `CodifiedIn` and no `TaughtIn`** (the `D38` manner, "not
+        yet built"). The index holds one `Entry` for each, with `genre` and `layer` agreeing with
+        the holding file. The registry row `C-RECORD-SCHEMA-1-1D8D868F` exists exactly once across
+        the registry layers, `kind="chartered"`, `&lt;Pays&gt;` naming exactly `F207 F221 F235
+        F252` and no other token, `&lt;StatusText&gt;` token-free with no `Closed with` sentence.
+        The four live roots satisfy `base + headroom = ceiling` with `base` equal to the shipped
+        metric read back after `--rewrite-roots`. Failure: `D40` carrying a resolving `CodifiedIn`
+        (which would retire it), a duplicate entry, a `Pays` token outside the four. The instrument
+        is the shipped suite over the real record.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-FLUSH-D40-LIVE>
+      <AC-CLOSE-MOVED-FIVE>
+        At the close the move retires the four findings and the row: `F207`, `F221`, `F235` and
+        `F252` each exist exactly once across the two findings layers, in the retired layer with
+        `status="retired"` and `&lt;PaidBy&gt;C-RECORD-SCHEMA-1-1D8D868F&lt;/PaidBy&gt;`; their four
+        index `Entry` layers read `layer="retired"` in place; the row `C-RECORD-SCHEMA-1-1D8D868F`
+        is retired in `registry-retired.xml` with its status agreeing; `D40` remains live with its
+        index layer live. Nothing pins a pre-close `live` state and no ceiling value is pinned —
+        every clause is exists-once-across-layers and layer-agrees, and the assertion holds
+        unchanged in the applied-archive state. Failure: a paid finding left live, an index layer
+        disagreeing with its holding file, `D40` retired. The instrument is the shipped suite.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-CLOSE-MOVED-FIVE>
+      <AC-CANONICAL-AT-REST>
+        The record is canonical at rest: at every run, `serialize(parse(file))` is byte-equal to
+        `file` for all seven record files, so a hand edit outside the serializer is visible as a
+        canonical-form difference. This is the durable invariant that makes the byte contract
+        holdable; it subsumes idempotence over the live files, and it is the reason the one-time
+        reflow at the base commit was a byte no-op. This criterion pins no git object
+        (`RM-GITLESS-INTEGRITY`: a GRACE project need not be a repository); the reflow's no-op
+        measurement lives in `Assumptions`. Failure: a live record file whose bytes differ from the
+        serializer's canonical output. The instrument is the shipped suite over the real record in
+        the applied-archive state.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-CANONICAL-AT-REST>
+      <AC-NO-SRC-OTHER>
+        No file under `src/` changes relative to this spec's base commit
+        `aaae414ba89c86b1e3e7125943637b453591a9f9`; the whole engine is under `scripts/`. Prose and
+        command name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code aaae414ba89c86b1e3e7125943637b453591a9f9 -- src/</Command>
+        </CloseEvidence>
+      </AC-NO-SRC-OTHER>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and `.ngrace/changes/archive/` are not modified;
+        one arrival is not a modification, named with its reason (`F188`'s law): this bundle's own
+        close arrival under `.ngrace/changes/archive/C-RECORD-SCHEMA-1-1D8D868F/`, which the close
+        itself renames into place. The prose claims tracked paths only (`F174`) and is probed in the
+        post-close state (`F196`). Failure: any tracked archive byte outside that arrival differs at
+        close.
+        <CloseEvidence>
+          <Command>git diff --exit-code aaae414ba89c86b1e3e7125943637b453591a9f9 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-RECORD-SCHEMA-1-1D8D868F'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-DOCS-EXAMPLES>
+        `README.md`, `examples/`, `CLAUDE.md`, `docs/plans/README.md`, `skills/ngrace/`,
+        `plugins/ngrace/skills/ngrace/`, `package.json` and `bun.lock` are byte-identical to this
+        spec's base commit `aaae414ba89c86b1e3e7125943637b453591a9f9`. Prose and command name the
+        same pathset; the command sees tracked edits and deletions only (`F174`).
+        <CloseEvidence>
+          <Command>git diff --exit-code aaae414ba89c86b1e3e7125943637b453591a9f9 -- README.md examples/ CLAUDE.md docs/plans/README.md skills/ngrace/ plugins/ngrace/skills/ngrace/ package.json bun.lock</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task `Verification` commands and `TargetAssertions` contain no current-mode
+        lint of this project root, checked by hand (the shipped detector misses the `grace.ts`
+        form). Failure: a `Command` whose text contains `--assertions current`, or that invokes lint
+        of this root and omits `--assertions`. This is the spec's single `Satisfies`-mapped
+        criterion; it carries no `CloseEvidence` and must be mapped by exactly one task `Satisfies`
+        in the later plan.
+      </AC-NO-CURRENT-MODE>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No graph module is written or minted. Ceremony tier T3 names the same fact: the schema and the
+      serializer are a new file under `scripts/` (`scripts/record-serialize.ts`, consumed by
+      `scripts/validate-record-retirement.ts`); `scripts/` **is linted** (`.ngrace-lint.json`
+      `ignoredDirs` is `["examples"]`, and `C-SCRIPTS-ADOPTION-2-36DEB1BD` un-ignored `scripts/`),
+      and a `LINKS:`-less script there raises nothing (probed); the record files under
+      `docs/plans/active/RM-GOVERNED-PATH/` are owned by no module in `.ngrace/graph/main.xml`. The module enumeration is empty and the later plan's
+      `DurableScope` will be `&lt;None /&gt;`; do not mint a synthetic module and do not add a
+      `LINKS:` header to a record-engine script. The write scope is enumerated once, in the
+      write-scope `Constraint` (`F136.1`'s rule — no second module list anywhere). `M-SKILLS` and
+      `src/` are not touched.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/prove-record-preservation.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --change C-RECORD-SCHEMA-1-1D8D868F --assertions target --run-commands</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes driven 2026-09-16 at `aaae414ba89c86b1e3e7125943637b453591a9f9`
+        (branch `c-record-schema`) on throwaway copies and throwaway repositories — never the
+        committed tree — in both directions where a failing direction exists. (1) The schema
+        measurement: the proposed schema has 0 violations across the seven files (206 live + 125
+        retired `Finding`, 61 + 8 `Decision`, 12 + 62 `Row`, 400 `Entry`; single attribute set and
+        single child-order per genre element; max depth 2 below the root). (2) The write population:
+        19 textual `writeFileSync` occurrences in `scripts/validate-record-retirement.ts` (1 import
+        + 18 call sites) and 0 in `scripts/prove-record-preservation.ts`; all 18 call sites write
+        record artifacts. (3) The reflow: 0 top-level gap anomalies, 0 nested-indent anomalies, 0
+        bytes changed per file — the canonical form already holds at the base. (4) The separator
+        measurement over the population: 54 bodies end with a separator over the two findings
+        layers (31 live, 23 retired) and 68 over all four genre files (13 live + 1 retired
+        `Decision`); each separator is `\n\n---\n`; line deltas 93 (findings live), 69
+        (findings-retired), 40 (rulings live), 3 (rulings-retired). (5) The inventory trap, driven:
+        trimming the 68 bodies and rerunning the shipped `prove-record-preservation` fails with
+        exactly 56 `missing-body-hash` findings, which is why the sweep must recompute those hashes.
+        (6) `--rewrite-roots` on the swept record copy: exit 0, ceilings held, findings
+        `7403/364/7767`, rulings `1657/226/1883`, registry `12/14/26`, index `267/29/296`, and the
+        shipped validator green on the swept copy. (7) The `F235` discrimination: an archive
+        directory planted in a whole-repository copy named after a live row (`C-APPROVAL-SCOPE`)
+        yields `moved 2` when run from inside the copy and `moved 0` when the record directory
+        alone is passed from the real root — the defect the refusal closes. (8) The flush
+        projection: `F252` body 17 lines / rendered element 20 (3 lines are the separator), `D40`
+        body 43 / element 46; after the sweep and flush the roots remain under their ceilings
+        (findings base + 17 lines under 7767; rulings base + 43 under 1883; registry + 1 row under
+        26; index + 2 entries under 296). (9) The suite's own red directions run with every run:
+        the boundary refusal both ways, the schema's planted violations, the serializer's
+        second-run byte identity, and the separator walk.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Measurements taken 2026-09-16 at `aaae414ba89c86b1e3e7125943637b453591a9f9` (`git rev-parse
+        HEAD`), branch `c-record-schema`, tracked tree clean, `.ngrace/changes/active/` holding only
+        `.gitkeep`, 109 archive directories matching `^C-[A-Z0-9-]+$` (the brief says 109 archives).
+        Record roots at this commit: findings `base="7496" headroom="271" ceiling="7767"`, rulings
+        `base="1697" headroom="186" ceiling="1883"` (the provenance ceiling holding 1883), registry
+        `base="12" headroom="14" ceiling="26"`, index `base="267" headroom="29" ceiling="296"`.
+        Counts by the shipped parser, never `grep -c`; exit codes read directly, never through a
+        pipe. These figures expire the moment a bundle writes the record.
+      </Assumption>
+      <Assumption>
+        The separator sweep's projection (from the driven sweep on a throwaway copy): 68 bodies
+        trimmed, 205 lines removed across the four genre files (findings live 93, findings-retired
+        69, rulings live 40, rulings-retired 3); `--rewrite-roots` after the sweep persists findings
+        `7403/364/7767` and rulings `1657/226/1883` with the registry and index roots held; the
+        shipped validator reports zero findings on the swept record. The flush then adds `F252`
+        (body 17 lines, rendered element 20 before trim; 17 after) and `D40` (body 43, element 46
+        before trim; 43 after) plus two index entries and one registry row, so every live root
+        remains below its held ceiling. These are projections and expire.
+      </Assumption>
+      <Assumption>
+        The `F235` probes: a whole-repository copy made with `rsync` (untracked files included,
+        `node_modules` resolvable) with an archive directory planted named `C-APPROVAL-SCOPE` (a
+        live row) reports `moved 2` when run from inside the copy; the same record directory passed
+        as a partial copy from the real root reports `moved 0`. A faithful copy for the close
+        additionally carries `.git`, a real `node_modules`, and `.ngrace/scratch`, and the approved
+        plan committed before the epoch opens. The refusal is a `scripts/`-side precondition, so no
+        `src/` file moves for it.
+      </Assumption>
+      <Assumption>
+        The flush projection for the two staged entries, parsed 2026-09-16 by the shipped
+        `parseFrozenMarkdown` over `.ngrace/scratch/staged-findings.md`: `F252` (finding, heading
+        level 3, body 17 lines, ends with a separator), `D40` (decision, heading level 2, body 43
+        lines, ends with a separator); 0 chartered rows and 0 sweep rows in the buffer. The buffer
+        is the authority's file and may change between dispatches; these figures expire with it.
+        `F207`, `F221` and `F235` are live exactly once in `findings.xml` and absent from the
+        retired layer; `F252` and `D40` are absent from the record (measured by the shipped parser),
+        which is why they flush here.
+      </Assumption>
+      <Assumption>
+        The scope search, 2026-09-16 at the base: `.ngrace/changes/archive/` holds 42 bundle
+        directories whose `spec.xml` or `plan.xml` mention `scripts/validate-record-retirement.ts`
+        and 15 named `C-RECORD-*` / `C-FLUSH-*` / `C-PAYMENT-RECORD-*`; the precedent specs read for
+        shape are `C-RECORD-PARSE` (the minimal `checkRecordShape`), `C-ROOT-WINDOW` /
+        `C-ROOT-WINDOW-2` / `C-ROOT-WINDOW-3` (`normaliseGaps`, `--rewrite-roots`, the root
+        modes), and `C-SCRIPTS-ADOPTION-2-36DEB1BD` (how `M-RELEASE-AUTOMATION` was added and why a
+        `LINKS:`-less script forces no module). `scripts/validate-record-retirement.ts` and
+        `scripts/prove-record-preservation.ts` carry zero `LINKS:` occurrences.
+      </Assumption>
+      <Assumption>
+        The pin grep over the test suites, 2026-09-16: `scripts/validate-record-retirement.test.ts`
+        pins `moved 3` in three places (`:1944`, `:1953`, `:2153`) — all in its own planted
+        fixtures, not the live record — and pins root values only in its `happyParts` fixtures
+        (`base="20"`, `ceiling="1000"`, and similar), never the production roots; the record-dir
+        constant `RECORD_REL = "docs/plans/active/RM-GOVERNED-PATH"` is pinned (`:22`).
+        `src/review/core.test.ts`'s `WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET` pins four
+        `C-ROOT-WINDOW` / `scripts/fixtures/record-parse/golden/*` pairs (`:2318`–`:2321`) — bundle
+        and path, not bytes. `scripts/audit-regressions.test.ts` carries no record pin. No pin names
+        close-tag indentation, a production root count, a golden byte, or the record directory's
+        default; the reflow (0 bytes) and the flush do not move any pinned value. The record suite
+        carries `60_000` 64 times.
+      </Assumption>
+      <Assumption>
+        No live decision in either rulings layer codifies bytes, a canonical form, a serializer or a
+        hash (searched 2026-09-16 over `rulings.xml` and `rulings-retired.xml`: zero hits), so this
+        bundle codifies nothing; `D40` is **flushed** into `rulings.xml` as not yet built with no
+        `CodifiedIn`, and the successor codifies it. `D30`'s freeze is scoped: this bundle writes
+        the record, so no other dispatch runs against the record while it does, and no hard
+        `Constraint` here transcribes a scalar count.
+      </Assumption>
+    </Assumptions>
+    <Clarifications>
+      <Clarification resolved="true">
+        <INV-RECORD-SERIALIZER-PLACEMENT />
+        Resolved 2026-09-16 by `D40`, carried, not re-derived: the record engine lives in `scripts/` (`validate-record-retirement.ts` or a helper module beside it), never `src/`, so a byte contract does not leak into the published binary. This spec places the schema table and the serializer in the new helper module `scripts/record-serialize.ts`, imported by the engine, so one canonical form is written once and consumed by the engine, the flush and the preservation walk. The module carries no `LINKS:` header (the honest state: no graph module owns a governance meta-artifact; `C-SCRIPTS-ADOPTION-2-36DEB1BD`'s `AffectedAreas` records that a `LINKS:`-less script forces no module). Governs `AC-SCHEMA-DECLARED`, `AC-SERIALIZER-CANONICAL`, and the write-scope Constraint.
+      </Clarification>
+      <Clarification resolved="true">
+        <INV-RECORD-BOUNDARY />
+        Resolved 2026-09-16 as `F235`'s owner directs: the remedy is the **refusal**, not the walk-up. The engine resolves the repository boundary from the tree — the cwd holding `.ngrace/`, never git — and refuses a record directory outside it, with a named message, before any read or write. The walk-up alternative (derive the archive root from the record directory's own nearest `.ngrace/`) was read and rejected: it would let a partial copy silently read a different archive rather than making the partial copy loud, which is `F235`'s actual complaint; the refusal is also the smaller change against the engine's existing `repoRoot = cwd`. Governs `AC-BOUNDARY-REFUSAL`.
+      </Clarification>
+      <Clarification resolved="true">
+        <INV-RECORD-SEPARATOR />
+        Resolved 2026-09-16: the separator normalization lives at the **parse boundary** (`parseFrozenMarkdown`), not at render. Reason: a single normalization at parse makes the rendered body, the flush's stored `bodyHash`, and the preservation walk agree by construction; trimming only at render would leave the parse-time hash and the inventory disagreeing. The one-time sweep applies the same helper to the 68 existing bodies and recomputes the 56 affected `record-inventory.json` hashes — driven: without the inventory update the shipped preservation proof reports exactly 56 `missing-body-hash` findings. Governs `AC-SEPARATOR-SWEPT`.
+      </Clarification>
+      <Clarification resolved="true">
+        <INV-RECORD-HASH />
+        Resolved 2026-09-16: the durable hash identity check ships **with the successor**, not now. A manifest with a defined scope already exists — `record-inventory.json`, the split's provenance snapshot (299 entries, written only by `--split`) — but a hash *check* needs a covering, **growing** manifest whose writer is the flush verb: the inventory is that manifest's seed, not its substitute. This bundle proves the identity *property* (idempotence over fixtures, canonical-at-rest over the live files); the durable check is `D40`'s step (2). Governs the hash clause of `AC-SERIALIZER-CANONICAL`, `AC-CANONICAL-AT-REST`, and the hash `NonGoal`.
+      </Clarification>
+      <Clarification resolved="true">
+        <INV-RECORD-HEADROOM />
+        Resolved 2026-09-16: the split path's dead copy of the rulings headroom formula
+        (`Math.floor(2 * median(...))`, `scripts/validate-record-retirement.ts:522`) and the retire
+        path's live one (`Math.floor(7 * median(...))`, `:1273`) are replaced by one shared headroom
+        function using the retire path's constant (7x), the split path's copy removed, with a test
+        that both modes derive the same headroom from the same input. The disagreement is folded,
+        not deferred: `D11` refuses a deferral with no dependency and no conflict, and this bundle
+        already routes the split path through the serializer. Governs `AC-SERIALIZER-CANONICAL` and
+        the write-path-unification clause of the serializer Goal.
+      </Clarification>
+      <Clarification resolved="true">
+        <INV-RECORD-SWEEP-RETIRED />
+        Resolved 2026-09-16 from the tree: a whitespace and separator clean of a **retired** body is a permitted write. Searched over `rulings.xml`, `rulings-retired.xml` and `docs/plans/README.md`: no ruling makes a retired sibling immutable beyond the move; ceilings are live-root-only, written only by `--retire` and never raised, so the sweep neither moves an entry nor touches a ceiling. The only record-wide immutability here is `D30`'s execution-window freeze, which this bundle itself opens. Governs `AC-SEPARATOR-SWEPT`.
+      </Clarification>
+    </Clarifications>
+  </C-RECORD-SCHEMA-1-1D8D868F>
+</NgraceChangeSpec>
