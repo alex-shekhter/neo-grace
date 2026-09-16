@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-RECORD-SCHEMA-2-0785BD5E>
     <Summary>
       Step (1) of the maintainer's `D40` sequence, and the bundle that pays `F207`, `F221`, `F235`,

@@ -1,4 +1,4 @@
-<Findings base="7477" headroom="290" ceiling="7767">
+<Findings base="7343" headroom="372" ceiling="7715">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -6829,36 +6829,6 @@ by lines — is its own later charter, and it depends on [F207](#f207): a struct
 something undefined until the record's shape is validated.
 </Body>
   </Finding>
-  <Finding id="f207" token="F207" status="live">
-    <Title>### F207 — the record has no schema: its shape and depth are convention, and nothing verifies them. **[verified]**</Title>
-    <Body>
-Measured **2026-09-09** at `b62698e`, when the authority claimed the record's depth was &quot;fixed by
-schema&quot; and the maintainer asked whether the schema is verified every time. It is not.
-
-**What is checked:** XML well-formedness (`XMLValidator`, `parseGraceXmlArtifact`), targeted reads of
-named children (`childNodes(root, &quot;Row&quot;)`, `&quot;Decision&quot;`, `&quot;Finding&quot;`, `&quot;CodifiedIn&quot;`, `&quot;TaughtIn&quot;`),
-root size attributes, and citation resolution.
-
-**What is not checked, searched rather than assumed:** `grep` for `allowedChildren`, `requiredChildren`
-and `schema` across `scripts/validate-record-retirement.ts` and `scripts/prove-record-preservation.ts`
-returns **nothing**, and the record files appear nowhere in `src/artifact/grammar.ts` or
-`src/lint/catalog.ts`. The record is deliberately outside the artifact grammar —
-`C-RECORD-TEST-ISOLATION-2`'s spec forbids adding it — so **no rule constrains which children an
-element may have, how deep it may nest, or which are required.**
-
-**So the observed depth 3 is an artefact of every writer happening to agree.** A record with a `Finding`
-nested inside a `Finding`, or an unexpected child, is well-formed and passes every shipped check.
-
-**The consequence is not aesthetic.** `childNodes` reads **direct** children only, so a misplaced
-element is invisible to every structural count while still occupying lines. Under today's line metric
-it inflates the budget; under a structural metric it would vanish from it. **Any move to structural
-measurement ([F206](#f206)) must therefore ship a shape check first, or the new metric counts something
-undefined.**
-
-Owner: a later bundle, and a prerequisite of the structural-metric charter rather than an independent
-nicety.
-</Body>
-  </Finding>
   <Finding id="f208" token="F208" status="live">
     <Title>### F208 — a spec that quotes the payer phrase pays by accident: `C-PAYMENT-RECORD-3` would retire `F21` at its own close, the token it explicitly refuses. **[verified]**</Title>
     <Body>
@@ -7246,44 +7216,6 @@ Cost: one supersede, at depth 1.
 Owner: the authority's review procedure. Neighbours [F219](#f219) (an inspection's coverage is only as
 wide as the passes it ran) and [F213](#f213) (evidence that cannot fail).</Body>
   </Finding>
-  <Finding id="f221" token="F221" status="live">
-    <Title>### F221 — byte-identity is not a holdable contract on a document nothing serializes canonically. **[verified]**</Title>
-    <Body>
-Measured **2026-09-10** at `299fc5c`, while verifying `C-FLUSH-AND-PAY`'s delivery.
-
-The record is written by at least three paths that treat surrounding whitespace differently: the
-flush render, `persistSnapshot`'s root-line splice, and `--retire`'s element moves, whose span cut
-starts at the `&amp;lt;` and so does not carry a close tag's leading indent. Delivery drifted
-`&amp;lt;/Findings&amp;gt;` from eight spaces to zero and `&amp;lt;/Registry&amp;gt;` from thirty to thirty-two.
-Both files still parse; no element, attribute or text node moved.
-
-**This is [F204](#f204)'s shape, and F204 blamed the wrong party.** There the drift came from
-`--retire` re-indenting structural lines and was recorded as bytes escaping a criterion's protection.
-The deeper fact is that **no writer canonicalizes**, so no two writers agree on whitespace, and a
-byte-level criterion is therefore a bet on which writer touched the file last.
-
-**The remedy is a canonical serializer on every write, and the scalability argument settles it.**
-The alternative — preservation criteria that compare parsed trees instead of bytes — materializes
-both sides, and `parseGraceXmlArtifact` already buffers a whole document, so it costs O(2 x doc) on
-a record whose entire premise is unbounded growth. A canonical serializer is O(depth): read,
-normalize, emit. And once every writer routes through it, the identity check becomes a **hash** —
-streaming, constant memory, the cheapest check available rather than the most expensive.
-
-A structural comparison could in principle stream too, two parsers walked in lockstep at O(depth).
-That does not rescue the alternative: it is more to build than a serializer, and it still only
-*detects* drift after it lands, where the serializer prevents it. The authority first recommended
-the tree comparison as &quot;cheaper&quot;, meaning cheaper to implement, having never priced the runtime.
-
-**Until the serializer lands, the standing rule:** a criterion asserting a file is unchanged says
-*structurally* unchanged and is answered by a parse, not by `git diff --exit-code`. Whitespace
-restored by hand to satisfy a byte check is a human doing a formatter's job, and it will drift again
-on the next write. The one-time cost the serializer carries is a single reflow of the record and the
-regeneration of every byte-pinned fixture; that is bounded, and the drift it removes is not.
-
-Owner: a chartered bundle. Neighbour to [F204](#f204) (the symptom) and [F206](#f206) (a text metric
-over a structured document — the same category error, measured on volume instead of identity).
-</Body>
-  </Finding>
   <Finding id="f227" token="F227" status="live">
     <Title>### F227 — the authority's forced-file check reads the write-scope Constraint's own list and never the Goals, so a spec that charters a write it does not list passes the check and fails its own close. **[verified]**</Title>
     <Body>
@@ -7406,72 +7338,6 @@ one commit earlier — the criteria were relations, not events.
 Owner: the authority's procedure, from this entry forward; the skill text that teaches supersede
 (`ngrace-plan` `approved_plan_immutability`) says nothing about payer rows and is the surface a later
 bundle amends. Neighbour to [F225](#f225) and [F229](#f229).
-</Body>
-  </Finding>
-  <Finding id="f235" token="F235" status="live">
-    <Title>### F235 — a `--retire` pointed at a copied record directory from the repository's cwd reads the real archive, so a copy-drive of the close reports `moved 0` by construction. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-11 at `3f8a5ca`** by the executor revising `C-TAUGHT-RULES`'s spec, then re-driven by the
-authority. Eligibility keys on `&amp;lt;cwd&amp;gt;/.ngrace/changes/archive`: `listArchiveNames(repoRoot)` with
-`repoRoot = process.cwd()` (`scripts/validate-record-retirement.ts:1843`-1863), while the record files are read
-from the directory argument. A drive that copies only `docs/plans/active/RM-GOVERNED-PATH` and runs the move
-from the repository root therefore sees the copy's registry and the *real* archive: a row minted only in the
-copy, or a bundle archived only in the copy, is invisible, and the move reports `moved 0` — the spec's own
-`ExpectedCommand` carried exactly that form and could never have produced the `moved 5` it described. The
-faithful form copies the whole repository and runs the move from inside the copy (driven: `moved 5`).
-
-**The class.** [F231](#f231) made the whole-repository copy the rule for `validate:ci`; this is the same rule
-for the record's own move, arrived at from the other side — the record-directory argument invites a partial
-copy that the engine silently half-honours. The remedy candidates: the engine takes the archive root from the
-record directory's own repository (walk up to `.ngrace/`), or refuses a record directory outside the cwd's
-repository. Either makes a partial copy loud.
-
-Owner: the record-engine bundle that next touches `scripts/validate-record-retirement.ts`'s root resolution
-(the schema-and-serializer bundle `F207`/`F221` charter, or a payment-integrity bundle). Neighbour to
-[F231](#f231) and [F230](#f230).
-</Body>
-  </Finding>
-  <Finding id="f252" token="F252" status="live">
-    <Title>### F252 — the flush projects the buffer's `---` separator into every non-last rendered `&lt;Body&gt;`: 54 of 319 record bodies end with a literal `---` line, and the buffer's own header tells the flusher to cut at that boundary first. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-14 at `18941b7`, the close of `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22`, by the authority's subagent and re-measured over the
-population.** Unescaping the rendered `&lt;Body&gt;` of `f250` and diffing it against its staged body shows one difference: a trailing blank line
-and a literal `---` that the staged entry does not carry — the section separator between it and `f251`. `f251`, the buffer's last entry,
-renders byte-identical. Over both findings layers (`perl -0777` over `&lt;Finding …&gt;&lt;Body&gt;…&lt;/Body&gt;`, 319 bodies), **54** end with a `---`
-line: `f8.1 … f242 f250` live and `f43 … f246 f247 f248` retired — every non-last entry of every flush since the split, so the shipped
-`parseFrozenMarkdown` returns `bodyRaw` with the separator and every flusher (`C-TEACH-DRIVE-BEFORE-APPROVE-2`'s included) rendered it
-through. The buffer header's own instruction — *&quot;cut each body at the `---` or `## STAGED CHARTER` boundary first&quot;* — is not what the
-parser does, and no walk asserts the body's tail.
-
-**The rule.** The separator belongs to the buffer, never to a rendered body: `parseFrozenMarkdown` (or the render step) trims a trailing
-`---` and the blank line before it, a flush-invariant walk asserts no `&lt;Body&gt;` ends with a separator line, and the 54 existing bodies are
-cleaned in one sweep. Cosmetic in every consumer measured (nothing parses body tails), so it rides the next record-schema bundle
-(`F207`/`F221`) rather than its own. Owner: that bundle. **Re-measured 2026-09-16 at `aaae414` by parser over all four genre files:
-68 bodies (findings 31 live + 23 retired; rulings 13 live + 1 retired) — the sweep covers every genre, and 56 of the 68 are attested by
-`record-inventory.json`, the split's preservation snapshot, whose hashes follow the sweep.**
-</Body>
-  </Finding>
-  <Finding id="f265" token="F265" status="live">
-    <Title>### F265 — an approved spec carried &quot;measured 0&quot; for the golden fixtures' reflow, a figure taken over the live record and never over the fixtures; the golden relation test pins those bytes, and the copy drive at plan time found ten non-canonical gaps. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-16 at `a715692`** by the executor's plan-time copy drive and re-measured by the authority. The approved
-`C-RECORD-SCHEMA-1-1D8D868F` spec's write-scope Constraint listed `scripts/fixtures/record-parse/golden/` as &quot;regenerated only if
-the measured fixture diff is non-empty — measured 0&quot;, and its pin-grep Assumption stated that no test pins &quot;a golden byte&quot;. Both
-were false when ratified: golden `rulings.xml` holds 5 of 61 `Decision`s at four-space indent and golden `rulings-retired.xml`
-holds all 5 at column zero (10 gap anomalies against the canonical form the spec defines), and
-`scripts/validate-record-retirement.test.ts:2147` asserts a fixture `--retire` writes the golden files byte-for-byte. A serializer
-on every write therefore regenerates the goldens — the &quot;regeneration of every byte-pinned fixture&quot; that `F221` itself named as the
-serializer's one-time cost — and the approved spec had ruled the fixtures out of scope on a measurement of a different population.
-
-**The class is [F130.1](#f130.1) and [F264](#f264) together.** The reflow was driven over the seven record files (0 bytes, true) and
-the result was written onto the fixtures (never driven); the pin grep looked for pins of root counts and indentation and did not
-open the one test whose title says &quot;byte-for-byte&quot;. The authority's own verification drive covered the same seven files and not the
-goldens, and approved on it — the population a spec names is every file it names, fixtures included, and a figure attached to a
-file is a measurement of that file or it is not written.
-
-**Remedy.** Superseded under D27 and the maintainer's V-A ruling (a stale figure in an approved spec is superseded, never carried):
-the successor states the fixtures' true state, puts the goldens in write scope as regenerated, names `:2147` as the pin the bundle
-flips, and pays this finding. Owner: `C-RECORD-SCHEMA-2`.
 </Body>
   </Finding>
 </Findings>

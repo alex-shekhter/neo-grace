@@ -374,4 +374,10 @@
     <Pays>F242 F264</Pays>
     <StatusText>Live while the bundle is open; the close archives it and the retirement move stamps both carriers and moves the row.</StatusText>
   </Row>
+  <Row name="C-RECORD-SCHEMA-2-0785BD5E" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>Shape schema and canonical serializer for the record; the record engine lives under scripts/. Searched before minting 2026-09-16 over .ngrace/changes/archive/ and both registry layers: the predecessor C-RECORD-SCHEMA-1-1D8D868F is the one prior bundle (mint-search: 1 active, 0 archive), and no other row or directory carries the name.</Charter>
+    <Pays>F207 F221 F235 F252 F265</Pays>
+    <StatusText>Step (1) of D40; the flush/mint verb is the chartered successor.</StatusText>
+  </Row>
 </Registry>
