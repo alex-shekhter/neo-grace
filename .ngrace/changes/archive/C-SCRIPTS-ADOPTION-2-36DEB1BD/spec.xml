@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-SCRIPTS-ADOPTION-2-36DEB1BD>
     <Summary>
       Bring `scripts/` under the root typecheck and the root lint, and pay `F242` and `F264`. Two

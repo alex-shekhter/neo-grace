@@ -368,4 +368,10 @@
     <Pays>F263</Pays>
     <StatusText>Live while the bundle is open; the close archives it and the retirement move stamps the one carrier.</StatusText>
   </Row>
+  <Row name="C-SCRIPTS-ADOPTION-2-36DEB1BD" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>Searched before minting. Tool half (verbatim): mint-search: 1 active, 0 archive prior bundle(s) share slug SCRIPTS-ADOPTION. Author half, measured 2026-09-16 at 7d7efaf98a34e9eaf3775b91379f33207aa0ddc6 over the 108 archive directories and both registry layers: 9 archived bundles name tsconfig.json and 45 name ignoredDirs, but none ever wrote tsconfig.json (its include has been [&quot;src/**/*.ts&quot;] in every commit but the predecessors' own) and .ngrace-lint.json was written only by C-EVIDENCE-DISCRIMINATION and the now-archived C-SCRIPTS-ADOPTION-1-F621B7C0; 13 archived bundles name scripts/release-check.ts, and F125's payer C-SUPERSEDE-COMMAND is the precedent for forcing a scripts/ file into scope from a src/-class repair; over the 108 archive directories and both registry layers no name collides with or better fits a bundle that adopts scripts/ under the root typecheck and lint — the lineage name C-SCRIPTS-ADOPTION-* carries it.</Charter>
+    <Pays>F242 F264</Pays>
+    <StatusText>Live while the bundle is open; the close archives it and the retirement move stamps both carriers and moves the row.</StatusText>
+  </Row>
 </Registry>
