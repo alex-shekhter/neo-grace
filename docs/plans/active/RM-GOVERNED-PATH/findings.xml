@@ -1,4 +1,4 @@
-<Findings base="7522" headroom="245" ceiling="7767">
+<Findings base="7496" headroom="271" ceiling="7767">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7491,32 +7491,6 @@ repository. Either makes a partial copy loud.
 Owner: the record-engine bundle that next touches `scripts/validate-record-retirement.ts`'s root resolution
 (the schema-and-serializer bundle `F207`/`F221` charter, or a payment-integrity bundle). Neighbour to
 [F231](#f231) and [F230](#f230).
-</Body>
-  </Finding>
-  <Finding id="f242" token="F242" status="live">
-    <Title>### F242 — `tsconfig.json` includes only `src/**`, so every `scripts/*.test.ts` is never typechecked: `bun run typecheck` is green while the retirement suite carries three type errors at HEAD and Bun strips the types at run time. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-12 at `f975508` + the `C-APPLY-VERB` execution tree.** `tsconfig.json` → `&quot;include&quot;: [&quot;src/**/*.ts&quot;]`.
-`bunx tsc --noEmit` exit 0. Running tsc directly on `scripts/validate-record-retirement.test.ts` (`--ignoreConfig --strict
---types bun-types --moduleResolution bundler`) → **3 errors at HEAD** (lines 2607, 3821, 4082 — `toBe(string | undefined)`),
-and the delivered T-006 row walk added **5 more** in one declaration: `rows` typed `{ file, attrs: Record&lt;string,string&gt;, … }`
-while every push wrote `{ file, status, kind, … }` and every read took `row.status` / `row.kind`. The suite was green (93 pass)
-because Bun strips types; the authority fixed the declaration (one line, disclosed in the close commit). The two other touched
-scripts suites (`skill-contracts`, `release-check`) typecheck clean.
-
-**The class.** `F125` measured the same gap for `src/`: a green `bun test` on code that did not typecheck, caught only because
-`validate:ci` runs `typecheck`. That repair covered `src/`; `scripts/` — where the record engine, its 93-test suite, the
-release check and the teaching-surface check live — was never brought under it, so `F125`'s guard is silent on the directory
-that most of the governed-path work has landed in since.
-
-**The rule.** `typecheck` covers every TypeScript file the suite runs: extend `include` to `scripts/**/*.ts` (and fix the three
-existing errors in the same change), or add a second tsconfig for `scripts/` wired into `validate:ci`. A green typecheck that
-does not read the file under test is `F125` with a narrower premise.
-
-Owner: a chartered bundle, sequenced by the maintainer; `.ngrace-lint.json` already names `scripts/` adoption as deferred to a
-later `C-*`, and this rides with it or ahead of it. Neighbour to F125.
-
----
 </Body>
   </Finding>
 </Findings>

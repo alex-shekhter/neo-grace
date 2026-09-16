@@ -1,0 +1,500 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-SCRIPTS-ADOPTION-2-36DEB1BD>
+    <IntentSummary>
+      This T1 plan converts the approved `C-SCRIPTS-ADOPTION-2-36DEB1BD` spec into three sequential
+      tasks. T-001 adopts `scripts/` under the root typecheck in one red-first pair (`typecheck`):
+      extend `tsconfig.json`'s `include`, watch the ten real errors red, repair each as a real type.
+      T-002 adopts `scripts/` under the root lint in two interleaved red-first pairs (`guard`,
+      `lint-adoption`): add the adoption guard to `scripts/audit-regressions.test.ts` while two of
+      its four facts are still at base, un-ignore `scripts`, repair the 36 errors, hand-write the
+      `M-RELEASE-AUTOMATION` module and its `V-M-RELEASE-AUTOMATION` verification entry with their
+      index `Owns` lines, and rewrite `CLAUDE.md:66`; the guard reds before the configs move and
+      greens in T-002's pass cycle. T-003 flushes `F264` from the staged buffer
+      (`flush-invariant` red-first), then mints the chartered row (`record-row` red-first) — the two
+      interleaved, each followed by `--rewrite-roots` — and folds the faithful post-close
+      applied-archive copy drive into itself as the pass-only cycle `post-close-drive`. **Reds are the spec's own.** The typecheck half's discriminator is that a
+      planted `scripts/` type error is invisible at base — the include omits `scripts/` — and red
+      once the include moves; the lint half's is the same with `ignoredDirs`; the guard's is that the
+      un-ignored `scripts/` tree and the un-rewritten `CLAUDE.md` are what it asserts against; the
+      flush's is that `F264` is still in the staged buffer and absent from the record; the record
+      red is the absent row walk. Baseline `MustPassCommand`s assert only what the bundle
+      leaves unchanged and are green at base and at target: `bun run typecheck` (the include change
+      moves *which* files it reads, never its exit), the record validators, and
+      `validate-marketplace`. Neither `tsconfig.json` nor `.ngrace-lint.json` gets a baseline needle
+      the bundle flips by design; those live in tests and probes. **The graph is a hand write:** no
+      shipped verb creates a module, so the plan states the exact bytes and drives
+      `projection.graph.*` and `markup.unknown-link` both ways on a copy. **`MODULE_MAP` at `LOCALS`
+      parity is derived from the shipped adapter** (`src/lint/adapters/typescript.ts`, consumed by
+      `src/project-utils.ts:881-899`), never hand-listed; the expected counts are 9 / 50 / 36 / 8 /
+      14 / 29 for `packed-cli-smoke`, `release-bump`, `release-check`, `release-checklist`,
+      `release-finalize`, `release-summary`. `DurableScope` is the spec's single `AffectedAreas`
+      anchor plus the document anchors it lives in. The one `src/` write, `src/grace-lint.test.ts`,
+      is a `.test.ts` and `isModuleOwnableWritePath` does not own it, so
+      `change.graph-anchors-miss-write-scope` cannot fire. **The one `src/` write is admitted by the
+      approved spec:** the successor adds `src/grace-lint.test.ts` to its write scope and to
+      `AC-NO-OTHER-FILES`'s excludes, and the spec's decision is to **delete** the stale
+      `it("keeps scripts in ignoredDirs")` case rather than invert it, because the new
+      `scripts/audit-regressions.test.ts` guard already asserts that fact plus the include and the
+      `CLAUDE.md` claim. The last task ends at the live row, the flushed `F264`, the rewritten claim,
+      the guard green and the shipped validators at zero; the close
+      (`lint --assertions final --run-commands`, `review`, `gate verdict`, `gate apply`,
+      `gate archive`, `apply`, the production `--retire` reporting `moved 3`) is the authority's.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>tsconfig.json</Value></MustExist>
+      <MustExist><Value>.ngrace-lint.json</Value></MustExist>
+      <MustExist><Value>CLAUDE.md</Value></MustExist>
+      <MustExist><Value>.ngrace/graph/main.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/graph/index.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/verification/main.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/verification/index.xml</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/packed-cli-smoke.ts</Value></MustExist>
+      <MustExist><Value>scripts/packed-cli-smoke.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/release-bump.ts</Value></MustExist>
+      <MustExist><Value>scripts/release-check.ts</Value></MustExist>
+      <MustExist><Value>scripts/release-checklist.ts</Value></MustExist>
+      <MustExist><Value>scripts/release-finalize.ts</Value></MustExist>
+      <MustExist><Value>scripts/release-finalize.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/release-summary.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-marketplace.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-SCRIPTS-ADOPTION-2-36DEB1BD/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-SCRIPTS-ADOPTION-2-36DEB1BD/plan.xml</Value></MustExist>
+      <MustPassCommand><Command>bun run typecheck</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-citation-anchors.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/prove-record-preservation.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run ./scripts/validate-marketplace.ts</Command></MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-RELEASE-AUTOMATION</Value></MustExist>
+      <MustExist><Value>tsconfig.json</Value></MustExist>
+      <MustExist><Value>.ngrace-lint.json</Value></MustExist>
+      <MustExist><Value>CLAUDE.md</Value></MustExist>
+      <MustExist><Value>.ngrace/graph/main.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/graph/index.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/verification/main.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/verification/index.xml</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/release-check.ts</Value></MustExist>
+      <MustExist><Value>scripts/release-checklist.ts</Value></MustExist>
+      <MustExist><Value>scripts/release-summary.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustContain><File>tsconfig.json</File><Text>scripts/**/*.ts</Text></MustContain>
+      <MustNotContain><File>.ngrace-lint.json</File><Text>"scripts"</Text></MustNotContain>
+      <MustNotContain><File>CLAUDE.md</File><Text>is deferred to a later</Text></MustNotContain>
+      <MustContain><File>CLAUDE.md</File><Text>C-SCRIPTS-ADOPTION-2-36DEB1BD</Text></MustContain>
+      <MustContain><File>.ngrace/graph/main.xml</File><Text>&lt;M-RELEASE-AUTOMATION&gt;</Text></MustContain>
+      <MustContain><File>.ngrace/graph/index.xml</File><Text>&lt;M-RELEASE-AUTOMATION /&gt;</Text></MustContain>
+      <MustContain><File>.ngrace/verification/main.xml</File><Text>&lt;V-M-RELEASE-AUTOMATION&gt;</Text></MustContain>
+      <MustContain><File>.ngrace/verification/index.xml</File><Text>&lt;V-M-RELEASE-AUTOMATION /&gt;</Text></MustContain>
+      <MustContain><File>scripts/packed-cli-smoke.ts</File><Text>LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]</Text></MustContain>
+      <MustContain><File>scripts/release-bump.ts</File><Text>LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]</Text></MustContain>
+      <MustContain><File>scripts/release-check.ts</File><Text>LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]</Text></MustContain>
+      <MustContain><File>scripts/release-checklist.ts</File><Text>LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]</Text></MustContain>
+      <MustContain><File>scripts/release-finalize.ts</File><Text>LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]</Text></MustContain>
+      <MustContain><File>scripts/release-summary.ts</File><Text>LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]</Text></MustContain>
+      <MustContain><File>scripts/packed-cli-smoke.ts</File><Text>MAP_MODE: LOCALS</Text></MustContain>
+      <MustContain><File>scripts/release-bump.ts</File><Text>MAP_MODE: LOCALS</Text></MustContain>
+      <MustContain><File>scripts/release-check.ts</File><Text>MAP_MODE: LOCALS</Text></MustContain>
+      <MustContain><File>scripts/release-checklist.ts</File><Text>MAP_MODE: LOCALS</Text></MustContain>
+      <MustContain><File>scripts/release-finalize.ts</File><Text>MAP_MODE: LOCALS</Text></MustContain>
+      <MustContain><File>scripts/release-summary.ts</File><Text>MAP_MODE: LOCALS</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>keeps scripts under the root typecheck and the root lint</Text></MustContain>
+      <MustNotContain><File>src/grace-lint.test.ts</File><Text>keeps scripts in ignoredDirs</Text></MustNotContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File><Text>&lt;Finding id="f264"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File><Text>&lt;Entry id="f264"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Row name="C-SCRIPTS-ADOPTION-2-36DEB1BD"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Pays&gt;F242 F264&lt;/Pays&gt;</Text></MustContain>
+      <MustPassCommand><Command>bun run typecheck</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=120000 scripts/audit-regressions.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/validate-citation-anchors.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/prove-record-preservation.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run ./scripts/validate-marketplace.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+      <MustVerify><Module>M-RELEASE-AUTOMATION</Module></MustVerify>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-RELEASE-AUTOMATION />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-RELEASE-AUTOMATION />
+      </VerificationAnchors>
+      <GraphDocuments>
+        <GD-MAIN />
+      </GraphDocuments>
+      <VerificationDocuments>
+        <VD-MAIN />
+      </VerificationDocuments>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>tsconfig.json</File>
+      <File>.ngrace-lint.json</File>
+      <File>CLAUDE.md</File>
+      <File>.ngrace/graph/main.xml</File>
+      <File>.ngrace/graph/index.xml</File>
+      <File>.ngrace/verification/main.xml</File>
+      <File>.ngrace/verification/index.xml</File>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>scripts/packed-cli-smoke.ts</File>
+      <File>scripts/packed-cli-smoke.test.ts</File>
+      <File>scripts/release-bump.ts</File>
+      <File>scripts/release-check.ts</File>
+      <File>scripts/release-checklist.ts</File>
+      <File>scripts/release-finalize.ts</File>
+      <File>scripts/release-finalize.test.ts</File>
+      <File>scripts/release-summary.ts</File>
+      <File>scripts/validate-marketplace.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Adopt scripts/ under the root typecheck in one red-first pair, repairing all ten errors as
+          real types
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (typecheck), fail: in its own tool round trip, before any repair, run
+            `bun run typecheck` at the base include and confirm the discriminating negative — it
+            exits 0 because `tsconfig.json`'s `include` names only `src/**/*.ts`, so no `scripts/`
+            file is read and the ten real errors are invisible. Then edit only `tsconfig.json`'s
+            `include` to `["src/**/*.ts", "scripts/**/*.ts"]` and run `bun run typecheck` again: it
+            reds, exit 2, exactly **10 errors in 6 files** —
+            `scripts/packed-cli-smoke.test.ts(51,26)`, `scripts/packed-cli-smoke.ts(49,23)`,
+            `scripts/release-bump.ts(189,91)`, `scripts/release-bump.ts(372,41)`,
+            `scripts/release-bump.ts(372,77)`, `scripts/release-finalize.test.ts(52,60)`,
+            `scripts/validate-marketplace.ts(339,87)`,
+            `scripts/validate-record-retirement.test.ts(2642,16)`, `(3826,16)`, `(4087,16)`. Record
+            the cursor attempt with outcome fail, signature-kind `test`, signature-key `typecheck`.
+            Do not repair in this round trip. Failure conditions: the config edit and a repair land
+            in the same round trip; the red is claimed from the un-extended include; the negative is
+            skipped so the discriminator is asserted rather than measured.
+          </Criterion>
+          <Criterion>
+            Pair pass: repair all ten errors exactly as the spec's type-error Constraint fixes them,
+            and nothing else. `packed-cli-smoke.ts:49` and `packed-cli-smoke.test.ts:51`: widen the
+            `spawnSync` error to `NodeJS.ErrnoException` (the runtime errno object carries `code`).
+            `release-bump.ts:189`: narrow `target` to the union of `RELEASE_TYPES` values (or an
+            explicit unreachable throwing `default`) so `calculateTargetVersion`'s switch is provably
+            total. `release-bump.ts:372` (two): add `type ReleaseSummaryPromptInput` and
+            `type ReleaseSummaryOptions` to the existing `./release-summary.ts` import.
+            `release-finalize.test.ts:52`: add `packageName: "@neograce/cli"` and
+            `versionAlreadyPublished: false` to the `StableFinalizeState` fixture.
+            `validate-marketplace.ts:339`: hoist `scripts["validate:release"]` to a local and narrow
+            it with `typeof … === "string"` — this repair closes a latent `TypeError` on a non-string
+            value. `validate-record-retirement.test.ts:2642` / `:3826` / `:4087`: capture
+            `before.get(file)`, assert it is defined, then compare. No suppression, no
+            `@ts-expect-error`, no `strict` loosening, no second tsconfig. Then `bun run typecheck`
+            exits 0, and the three touched script suites green:
+            `bun test scripts/packed-cli-smoke.test.ts`, `bun test scripts/release-bump.test.ts`,
+            `bun test scripts/release-finalize.test.ts`. Record the cursor attempt with outcome pass
+            for signature-key `typecheck`. Failure conditions: an error is silenced rather than
+            fixed; the include is extended by a second config file; a repaired file's other lines
+            move.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run typecheck</Command>
+          <Command>bun test scripts/packed-cli-smoke.test.ts</Command>
+          <Command>bun test scripts/release-bump.test.ts</Command>
+          <Command>bun test scripts/release-finalize.test.ts</Command>
+          <Command>git diff --exit-code 7d7efaf98a34e9eaf3775b91379f33207aa0ddc6 -- src/ examples/ skills/ plugins/ README.md CLAUDE.md .ngrace-lint.json .ngrace/graph/ .ngrace/verification/ docs/plans/</Command>
+          <Command>git diff --exit-code 7d7efaf98a34e9eaf3775b91379f33207aa0ddc6 -- scripts/ ':(exclude)scripts/packed-cli-smoke.ts' ':(exclude)scripts/packed-cli-smoke.test.ts' ':(exclude)scripts/release-bump.ts' ':(exclude)scripts/release-finalize.test.ts' ':(exclude)scripts/validate-marketplace.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>
+          Adopt scripts/ under the root lint: the adoption guard, the M-RELEASE-AUTOMATION module and
+          its verification entry, the 36 header repairs, and the CLAUDE.md rewrite
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (guard), fail: its own tool round trip, before this task moves any config or
+            graph byte. Append one case to `scripts/audit-regressions.test.ts` (it gains
+            `import { spawnSync } from "node:child_process";`): title
+            `keeps scripts under the root typecheck and the root lint`; it reads `tsconfig.json`,
+            asserts `include` contains `scripts/**/*.ts` (already true from T-001); reads
+            `.ngrace-lint.json`, asserts `ignoredDirs` does not contain `scripts` (**false at this
+            state**); reads `CLAUDE.md`, asserts it does not contain `is deferred to a later` and does
+            contain `C-SCRIPTS-ADOPTION-2-36DEB1BD` (**both false at this state**); and spawns
+            `bun run typecheck` in `repoRoot`, asserting exit status 0 (already true from T-001). Run
+            `bun test --timeout=120000 scripts/audit-regressions.test.ts`: it reds on the two facts
+            this task flips and greens on the two T-001 already moved — the guard is added before the
+            remaining configs move. Record the cursor attempt with outcome fail, signature-kind
+            `test`, signature-key `guard`. Do not move a config in this round trip. Failure
+            conditions: the guard is added after the configs move, so it cannot red; the guard reads
+            a count instead of parsing; the red is claimed from a mutated copy.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (lint-adoption), fail: in its own tool round trip, before any repair, remove
+            `"scripts"` from `.ngrace-lint.json`'s `ignoredDirs` (leaving `["examples"]`) and drive
+            root lint on a throwaway whole-repository copy (`rsync -a`, a real `node_modules`, the
+            un-ignored tree): it reds, **36 errors in 6 files** —
+            `markup.unparsed-link-token` **20**, `markup.unknown-link` **6**,
+            `markup.role-map-mode-mismatch` **5**, `markup.module-map-mismatch` **5**, every one in
+            `packed-cli-smoke.ts`, `release-bump.ts`, `release-check.ts`, `release-checklist.ts`,
+            `release-finalize.ts`, `release-summary.ts`. The discriminating negative: at the base
+            `ignoredDirs` the same copy lints 0 errors under `scripts/`, so the plant is invisible
+            until the config moves. Record the cursor attempt with outcome fail, signature-kind
+            `test`, signature-key `lint-adoption`. Do not repair in this round trip. Failure
+            conditions: the red is claimed at the base `ignoredDirs`; the count is generalized from a
+            sample of the six files rather than the whole set.
+          </Criterion>
+          <Criterion>
+            Pair pass A — the graph gains its module and the verification its entry, by hand. No
+            shipped verb creates a module (`ngrace graph` exposes only `split`), so the two governed
+            XML documents are edited directly and lint is the validator. Insert the exact bytes
+            before `&lt;/GD-MAIN&gt;` in `.ngrace/graph/main.xml`:
+            `&lt;M-RELEASE-AUTOMATION&gt;` with
+            `&lt;Summary&gt;Release automation: version bump, consistency and protection checks, checklist reporting, stable finalization, changelog summary generation, and the packed-tarball smoke probe, under scripts/.&lt;/Summary&gt;`
+            and `&lt;Type&gt;UTILITY&lt;/Type&gt;`, closing
+            `&lt;/M-RELEASE-AUTOMATION&gt;` — no `&lt;Path&gt;`, because the projection records one
+            `path` per module, this module spans six files, and the house precedent for a multi-file
+            module is the Path-less `M-SKILLS`. Add
+            `&lt;M-RELEASE-AUTOMATION /&gt;` to `GD-MAIN`'s `&lt;Owns&gt;` in
+            `.ngrace/graph/index.xml`. Insert `&lt;V-M-RELEASE-AUTOMATION&gt;` before
+            `&lt;/VD-MAIN&gt;` in `.ngrace/verification/main.xml` with
+            `&lt;Command&gt;bun run validate:release&lt;/Command&gt;`, a `&lt;Scenario&gt;` for
+            release-target parsing, precondition refusal and version-surface validation, and a
+            `&lt;TraceAssertion&gt;` naming `scripts/release-bump.test.ts`,
+            `scripts/release-check.test.ts`, `scripts/release-finalize.test.ts` and
+            `scripts/packed-cli-smoke.test.ts`; add `&lt;V-M-RELEASE-AUTOMATION /&gt;` to
+            `VD-MAIN`'s `&lt;Owns&gt;` in `.ngrace/verification/index.xml`. Index and document must
+            agree in both directions. Failure conditions: a `&lt;Path&gt;` is invented; the module is
+            added without its `&lt;Owns&gt;` line (or the reverse); the verification entry is omitted.
+          </Criterion>
+          <Criterion>
+            Pair pass B — the six headers and the `CLAUDE.md` claim, then the guard greens. Repair all
+            36 errors with the shipped codes: rewrite `LINKS: [M-RELEASE-AUTOMATION,
+            VF-RELEASE-AUTOMATION]` to `LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]` in all
+            six headers; set `DEPENDS: none` on `release-bump.ts`, `release-check.ts`,
+            `release-checklist.ts`, `release-finalize.ts` and `release-summary.ts` and
+            `DEPENDS: M-TEST-SUPPORT` on `packed-cli-smoke.ts` (its `src/artifact/test-fixtures.ts`
+            import is owned by `M-TEST-SUPPORT`), never a free-text or `node:` token; set
+            `MAP_MODE: LOCALS` on the five that declare `EXPORTS`; and rebuild each `MODULE_MAP` at
+            exact `LOCALS` parity. **Derive each map from the shipped adapter, never by hand-listing
+            from the lint message:** call `createTypeScriptAdapter().analyze(path, text)` from
+            `src/lint/adapters/typescript.ts` and emit one `symbol - description` line per
+            `analysis.localSymbols` entry (`parseListSection` reads the leading identifier), expected
+            counts `packed-cli-smoke.ts` **9**, `release-bump.ts` **50**, `release-check.ts` **36**,
+            `release-checklist.ts` **8**, `release-finalize.ts` **14**, `release-summary.ts` **29**
+            — parity is exact (`src/project-utils.ts:881-899`), so a missing or extra symbol reds
+            `markup.module-map-mismatch`. Rewrite `CLAUDE.md:66`'s sentence so it says
+            `.ngrace-lint.json` ignores only `examples/`, that `scripts/` is adopted under the root
+            typecheck and lint, that `M-RELEASE-AUTOMATION` now exists in the graph, and that
+            `C-SCRIPTS-ADOPTION-2-36DEB1BD` is the deferral's payer, carrying the measured figure
+            **36** rather than the stale "twenty". Also rewrite the deferral's payer name to
+            `C-SCRIPTS-ADOPTION-2-36DEB1BD` in that sentence. Delete the stale `src/` pin in the same
+            round trip: remove whole the six-line `it("keeps scripts in ignoredDirs") { … }` case at
+            `src/grace-lint.test.ts:1930`, leaving the `AC-SHAPE-CODE-SPLIT` describe's other cases
+            and every other line untouched — **delete, never invert**, because the guard added above
+            already asserts the same fact plus the include and the claim, and a second pin for one
+            fact is two places to drift; this is the bundle's one `src/` write and the approved spec
+            admits it. Then, on the same whole-repository copy, root lint is **0 errors / 0
+            warnings**, `bun test --timeout=120000 scripts/audit-regressions.test.ts` **greens** (all
+            four guard facts true), and `bun test src/grace-lint.test.ts` greens without the removed
+            case. Record the cursor attempt with outcome pass for signature-key `lint-adoption` and,
+            in the same round trip, outcome pass for signature-key `guard`. Failure conditions: a map
+            hand-listed and wrong; a symbol renamed in the code to fit the map; a `markup.*` code bent
+            instead of a header made true; `CLAUDE.md` left with the stale clause or without the
+            payer; the stale pin inverted rather than deleted, or another assertion in the file moved.
+          </Criterion>
+          <Criterion>
+            The graph both-directions drive, on a copy, so each guard in both directions is measured
+            rather than asserted. With the six headers repaired and `scripts/` un-ignored but the
+            module absent, root lint reports **exactly six** `markup.unknown-link` (one per script)
+            and no `projection.graph.*` issue; adding the module node and its `&lt;Owns&gt;` line
+            takes that to **zero**. Then probe the index/document pair: delete only the
+            `&lt;M-RELEASE-AUTOMATION /&gt;` `&lt;Owns&gt;` line with the node present →
+            `projection.graph.unlisted-anchor`; delete only the node with the `&lt;Owns&gt;` line
+            present → `projection.graph.missing-anchor`; restore. Report each exit and count in the
+            close. Failure conditions: the drive runs on the production tree; the module is left
+            present but unindexed.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=120000 scripts/audit-regressions.test.ts</Command>
+          <Command>bun test src/grace-lint.test.ts</Command>
+          <Command>bun test scripts/release-bump.test.ts</Command>
+          <Command>bun test scripts/release-check.test.ts</Command>
+          <Command>bun test scripts/release-finalize.test.ts</Command>
+          <Command>bun test scripts/release-summary.test.ts</Command>
+          <Command>bun run validate:ci</Command>
+          <Command>git diff --exit-code 7d7efaf98a34e9eaf3775b91379f33207aa0ddc6 -- src/ ':(exclude)src/grace-lint.test.ts' examples/ skills/ plugins/ README.md package.json openpackage.yml .claude-plugin/ plugins/ngrace/.claude-plugin/ CHANGELOG.md docs/plans/ .ngrace/changes/archive/</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>
+          Flush F264 and mint the chartered row in two interleaved red-first pairs, then drive the
+          faithful post-close applied-archive copy
+        </Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (flush-invariant), fail: in its own tool round trip, before the flush, append
+            the flush-invariant house walk to `scripts/validate-record-retirement.test.ts` in the
+            shipped `C-FLUSH-AND-UNPIN flush invariant` form: parse `findings.xml`,
+            `findings-retired.xml` and `decisions.xml`; for id `f264` assert exactly one `Finding`
+            element across the findings pair (the whole-tree walk is the duplicate check) with
+            `status` agreeing with the holding file (`live` for `findings.xml`, `retired` for
+            `findings-retired.xml`), `token` `F264`, and exactly one index `Entry` with
+            `genre="finding"` whose `layer` agrees with the holding file; then the read-back
+            arithmetic, `base` equals the file's `newlineCount` and `base + headroom = ceiling` for
+            `findings.xml`. The staged buffer still holds `F264` at this state, so the walk reds on
+            zero carriers. Record the cursor attempt with outcome fail, signature-kind `test`,
+            signature-key `flush-invariant`. Do not flush in this round trip. Failure conditions: the
+            walk hardcodes which file holds the id; the walk reads a count instead of parsing; the
+            red is claimed from a mutated copy.
+          </Criterion>
+          <Criterion>
+            Pair pass (flush-invariant): flush `F264` from `.ngrace/scratch/staged-findings.md` into
+            the record and run the root/ceiling rewrite the record engine requires. Read the buffer
+            and cut the `F264` body at its `---` separator (the buffer holds `F252` then `F264`, so
+            the separator and the blank line before it belong to the buffer, never to a rendered
+            `&lt;Body&gt;` — `F252`'s rule); render the entry before `&lt;/Findings&gt;` in
+            `docs/plans/active/RM-GOVERNED-PATH/findings.xml` as an `&lt;Finding id="f264"
+            token="F264" status="live"&gt;` with its `&lt;Title&gt;` (the `###` heading line) and
+            `&lt;Body&gt;` written through the shipped `xmlEscape`, and add one
+            `&lt;Entry id="f264" token="F264" genre="finding" layer="live" /&gt;` before
+            `&lt;/RecordIndex&gt;` in `docs/plans/active/RM-GOVERNED-PATH/decisions.xml`. Then run
+            `bun ./scripts/validate-record-retirement.ts --rewrite-roots docs/plans/active/RM-GOVERNED-PATH`,
+            never hand-writing a root attribute. The buffer is read, never written or pruned: the
+            spec's write scope forbids any write of `.ngrace/scratch/staged-findings.md` beyond this
+            read. Then the flush-invariant walk greens and the roots read findings
+            `7543 / 224 / 7767`, index `269 / 27 / 296`, registry `12 / 14 / 26` and rulings
+            `1697 / 186 / 1883` unchanged; the three record validators stay green. Do not mint the
+            row in this round trip. Record the cursor attempt with outcome pass for signature-key
+            `flush-invariant`. Failure conditions: a hand-written root attribute; the trailing
+            separator rendered into the `&lt;Body&gt;`; the buffer pruned or rewritten; the id's
+            index `Entry` omitted.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (record-row), fail: in its own tool round trip, after the flush and before the
+            row is minted, append the row walk for `C-SCRIPTS-ADOPTION-2-36DEB1BD` to
+            `scripts/validate-record-retirement.test.ts` (describe
+            `C-SCRIPTS-ADOPTION-2-36DEB1BD row relations`) in the payment-invariant house form: parse
+            both registry layers with the shipped parser and assert the row
+            `name="C-SCRIPTS-ADOPTION-2-36DEB1BD"` exists exactly once across `registry.xml` and
+            `registry-retired.xml` with no fixed expectation of which file holds it, its `status`
+            agrees with the holding file, `kind="chartered"`, its `&lt;Pays&gt;` **contains** both
+            `F242` and `F264` (containment, never an exact set), its `&lt;Charter&gt;` carries the
+            `mint-search:` line verbatim and names `scripts`, `tsconfig.json`, `.ngrace-lint.json`
+            and `scripts/release-check.ts` in its author half, and its `&lt;StatusText&gt;` names no
+            `F` token outside `Pays`; an explicit generous timeout (`}, 60_000);`). The row is absent
+            at this state, so the walk reds. Record the cursor attempt with outcome fail,
+            signature-kind `test`, signature-key `record-row`. Do not mint in this round trip. Failure
+            conditions: this round trip also mints; the walk hardcodes `registry.xml`; the `Pays`
+            clause pins an exact set.
+          </Criterion>
+          <Criterion>
+            Pair pass (record-row): mint the chartered row live into
+            `docs/plans/active/RM-GOVERNED-PATH/registry.xml`, appended after the last live row in the
+            house shape — an empty `&lt;Number&gt;&lt;/Number&gt;`, extend the shipped payer-derivation
+            baseline `bundleMinted` in `scripts/validate-record-retirement.test.ts` with **both**
+            `F242: "C-SCRIPTS-ADOPTION-2-36DEB1BD"` and `F264: "C-SCRIPTS-ADOPTION-2-36DEB1BD"`
+            (consulted only for tokens the derivation actually mints; without either the
+            `C-RECORD-PARSE payer derivation` walk reds in the applied-archive state — measured:
+            `gate verdict` refused the predecessor's first pass drive for exactly this), a
+            `&lt;Charter&gt;` whose tool half is
+            `mint-search: 1 active, 0 archive prior bundle(s) share slug SCRIPTS-ADOPTION` verbatim
+            and whose author half is measured 2026-09-16 at
+            `7d7efaf98a34e9eaf3775b91379f33207aa0ddc6` over the 108 archive directories and both
+            registry layers: 9 archived bundles name `tsconfig.json` and 45 name `ignoredDirs`, none
+            ever wrote `tsconfig.json` (its `include` has been `["src/**/*.ts"]` in every commit but
+            the predecessors' own) and `.ngrace-lint.json` was written only by
+            `C-EVIDENCE-DISCRIMINATION` and the now-archived `C-SCRIPTS-ADOPTION-1-F621B7C0`; 13
+            archived bundles name `scripts/release-check.ts`, and `F125`'s payer
+            `C-SUPERSEDE-COMMAND` is the precedent for forcing a `scripts/` file into scope from a
+            `src/`-class repair; a `&lt;Pays&gt;` naming `F242` and `F264`; a `&lt;StatusText&gt;`
+            naming no `F` token outside `Pays` and no `Closed with` sentence — then run
+            `bun ./scripts/validate-record-retirement.ts --rewrite-roots docs/plans/active/RM-GOVERNED-PATH`,
+            never hand-writing a root attribute. Then the row walk greens, the roots read findings
+            `7543 / 224 / 7767`, index `269 / 27 / 296` and rulings `1697 / 186 / 1883` unchanged,
+            registry `13 / 13 / 26`, and a mid-bundle
+            `bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH`
+            on a throwaway whole-repository copy reports `moved 0` (the row's name is not yet an
+            archive directory). Record the cursor attempt with outcome pass for signature-key
+            `record-row`. Do not run `--retire` against the production record, do not set `applied`,
+            do not archive the bundle, and do not write `.ngrace/scratch/staged-findings.md`.
+            Failure conditions: the row minted without the post-mint `--rewrite-roots`; a `Pays` or
+            `StatusText` naming an extra token; the buffer written or pruned.
+          </Criterion>
+          <Criterion>
+            The closing drive (pass-only cycle): on a faithful whole-repository copy at the T-003
+            state — `rsync -a` including `.git` and untracked files, a real `node_modules`,
+            `.ngrace/scratch` present read-only — commit the approved `plan.xml` before opening the
+            epoch (row 19's copy-commit rule; the approval commit satisfies it), then
+            `bun ./src/grace.ts gate approve --change C-SCRIPTS-ADOPTION-2-36DEB1BD --artifact plan
+            --path .`, `bun ./src/grace.ts apply --change C-SCRIPTS-ADOPTION-2-36DEB1BD --force
+            --reason "post-close drive"`, and the shipped
+            `bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH`
+            from inside the copy: it reports **`moved 3`** (the findings `F242` and `F264` and the
+            row), the row sits in `registry-retired.xml` with `status="retired"`, `F242` and `F264`
+            sit in `findings-retired.xml` each stamped
+            `&lt;PaidBy&gt;C-SCRIPTS-ADOPTION-2-36DEB1BD&lt;/PaidBy&gt;`, the two index layers flip
+            in place with the `Entry` lines still present, and a second `--retire` reports `moved 0`;
+            the roots are measured on the driven copy and recorded — findings `7496 / 271 / 7767`,
+            index `267 / 29 / 296`, registry `12 / 14 / 26`, rulings unchanged, and the ceiling that
+            holds or falls and never rises. Then evaluate every `CloseEvidence` through the product
+            path: `bun ./src/grace.ts review --change C-SCRIPTS-ADOPTION-2-36DEB1BD --path .`, then
+            `bun ./src/grace.ts gate verdict --change C-SCRIPTS-ADOPTION-2-36DEB1BD --outcome pass
+            --ack-finding …` once per displayed finding, and read the verdict's `Result` and `Exit`
+            children from `run-ledger.xml` — all **six** criteria green. Then `bun run validate:ci`
+            exits 0 inside the copy, and `bun run typecheck`'s duration is measured there against the
+            CI budget the spec answered (local base ~1.02 s, extended ~1.17 s, +~0.15 s; the validate
+            job sets no step timeout). The production record and the production bundle are never
+            mutated by this drive. Leave the copy's path in place and name it in the report. This
+            cycle has no recordable red — the reds belong to `typecheck`, `guard`, `lint-adoption`,
+            `flush-invariant` and `record-row` — so record the cursor attempt with outcome pass,
+            signature-kind `test`, signature-key `post-close-drive`, and state that it is pass-only.
+            Failure conditions: the drive copies only the record directory or omits `.git`; the drive
+            stops at the in-tree suites and skips `validate:ci`; the production record is mutated.
+          </Criterion>
+          <Criterion>
+            The close boundary. This task ends at the live row, the flushed `F264`, `--rewrite-roots`
+            applied, the guard and the six record validators green, and the fixed script suites
+            green. The `--retire` (`moved 3`), the gate-applied `Decision`s, the `apply` verb, the
+            archive move, and every `CloseEvidence` evaluation on the production record are the
+            authority's close acts; the executor performs no gate on the production bundle, no status
+            write, no archive move and no production `--retire`. This bundle codifies no live ruling,
+            so there is no `CodifiedIn` hand write. Findings raised while this bundle is open go to
+            `.ngrace/scratch/staged-findings.md` under the next staged number (`D30`); nothing is
+            staged by this plan.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun run validate:ci</Command>
+          <Command>git diff --exit-code 7d7efaf98a34e9eaf3775b91379f33207aa0ddc6 -- . ':(exclude)tsconfig.json' ':(exclude).ngrace-lint.json' ':(exclude)CLAUDE.md' ':(exclude).ngrace/graph/main.xml' ':(exclude).ngrace/graph/index.xml' ':(exclude).ngrace/verification/main.xml' ':(exclude).ngrace/verification/index.xml' ':(exclude)src/grace-lint.test.ts' ':(exclude)scripts/audit-regressions.test.ts' ':(exclude)scripts/packed-cli-smoke.ts' ':(exclude)scripts/packed-cli-smoke.test.ts' ':(exclude)scripts/release-bump.ts' ':(exclude)scripts/release-check.ts' ':(exclude)scripts/release-checklist.ts' ':(exclude)scripts/release-finalize.ts' ':(exclude)scripts/release-finalize.test.ts' ':(exclude)scripts/release-summary.ts' ':(exclude)scripts/validate-marketplace.ts' ':(exclude)scripts/validate-record-retirement.test.ts' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude).ngrace/changes/active/C-SCRIPTS-ADOPTION-2-36DEB1BD' ':(exclude).ngrace/changes/archive/C-SCRIPTS-ADOPTION-2-36DEB1BD'</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-SCRIPTS-ADOPTION-2-36DEB1BD>
+</NgraceChangePlan>

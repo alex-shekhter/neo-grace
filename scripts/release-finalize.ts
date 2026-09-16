@@ -4,16 +4,26 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Finalize an approved stable release from synchronized protected main by creating and pushing its immutable tag.
 //   SCOPE: Stable-version parsing, post-merge preflight, validation, local-tag recovery, annotated tag creation, and tag push.
-//   DEPENDS: [node:fs, node:child_process]
-//   LINKS: [M-RELEASE-AUTOMATION, VF-RELEASE-AUTOMATION]
+//   DEPENDS: none
+//   LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]
 //   ROLE: SCRIPT
-//   MAP_MODE: EXPORTS
+//   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   __dirname
+//   REPO_ROOT
+//   PACKAGE_NAME
+//   STABLE_SEMVER
+//   StableFinalizeState
+//   ReleaseFinalizeDependencies
 //   parseStableVersion - Requires one stable semantic version argument.
+//   changelogLatestVersion
 //   collectStableFinalizePreconditionErrors - Validates clean synchronized main, version surfaces, changelog, and tag absence/recovery.
 //   runStableReleaseFinalization - Runs validation, creates or reuses the local tag, verifies it, and pushes it.
+//   run
+//   runCapture
+//   productionDependencies
 //   main - Executes the production stable-finalization dependencies.
 // END_MODULE_MAP
 

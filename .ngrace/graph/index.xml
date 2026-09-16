@@ -23,6 +23,7 @@
         <M-CONTEXT />
         <M-TEST-SUPPORT />
         <M-CALIBRATION />
+        <M-RELEASE-AUTOMATION />
       </Owns>
     </GD-MAIN>
   </GraphDocuments>

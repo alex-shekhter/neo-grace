@@ -1,7 +1,6 @@
 {
   "ignoredDirs": [
-    "examples",
-    "scripts"
+    "examples"
   ],
   "closeEvidenceCommandShapes": [
     "bun run ./scripts/validate-marketplace.ts",

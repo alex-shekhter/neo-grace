@@ -100,5 +100,10 @@
       <Scenario>Calibration joins claimedConfidence to target-assertions only; N=0 is honest; gates never read the field; context class derived at fold and bucketed in the report.</Scenario>
       <TraceAssertion>calibration unit tests cover ordinal rejection, incomplete-epoch exclusion, gate isolation, context derivation both directions, and context-class bucketing.</TraceAssertion>
     </V-M-CALIBRATION>
+    <V-M-RELEASE-AUTOMATION>
+      <Command>bun run validate:release</Command>
+      <Scenario>Release automation parses version targets, enforces stable-release preconditions, validates every version surface, and refuses unsafe release state.</Scenario>
+      <TraceAssertion>scripts/release-bump.test.ts, scripts/release-check.test.ts and scripts/release-finalize.test.ts exercise the release helpers; scripts/packed-cli-smoke.test.ts exercises runtimeState.</TraceAssertion>
+    </V-M-RELEASE-AUTOMATION>
   </VD-MAIN>
 </NgraceVerificationDocument>

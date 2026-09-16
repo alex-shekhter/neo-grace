@@ -4,24 +4,62 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Execute a fail-closed version bump, changelog generation, validation, and protected-branch-safe release preparation workflow.
 //   SCOPE: Testable argv/version/preflight/tag/version-surface helpers plus prerelease publication and stable release-PR preparation.
-//   DEPENDS: [node:fs, node:child_process, scripts/release-summary.ts]
-//   LINKS: [M-RELEASE-AUTOMATION, VF-RELEASE-AUTOMATION]
+//   DEPENDS: none
+//   LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]
 //   ROLE: SCRIPT
-//   MAP_MODE: EXPORTS
+//   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   __dirname
+//   REPO_ROOT
+//   PACKAGE_NAME
+//   CAPTURE_MAX_BUFFER
+//   RELEASE_TYPES
+//   SEMVER_PATTERN
+//   PREID_PATTERN
+//   REQUIRED_RELEASE_TOOLS
+//   RELEASE_FILES
+//   ALLOWED_RELEASE_FILES
+//   PackageJson
+//   ParsedSemver
+//   ReleasePreflightDependencies
+//   ReleasePreflightResult
+//   StableReleaseGitState
+//   run
+//   runCapture
+//   parseSemver
+//   extractPreid
+//   incrementPrerelease
 //   parseNpmVersionArgs - Validates the supported version target and optional prerelease identifier.
 //   calculateTargetVersion - Resolves the target semver before any repository mutation.
 //   isStableReleaseTarget - Classifies the resolved target as stable or prerelease.
 //   collectStableReleasePreconditionErrors - Enforces a clean release branch based on current origin/main for stable targets.
+//   changelogHasVersion
 //   runReleasePreflight - Verifies tools, worktree, branch, target tag/changelog uniqueness, and current release validation.
+//   readRequired
+//   replaceRequired
 //   updateVersionSurfaceFiles - Updates every required version surface or fails closed.
+//   normalizeChangelogHeader
 //   prependChangelogEntry - Prepends exactly one target-version changelog block.
+//   generateChangelog
+//   commandAvailable
+//   readSuppliedSummary
+//   resolveChangelogSummary
+//   runOpencodeSummary
+//   sleepMs
+//   changedReleaseFiles
+//   assertOnlyReleaseFilesChanged
+//   localTagExists
+//   remoteTagExists
+//   tagExists
 //   assertTagDoesNotExist - Rejects an existing local target tag.
 //   assertTagTargetsCommit - Verifies a created tag resolves to the release commit.
 //   createReleaseCommit - Creates the local release commit without tagging.
 //   createReleaseCommitAndTag - Creates the local prerelease commit and annotated tag without network access.
+//   ensureStableReleasePullRequest
+//   readPackageVersion
+//   productionPreflightDependencies
 //   main - Publishes prereleases directly or prepares a stable release PR for post-merge finalization.
 // END_MODULE_MAP
 
@@ -36,6 +74,8 @@ import {
   resolveReleaseSummaryOptions,
   type OpencodeRunRequest,
   type OpencodeRunResult,
+  type ReleaseSummaryPromptInput,
+  type ReleaseSummaryOptions,
   extractSummaryEnvelope,
   validateReleaseSummary,
 } from "./release-summary.ts";
@@ -224,6 +264,8 @@ export function calculateTargetVersion(currentVersion: string, npmVersionArgs: s
       }
       return format(current.major, current.minor, current.patch, incrementPrerelease(current.prerelease));
     }
+    default:
+      throw new Error(`Unhandled release type: ${target}`);
   }
 }
 

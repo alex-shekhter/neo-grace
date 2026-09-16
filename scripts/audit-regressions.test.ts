@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -70,4 +71,16 @@ describe("Critical, High, and Medium audit regression matrix", () => {
     expect(scopeTests).toContain('process.platform === "win32" ? it : it.skip');
     expect(scopeTests).toContain("normalizes backslashes and follows explicit case semantics");
   });
+
+  it("keeps scripts under the root typecheck and the root lint", () => {
+    const tsconfig = JSON.parse(readFileSync(path.join(repoRoot, "tsconfig.json"), "utf8")) as { include?: string[] };
+    expect(tsconfig.include ?? []).toContain("scripts/**/*.ts");
+    const lintConfig = JSON.parse(readFileSync(path.join(repoRoot, ".ngrace-lint.json"), "utf8")) as { ignoredDirs?: string[] };
+    expect(lintConfig.ignoredDirs ?? []).not.toContain("scripts");
+    const claude = readFileSync(path.join(repoRoot, "CLAUDE.md"), "utf8");
+    expect(claude).not.toContain("is deferred to a later");
+    expect(claude).toContain("C-SCRIPTS-ADOPTION-2-36DEB1BD");
+    const result = spawnSync("bun", ["run", "typecheck"], { cwd: repoRoot, encoding: "utf8" });
+    expect(result.status).toBe(0);
+  }, 120_000);
 });

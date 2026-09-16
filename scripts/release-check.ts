@@ -4,19 +4,48 @@
 // START_MODULE_CONTRACT
 //   PURPOSE: Verify local release consistency plus pure packed-content, channel, tag, and ancestry state contracts.
 //   SCOPE: Validates version surfaces and changelog structure; exports read-only release-state and npm-pack manifest validators used by release:checklist.
-//   DEPENDS: [node:fs, scripts/release-summary]
-//   LINKS: [M-RELEASE-AUTOMATION, VF-RELEASE-AUTOMATION]
+//   DEPENDS: none
+//   LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]
 //   ROLE: SCRIPT
 //   MAP_MODE: LOCALS
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   collectReleaseConsistencyErrors - Returns all version and changelog consistency errors for tests and main.
+//   __dirname
+//   REPO_ROOT
+//   PKG_PATH
+//   README_PATH
+//   OPENPACKAGE_PATH
+//   MARKETPLACE_PATH
+//   PLUGIN_MANIFEST_PATH
+//   CLI_ENTRY_PATH
+//   CHANGELOG_PATH
+//   EXPECTED_PACKAGE_NAME
+//   PACKAGE_VERSION_PATTERN
+//   CHANGELOG_VERSION_HEADER
+//   README_VERSION_MARKER
+//   OPENPACKAGE_VERSION
+//   LATEST_HEADER_VERSION
+//   ALL_HEADER_VERSIONS
+//   CLI_META_VERSION
+//   PackageJson
+//   ReleaseState
+//   ReleaseProtectionState
+//   PACK_ALLOWED_EXACT
+//   PACK_ALLOWED_PREFIXES
+//   PACK_FORBIDDEN
 //   expectedNpmDistTag - Resolves latest for stable or the first prerelease identifier.
+//   collectPackedFileErrors
 //   collectPackedContentErrors - Rejects test, fixture, temporary, and unrelated files from npm pack JSON.
+//   PackContentDigests
+//   CONTENT_DIFF_SAMPLE
+//   sample
 //   collectPublishedContentErrors - Compares local and published tarball file sets and per-file digests.
 //   collectReleaseStateErrors - Validates tag, ancestry, packed files, npm dist-tag, and GitHub Release state.
 //   collectReleaseProtectionErrors - Validates the protected stable environment, main branch, and release-tag ruleset.
+//   collectReleaseConsistencyErrors - Returns all version and changelog consistency errors for tests and main.
+//   readTextOrNull
+//   exitWithErrors
 //   main - Reads release files, prints consistency errors, and exits nonzero on failure.
 // END_MODULE_MAP
 
