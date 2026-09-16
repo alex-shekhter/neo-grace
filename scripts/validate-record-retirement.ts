@@ -27,6 +27,7 @@ import {
   type XmlElementSpan,
 } from "../src/artifact/xml.ts";
 import { isEmittableIssueCode } from "../src/lint/catalog.ts";
+import { assertRecordSchema, recordSchemaViolations, serializeRecordDocument } from "./record-serialize.ts";
 
 export const DEFAULT_RECORD_DIR = "docs/plans/active/RM-GOVERNED-PATH";
 export const DEFAULT_STUB = `${DEFAULT_RECORD_DIR}/decisions.md`;
@@ -109,6 +110,29 @@ export function hashBody(raw: string): string {
   return sha256Hex(whitespaceNormalize(raw));
 }
 
+/**
+ * The separator tail is defined on the whitespace-stripped tail: strip trailing
+ * whitespace and blank lines, then test whether the last line is `---`.
+ */
+export function bodyEndsWithSeparator(body: string): boolean {
+  const stripped = body.replace(/[ \t\r]+$/gm, "").replace(/\n+$/, "");
+  const lines = stripped.split("\n");
+  return lines.length > 0 && lines[lines.length - 1]!.trim() === "---";
+}
+
+/**
+ * Remove a trailing separator (the blank gap and the `---` line) from a body's
+ * decoded text, keeping a single trailing newline. A body with no separator
+ * tail passes through byte-identically.
+ */
+export function stripBodySeparator(text: string): string {
+  const stripped = text.replace(/[ \t\r]+$/gm, "").replace(/\n+$/, "");
+  if (!bodyEndsWithSeparator(stripped)) {
+    return text;
+  }
+  return `${stripped.replace(/\n*---[ \t]*$/, "")}\n`;
+}
+
 export function splitMarkdownLines(markdown: string): string[] {
   const lines = markdown.split("\n");
   if (lines.length > 0 && lines[lines.length - 1] === "") {
@@ -131,6 +155,14 @@ export function median(values: number[]): number {
     return sorted[mid]!;
   }
   return (sorted[mid - 1]! + sorted[mid]!) / 2;
+}
+
+/** One floored headroom derivation for both the split path and the retire path. */
+export const FINDINGS_HEADROOM_MULTIPLIER = 7;
+export const RULINGS_HEADROOM_MULTIPLIER = 7;
+
+export function recordHeadroom(medians: number[], multiplier: number): number {
+  return Math.floor(multiplier * median(medians));
 }
 
 export function listArchiveNames(repoRoot: string): Set<string> {
@@ -207,7 +239,7 @@ export function parseFrozenMarkdown(markdown: string): {
     if (registryHeadingIndex >= 0 && h.index < registryHeadingIndex && registryHeadingIndex < end) {
       end = registryHeadingIndex;
     }
-    const bodyRaw = lines.slice(start, end).join("\n");
+    const bodyRaw = stripBodySeparator(lines.slice(start, end).join("\n"));
     entries.push({
       token: h.token,
       id: h.id,
@@ -518,8 +550,8 @@ export function splitFrozenRecord(repoRoot: string, recordDir = path.join(repoRo
     .filter((e) => e.headingLevel === 2)
     .map((e) => newlineCount(renderDecision(e, "live")) + 1);
 
-  const findingsHeadroom = Math.floor(7 * median(findingMedians));
-  const rulingsHeadroom = Math.floor(2 * median(h2DecisionMedians));
+  const findingsHeadroom = recordHeadroom(findingMedians, FINDINGS_HEADROOM_MULTIPLIER);
+  const rulingsHeadroom = recordHeadroom(h2DecisionMedians, RULINGS_HEADROOM_MULTIPLIER);
   const registryHeadroom = 15;
   const indexHeadroom = INDEX_HEADROOM_ENTRIES;
 
@@ -554,13 +586,13 @@ export function splitFrozenRecord(repoRoot: string, recordDir = path.join(repoRo
     ceiling: registryCeiling,
   });
 
-  writeFileSync(paths.findings, findingsXml);
-  writeFileSync(paths.findingsRetired, wrapRoot("Findings", retiredFindingXml, {}));
-  writeFileSync(paths.rulings, rulingsXml);
-  writeFileSync(paths.rulingsRetired, wrapRoot("Rulings", retiredDecisionXml, {}));
-  writeFileSync(paths.index, indexXml);
-  writeFileSync(paths.registry, registryXml);
-  writeFileSync(paths.registryRetired, wrapRoot("Registry", retiredRowXml, {}));
+  writeRecordXml(paths.findings, findingsXml);
+  writeRecordXml(paths.findingsRetired, wrapRoot("Findings", retiredFindingXml, {}));
+  writeRecordXml(paths.rulings, rulingsXml);
+  writeRecordXml(paths.rulingsRetired, wrapRoot("Rulings", retiredDecisionXml, {}));
+  writeRecordXml(paths.index, indexXml);
+  writeRecordXml(paths.registry, registryXml);
+  writeRecordXml(paths.registryRetired, wrapRoot("Registry", retiredRowXml, {}));
 
   const stub = `# RM-GOVERNED-PATH record stub
 
@@ -596,73 +628,21 @@ function parseRecordRoot(
   return parsed.root;
 }
 
-/** The expected root element per record file, keyed by file basename. */
-const RECORD_GENRE_ROOTS: Record<string, string> = {
-  "findings.xml": "Findings",
-  "findings-retired.xml": "Findings",
-  "rulings.xml": "Rulings",
-  "rulings-retired.xml": "Rulings",
-  "registry.xml": "Registry",
-  "registry-retired.xml": "Registry",
-  "decisions.xml": "RecordIndex",
-};
-
-/** The genre elements whose placement the minimal shape check governs. */
-const RECORD_GENRE_TAGS = new Set(["Finding", "Decision", "Row", "Entry"]);
-
-function hasSameTagDescendant(node: GraceXmlNode): boolean {
-  for (const child of node.children) {
-    for (const descendant of walkNodes(child)) {
-      if (descendant.tag === node.tag) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-/**
- * The minimal shape check that makes span pairing well defined (C-RECORD-PARSE
- * T-003): the expected genre root, genre elements only as direct children of
- * the root, and no same-tag nesting among genre elements. This is the
- * load-bearing minimum, not the full record schema.
- */
+/** The declared shape check: the schema table in `record-serialize.ts`. */
 function checkRecordShape(
   file: string,
   root: GraceXmlNode | null,
   findings: RetirementFinding[],
 ): void {
-  if (!root) {
-    return;
+  for (const violation of recordSchemaViolations(file, root)) {
+    findings.push({ code: violation.code, message: violation.message });
   }
-  const expectedRoot = RECORD_GENRE_ROOTS[path.basename(file)];
-  if (expectedRoot && root.tag !== expectedRoot) {
-    findings.push({
-      code: "record-shape-wrong-root",
-      message: `${file}: root element is <${root.tag}>; expected <${expectedRoot}>`,
-    });
-  }
-  const stack: Array<{ node: GraceXmlNode; parent: GraceXmlNode | null }> = [{ node: root, parent: null }];
-  while (stack.length > 0) {
-    const { node, parent } = stack.pop()!;
-    if (node !== root && RECORD_GENRE_TAGS.has(node.tag)) {
-      if (parent !== root) {
-        findings.push({
-          code: "record-shape-genre-not-direct-child",
-          message: `${file}: <${node.tag}> appears nested inside <${parent?.tag ?? "?"}>; genre elements must be direct children of the root`,
-        });
-      }
-      if (hasSameTagDescendant(node)) {
-        findings.push({
-          code: "record-shape-same-tag-nested",
-          message: `${file}: <${node.tag}> carries a same-tag descendant; genre elements do not nest`,
-        });
-      }
-    }
-    for (const child of node.children) {
-      stack.push({ node: child, parent: node });
-    }
-  }
+}
+
+/** Every XML record write routes through the canonical serializer, and refuses a schema violation. */
+function writeRecordXml(file: string, xml: string): void {
+  assertRecordSchema(file, xml);
+  writeFileSync(file, serializeRecordDocument(file, xml));
 }
 
 function charteredRowsFromRoot(root: GraceXmlNode): Array<{ name: string; pays: string; statusText: string }> {
@@ -1083,7 +1063,7 @@ export function stampPaidBy(options: RetirementOptions): void {
     const stamped = withPaidBy(elementText, openEnd, payer);
     next = `${next.slice(0, span.openStart)}${stamped}${next.slice(span.closeEnd!)}`;
   }
-  writeFileSync(paths.findings, next);
+  writeRecordXml(paths.findings, next);
 }
 
 export function retireRecord(options: RetirementOptions): { moved: number } {
@@ -1269,8 +1249,8 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
   const registryPrev = readRootSnapshot(registryParse.root);
   const indexPrev = readRootSnapshot(indexParse.root);
 
-  const findingsHeadroom = Math.floor(7 * median(findingLineCounts(findingsLive)));
-  const rulingsHeadroom = Math.floor(7 * median(liveH2DecisionLineCounts(rulingsLive)));
+  const findingsHeadroom = recordHeadroom(findingLineCounts(findingsLive), FINDINGS_HEADROOM_MULTIPLIER);
+  const rulingsHeadroom = recordHeadroom(liveH2DecisionLineCounts(rulingsLive), RULINGS_HEADROOM_MULTIPLIER);
   findingsLive = withRootSnapshot(
     findingsLive,
     findingsParse.root!,
@@ -1316,13 +1296,13 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
       : holdSnapshot(indexPrev, liveEntryCount(indexXml)),
   );
 
-  writeFileSync(paths.findings, findingsLive);
-  writeFileSync(paths.findingsRetired, findingsRetired);
-  writeFileSync(paths.rulings, rulingsLive);
-  writeFileSync(paths.rulingsRetired, rulingsRetired);
-  writeFileSync(paths.registry, registryLive);
-  writeFileSync(paths.registryRetired, registryRetired);
-  writeFileSync(paths.index, indexXml);
+  writeRecordXml(paths.findings, findingsLive);
+  writeRecordXml(paths.findingsRetired, findingsRetired);
+  writeRecordXml(paths.rulings, rulingsLive);
+  writeRecordXml(paths.rulingsRetired, rulingsRetired);
+  writeRecordXml(paths.registry, registryLive);
+  writeRecordXml(paths.registryRetired, registryRetired);
+  writeRecordXml(paths.index, indexXml);
   return { moved: movedCount };
 }
 
@@ -1430,7 +1410,7 @@ export function rewriteRecordRoots(options: RetirementOptions): void {
     });
   }
   for (const rewrite of rewrites) {
-    writeFileSync(rewrite.file, rewrite.next);
+    writeRecordXml(rewrite.file, rewrite.next);
   }
 }
 
@@ -1765,6 +1745,27 @@ function taughtResolvesCheck(
   return { ok: true, message: "" };
 }
 
+/**
+ * F235: the repository boundary is the `.ngrace/`-rooted tree of the cwd, never
+ * git. A record directory outside it is refused before any read or write, so a
+ * partial copy is loud instead of silently half-honoured.
+ */
+export function resolveRecordDirWithinBoundary(repoRoot: string, recordDir: string): string {
+  const root = path.resolve(repoRoot);
+  if (!existsSync(path.join(root, ".ngrace"))) {
+    throw new Error(
+      `record-outside-repository-boundary: ${root} does not hold .ngrace/; the repository boundary is the .ngrace/-rooted tree of the cwd (${root}) -- run from inside a whole-repository copy`,
+    );
+  }
+  const resolved = path.resolve(root, recordDir);
+  if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`)) {
+    throw new Error(
+      `record-outside-repository-boundary: ${resolved} is outside the repository boundary ${root}; run the move from inside a whole-repository copy (a partial copy of the record directory alone is refused)`,
+    );
+  }
+  return resolved;
+}
+
 export function main(argv = process.argv.slice(2), cwd = process.cwd()): number {
   const mode = argv.find(
     (a) => a === "--split" || a === "--retire" || a === "--stamp-paid-by" || a === "--rewrite-roots",
@@ -1780,7 +1781,13 @@ export function main(argv = process.argv.slice(2), cwd = process.cwd()): number 
       return 1;
     }
   }
-  const recordDir = path.resolve(cwd, positional[0] ?? DEFAULT_RECORD_DIR);
+  let recordDir: string;
+  try {
+    recordDir = resolveRecordDirWithinBoundary(cwd, positional[0] ?? DEFAULT_RECORD_DIR);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
   if (mode === "--retire") {
     const result = retireRecord({ repoRoot: cwd, recordDir });
     console.log(`record-retirement: retire ok (${recordDir}, moved ${result.moved})`);

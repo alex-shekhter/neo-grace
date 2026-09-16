@@ -1,22 +1,29 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { childNodes, childText, computeElementSpans, parseGraceXmlArtifact, walkNodes } from "../src/artifact/xml.ts";
+import { childNodes, childText, computeElementSpans, parseGraceXmlArtifact, walkNodes, type GraceXmlNode } from "../src/artifact/xml.ts";
 import { validateStubAndIndex } from "./validate-citation-anchors.ts";
 import { proveRecordPreservation } from "./prove-record-preservation.ts";
 import {
+  FINDINGS_HEADROOM_MULTIPLIER,
   INDEX_HEADROOM_ENTRIES,
+  RULINGS_HEADROOM_MULTIPLIER,
   RULINGS_PROVENANCE_CEILING,
+  bodyEndsWithSeparator,
   derivePayerMap,
   listArchiveNames,
   liveH2DecisionLineCounts,
   median,
   newlineCount,
+  recordHeadroom,
+  resolveRecordDirWithinBoundary,
+  stripBodySeparator,
   validateRecordRetirement,
+  xmlDecode,
 } from "./validate-record-retirement.ts";
-
+import { assertRecordSchema, recordSchemaViolations, serializeRecordDocument } from "./record-serialize.ts";
 const REPO_ROOT = path.resolve(import.meta.dir, "..");
 const SCRIPT = path.join(import.meta.dir, "validate-record-retirement.ts");
 const RECORD_REL = "docs/plans/active/RM-GOVERNED-PATH";
@@ -1951,15 +1958,18 @@ ${names
         const retire = runValidator(root, ["--retire", RECORD_REL]);
         expect(retire.status, variant).toBe(0);
         expect(retire.stdout, variant).toContain("moved 3");
-        // the element moved to the retired sibling, stamped — the open tag's
-        // byte form is preserved, only the status value is spliced
-        const expectedOpenTag: Record<(typeof variant), string> = {
-          "single-quoted": "<Finding id='f21' token='F21' status='retired'>",
-          "spaced": "<Finding id = \"f21\" token = \"F21\" status = \"retired\">",
-          "reordered": "<Finding token=\"F21\" status=\"retired\" id=\"f21\">",
+        // the element moved to the retired sibling, stamped, and every open-tag
+        // byte form converged on the canonical form — the serializer re-emits the
+        // tag from its parsed attributes, so quotes, spacing and attribute order
+        // are canonical regardless of the input variant
+        const inputOpenTag: Record<(typeof variant), string> = {
+          "single-quoted": "<Finding id='f21' token='F21' status='live'>",
+          spaced: '<Finding id = "f21" token = "F21" status = "live">',
+          reordered: '<Finding token="F21" status="live" id="f21">',
         };
         const retired = readFileSync(path.join(root, RECORD_REL, "findings-retired.xml"), "utf8");
-        expect(retired, variant).toContain(expectedOpenTag[variant]);
+        expect(retired, variant).toContain('<Finding id="f21" token="F21" status="retired">');
+        expect(retired.includes(inputOpenTag[variant]), `${variant}: the input byte form is canonicalized away`).toBe(false);
         expect(retired, variant).toContain(`<PaidBy>C-SELECTION</PaidBy>`);
         const live = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
         expect(live, variant).not.toMatch(/<Finding[^>]*id\s*=\s*["']f21["']/);
@@ -2135,6 +2145,14 @@ ${names
         F260: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
         F261: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
         F262: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
+        // C-RECORD-SCHEMA-2-0785BD5E T-004: the chartered row's five minted tokens. The
+        // extension is consulted only for tokens the derivation actually mints, so the walk
+        // is green with the row live and green in the applied-archive state (the close's mint).
+        F207: "C-RECORD-SCHEMA-2-0785BD5E",
+        F221: "C-RECORD-SCHEMA-2-0785BD5E",
+        F235: "C-RECORD-SCHEMA-2-0785BD5E",
+        F252: "C-RECORD-SCHEMA-2-0785BD5E",
+        F265: "C-RECORD-SCHEMA-2-0785BD5E",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
@@ -5726,5 +5744,367 @@ describe("C-SCRIPTS-ADOPTION-2-36DEB1BD row relations", () => {
     expect(statusText.includes("Closed with")).toBe(false);
     const outside = (statusText.match(/\bF\d+(?:\.\d+)*\b/g) ?? []).filter((t) => !pays.includes(t));
     expect(outside).toEqual([]);
+  }, 60_000);
+});
+
+/** Every .xml file in a copied record, found by walking the directory, never by a name chosen in advance. */
+function recordXmlFilesIn(root: string): Array<{ name: string; file: string; xml: string }> {
+  const dir = path.join(root, RECORD_REL);
+  return readdirSync(dir)
+    .filter((name) => name.endsWith(".xml"))
+    .sort()
+    .map((name) => {
+      const file = path.join(dir, name);
+      return { name, file, xml: readFileSync(file, "utf8") };
+    });
+}
+
+/** Locates a record file by walking the copied record for an element, never by a file name. */
+function recordFileHolding(
+  root: string,
+  tag: string,
+  where?: (node: GraceXmlNode) => boolean,
+): { name: string; file: string; xml: string } {
+  for (const entry of recordXmlFilesIn(root)) {
+    const parsed = parseGraceXmlArtifact(entry.name, entry.xml).root;
+    if (parsed && [...walkNodes(parsed)].some((node) => node.tag === tag && (where ? where(node) : true))) {
+      return entry;
+    }
+  }
+  throw new Error(`no copied record file carries <${tag}>`);
+}
+
+function schemaCodes(file: string, filename: string, xml: string): string[] {
+  return recordSchemaViolations(file, parseGraceXmlArtifact(filename, xml).root).map((v) => v.code);
+}
+
+describe("record schema and canonical serializer (C-RECORD-SCHEMA-2)", () => {
+  it("refuses a write-mode run on a planted nested Finding, before any write", () => {
+    const root = isolatedRoot();
+    const nested = `<Findings base="20" headroom="70" ceiling="1000">
+  <Finding id="f1" token="F1" status="live">
+    <Title>### F1 - live</Title>
+    <Body>body
+      <Finding id="f9" token="F9" status="live"><Title>### F9</Title><Body>nested</Body></Finding>
+    </Body>
+  </Finding>
+</Findings>
+`;
+    writeHappy(root, { findings: nested });
+    const before = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const result = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toMatch(/record-shape-(same-tag-nested|genre-not-direct-child)/);
+    expect(readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8")).toBe(before);
+  });
+
+  it("reports the schema violations for a missing required child and an unexpected child", () => {
+    const root = isolatedRoot();
+    writeHappy(root, {
+      findings: `<Findings base="20" headroom="70" ceiling="1000">
+  <Finding id="f1" token="F1" status="live">
+    <Title>### F1</Title>
+    <Bogus>no body</Bogus>
+  </Finding>
+</Findings>
+`,
+    });
+    const file = path.join(root, RECORD_REL, "findings.xml");
+    const xml = readFileSync(file, "utf8");
+    const codes = recordSchemaViolations(file, parseGraceXmlArtifact(file, xml).root).map((v) => v.code);
+    expect(codes).toContain("record-schema-unexpected-child");
+    expect(codes).toContain("record-schema-missing-child");
+    expect(() => assertRecordSchema(file, xml)).toThrow(/record schema/);
+  });
+
+  it("is idempotent: serialize(serialize(x)) is byte-equal to serialize(x) over the seven goldens and a non-canonical document", () => {
+    const goldenDir = path.join(REPO_ROOT, "scripts/fixtures/record-parse/golden");
+    const names = [
+      "findings.xml",
+      "findings-retired.xml",
+      "rulings.xml",
+      "rulings-retired.xml",
+      "registry.xml",
+      "registry-retired.xml",
+      "decisions.xml",
+    ];
+    for (const name of names) {
+      const file = path.join(goldenDir, name);
+      const once = serializeRecordDocument(file, readFileSync(file, "utf8"));
+      expect(serializeRecordDocument(file, once), `${name}: idempotent`).toBe(once);
+    }
+    const drift = `<Findings base="1" headroom="1" ceiling="2">
+    <Finding id="f1" token="F1" status="live">
+        <Title>### F1</Title>
+      <Body>body</Body>
+    </Finding>
+</Findings>
+`;
+    const once = serializeRecordDocument("fixture-findings.xml", drift);
+    expect(once).toContain("\n  <Finding");
+    expect(serializeRecordDocument("fixture-findings.xml", once)).toBe(once);
+  });
+
+  it("is canonical at rest over the seven live record files", () => {
+    const recordDir = path.join(REPO_ROOT, RECORD_REL);
+    for (const name of [
+      "findings.xml",
+      "findings-retired.xml",
+      "rulings.xml",
+      "rulings-retired.xml",
+      "registry.xml",
+      "registry-retired.xml",
+      "decisions.xml",
+    ]) {
+      const file = path.join(recordDir, name);
+      const xml = readFileSync(file, "utf8");
+      expect(serializeRecordDocument(file, xml), `${name}: canonical at rest`).toBe(xml);
+    }
+  }, 60_000);
+
+  it("reddens canonical-at-rest when a non-canonical byte is planted in a copy", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const file = path.join(root, RECORD_REL, "findings.xml");
+    const planted = readFileSync(file, "utf8").replace('  <Finding id="f1"', '    <Finding id="f1"');
+    writeFileSync(file, planted);
+    expect(serializeRecordDocument(file, planted)).not.toBe(planted);
+  });
+
+  it("canonicalizes declared attribute order — a Row with kind first is not canonical", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const entry = recordFileHolding(root, "Row");
+    const mutated = entry.xml.replace(
+      /<Row name="([^"]*)" status="([^"]*)" kind="([^"]*)">/,
+      '<Row kind="$3" name="$1" status="$2">',
+    );
+    expect(mutated, "the plant must change the open tag").not.toBe(entry.xml);
+    const once = serializeRecordDocument(entry.file, mutated);
+    expect(once).not.toBe(mutated);
+    expect(once, "the canonical open tag is restored").toBe(entry.xml);
+  });
+
+  it("canonicalizes declared attribute order — an Entry with layer first is not canonical", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const entry = recordFileHolding(root, "Entry");
+    const mutated = entry.xml.replace(
+      /<Entry id="([^"]*)" token="([^"]*)" genre="([^"]*)" layer="([^"]*)" \/>/,
+      '<Entry layer="$4" id="$1" token="$2" genre="$3" />',
+    );
+    expect(mutated).not.toBe(entry.xml);
+    const once = serializeRecordDocument(entry.file, mutated);
+    expect(once).not.toBe(mutated);
+    expect(once).toContain('<Entry id="f1" token="F1" genre="finding" layer="live" />');
+  });
+
+  it("emits exactly one trailing newline after the root close tag, whatever the input carried", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const entry = recordFileHolding(root, "Row");
+    const one = serializeRecordDocument(entry.file, entry.xml.replace(/\n$/, ""));
+    expect(one.endsWith("\n")).toBe(true);
+    expect(one.endsWith("\n\n")).toBe(false);
+    expect(serializeRecordDocument(entry.file, `${entry.xml}\n`), "two newlines normalize to one").toBe(entry.xml);
+  });
+
+  it("emits an empty Successor self-closing, not as an empty pair", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const entry = recordFileHolding(root, "Row");
+    const mutated = entry.xml.replace(/(\n\s*)<\/Row>/, "$1  <Successor></Successor>$1</Row>");
+    expect(mutated).toContain("<Successor></Successor>");
+    const once = serializeRecordDocument(entry.file, mutated);
+    expect(once).toContain("<Successor />");
+    expect(once).not.toContain("<Successor></Successor>");
+  });
+
+  it("reports an out-of-order child — Pays before Charter", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const entry = recordFileHolding(root, "Charter");
+    const mutated = entry.xml.replace(
+      /(<Charter>[\s\S]*?<\/Charter>\n)(\s*<Pays>[\s\S]*?<\/Pays>\n)/,
+      "$2$1",
+    );
+    expect(mutated).not.toBe(entry.xml);
+    expect(schemaCodes(entry.file, entry.name, mutated)).toContain("record-schema-child-order");
+  });
+
+  it("reports an out-of-order child — Title before PaidBy on a retired Finding", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const entry = recordFileHolding(root, "PaidBy");
+    const mutated = entry.xml.replace(
+      /(\s*<PaidBy>[\s\S]*?<\/PaidBy>\n)(\s*<Title>[\s\S]*?<\/Title>\n)/,
+      "$2$1",
+    );
+    expect(mutated).not.toBe(entry.xml);
+    expect(schemaCodes(entry.file, entry.name, mutated)).toContain("record-schema-child-order");
+  });
+
+  it("reports an out-of-order child — Body before Title on a live Finding", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const entry = recordFileHolding(root, "Finding", (node) => node.attributes.status === "live");
+    const mutated = entry.xml.replace(
+      /(\s*<Title>[\s\S]*?<\/Title>\n)(\s*<Body>[\s\S]*?<\/Body>\n)/,
+      "$2$1",
+    );
+    expect(mutated).not.toBe(entry.xml);
+    expect(schemaCodes(entry.file, entry.name, mutated)).toContain("record-schema-child-order");
+  });
+
+  it("declares zero schema violations over the seven live record files and the seven goldens", () => {
+    const dirs = [
+      path.join(REPO_ROOT, RECORD_REL),
+      path.join(REPO_ROOT, "scripts/fixtures/record-parse/golden"),
+    ];
+    for (const dir of dirs) {
+      for (const name of [
+        "findings.xml",
+        "findings-retired.xml",
+        "rulings.xml",
+        "rulings-retired.xml",
+        "registry.xml",
+        "registry-retired.xml",
+        "decisions.xml",
+      ]) {
+        const file = path.join(dir, name);
+        const xml = readFileSync(file, "utf8");
+        expect(recordSchemaViolations(file, parseGraceXmlArtifact(file, xml).root), `${file}: schema`).toEqual([]);
+      }
+    }
+  }, 60_000);
+
+  it("derives headroom through one floored function on both paths", () => {
+    expect(FINDINGS_HEADROOM_MULTIPLIER).toBe(7);
+    expect(RULINGS_HEADROOM_MULTIPLIER).toBe(7);
+    expect(recordHeadroom([10, 21], RULINGS_HEADROOM_MULTIPLIER)).toBe(Math.floor(7 * median([10, 21])));
+    expect(recordHeadroom([10, 21], RULINGS_HEADROOM_MULTIPLIER)).toBe(108);
+  });
+});
+
+describe("repository-boundary refusal (C-RECORD-SCHEMA-2 T-002)", () => {
+  it("refuses a cwd with no .ngrace/ — the repository boundary is undefined", () => {
+    const outside = isolatedRoot();
+    const result = runValidator(outside, []);
+    expect(result.status).not.toBe(0);
+    expect(result.stderr).toContain("record-outside-repository-boundary");
+  });
+
+  it("refuses a partial copy of the record directory passed from the repository root", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const outside = isolatedRoot();
+    const partial = path.join(outside, "R");
+    cpSync(path.join(root, RECORD_REL), partial, { recursive: true });
+    expect(() => resolveRecordDirWithinBoundary(root, partial)).toThrow(
+      /record-outside-repository-boundary/,
+    );
+  });
+
+  it("accepts the whole-repository copy run from inside the copy", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const result = runValidator(root, [RECORD_REL]);
+    expect(result.status).toBe(0);
+  }, 60_000);
+});
+
+describe("separator sweep (C-RECORD-SCHEMA-2 T-003)", () => {
+  it("detects the separator on the whitespace-stripped tail across the three shapes", () => {
+    expect(bodyEndsWithSeparator("text\n\n---")).toBe(true);
+    expect(bodyEndsWithSeparator("text\n\n---\n")).toBe(true);
+    expect(bodyEndsWithSeparator("text\n\n---\n\n")).toBe(true);
+    expect(bodyEndsWithSeparator("text\n")).toBe(false);
+    expect(bodyEndsWithSeparator("text\n\n--- more\n")).toBe(false);
+  });
+
+  it("stripBodySeparator removes the blank gap and the --- line, keeping one trailing newline", () => {
+    expect(stripBodySeparator("\ntext\n\n---\n")).toBe("\ntext\n");
+    expect(stripBodySeparator("\ntext\n\n---\n\n")).toBe("\ntext\n");
+    expect(stripBodySeparator("\ntext\n\n---")).toBe("\ntext\n");
+    expect(stripBodySeparator("\ntext\n")).toBe("\ntext\n");
+  });
+
+  it("finds a separator body by walking the layers, and none in the swept production record", () => {
+    const root = isolatedRoot();
+    writeHappy(root, {
+      findings: `<Findings base="20" headroom="70" ceiling="1000">
+  <Finding id="f1" token="F1" status="live">
+    <Title>### F1 - live</Title>
+    <Body>text
+
+---</Body>
+  </Finding>
+</Findings>
+`,
+    });
+    const fixture = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const fixtureRoot = parseGraceXmlArtifact("findings.xml", fixture).root!;
+    const found = [...walkNodes(fixtureRoot)].filter(
+      (n: GraceXmlNode) =>
+        (n.tag === "Finding" || n.tag === "Decision") &&
+        bodyEndsWithSeparator(xmlDecode(childText(n, "Body") ?? "")),
+    );
+    expect(found.length).toBe(1);
+
+    const recordDir = path.join(REPO_ROOT, RECORD_REL);
+    for (const file of ["findings.xml", "findings-retired.xml", "rulings.xml", "rulings-retired.xml"]) {
+      const xml = readFileSync(path.join(recordDir, file), "utf8");
+      const parsedRoot = parseGraceXmlArtifact(file, xml).root!;
+      const hits = [...walkNodes(parsedRoot)].filter(
+        (n: GraceXmlNode) =>
+          (n.tag === "Finding" || n.tag === "Decision") &&
+          bodyEndsWithSeparator(xmlDecode(childText(n, "Body") ?? "")),
+      );
+      expect(hits.length, `${file}: no separator tail`).toBe(0);
+    }
+  }, 60_000);
+
+  it("is canonical-at-rest and preservation-green over the seven live record files after the sweep", () => {
+    const recordDir = path.join(REPO_ROOT, RECORD_REL);
+    for (const name of [
+      "findings.xml",
+      "findings-retired.xml",
+      "rulings.xml",
+      "rulings-retired.xml",
+      "registry.xml",
+      "registry-retired.xml",
+      "decisions.xml",
+    ]) {
+      const file = path.join(recordDir, name);
+      const xml = readFileSync(file, "utf8");
+      expect(serializeRecordDocument(file, xml), `${name}: canonical at rest after the sweep`).toBe(xml);
+    }
+    expect(proveRecordPreservation(recordDir)).toEqual([]);
+  }, 60_000);
+});
+
+describe("flush (C-RECORD-SCHEMA-2 T-004)", () => {
+  it("D40, F252, F265 and the C-RECORD-SCHEMA-2 row exist exactly once across their layers after the flush", () => {
+    const recordDir = path.join(REPO_ROOT, RECORD_REL);
+    const countToken = (token: string): number => {
+      let n = 0;
+      for (const file of ["findings.xml", "findings-retired.xml", "rulings.xml", "rulings-retired.xml"]) {
+        const root = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8")).root!;
+        n += [...walkNodes(root)].filter((x: GraceXmlNode) => x.attributes.token === token).length;
+      }
+      return n;
+    };
+    const countRow = (name: string): number => {
+      let n = 0;
+      for (const file of ["registry.xml", "registry-retired.xml"]) {
+        const root = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8")).root!;
+        n += [...walkNodes(root)].filter((x: GraceXmlNode) => x.attributes.name === name).length;
+      }
+      return n;
+    };
+    expect(countToken("D40"), "D40 exactly once across the rulings layers").toBe(1);
+    expect(countToken("F252"), "F252 exactly once across the findings layers").toBe(1);
+    expect(countToken("F265"), "F265 exactly once across the findings layers").toBe(1);
+    expect(countRow("C-RECORD-SCHEMA-2-0785BD5E"), "the row exactly once across the registry layers").toBe(1);
   }, 60_000);
 });

@@ -70,8 +70,6 @@ the separator set, the accepted forms — and assert the literal bytes in the **
 TypeScript and has no escaping constraint. State the divergence in the criterion rather than
 letting the paraphrase read as a quotation. Related: [D16](#d16) (a criterion may only bind evidence
 that lives in an artifact) — F43 bounds *what kind* of evidence an artifact can hold at all.
-
----
 </Body>
   </Finding>
   <Finding id="f81" token="F81" status="retired">
@@ -1745,8 +1743,6 @@ digests against `ObservedWriteScope`, at the same severity as the existing `scop
 open question of whether it fires per attempt or only at fold. Natural companion to the D14 repairs
 (`cause` support and the unhandled-rejection handler) — both are gaps between a declared contract and
 what is actually enforced, which is this roadmap's whole subject.
-
----
 </Body>
   </Finding>
   <Finding id="f27.1" token="F27.1" status="retired">
@@ -1819,8 +1815,6 @@ difference between a rule keyed to what an agent must do and a rule keyed to wha
 - **Two true positives will stand after the doc exclusion**, one adjudicated and one not. Whether the
   check fires retroactively on archived bundles is a real decision, not a detail: a permanently-red check
   teaches its own audience to ignore it, which is the harm F11 named.
-
----
 </Body>
   </Finding>
   <Finding id="f27.2" token="F27.2" status="retired">
@@ -1871,8 +1865,6 @@ leave every future plan free to make the same omission and merely learn about it
 The scope cost is two files (`skills/ngrace/ngrace-plan/SKILL.md` and its packaged mirror), declared
 honestly — which is exactly what the bundle is arguing for, and a better dogfood than a bundle that keeps
 its scope small by leaving half the finding unfixed.
-
----
 </Body>
   </Finding>
   <Finding id="f35" token="F35" status="retired">
@@ -2027,8 +2019,6 @@ is real rather than a queue: it is the same file, the same class of change (an a
 consumer on the other side), and it must not be interleaved with the `lint --explain` bundle already in
 flight, whose declared write scope stops at `src/lint/*` and whose NonGoals require a re-spec before
 `grammar.ts` is touched.
-
----
 </Body>
   </Finding>
   <Finding id="f90" token="F90" status="retired">
@@ -2945,8 +2935,6 @@ has no way to enforce. The alternative — renaming the state to match what is e
 gives up the checkpoint.
 
 Disposition: follow-on queue, adjacent to F21 (same surface, same contract paragraph).
-
----
 </Body>
   </Finding>
   <Finding id="f29" token="F29" status="retired">
@@ -2990,8 +2978,6 @@ which the module comment says *&quot;do not change … without updating every ph
 that is a real dependency on a survey this bundle has no mandate to run, which is the kind of
 justification [D11](#d11) asks for before anything is deferred. The likely shape is a character or
 token-estimate field reported alongside lines, not in place of them, so existing citations stay readable.
-
----
 </Body>
   </Finding>
   <Finding id="f9.10" token="F9.10" status="retired">
@@ -3062,8 +3048,6 @@ deliverable) both present as *&quot;N non-test src/ path(s) seen, all identical.
 string produces a wrong taxonomy. Classify from `WriteEvidence` digests.
 
 Disposition: **next bundle**, with [F31](#f31) and [F32](#f32) — one surface, one repair.
-
----
 </Body>
   </Finding>
   <Finding id="f31" token="F31" status="retired">
@@ -3099,8 +3083,6 @@ claimed more scrutiny than it received, and that is disclosed rather than left t
 Disposition: **next bundle**, with F9.10 and F32. The repair is an absence record for the attempt-pair
 audit on the same shape as the scope audit's, so an unscoped review reports `not-run — no --change
 supplied` instead of nothing.
-
----
 </Body>
   </Finding>
   <Finding id="f32" token="F32" status="retired">
@@ -3129,8 +3111,6 @@ A reviewer following the path finds nothing and has no way to tell whether the b
 finding is stale.
 
 Disposition: **next bundle**, with F9.10 and F31.
-
----
 </Body>
   </Finding>
   <Finding id="f29.1" token="F29.1" status="retired">
@@ -3186,8 +3166,6 @@ grows by 9%.
 
 The module comment itself should be corrected in the same change — an instruction that cannot be
 followed is worse than no instruction, because the next reader defers on it exactly as I did.
-
----
 </Body>
   </Finding>
   <Finding id="f71" token="F71" status="retired">
@@ -4063,8 +4041,6 @@ life cycle is not one bundle's. The sentence needs &quot;any later lawful move o
 
 Owner: the next teaching-surface increment (with [F236](#f236) and [F237](#f237)) for the reviewer sentence; the
 repair itself is delivered. Neighbour to [F225](#f225), [F232](#f232) and [F237](#f237).
-
----
 </Body>
   </Finding>
   <Finding id="f239" token="F239" status="retired">
@@ -4092,8 +4068,6 @@ it dropped the one fact that makes the token usable: which command carries it.
 
 Owner: the next teaching-surface increment (with [F236](#f236), [F237](#f237), [F238](#f238)); every one of the
 twelve lines is in scope by name, canonical and mirror.
-
----
 </Body>
   </Finding>
   <Finding id="f241" token="F241" status="retired">
@@ -4121,8 +4095,6 @@ baseline exit reflects it.
 
 Owner: the next teaching-surface increment (with [F236](#f236), [F237](#f237), [F238](#f238), [F239](#f239)). Neighbour to F62,
 F119.
-
----
 </Body>
   </Finding>
   <Finding id="f185" token="F185" status="retired">
@@ -4254,8 +4226,6 @@ state at its own bundle's approval, written as an invariant. The two relations b
 Owner: `C-PAYMENT-INTEGRITY` repairs it (the clause removed; the test deleted or renamed so no test claims a clamp it
 does not assert); its payment is recorded at this entry's flush by appending `F244` to that bundle's retired row, the
 retired-row append the same bundle establishes as lawful for `F185`. Neighbour to [F225](#f225), [F237](#f237).
-
----
 </Body>
   </Finding>
   <Finding id="f222" token="F222" status="retired">
@@ -4355,8 +4325,6 @@ and the walk should read Baseline against disk and Target against the applied st
 Owner: the bundle that next opens `src/review/core.ts`, sequenced by the maintainer (`C-APPLY-VERB` excludes new `review.*`
 code by its spec, F101). Until then, plan-approve reviews of file-creating bundles carry these errors and the approval commit
 names them.
-
----
 </Body>
   </Finding>
   <Finding id="f245" token="F245" status="retired">
@@ -4376,8 +4344,6 @@ exempts its two siblings by identity.
 **The rule.** The identity skip covers every artifact the bundle contract defines for the reviewed change, or row 15
 says which of them must be declared and why. Owner: whoever next opens `src/review/core.ts` (with [F240](#f240)) for
 the skip; the next teaching-surface increment for row 15. Neighbour to [F236](#f236) (row 15's ground).
-
----
 </Body>
   </Finding>
   <Finding id="f243" token="F243" status="retired">
@@ -4405,8 +4371,6 @@ a design question this entry records and does not answer.
 
 Owner: the next teaching-surface increment (`ngrace-plan` row 19, beside the clause `C-FLUSH-AND-TEACH` added);
 the execution question to a chartered bundle. Neighbour to [F236](#f236), [F237](#f237).
-
----
 </Body>
   </Finding>
   <Finding id="f246" token="F246" status="retired">
@@ -4438,8 +4402,6 @@ slice, never a whole file. (2) `ngrace-execute`'s recovery table has no row for 
 false at HEAD&quot;; the executor inferred hard-stop from rule 11 — the row is written. (3) The authority runs root lint after every
 `gate approve` and before the approval commit: the gate's status write is what turns the baseline evaluation on. Owner: the next
 teaching increment (V2) for (1) and (2); (3) is the authority's standing rule from this date.
-
----
 </Body>
   </Finding>
   <Finding id="f247" token="F247" status="retired">
@@ -4459,8 +4421,6 @@ three skills names `design-context.xml`, which [F245](#f245)'s bundle (`C-REVIEW
 **The rule.** The sentence states what the product does: the reviewed bundle's own `spec.xml`, `plan.xml` and
 `design-context.xml` are identity-skipped in both locations and are never declared; `decisions.md` is reported and is
 expected only when that file changed. One sentence, in all four places, and the mirror. Owner: the next teaching increment.
-
----
 </Body>
   </Finding>
   <Finding id="f248" token="F248" status="retired">
@@ -4480,8 +4440,6 @@ from `ngrace-plan` entirely.
 **The rule.** Each listed assertion command carries its precondition beside it: `--run-commands` needs an open epoch on a
 declared task; `target` and `final` need an approved plan; the plan skill's row 19 says how to drive them on an approved-shaped
 copy (`gate approve --artifact plan` on the copy, then `cursor advance --open-epoch`). Owner: the next teaching increment.
-
----
 </Body>
   </Finding>
   <Finding id="f249" token="F249" status="retired">
@@ -4520,8 +4478,6 @@ order with the passes that follow), so two consecutive reds are two audited pair
 finding. Teaching: until then, `ngrace-execute` says a task with more than one red-first pair interleaves them — fail A, pass
 A, fail B, pass B — so each pair is audited. Owner: whoever next opens `src/review/core.ts` for the audit; the next teaching
 increment for the sentence.
-
----
 </Body>
   </Finding>
   <Finding id="f251" token="F251" status="retired">
@@ -4700,8 +4656,6 @@ does not read the file under test is `F125` with a narrower premise.
 
 Owner: a chartered bundle, sequenced by the maintainer; `.ngrace-lint.json` already names `scripts/` adoption as deferred to a
 later `C-*`, and this rides with it or ahead of it. Neighbour to F125.
-
----
 </Body>
   </Finding>
   <Finding id="f264" token="F264" status="retired">

@@ -1,5 +1,5 @@
 <Rulings>
-<Decision id="d24" token="D24" status="retired">
+  <Decision id="d24" token="D24" status="retired">
     <Title>## D24 — the rework circuit is a ceiling on escalations, not an auto-supersede</Title>
     <Body>
 **Decided 2026-09-02 by the maintainer**, on [F142](#f142), variant **A** of three.
@@ -44,7 +44,7 @@ the mirror, or the pin is the [F133](#f133) / [F136](#f136) defect again.
 </Body>
     <CodifiedIn kind="test-suite">src/grace-cursor.test.ts</CodifiedIn>
   </Decision>
-<Decision id="d5.1" token="D5.1" status="retired">
+  <Decision id="d5.1" token="D5.1" status="retired">
     <Title>### D5.1 — The accepted separator set</Title>
     <Body>
 `LINKS` and `DEPENDS` split on **`[,;\s]+`**. The colon is **excluded**. Any token matching no
@@ -70,7 +70,7 @@ no intent. That is the whole test.
 </Body>
     <CodifiedIn kind="lint-rule">markup.unparsed-link-token</CodifiedIn>
   </Decision>
-<Decision id="d7" token="D7" status="retired">
+  <Decision id="d7" token="D7" status="retired">
     <Title>## D7 — `&lt;DependsOn&gt;` accepts the anchor-child form; the fix reads the tag, it does not raise</Title>
     <Body>
 **Raised by F5. Ratified 2026-08-09. Binds P0.3.**
@@ -108,7 +108,7 @@ inventory's classification of `grammar.ts:2012` as justified is **corrected to s
 </Body>
     <CodifiedIn kind="lint-rule">change.task-invalid-dependency</CodifiedIn>
   </Decision>
-<Decision id="d9" token="D9" status="retired">
+  <Decision id="d9" token="D9" status="retired">
     <Title>## D9 — Ledger repair is append-only; a recorded event is never rewritten</Title>
     <Body>
 **Decision.** `recover --fix` may **append** records. It may **not** rewrite a recorded event file in
@@ -132,7 +132,7 @@ record is authoring over history.
 </Body>
     <CodifiedIn kind="test-suite">src/grace-cursor.test.ts</CodifiedIn>
   </Decision>
-<Decision id="d18" token="D18" status="retired">
+  <Decision id="d18" token="D18" status="retired">
     <Title>### D18 — `gate approve` becomes the sanctioned writer of `draft → approved`, and records what it approved</Title>
     <Body>
 **Decided 2026-08-14 by the maintainer**, on the evidence of [F88](#f88).

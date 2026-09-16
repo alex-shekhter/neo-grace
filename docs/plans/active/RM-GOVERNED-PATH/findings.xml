@@ -1,4 +1,4 @@
-<Findings base="7496" headroom="271" ceiling="7767">
+<Findings base="7477" headroom="290" ceiling="7767">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -355,8 +355,6 @@ than a synthetic one. Consequences:
   ledger is knowingly corrupt would bury exactly the kind of quiet dishonesty this track opposes.
 - **Sequencing changes accordingly:** `C-CURSOR-INTEGRITY` lands before `C-TOKEN-INTEGRITY` closes.
   The two are file-disjoint, so this costs no rework — only ordering.
-
----
 </Body>
   </Finding>
   <Finding id="f9" token="F9" status="live">
@@ -493,8 +491,6 @@ whole mechanism F9.2 was reaching for, obtained without any tooling at all. Seco
 a pair that looks exactly like T-005's under a digest rule, and is *not* the same thing. It belongs
 in T-006's fixtures precisely because the check cannot tell it from T-005 — that is F9.3's ceiling,
 now with a live example on both sides of it.
-
----
 </Body>
   </Finding>
   <Finding id="f10" token="F10" status="live">
@@ -592,8 +588,6 @@ only the cross-bundle wave that is forbidden, and it was never planned.
 reasoning and been corrected by running it: the `:470` citation (F8.2), the epoch counter (F8.2), and
 this. Every one was cheap to check. The rule this earns: **an authority claim about what the code
 does gets probed before it is written down**, exactly as findings do.
-
----
 </Body>
   </Finding>
   <Finding id="f9.5" token="F9.5" status="live">
@@ -649,8 +643,6 @@ the order was wrong, and the same order applied to a less forced edit would not 
 **The underlying brittleness is a real defect, not this bundle's to fix**: a test that hardcodes a
 catalog's cardinality makes every new review code a cross-cutting edit. It should assert the
 partition, not the count.
-
----
 </Body>
   </Finding>
   <Finding id="f12.1" token="F12.1" status="live">
@@ -723,8 +715,6 @@ an overlap on `src/grace-cursor.ts` with `C-CURSOR-INTEGRITY`, which is code-com
 That is the correct outcome and not a reason to relax anything: the alternative is archiving a bundle
 whose acceptance criterion is known to be false, in the track whose entire subject is that the
 artifact must not lie.
-
----
 </Body>
   </Finding>
   <Finding id="f9.6" token="F9.6" status="live">
@@ -837,8 +827,6 @@ six&quot;* and is wrong.
 
 This one was caught by the derivation agent, reading a prompt in which the authority had repeated the
 bad number.
-
----
 </Body>
   </Finding>
   <Finding id="f17" token="F17" status="live">
@@ -1015,8 +1003,6 @@ prose. F23 asks whether the criterion names the value — not whether an asserti
 
 Disposition: applied in T-006 (committed `74ed4a9`); recurrence corrected in `C-LEGIBLE-FAILURE` T-002
 (committed `9181dda`). Carried as a review habit, not a follow-on bundle.
-
----
 </Body>
   </Finding>
   <Finding id="f19.1" token="F19.1" status="live">
@@ -1058,8 +1044,6 @@ to the commit, expect these three, and report them rather than repairing them. T
 name these codes so an executor meeting them does not mistake an expected state for a broken one — an
 undocumented expected error is the thing that teaches a reader to ignore errors generally, which is
 F11's harm arriving by another road.
-
----
 </Body>
   </Finding>
   <Finding id="f18.1" token="F18.1" status="live">
@@ -1099,8 +1083,6 @@ both spellings is the honest reading of `RM-GOVERNED-PATH` D5, not an exception 
 
 Disposition: evidence for `C-FLAG-HONESTY` (spec `3f3547c`). Recorded during authority review of the
 spec, before approval, so the criteria could rest on a measurement rather than on my prediction.
-
----
 </Body>
   </Finding>
   <Finding id="f24" token="F24" status="live">
@@ -1135,8 +1117,6 @@ host the approved scope allows, not a natural one** — the deepening is disclos
 Disposition: follow-on queue, alongside F9.9 / F20 / F21 / F22. The repair is a graph edit plus two
 contract rewrites, and it should be weighed together with whatever the next bundle needs from the CLI
 surface rather than done on its own.
-
----
 </Body>
   </Finding>
   <Finding id="f25" token="F25" status="live">
@@ -1223,8 +1203,6 @@ What the successor owes, so the reasoning is not re-derived: route the refusal t
 `runGraceCommand` with `format` read from `context.args`, so the envelope and the error-supplied exit
 code both apply; and pin the exit code explicitly, since today's agreement at `1` is a coincidence
 rather than a guarantee.
-
----
 </Body>
   </Finding>
   <Finding id="f25.1" token="F25.1" status="live">
@@ -1272,8 +1250,6 @@ not for chasing the unreachable ones.
 
 Disposition: applied in `C-LEGIBLE-FAILURE` T-003. Carried as a design rule for any future shared
 renderer: **preserve the cause, or you have built a uniform way of saying nothing.**
-
----
 </Body>
   </Finding>
   <Finding id="f26" token="F26" status="live">
@@ -1318,8 +1294,6 @@ identity of wording.
 Disposition: recorded, not scheduled. No artifact is amended and no bundle is opened. Carried as
 authoring guidance: when a plan restates a spec criterion, quote the qualifiers verbatim or reference
 the criterion by name rather than paraphrasing it into a task.
-
----
 </Body>
   </Finding>
   <Finding id="f28" token="F28" status="live">
@@ -1372,8 +1346,6 @@ placeholder renames while still reddening under the probe above.
 Disposition: **fixed in T-003**, which is still open — no `terminal`, no commit. Not a spec or plan
 defect: the approved AC requires the resume kind to *document* the reason, and the skill does. The
 defect is enforcement strength, and the file is in `ObservedWriteScope`.
-
----
 </Body>
   </Finding>
   <Finding id="f30" token="F30" status="live">
@@ -1434,8 +1406,6 @@ change must scope its clauses to the commits that can honestly carry them: *&quo
 resume-reason requirement states it; the commits introducing the thresholds state them by value.&quot;* A
 flat &quot;every commit states everything&quot; is unachievable the moment the change has more than one task, and
 its failure mode is pressure to backdate a claim.
-
----
 </Body>
   </Finding>
   <Finding id="f9.10.1" token="F9.10.1" status="live">
@@ -1469,8 +1439,6 @@ one costs a reviewer's attention on every documentation and test-strengthening t
 costs nothing until something is actually wrong — a good argument, and not evidence of detection. A
 staged retrospective red (`git stash` → record fail → unstash) defeats both, and nothing in the planned
 bundle addresses it.
-
----
 </Body>
   </Finding>
   <Finding id="f33" token="F33" status="live">
@@ -1511,8 +1479,6 @@ honest, instead of in a criterion, where it becomes a claim about a moment that 
 
 Disposition: recorded, not scheduled. No artifact is amended — the plan's widening already resolved it
 and the verdict discloses it. This is authoring guidance, like F26's.
-
----
 </Body>
   </Finding>
   <Finding id="f34" token="F34" status="live">
@@ -1647,8 +1613,6 @@ resolution and the reverse of the [F10](#f10) failure.
 Three tasks in this bundle have now returned a correction to the authority's own prompt. The rate is not
 the point; the mechanism is — each was found because the prompt asked for the objection in writing rather
 than asking whether the work was done.
-
----
 </Body>
   </Finding>
   <Finding id="f36" token="F36" status="live">
@@ -1704,8 +1668,6 @@ position is that an ungoverned `src/` change is the failure mode (R4). It goes i
 follow-on bundle, which already has a governed reason to exist and already touches source. The
 `.gitattributes` fix ships alone because it touches no governed surface and the pull request is blocked
 on it.
-
----
 </Body>
   </Finding>
   <Finding id="f35.1" token="F35.1" status="live">
@@ -1746,8 +1708,6 @@ assertion counts a substring. Each is a *text* measurement standing in for a *be
 each goes green across the gap. The cheap discipline that catches all three: when an artifact states a
 post-condition as a grep, ask what a wrong implementation that satisfies the grep would look like. If one
 exists and is plausible, the grep is documentation, not evidence.
-
----
 </Body>
   </Finding>
   <Finding id="f37" token="F37" status="live">
@@ -1804,8 +1764,6 @@ adds no forward check leaves the count climbing.
 **Home: P1.13**, sequenced with [F38](#f38)'s P1.12. Both are artifact-validity repairs under
 `src/artifact/`, and both must not be interleaved with the `lint --explain` bundle in flight, whose
 declared scope stops at `src/lint/*`.
-
----
 </Body>
   </Finding>
   <Finding id="f40" token="F40" status="live">
@@ -1858,8 +1816,6 @@ what both renderers print. Caught by the executor at spec-authoring, before it r
 **Home: P1.14**, with [P1.12](#f38) and [P1.13](#f39). Assertion evaluation lives in
 `src/artifact/assertions.ts`, outside `C-EXPLAIN-COVERAGE`'s `AffectedAreas`, whose NonGoals
 require a re-spec before it is touched — a conflict, not a queue.
-
----
 </Body>
   </Finding>
   <Finding id="f41" token="F41" status="live">
@@ -1916,8 +1872,6 @@ output fragment — never an identifier that comments, docs or commit messages m
 **Not promoted to `ngrace-plan` yet, deliberately.** One worked instance, and [D16](#d16)'s reason
 applies unchanged: this roadmap has shipped a rule from a single instance and had the next task
 refute it. Promote once a second plan trips the same wire. That is a dependency, not a queue.
-
----
 </Body>
   </Finding>
   <Finding id="f44" token="F44" status="live">
@@ -1948,8 +1902,6 @@ Due immediately: **P1.6**'s typed-absence line (*&quot;evaluated N rule classes;
 exactly this shape, and its whole purpose is that silence must not read as &quot;will pass&quot; — a
 correctly-worded absence line rendered where nobody sees it fails that purpose while satisfying its
 criterion.
-
----
 </Body>
   </Finding>
   <Finding id="f45" token="F45" status="live">
@@ -1986,8 +1938,6 @@ and exempt that half from the red-first universal, exactly as `AC-SUITE-AND-LINT
 Otherwise the universal is falsified by the bundle's own honest execution. Due in **P1.5**, whose
 acceptance test — *&quot;generated output passes lint when committed unmodified&quot;* — is the same shape:
 a generator that works has nothing to redden once written.
-
----
 </Body>
   </Finding>
   <Finding id="f46" token="F46" status="live">
@@ -2040,8 +1990,6 @@ Both survive review because the citation *looks* checkable.
 never bare `D12`. Bare ids are reserved for the roadmap the citing artifact lives in. Corrected at
 F38's citation site below; not swept across the archive, since archived roadmaps are immutable and
 their internal citations resolve correctly within their own file.
-
----
 </Body>
   </Finding>
   <Finding id="f48" token="F48" status="live">
@@ -2074,8 +2022,6 @@ named code still has a reachable trigger. Naming codes by trigger is right — i
 is a claim about a mapping, and a repair is exactly the thing that moves mappings. Due in
 **P1.13** and **P1.14**, both of which rewrite diagnostics, and in **P1.4**, where a generated
 schema reference will enumerate shapes the grammar can move.
-
----
 </Body>
   </Finding>
   <Finding id="f49" token="F49" status="live">
@@ -2137,8 +2083,6 @@ review scope audit, which stopped auditing the CLI's own writes against the agen
 Fix the note at the source: it originates in the plan authored from
 `.ngrace/changes/archive/C-EXPLAIN-COVERAGE/plan.xml` as the model, so the next plan authored from
 that model inherits it again.
-
----
 </Body>
   </Finding>
   <Finding id="f51" token="F51" status="live">
@@ -2180,8 +2124,6 @@ next touches that surface: a hand-maintained literal that every skill edit inval
 maintenance tax with no reader — the honest forms are a tool-updated value or an assertion on
 *movement being declared* rather than on a frozen number. Not opened here: this bundle has already
 taken one re-spec, and the pin's current form is what two archived roadmaps cite.
-
----
 </Body>
   </Finding>
   <Finding id="f52" token="F52" status="live">
@@ -2213,8 +2155,6 @@ rather than a check.
 that diagnostic actually compares and at what severity. &quot;Bound by `X`&quot; is a claim about a
 mechanism, and mechanisms are exactly what [F35](#f35) says to verify by body rather than by name.
 Not swept across existing specs: they are approved and their criteria do not rest on the gloss.
-
----
 </Body>
   </Finding>
   <Finding id="f53" token="F53" status="live">
@@ -3724,8 +3664,6 @@ The human's &quot;per-state, do not extrapolate&quot; rule left the close unatte
 lexicon to apply without a machine-evaluable extra is more prompt, which F88.2 just
 measured as insufficient for a different stop. Leave it on that entry. Not a new
 `RM-*`.
-
----
 </Body>
   </Finding>
   <Finding id="f93" token="F93" status="live">
@@ -7491,6 +7429,49 @@ repository. Either makes a partial copy loud.
 Owner: the record-engine bundle that next touches `scripts/validate-record-retirement.ts`'s root resolution
 (the schema-and-serializer bundle `F207`/`F221` charter, or a payment-integrity bundle). Neighbour to
 [F231](#f231) and [F230](#f230).
+</Body>
+  </Finding>
+  <Finding id="f252" token="F252" status="live">
+    <Title>### F252 — the flush projects the buffer's `---` separator into every non-last rendered `&lt;Body&gt;`: 54 of 319 record bodies end with a literal `---` line, and the buffer's own header tells the flusher to cut at that boundary first. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-14 at `18941b7`, the close of `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22`, by the authority's subagent and re-measured over the
+population.** Unescaping the rendered `&lt;Body&gt;` of `f250` and diffing it against its staged body shows one difference: a trailing blank line
+and a literal `---` that the staged entry does not carry — the section separator between it and `f251`. `f251`, the buffer's last entry,
+renders byte-identical. Over both findings layers (`perl -0777` over `&lt;Finding …&gt;&lt;Body&gt;…&lt;/Body&gt;`, 319 bodies), **54** end with a `---`
+line: `f8.1 … f242 f250` live and `f43 … f246 f247 f248` retired — every non-last entry of every flush since the split, so the shipped
+`parseFrozenMarkdown` returns `bodyRaw` with the separator and every flusher (`C-TEACH-DRIVE-BEFORE-APPROVE-2`'s included) rendered it
+through. The buffer header's own instruction — *&quot;cut each body at the `---` or `## STAGED CHARTER` boundary first&quot;* — is not what the
+parser does, and no walk asserts the body's tail.
+
+**The rule.** The separator belongs to the buffer, never to a rendered body: `parseFrozenMarkdown` (or the render step) trims a trailing
+`---` and the blank line before it, a flush-invariant walk asserts no `&lt;Body&gt;` ends with a separator line, and the 54 existing bodies are
+cleaned in one sweep. Cosmetic in every consumer measured (nothing parses body tails), so it rides the next record-schema bundle
+(`F207`/`F221`) rather than its own. Owner: that bundle. **Re-measured 2026-09-16 at `aaae414` by parser over all four genre files:
+68 bodies (findings 31 live + 23 retired; rulings 13 live + 1 retired) — the sweep covers every genre, and 56 of the 68 are attested by
+`record-inventory.json`, the split's preservation snapshot, whose hashes follow the sweep.**
+</Body>
+  </Finding>
+  <Finding id="f265" token="F265" status="live">
+    <Title>### F265 — an approved spec carried &quot;measured 0&quot; for the golden fixtures' reflow, a figure taken over the live record and never over the fixtures; the golden relation test pins those bytes, and the copy drive at plan time found ten non-canonical gaps. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-16 at `a715692`** by the executor's plan-time copy drive and re-measured by the authority. The approved
+`C-RECORD-SCHEMA-1-1D8D868F` spec's write-scope Constraint listed `scripts/fixtures/record-parse/golden/` as &quot;regenerated only if
+the measured fixture diff is non-empty — measured 0&quot;, and its pin-grep Assumption stated that no test pins &quot;a golden byte&quot;. Both
+were false when ratified: golden `rulings.xml` holds 5 of 61 `Decision`s at four-space indent and golden `rulings-retired.xml`
+holds all 5 at column zero (10 gap anomalies against the canonical form the spec defines), and
+`scripts/validate-record-retirement.test.ts:2147` asserts a fixture `--retire` writes the golden files byte-for-byte. A serializer
+on every write therefore regenerates the goldens — the &quot;regeneration of every byte-pinned fixture&quot; that `F221` itself named as the
+serializer's one-time cost — and the approved spec had ruled the fixtures out of scope on a measurement of a different population.
+
+**The class is [F130.1](#f130.1) and [F264](#f264) together.** The reflow was driven over the seven record files (0 bytes, true) and
+the result was written onto the fixtures (never driven); the pin grep looked for pins of root counts and indentation and did not
+open the one test whose title says &quot;byte-for-byte&quot;. The authority's own verification drive covered the same seven files and not the
+goldens, and approved on it — the population a spec names is every file it names, fixtures included, and a figure attached to a
+file is a measurement of that file or it is not written.
+
+**Remedy.** Superseded under D27 and the maintainer's V-A ruling (a stale figure in an approved spec is superseded, never carried):
+the successor states the fixtures' true state, puts the goldens in write scope as regenerated, names `:2147` as the pin the bundle
+flips, and pays this finding. Owner: `C-RECORD-SCHEMA-2`.
 </Body>
   </Finding>
 </Findings>
