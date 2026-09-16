@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-SCRIPTS-ADOPTION-2-36DEB1BD>
+    <Summary>Summary of C-SCRIPTS-ADOPTION-2-36DEB1BD.</Summary>
+    <Goals>
+      <Goal>Goal for C-SCRIPTS-ADOPTION-2-36DEB1BD.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-SCRIPTS-ADOPTION-2-36DEB1BD.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-SCRIPTS-ADOPTION-2-36DEB1BD; replace this placeholder by deciding README.md and examples/. Owner: the author.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-SCRIPTS-ADOPTION-2-36DEB1BD.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-SCRIPTS-ADOPTION-2-36DEB1BD.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-SCRIPTS-ADOPTION-2-36DEB1BD>
+</NgraceChangeSpec>

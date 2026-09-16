@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-SCRIPTS-ADOPTION-1-F621B7C0>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-SCRIPTS-ADOPTION-1-F621B7C0><Replacement>C-SCRIPTS-ADOPTION-2-36DEB1BD</Replacement>
     <Summary>
       Bring `scripts/` under the root typecheck and the root lint, and pay `F242`. Two configs move:
       `tsconfig.json`'s `include` gains `scripts/**/*.ts` (ten real type errors surface and are
