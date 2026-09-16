@@ -362,4 +362,10 @@
     <Pays>F258 F259 F260 F261 F262</Pays>
     <StatusText>Live while the bundle is open; the close archives it and the retirement move stamps the five carriers.</StatusText>
   </Row>
+  <Row name="C-STATUS-TEST-TIMEOUT-1-E7DA46E8" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>T0 hotfix on RM-GOVERNED-PATH: give src/grace-status.test.ts's live-repo reRatificationCount test an explicit generous timeout. mint-search: 0 active, 0 archive prior bundle(s) share slug STATUS-TEST-TIMEOUT. Author half: no archived bundle name collides with a test-timeout hotfix; the nearest are the teaching increments, none of which touches src/grace-status.test.ts's timeouts. This Charter names no F token.</Charter>
+    <Pays>F263</Pays>
+    <StatusText>Live while the bundle is open; the close archives it and the retirement move stamps the one carrier.</StatusText>
+  </Row>
 </Registry>

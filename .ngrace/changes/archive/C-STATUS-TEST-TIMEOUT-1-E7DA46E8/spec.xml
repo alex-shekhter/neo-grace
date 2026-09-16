@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-STATUS-TEST-TIMEOUT-1-E7DA46E8>
     <Summary>
       T0 hotfix on the `RM-GOVERNED-PATH` record: give `src/grace-status.test.ts`'s live-repo

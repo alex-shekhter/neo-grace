@@ -1,4 +1,4 @@
-<Findings base="7529" headroom="267" ceiling="7796">
+<Findings base="7522" headroom="245" ceiling="7767">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7518,12 +7518,5 @@ later `C-*`, and this rides with it or ahead of it. Neighbour to F125.
 
 ---
 </Body>
-  </Finding>
-  <Finding id="f263" token="F263" status="live">
-    <Title>### F263 — `src/grace-status.test.ts:1131`'s live-repo `reRatificationCount` test carries no explicit timeout and timed out at 30 230 ms on GitHub run `35017776037`; the whole-archive `collectProjectStatus(REPO_ROOT)` walk needs the repository's explicit generous timeout. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-15: the CI failure on the push of PR #100 to `main` (`dda5548`); the local re-measure at `aa97022`.** GitHub run `35017776037` failed in `src/grace-status.test.ts:1131` — `it(&quot;live repo reports measured reRatificationCount table, both keys as numbers, and measured chain depths&quot;)` — with `(fail) … live repo reports … [30230.55ms]` and `^ this test timed out after 30000ms.` (`gh run view 35017776037 --log-failed | grep -E 'timed out|reRatificationCount'`; the pair appears twice, once per validate step). The test calls `collectProjectStatus(REPO_ROOT)` over the whole archive (`ls -d .ngrace/changes/archive/*/ | wc -l` = **106**) and carries no explicit timeout (`grep -c '}, [0-9_]*);' src/grace-status.test.ts` = **0**). Driven locally with a generous timeout: `bun test --timeout=120000 src/grace-status.test.ts -t &quot;live repo reports&quot;` → `1 pass` in `[9811.89ms]`, wall clock `9.905s` — the walk is green, so the CI failure is the 30 s default, not the assertion.
-
-**The rule.** A test driven against this repository's real archive carries an explicit generous timeout, because the walk scales with the archive and Bun's 30 s default is not generous. The house in-code form is `}, 60_000);` (the record suite uses it fourteen times); the CLI form is `--timeout=120000` (the determinism chain). Section: `src/grace-status.test.ts:1131` (the `it` gains the timeout). Owner: this bundle (`C-STATUS-TEST-TIMEOUT-*`).</Body>
   </Finding>
 </Findings>

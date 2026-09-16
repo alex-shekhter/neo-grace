@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-STATUS-TEST-TIMEOUT-1-E7DA46E8>
     <IntentSummary>
       This T0 plan converts the approved `C-STATUS-TEST-TIMEOUT-1-E7DA46E8` spec into two sequential
