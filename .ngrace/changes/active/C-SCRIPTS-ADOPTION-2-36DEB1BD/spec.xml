@@ -1,24 +1,457 @@
-<NgraceChangeSpec graceVersion="1.0" status="draft">
+<NgraceChangeSpec graceVersion="1.0" status="approved">
   <C-SCRIPTS-ADOPTION-2-36DEB1BD>
-    <Summary>Summary of C-SCRIPTS-ADOPTION-2-36DEB1BD.</Summary>
+    <Summary>
+      Bring `scripts/` under the root typecheck and the root lint, and pay `F242` and `F264`. Two
+      configs move: `tsconfig.json`'s `include` gains `scripts/**/*.ts` (ten real type errors surface
+      and are repaired, never suppressed), and `.ngrace-lint.json`'s `ignoredDirs` drops `"scripts"`
+      (36 real errors surface across the six release scripts that carry a module contract, and every
+      one is repaired). The graph gains the `M-RELEASE-AUTOMATION` module the six headers already
+      name, and the verification document gains its `V-M-RELEASE-AUTOMATION` sibling. `CLAUDE.md:66`'s
+      deferred-adoption sentence is rewritten to state the new truth and to name this bundle as the
+      deferral's payer. The stale pin `src/grace-lint.test.ts:1930` is deleted — the one `src/` write,
+      a `.test.ts` case, not production code. A chartered registry row named after the minted bundle
+      id carries `&lt;Pays&gt;F242 F264&lt;/Pays&gt;`, so the close's `--retire` stamps `PaidBy` on
+      both findings and moves the two findings and the row (`moved 3`). A regression guard in
+      `scripts/audit-regressions.test.ts` pins the two config facts and the rewritten claim so the
+      adoption cannot silently regress. No `src/` production file changes; `M-SKILLS` is untouched;
+      no version surface moves.
+    </Summary>
+    <Problem>
+      **Measured 2026-09-16 at base commit `7d7efaf98a34e9eaf3775b91379f33207aa0ddc6`** (branch
+      `c-scripts-adoption`, tree clean, `validate:ci` green, `.ngrace/changes/active/` holding the
+      successor skeleton minted by `spec new --supersedes C-SCRIPTS-ADOPTION-1-F621B7C0`), by the
+      authority before dispatch and re-measured independently by this author. That commit is a
+      snapshot, not live HEAD.
+
+      **`F242` is live in `findings.xml`** (`id="f242"`, `status="live"`), measured 2026-09-12 at
+      `f975508`: `tsconfig.json` declares `"include": ["src/**/*.ts"]`, so every `scripts/*.ts` is
+      outside the root typecheck and Bun strips the types at run time. Re-measured at `7d7efaf`: with
+      `include` set to `["src/**/*.ts", "scripts/**/*.ts"]`, `bunx tsc --noEmit` reports **10 errors
+      in 6 files** (below), while `bun run typecheck` at base exits **0** because it never reads a
+      `scripts/` file. The class is `F125`'s, fixed for `src/` and never for `scripts/`.
+
+      **Root lint with `scripts/` un-ignored reports 36 errors in 6 files.** Measured at `7d7efaf` by
+      removing only `"scripts"` from `.ngrace-lint.json` `ignoredDirs`:
+      `markup.unparsed-link-token` **20**, `markup.unknown-link` **6**,
+      `markup.role-map-mode-mismatch` **5**, `markup.module-map-mismatch` **5**. Every one is in a
+      release script that already carries a `START_MODULE_CONTRACT` header
+      (`packed-cli-smoke.ts`, `release-bump.ts`, `release-check.ts`, `release-checklist.ts`,
+      `release-finalize.ts`, `release-summary.ts`); the other 23 of the **29** `scripts/*.ts` carry no
+      header and stay ungoverned, exactly as D29's `src/`-scoped baseline leaves them.
+
+      **Lineage, and why this successor exists.** The predecessor `C-SCRIPTS-ADOPTION-1-F621B7C0`
+      was ratified at `8348366` with a write scope that said *no `src/` file* and an `AC-NO-OTHER-FILES`
+      that said *`src/` is byte-identical*, while `src/grace-lint.test.ts:1930` —
+      `it("keeps scripts in ignoredDirs")`, PR #46's guard for the deferral — reads the repository's
+      `.ngrace-lint.json` and asserts `ignoredDirs` **contains** `scripts`. The predecessor's own
+      deliverable flips that value, so `bun run validate:ci` and the predecessor's `AC-NO-OTHER-FILES`
+      cannot both pass: measured on a faithful copy, the un-ignored tree reds `validate:ci` on that one
+      case (1970 pass, 1 fail), and flipping the assertion reds `AC-NO-OTHER-FILES` on that one file.
+      The predecessor was therefore **superseded under D27** (`ngrace supersede`, committed at
+      `7d7efaf`), and the defect was staged as `F264`. This successor adds that file to the write
+      scope, pays `F264` with `F242`, and is otherwise the predecessor's deliverable unchanged.
+
+      **The deferral this bundle overturns.** `CLAUDE.md:66` records that `.ngrace-lint.json`
+      ignores `scripts/` because *"`scripts/` adoption (including `M-RELEASE-AUTOMATION`) is
+      deferred to a later `C-*` — without that config, root lint reports twenty real errors under
+      `scripts/`."* This is that `C-*`. The figure "twenty" was already stale; the measured figure is
+      **36**. Overturning a recorded deferral requires naming it and answering it, which the
+      Constraints do.
+    </Problem>
     <Goals>
-      <Goal>Goal for C-SCRIPTS-ADOPTION-2-36DEB1BD.</Goal>
+      <Goal>
+        **Typecheck coverage.** `tsconfig.json`'s `include` becomes
+        `["src/**/*.ts", "scripts/**/*.ts"]` — the `include`-extension arm of `F242`'s rule, chosen
+        over a second tsconfig because `validate:ci` already runs one `typecheck` and the second
+        config would add a step for no extra coverage. All **10** type errors the extension surfaces
+        are repaired as real types, not suppressions and not a loosened `tsconfig`; the per-error
+        repair is fixed in Constraints. `bun run typecheck` exits 0 with the extended include.
+      </Goal>
+      <Goal>
+        **Lint adoption.** `.ngrace-lint.json`'s `ignoredDirs` becomes `["examples"]` and nothing
+        else; `examples/` stays ignored because it is a nested project covered by
+        `validate:examples`. All **36** errors are repaired in the six contract-bearing release
+        scripts. A `markup.*` code that fired on a legitimate pattern would be a finding to stage,
+        never a rule to bend; measured, none does (see Constraints), so nothing is staged from this
+        bundle.
+      </Goal>
+      <Goal>
+        **The graph gains its module.** `.ngrace/graph/main.xml` gains a direct
+        `&lt;M-RELEASE-AUTOMATION&gt;` child of `GD-MAIN` (`Summary`, `Type`) and
+        `.ngrace/graph/index.xml` gains `&lt;M-RELEASE-AUTOMATION /&gt;` to `GD-MAIN`'s
+        `&lt;Owns&gt;`; `.ngrace/verification/main.xml` gains `&lt;V-M-RELEASE-AUTOMATION&gt;` under
+        `VD-MAIN` and `.ngrace/verification/index.xml` gains the matching `&lt;Owns&gt;` child.
+        Index and document stay in sync — the projection raises
+        `projection.graph.unlisted-anchor` / `projection.graph.missing-anchor` otherwise, and the
+        verification→module cross-check raises `projection.verification.dangling-module` when the
+        module is absent.
+      </Goal>
+      <Goal>
+        **`CLAUDE.md:66` states the new truth.** The sentence is rewritten to say that
+        `.ngrace-lint.json` ignores only `examples/`, that `scripts/` is adopted (brought under the
+        root typecheck and the root lint), that `M-RELEASE-AUTOMATION` now exists in the graph, and
+        that `C-SCRIPTS-ADOPTION-2-36DEB1BD` is the deferral's payer. It carries this bundle's own
+        measured figure, not the stale "twenty".
+      </Goal>
+      <Goal>
+        **The stale `src/` pin is deleted.** `src/grace-lint.test.ts:1930`'s
+        `it("keeps scripts in ignoredDirs")` is removed — the single `src/` write — because the new
+        `scripts/audit-regressions.test.ts` guard asserts the same fact *and* the include and the
+        `CLAUDE.md` claim, and a second pin for the same fact is two places to drift. The
+        `AC-SHAPE-CODE-SPLIT` describe loses only that case; no production file and no other
+        assertion changes.
+      </Goal>
+      <Goal>
+        **The payment.** Mint a `kind="chartered"` registry row into
+        `docs/plans/active/RM-GOVERNED-PATH/registry.xml` whose `name` is the minted bundle id
+        `C-SCRIPTS-ADOPTION-2-36DEB1BD`, whose `&lt;Pays&gt;` contains `F242` and `F264`, and whose
+        `&lt;Charter&gt;` carries the searched-before-minting statement in two halves (Constraints).
+        The plan flushes `F264` from `.ngrace/scratch/staged-findings.md` (cut at its separator,
+        rendered through the shipped `xmlEscape`, one index `Entry`, `--rewrite-roots`). After the
+        close archives the bundle, `bun ./scripts/validate-record-retirement.ts --retire` stamps
+        `&lt;PaidBy&gt;C-SCRIPTS-ADOPTION-2-36DEB1BD&lt;/PaidBy&gt;` on `F242` and `F264`, moves both
+        findings to `findings-retired.xml` and the row to `registry-retired.xml` (**`moved 3`**), and
+        flips their index `Entry` layers in place; a second `--retire` reports `moved 0`.
+      </Goal>
+      <Goal>
+        **The adoption guard.** `scripts/audit-regressions.test.ts` gains one regression case that
+        (a) reads `tsconfig.json` and asserts `include` contains `scripts/**/*.ts`, (b) reads
+        `.ngrace-lint.json` and asserts `ignoredDirs` does not contain `scripts`, (c) reads
+        `CLAUDE.md` and asserts it no longer contains the stale "is deferred to a later" clause and
+        does contain `C-SCRIPTS-ADOPTION-2-36DEB1BD`, and (d) spawns `bun run typecheck` and asserts
+        exit status 0. This is the close-time command for the typecheck half: it reddens if any of
+        the four facts regresses, which a bare `bun run typecheck` cannot do once `scripts/` leaves
+        the include.
+      </Goal>
     </Goals>
     <Constraints>
-      <Constraint>Constraint for C-SCRIPTS-ADOPTION-2-36DEB1BD.</Constraint>
+      <Constraint>
+        Ceremony tier **T1** (single-package module change). `AffectedAreas` names exactly one
+        module, `M-RELEASE-AUTOMATION`; there is no second package, no `DF-*` and no `IC-*`, so T2
+        does not apply, and there is no new subsystem, so T3 does not. The blast radius of the two
+        configs is repository-wide, but a repo-wide tooling surface is not a second module. Base
+        commit for every byte-invariance criterion:
+        `7d7efaf98a34e9eaf3775b91379f33207aa0ddc6`. Binding live rulings: `D12.1` (`DEPENDS` lists
+        `M-*` graph anchors only, and `DEPENDS: none` while importing widely is sanctioned — which
+        is what the `DEPENDS` repair writes), `D27` (the predecessor was ratified and unsatisfiable,
+        so it is repaired by supersede, never by editing the approved artifact), `D29` (the
+        module-markup baseline is a gate on `src/**/*.ts`; this bundle extends the *practice* to
+        `scripts/` and does not codify a rule), `D28`/`D28.1`, `D30` (findings raised while this
+        bundle is open go to the staged buffer; `F264` is flushed from it by the plan, and nothing
+        new is staged), `D31` (the index has no retired sibling; its `Entry` layer flips in place),
+        `D11` (nothing deferred), `D20` (the authority owns the close), `F43` (escape markup as
+        character data). This spec is authored at `status="draft"` and stops there: the approval
+        write, the gates, the applied close and the `--retire` are the authority's.
+      </Constraint>
+      <Constraint>
+        **The deferral overturned, and its answer.** The rule is the repository's own: a proposal
+        that changes a ruled behaviour names the ruling and answers its argument. What this
+        overturns is not a ruling but `CLAUDE.md:66`'s recorded deferral, authored when six release
+        scripts carried `LINKS` to a graph module the graph lacked. The answer is that the deferral
+        was a *sizing* decision, not a disagreement: the work is now bounded (six files, 36 errors,
+        two configs, one graph module, one stale test case) and the cost of not doing it is `F242`'s
+        class — a green `typecheck` that does not read the directory most of the governed-path work
+        has landed in. The deferral's own remediation (bring `scripts/` under the same root commands
+        `src/` is already under) is exactly what this bundle does. Codification search, measured
+        2026-09-16 over `rulings.xml`: **no live ruling** addresses `typecheck`, `tsconfig.json` or
+        `ignoredDirs`; the nearest are `D12.1` (the `DEPENDS` semantics the repair conforms to) and
+        `D29` (the `src/`-scoped module baseline). Nothing new is codified.
+      </Constraint>
+      <Constraint>
+        **Write scope, stated once.** Files this bundle forces into write scope:
+        `tsconfig.json` (the `include`), `.ngrace-lint.json` (the `ignoredDirs`),
+        `.ngrace/graph/main.xml` and `.ngrace/graph/index.xml` (the module),
+        `.ngrace/verification/main.xml` and `.ngrace/verification/index.xml` (the verification
+        entry), `CLAUDE.md` (the rewritten sentence), the eleven touched `scripts/*.ts` files
+        (`audit-regressions.test.ts`, `packed-cli-smoke.ts`, `packed-cli-smoke.test.ts`,
+        `release-bump.ts`, `release-check.ts`, `release-checklist.ts`, `release-finalize.ts`,
+        `release-finalize.test.ts`, `release-summary.ts`, `validate-marketplace.ts`,
+        `validate-record-retirement.test.ts`), **`src/grace-lint.test.ts`** (the one `src/` write:
+        the stale pin's deletion), the record files the flush, the row and the close write
+        (`docs/plans/active/RM-GOVERNED-PATH/registry.xml`, `registry-retired.xml`, `findings.xml`,
+        `findings-retired.xml`, `decisions.xml`), and this bundle's own artifacts under
+        `.ngrace/changes/active/C-SCRIPTS-ADOPTION-2-36DEB1BD/`. Nothing else: no `src/` production
+        file, no `README.md`, no `examples/`, no version surface, no lint catalog, no skill text,
+        and no write of `.ngrace/scratch/staged-findings.md` beyond the flush's read.
+        **`M-SKILLS` is not touched** — it owns `skills/ngrace/`, no forced file links it, and its
+        Path-less module shape is the precedent for the new one.
+      </Constraint>
+      <Constraint>
+        **The stale `src/` pin: delete it, and why not invert.** `src/grace-lint.test.ts:1930`'s
+        case is removed whole (the six-line `it("keeps scripts in ignoredDirs") { … }`), leaving the
+        `AC-SHAPE-CODE-SPLIT` describe's other cases untouched. The alternative — invert it to
+        `expect(config.ignoredDirs).not.toContain("scripts")` — was considered and rejected because
+        the new `scripts/audit-regressions.test.ts` guard already asserts exactly that fact, plus
+        the `tsconfig.json` include and the `CLAUDE.md` claim; keeping a second pin for one fact is
+        two places to drift, which is the defect class this bundle exists to close. The repository
+        loses no coverage: the fact is asserted once, in the guard whose close-time command is
+        `bun test --timeout=120000 scripts/audit-regressions.test.ts`. The file is a `.test.ts`, so
+        it is not module-ownable (`isModuleOwnableWritePath` returns false) and its write raises no
+        `change.graph-anchors-miss-write-scope`.
+      </Constraint>
+      <Constraint>
+        **The 10 type errors and their decided repairs.** Every repair is a real type fix; none
+        loosens `tsconfig`, none is a suppression, and none is annotated `@ts-expect-error`.
+        (1) `scripts/packed-cli-smoke.ts:49` and (2) `scripts/packed-cli-smoke.test.ts:51` —
+        `result.error?.code` where Bun types `spawnSync`'s `error` as `Error`; repair: widen the
+        spawn error to `NodeJS.ErrnoException` (the runtime errno object carries `code`). No runtime
+        defect: the property exists at run time. (3) `scripts/release-bump.ts:189` —
+        `calculateTargetVersion`'s `switch (target)` covers all seven `RELEASE_TYPES` values but
+        `target` is `string`, so tsc cannot prove the return; repair: narrow `target` to the union
+        of `RELEASE_TYPES` (or add an explicit unreachable `default` that throws an invariant
+        error). No runtime defect: all seven values are covered. (4) `scripts/release-bump.ts:372`
+        (two errors) — `ReleaseSummaryPromptInput` and `ReleaseSummaryOptions` are used but not
+        imported; repair: add both as `type` imports to the existing `./release-summary.ts` import.
+        No runtime defect: types are erased. (5) `scripts/release-finalize.test.ts:52` — the
+        `StableFinalizeState` fixture omits `packageName` and `versionAlreadyPublished`; repair: add
+        `packageName: "@neograce/cli"` and `versionAlreadyPublished: false`, the values the
+        assertion's eight expected errors depend on. A test-fixture honesty defect, not a production
+        one. (6) `scripts/validate-marketplace.ts:339` — `scripts["validate:release"]?.includes(...)`
+        is typed `{}`; repair: hoist the value to a local and narrow it with
+        `typeof … === "string"`. This one **hides a latent runtime defect**: a non-string
+        `validate:release` value would throw a `TypeError` on `.includes` instead of being reported.
+        (7) `scripts/validate-record-retirement.test.ts:2642`, `:3826`, `:4087` (three errors) —
+        `expect(readFileSync(…)).toBe(before.get(file))` where `Map.get` returns `string | undefined`;
+        repair: capture the value, assert it is defined, then compare. No runtime defect: the map is
+        populated immediately above each assertion.
+      </Constraint>
+      <Constraint>
+        **The 36 lint errors and their decided repairs.** The six release scripts carry
+        `LINKS: [M-RELEASE-AUTOMATION, VF-RELEASE-AUTOMATION]`, `ROLE: SCRIPT`, and — five of them —
+        `MAP_MODE: EXPORTS`. (a) Six `markup.unparsed-link-token` come from the `VF-` token: the
+        accepted `LINKS` families are `M-*`, `DF-*`, `V-M-*`, so `VF-RELEASE-AUTOMATION` is a typo
+        for `V-M-RELEASE-AUTOMATION`; repair: rewrite the token in all six headers. (b) Six
+        `markup.unknown-link` come from `M-RELEASE-AUTOMATION` being absent from the graph; repair:
+        add the module and its verification entry (Goal three). (c) Fourteen
+        `markup.unparsed-link-token` come from `DEPENDS` tokens outside `M-*` (`node:fs`,
+        `node:child_process`, `scripts/release-summary.ts`, `scripts/release-check.ts`,
+        `src/artifact/test-fixtures.ts`); repair: `DEPENDS: none` for the five whose only
+        dependencies are node builtins and same-module siblings, and `DEPENDS: M-TEST-SUPPORT` for
+        `packed-cli-smoke.ts`, whose `src/artifact/test-fixtures.ts` import is owned by
+        `M-TEST-SUPPORT` (`src/artifact/test-fixtures.ts:5`). `D12.1` is the authority for treating
+        `DEPENDS` as module anchors rather than import lists. (d) Five
+        `markup.role-map-mode-mismatch` come from `ROLE: SCRIPT` with `MAP_MODE: EXPORTS`; `SCRIPT`
+        requires `LOCALS`, so repair: `MAP_MODE: LOCALS` on the five. (e) Five
+        `markup.module-map-mismatch` come from `MODULE_MAP` not matching the file's top-level
+        symbols; `LOCALS` parity is exact (`src/project-utils.ts:881-899`), so repair: expand each
+        `MODULE_MAP` to the file's full top-level symbol set — measured at `7d7efaf` by the shipped
+        adapter: `packed-cli-smoke.ts` 9, `release-bump.ts` 50, `release-check.ts` 36,
+        `release-checklist.ts` 8, `release-finalize.ts` 14, `release-summary.ts` 29. Neither (d)
+        nor (e) is a rule to bend: the headers genuinely declare a role and a map that disagree, and
+        the repair makes the map true. No `markup.*` code here fires on a legitimate pattern, so
+        **no finding is staged** from these 36.
+      </Constraint>
+      <Constraint>
+        **Graph and verification writes are hand writes, validated by lint.** The only shipped
+        graph verb is `ngrace graph split` (`ngrace graph --help`); no verb creates a module, and no
+        verb writes a verification entry. The two documents are therefore hand-authored governed XML
+        and `bun ./src/grace.ts lint --path . --fail-on warnings` is the validation:
+        `projection.graph.unlisted-anchor` / `projection.graph.missing-anchor` enforce index/document
+        agreement, `projection.verification.dangling-module` enforces that
+        `V-M-RELEASE-AUTOMATION` names a module the graph carries (measured: it fires when the
+        module is absent and clears when present), and `markup.unknown-link` enforces that the six
+        `LINKS` resolve. `M-RELEASE-AUTOMATION` declares **no `&lt;Path&gt;`**: the graph model
+        carries one `Path` per module (`GraphProjection` records a single `path`), the module spans
+        six files, and the repository's precedent for a multi-file module is the Path-less
+        `M-SKILLS`. It declares `&lt;Type&gt;UTILITY&lt;/Type&gt;` (a known value) and a `Summary`
+        naming the six files it spans. `V-M-RELEASE-AUTOMATION` declares `Command`, `Scenario` and
+        `TraceAssertion` under `VD-MAIN`.
+      </Constraint>
+      <Constraint>
+        **CloseEvidence shapes.** Every criterion's close-time command is either a default
+        discriminating shape or a `bun test` over a shipped suite: `bun test` for the guard and the
+        record walk, `bun ./src/grace.ts lint --path . --fail-on warnings` (the
+        `grace-ts-lint-fail-on` shape) for the lint and graph halves, and `git diff --exit-code`
+        for byte-invariance. `bun run typecheck` matches no default shape and is not a configured
+        prefix, so binding it as a bare `CloseEvidence` `Command` would emit
+        `change.close-evidence-undiscriminating` and redden this draft. The guard runs
+        `bun run typecheck` inside `bun test`, which keeps the draft green and makes the property
+        falsifiable; `bun run typecheck` is named as an `ExpectedCommand` in `VerificationIntent`
+        and as a plan `MustPassCommand`. No prefix is added to `closeEvidenceCommandShapes`.
+      </Constraint>
+      <Constraint>
+        **The record writes, the flush, and the searched-before-minting statement.** The plan flushes
+        `F264` and mints one `kind="chartered"` row into `registry.xml` (name
+        `C-SCRIPTS-ADOPTION-2-36DEB1BD`, `&lt;Pays&gt;F242 F264&lt;/Pays&gt;`) and runs the
+        root/ceiling rewrite the record engine requires; the close archives the bundle and runs
+        `--retire`, which stamps `PaidBy` on both findings, moves `F242`, `F264` and the row
+        (**`moved 3`**), and flips both index layers. **Flush projection, measured at `7d7efaf` on a
+        throwaway copy** (108 archive directories): after `F264` is rendered into `findings.xml`
+        through the shipped `xmlEscape` with one index `Entry` and `--rewrite-roots` runs, findings
+        reads `&lt;Findings base="7542" headroom="225" ceiling="7767"&gt;` (its 20-line entry, up
+        from `7522 / 245 / 7767`), index `&lt;RecordIndex base="269" headroom="27" ceiling="296"&gt;`,
+        registry `&lt;Registry base="12" headroom="14" ceiling="26"&gt;` and rulings
+        `&lt;Rulings base="1697" headroom="186" ceiling="1883"&gt;` unchanged. The row mint lifts the
+        registry root to `13 / 13 / 26`; the close's move leaves findings
+        `7496 / 271 / 7767`, index `267 / 29 / 296`, registry `12 / 14 / 26`, rulings unchanged, and
+        a second `--retire` reports `moved 0`. The row's `&lt;Charter&gt;` must carry both halves,
+        measured, matching the house form: **tool half**, verbatim from the mint —
+        `mint-search: 1 active, 0 archive prior bundle(s) share slug SCRIPTS-ADOPTION`; **author
+        half**, measured 2026-09-16 at `7d7efaf` over the **108** archive directories and both
+        registry layers — **9** archived bundles name `tsconfig.json` and **45** name `ignoredDirs`,
+        none ever *wrote* `tsconfig.json` (its `include` has been `["src/**/*.ts"]` in every commit
+        but the predecessors' own), and `.ngrace-lint.json` was written only by
+        `C-EVIDENCE-DISCRIMINATION` and the now-archived `C-SCRIPTS-ADOPTION-1-F621B7C0`; **13**
+        archived bundles name `scripts/release-check.ts`, and `F125`'s payer `C-SUPERSEDE-COMMAND` is
+        the precedent for forcing a `scripts/` file into scope from a `src/`-class repair. The
+        lineage half is the name `C-SCRIPTS-ADOPTION-*`: the predecessor is the colliding-but-
+        superseded name, and no other name better fits a bundle that adopts `scripts/` under the root
+        typecheck and lint.
+      </Constraint>
     </Constraints>
     <NonGoals>
-      <NonGoal>Non-goal for C-SCRIPTS-ADOPTION-2-36DEB1BD; replace this placeholder by deciding README.md and examples/. Owner: the author.</NonGoal>
+      <NonGoal>
+        `README.md` unchanged: this bundle changes no user-visible CLI surface, no install step and
+        no measurement cell. Owner: unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        `examples/` unchanged and still the only non-`scripts` entry in `.ngrace-lint.json`
+        `ignoredDirs`; it is a nested project covered by `validate:examples` and out of this
+        bundle's root scope. Owner: `validate:examples`; no polyglot surface.
+      </NonGoal>
+      <NonGoal>
+        `M-SKILLS`, `skills/ngrace/*` and the packaged mirror under `plugins/ngrace/skills/ngrace/*`
+        — unchanged. No taught sentence moves, so no needle or token-accounting pin moves. Owner:
+        unchanged surfaces; `M-SKILLS` is not in `AffectedAreas`.
+      </NonGoal>
+      <NonGoal>
+        The record-schema work `F252` (the buffer's `---` separator projected into rendered
+        `&lt;Body&gt;` elements) and the CLI-only-XML direction are owned by the schema/serializer
+        charter, not here; this bundle uses the shipped record engine as-is. Owner: the
+        `F207`/`F221` schema-and-serializer charter.
+      </NonGoal>
+      <NonGoal>
+        No `src/` production change: the graph module, the verification entry, the two configs, the
+        eleven `scripts/` files, the deletion of one case in `src/grace-lint.test.ts`, `CLAUDE.md`
+        and the record are the whole write surface. Owner: unchanged production code; a `src/`
+        production write would be a different bundle.
+      </NonGoal>
+      <NonGoal>
+        No new lint issue code, no new CLI verb, no `require-module-contract` rule and no change to
+        `closeEvidenceCommandShapes`: the 36 errors are repaired with the shipped codes, and the
+        `src/`-scoped module baseline stays as `D29` ruled. Owner: unchanged; `D29`'s gate is a
+        separate chartered bundle.
+      </NonGoal>
+      <NonGoal>
+        Version surfaces (`package.json`, `openpackage.yml`, `.claude-plugin/marketplace.json`,
+        `plugins/ngrace/.claude-plugin/plugin.json`, `README.md` version markers) and
+        `CHANGELOG.md` — unchanged; no release action is taken here. Owner: the maintainer's release
+        act.
+      </NonGoal>
     </NonGoals>
     <AcceptanceCriteria>
-      <AC-SKELETON>Acceptance criterion for C-SCRIPTS-ADOPTION-2-36DEB1BD.</AC-SKELETON>
+      <AC-TYPECHECK-SCRIPTS>
+        `tsconfig.json`'s `include` is `["src/**/*.ts", "scripts/**/*.ts"]`, every one of the ten
+        errors in the six files is repaired as a real type (no suppression, no loosened config),
+        and `bun run typecheck` exits 0 with the extended include. The guard in
+        `scripts/audit-regressions.test.ts` asserts the include, spawns `bun run typecheck`, and
+        asserts exit 0; it reddens if the include loses `scripts/**/*.ts` or a script stops
+        typechecking.
+        <CloseEvidence>
+          <Command>bun test --timeout=120000 scripts/audit-regressions.test.ts</Command>
+        </CloseEvidence>
+      </AC-TYPECHECK-SCRIPTS>
+      <AC-LINT-ZERO>
+        `.ngrace-lint.json`'s `ignoredDirs` is `["examples"]` and all 36 errors across the six
+        release scripts are repaired; post-archive root lint against the un-ignored `scripts/` is
+        0 errors / 0 warnings. The guard also asserts `ignoredDirs` does not contain `scripts`, and
+        the stale `src/grace-lint.test.ts` case asserting it does is deleted.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-LINT-ZERO>
+      <AC-GRAPH-ANCHORS>
+        `M-RELEASE-AUTOMATION` exists exactly once as a direct `GD-MAIN` child in
+        `.ngrace/graph/main.xml` and is listed in `GD-MAIN`'s `&lt;Owns&gt;`;
+        `V-M-RELEASE-AUTOMATION` exists exactly once under `VD-MAIN` in
+        `.ngrace/verification/main.xml` and is listed in `VD-MAIN`'s `&lt;Owns&gt;`; all six
+        release headers declare `LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]` and their
+        `MODULE_MAP` matches the file's top-level symbol set exactly at `MAP_MODE: LOCALS`; no
+        `markup.unknown-link`, `markup.unparsed-link-token`, `markup.role-map-mode-mismatch`,
+        `markup.module-map-mismatch`, `graph.module-without-linked-files` or
+        `projection.verification.dangling-module` issue remains.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-GRAPH-ANCHORS>
+      <AC-CLAUDE-DEFERRAL>
+        `CLAUDE.md` no longer contains the stale clause "is deferred to a later", states that
+        `.ngrace-lint.json` ignores only `examples/` and that `scripts/` is adopted, and names
+        `C-SCRIPTS-ADOPTION-2-36DEB1BD` as the deferral's payer. The guard asserts the absence of
+        the clause and the presence of the bundle id.
+        <CloseEvidence>
+          <Command>bun test --timeout=120000 scripts/audit-regressions.test.ts</Command>
+        </CloseEvidence>
+      </AC-CLAUDE-DEFERRAL>
+      <AC-RECORD-PAYS>
+        This bundle's `kind="chartered"` registry row exists exactly once across `registry.xml` and
+        `registry-retired.xml` with no fixed expectation of which file holds it: its `name` is
+        `C-SCRIPTS-ADOPTION-2-36DEB1BD`, its `status` agrees with the holding file, its
+        `&lt;Pays&gt;` contains `F242` and `F264`, and its `&lt;Charter&gt;` carries both halves of
+        the searched-before-minting statement. After the close's `--retire`, **both** `F242` and
+        `F264` exist exactly once across `findings.xml` and `findings-retired.xml`, each with
+        `&lt;PaidBy&gt;C-SCRIPTS-ADOPTION-2-36DEB1BD&lt;/PaidBy&gt;`, their `token`/`genre` agreeing,
+        their index `Entry` layers agreeing with the holding file, the move reported as **`moved 3`**
+        and a second `--retire` as `moved 0`. The plan flushes `F264` and adds the row walk to
+        `scripts/validate-record-retirement.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-PAYS>
+      <AC-NO-OTHER-FILES>
+        No file changes relative to base `7d7efaf98a34e9eaf3775b91379f33207aa0ddc6` outside the
+        forced scope named here: `src/` production files are byte-identical — the only `src/` change
+        is `src/grace-lint.test.ts`, named and excluded — and the only `scripts/` changes are the
+        eleven named files. The close's own move of this bundle's directory is excluded twice — the
+        **active-departure** (`:(exclude).ngrace/changes/active/C-SCRIPTS-ADOPTION-2-36DEB1BD`, the
+        tracked skeleton leaving `active/`) and the **archive-arrival**
+        (`:(exclude).ngrace/changes/archive/C-SCRIPTS-ADOPTION-2-36DEB1BD`); git reports the move as
+        a rename, so excluding only the destination still reddens on the source deletion. The
+        predecessor needed only the archive-arrival exclusion because its base `5bf9723` predated its
+        own active directory; this bundle is based at `7d7efaf`, where its skeleton is already
+        committed under `active/`, so both are required. Without them the close would redden the
+        criterion it wrote.
+        <CloseEvidence>
+          <Command>git diff --exit-code 7d7efaf98a34e9eaf3775b91379f33207aa0ddc6 -- . ':(exclude)tsconfig.json' ':(exclude).ngrace-lint.json' ':(exclude)CLAUDE.md' ':(exclude).ngrace/graph/main.xml' ':(exclude).ngrace/graph/index.xml' ':(exclude).ngrace/verification/main.xml' ':(exclude).ngrace/verification/index.xml' ':(exclude)src/grace-lint.test.ts' ':(exclude)scripts/audit-regressions.test.ts' ':(exclude)scripts/packed-cli-smoke.ts' ':(exclude)scripts/packed-cli-smoke.test.ts' ':(exclude)scripts/release-bump.ts' ':(exclude)scripts/release-check.ts' ':(exclude)scripts/release-checklist.ts' ':(exclude)scripts/release-finalize.ts' ':(exclude)scripts/release-finalize.test.ts' ':(exclude)scripts/release-summary.ts' ':(exclude)scripts/validate-marketplace.ts' ':(exclude)scripts/validate-record-retirement.test.ts' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude).ngrace/changes/active/C-SCRIPTS-ADOPTION-2-36DEB1BD' ':(exclude).ngrace/changes/archive/C-SCRIPTS-ADOPTION-2-36DEB1BD'</Command>
+        </CloseEvidence>
+      </AC-NO-OTHER-FILES>
     </AcceptanceCriteria>
     <AffectedAreas>
-      <M-AFFECTED-MODULE />
+      <M-RELEASE-AUTOMATION />
+      The one module this bundle anchors. It is new: the six release scripts already declare
+      `LINKS: M-RELEASE-AUTOMATION` in their headers, but the graph never carried the anchor, which
+      is the six `markup.unknown-link` errors. The eleven touched `scripts/*.ts` files either belong
+      to it (the six contract-bearing release scripts: `packed-cli-smoke.ts`, `release-bump.ts`,
+      `release-check.ts`, `release-checklist.ts`, `release-finalize.ts`, `release-summary.ts`) or
+      carry no `LINKS:` header and therefore force no module (`packed-cli-smoke.test.ts`,
+      `release-finalize.test.ts`, `validate-marketplace.ts`, `validate-record-retirement.test.ts`,
+      `audit-regressions.test.ts`). The twelfth write, `src/grace-lint.test.ts`, is a `.test.ts` and
+      `isModuleOwnableWritePath` does not own it, so it forces no module either. `M-SKILLS` is not
+      touched. `tsconfig.json`, `.ngrace-lint.json` and `CLAUDE.md` are not governed files and force
+      no module.
     </AffectedAreas>
     <VerificationIntent>
-      <ExpectedCommand>bun test</ExpectedCommand>
-      <ExpectedEvidence>Evidence for C-SCRIPTS-ADOPTION-2-36DEB1BD.</ExpectedEvidence>
+      <ExpectedCommand>bun run typecheck</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --fail-on warnings</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=120000 scripts/audit-regressions.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=30000 scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        T1 integration: `bun run typecheck` exits 0 with `scripts/**/*.ts` included, and a type
+        error planted into any one of the six repaired scripts reddens it while the same plant is
+        invisible at base (where the include omits `scripts/`); root lint against the un-ignored
+        `scripts/` reports 0/0, and a markup violation planted into a release header reddens it
+        while the same plant is invisible at base (where `ignoredDirs` holds `scripts`); the six
+        `LINKS` resolve to the new graph module and verification entry; the guard reddens if
+        `tsconfig.json`'s include, `.ngrace-lint.json`'s `ignoredDirs`, or `CLAUDE.md`'s rewritten
+        claim regresses; the chartered row is live before the close, a mid-bundle `--retire` reports
+        `moved 0`, the close's move reports **`moved 3`** and flips the two index layers, and a
+        second `--retire` reports `moved 0`; the applied-archive record validates clean; and every
+        `CloseEvidence` command plus the full `validate:ci` run green inside a faithful copy of the
+        post-close state, with both directions driven for each criterion. Structural counts come
+        from the shipped parser and the shipped language adapter, never `grep -c`; exit codes are
+        read directly, never through a pipe.
+      </ExpectedEvidence>
     </VerificationIntent>
   </C-SCRIPTS-ADOPTION-2-36DEB1BD>
 </NgraceChangeSpec>
