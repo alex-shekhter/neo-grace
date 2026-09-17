@@ -1,4 +1,4 @@
-<Findings base="7376" headroom="258" ceiling="7634">
+<Findings base="7329" headroom="285" ceiling="7614">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7244,20 +7244,6 @@ entry forward. Neighbour to [F136.1](#f136.1) (the same error one enumeration ea
 [F226](#f226) item 9.
 </Body>
   </Finding>
-  <Finding id="f228" token="F228" status="live">
-    <Title>### F228 — a duplicate live finding id crashes `--retire` before any write, with a message that names the wrong cause. **[verified]**</Title>
-    <Body>
-Measured by the executor during `C-ROOT-WINDOW`'s probes, 2026-09-11: a `Finding` whose `id` already
-names an index `Entry` that an earlier item of the same move spliced — a duplicate live id, which the
-record shape check does not forbid — makes `--retire` throw in `setEntryLayer` with *&quot;no readable
-layer attribute&quot;*. The throw is before any write, so the record is not corrupted; the message blames
-the attribute when the cause is the duplicate. Loud-before-write is the right behaviour; the
-diagnosis is the defect. The shape check's silence on duplicate ids is the same gap
-[F207](#f207) records from the schema side.
-
-Owner: a later bundle on the engine surface, sized by the authority. Neighbour to [F207](#f207).
-</Body>
-  </Finding>
   <Finding id="f229" token="F229" status="live">
     <Title>### F229 — a red-direction probe can expire the way a pin does: one in the delivered suite plants its mutation into the live layer and reds the whole suite in the only state close evidence is evaluated. **[verified]**</Title>
     <Body>
@@ -7338,39 +7324,6 @@ one commit earlier — the criteria were relations, not events.
 Owner: the authority's procedure, from this entry forward; the skill text that teaches supersede
 (`ngrace-plan` `approved_plan_immutability`) says nothing about payer rows and is the surface a later
 bundle amends. Neighbour to [F225](#f225) and [F229](#f229).
-</Body>
-  </Finding>
-  <Finding id="f277" token="F277" status="live">
-    <Title>### F277 — the validator accepts an index `Entry` whose `layer` disagrees with the file holding its genre element, so a hand edit moves an index line to the retired layer without moving the entry and relieves the index budget while the record stays green. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-17 at `5d9a5c89a4b6e57999051e169c89d36570e4081d`.** On a whole-record copy, flipping one live finding's index line from `layer=&quot;live&quot;` to `layer=&quot;retired&quot;` (`&lt;Entry id=&quot;f1&quot; token=&quot;F1&quot; genre=&quot;finding&quot; layer=&quot;live&quot; /&gt;` → `... layer=&quot;retired&quot; /&gt;`), leaving `findings.xml` untouched, is accepted by `bun ./scripts/validate-record-retirement.ts .ngrace/tmp-record2` (`record-retirement: ok`, exit 0, stderr empty) while the unmodified control copy is equally `ok`. `--rewrite-roots` then reads the index's shipped metric back — `liveEntryCount` (`scripts/validate-record-retirement.ts:995`), the index genre's metric in `rewriteRecordRoots` (`:1325`) — and persists `base=&quot;264&quot; headroom=&quot;32&quot; ceiling=&quot;296&quot;` against the control's `base=&quot;265&quot; headroom=&quot;31&quot; ceiling=&quot;296&quot;`: the flip relieves the index budget by one live entry while the entry itself is unmoved, and the ceiling holds. Nothing compares an `Entry`'s `layer` to the holding genre element: `checkStatusFile` (`:1610`) runs for `Finding`/`Decision`/`Row` only and never for `Entry`; `recordSchemaViolations` (`scripts/record-serialize.ts:157`) is per-element and per-file; `validate-citation-anchors.ts:124` checks index id-duplication and the inventory↔index relation but not `layer`; `prove-record-preservation.ts` checks the inventory id/token relation and body hashes, not `layer`. The shipped per-bundle &quot;exists exactly once across the layers with its index `Entry` layer agreeing&quot; walks cover only the ids each flush names, so the record's older ids are unprotected and a layer flip on any of them is silent.
-
-**Proposed owner.** The engine surface that already owns the pair invariants. The same bundle that pays `F228` (the validator's silence on duplicate ids, one invariant over) can extend the shared structural check to &quot;every index `Entry`'s `layer` equals the layer of the file holding its genre element, for every id across both genre pairs&quot;, as a named validator finding, a `--retire` refusal, and a `--flush` refusal. Sized by the authority. Neighbour to `F228` (same validator-silence class) and `F221` (structural drift nothing canonicalizes).
-</Body>
-  </Finding>
-  <Finding id="f278" token="F278" status="live">
-    <Title>### F278 — an approved spec had the flush verb write a decision's resolving `CodifiedIn` mid-execution, against the shipped one-wave rule that the close writes the element and moves it together; the plan could only comply by taking the record validator off the task boundary. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-17 at `5de3373`** by the executor's plan drive and re-read by the authority. The approved
-`C-RECORD-FLUSH-VERB-1-464041EE` spec's dogfood Goal has the first verb flush write `F277`, the charter row **and
-`D40`'s `CodifiedIn`** in one invocation during execution. A resolving `CodifiedIn` makes a live decision eligible at
-once: the validator reports `decision-eligible-still-live` and `validate:ci` reds on the production tree from that
-task until the close's `--retire`. The rule that forbids this is shipped and archived — `C-APPLY-VERB`'s plan: *&quot;Do not
-write CodifiedIn on D37 (after a resolving CodifiedIn a live Decision is immediately decision-eligible;
-decision-eligible-still-live fails a task boundary that holds that tree; the close writes the element and --retire in
-one wave)&quot;* — and D37's `CodifiedIn` was written in the close commit (`17d8b47`). The draft plan complied by excluding
-the record suite and the validator from `TargetAssertions` and from two tasks' `Verification`: an instrument routed
-around a boundary it exists to guard.
-
-**The class.** A spec named a mechanism (`--codify`) without reading the ruling that fixes its *timing* — rule 9's
-&quot;find the decision that created the behaviour&quot; applied to a close act. Same shape as [F273](#f273)'s: the change's
-second-order effect (a record state the validator refuses) sat in a place the spec never looked, here an archived
-plan's task note rather than a test pin. The authority approved it with the same gap.
-
-**Remedy.** Superseded under D27: the successor's execution flush writes the findings and the row only; the verb gains a
-codify-only invocation (no entries, the existing row recognised, one `CodifiedIn` written through the same
-transaction) that the **authority runs at the close** with the bundle still active, immediately followed by `apply`
-and `--retire` — the one-wave rule kept, and the write still the verb's (D40). Owner: `C-RECORD-FLUSH-VERB-2`.
 </Body>
   </Finding>
 </Findings>

@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-RECORD-FLUSH-VERB-2-6BB9DF5A>
     <IntentSummary>
       Author the execution for the approved, fingerprinted spec

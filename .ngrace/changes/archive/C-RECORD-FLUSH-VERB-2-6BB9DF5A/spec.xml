@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-RECORD-FLUSH-VERB-2-6BB9DF5A>
     <Summary>
       Step (2) of the maintainer's `D40` sequence, and the bundle that pays the live finding `F228`
