@@ -2164,6 +2164,7 @@ ${names
         F228: "C-RECORD-FLUSH-VERB-2-6BB9DF5A",
         F277: "C-RECORD-FLUSH-VERB-2-6BB9DF5A",
         F278: "C-RECORD-FLUSH-VERB-2-6BB9DF5A",
+        F279: "C-CLONE-FAITHFUL-TESTS-1-D68520A2",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
@@ -6216,7 +6217,7 @@ describe("C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD row relations", () => {
 
 // C-RECORD-FLUSH-VERB-2-6BB9DF5A T-002: the --flush mode, the codify-only
 // invocation and its refusals, driven on isolated roots; the production record
-// is never written by these tests. The fixture selects F270, which the record
+// is never written by these tests. The fixture selects F999, which the record
 // never holds, so the test is independent of the production flush's state.
 describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
   function flushRoot(): string {
@@ -6229,7 +6230,7 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
     writeFileSync(rulingsPath, readFileSync(rulingsPath, "utf8").replace("</Rulings>", fixtureDecision + "</Rulings>"));
     const indexFixture = path.join(root, RECORD_REL, "decisions.xml");
     writeFileSync(indexFixture, readFileSync(indexFixture, "utf8").replace("</RecordIndex>", '  <Entry id="d-fixture" token="D-FIXTURE" genre="decision" layer="live" />\n</RecordIndex>'));
-    plant(root, ".ngrace/scratch/staged-findings.md", readFileSync(path.join(REPO_ROOT, ".ngrace/scratch/staged-findings.md"), "utf8"));
+    plant(root, ".ngrace/scratch/staged-findings.md", '<a id="f999" name="f999"></a>\n### F999 — clone-faithful fixture **[verified]**\n\nInline fixture body; the fixture sources no repository path, so it is independent of the record and of the staged buffer.\n\n---\n');
     mkdirSync(path.join(root, ".ngrace/changes/active/C-FIXTURE-1-00000000"), { recursive: true });
     return root;
   }
@@ -6242,11 +6243,11 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
 
   it("--flush writes the selected finding and the row, and the codify-only invocation writes one CodifiedIn without re-minting", () => {
     const root = flushRoot();
-    const flush = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F270", "--pays", "F270", "--mint-search", "1 active, 0 archive", "--status-text", "fixture"]);
+    const flush = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive", "--status-text", "fixture"]);
     expect(flush.status, flush.stderr).toBe(0);
-    expect([...walkNodes(parse(root, "findings.xml"))].filter((n) => n.tag === "Finding" && n.attributes.token === "F270").length, "F270 flushed").toBe(1);
+    expect([...walkNodes(parse(root, "findings.xml"))].filter((n) => n.tag === "Finding" && n.attributes.token === "F999").length, "F999 flushed").toBe(1);
     expect(rowsOf(root).length, "one row after the flush").toBe(1);
-    expect(childText(rowsOf(root)[0]!, "Pays")).toContain("F270");
+    expect(childText(rowsOf(root)[0]!, "Pays")).toContain("F999");
     for (const file of ["findings.xml", "rulings.xml", "registry.xml", "decisions.xml"]) {
       const m = /base="(\d+)" headroom="(\d+)" ceiling="(\d+)"/.exec(readFileSync(path.join(root, RECORD_REL, file), "utf8").split("\n")[0]!);
       expect(Number(m![1]) + Number(m![2]), file).toBe(Number(m![3]));
@@ -6286,7 +6287,7 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
     };
     assertRootsReadBack("control after --rewrite-roots");
 
-    const flush = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F270", "--pays", "F270", "--mint-search", "1 active, 0 archive", "--status-text", "fixture"]);
+    const flush = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive", "--status-text", "fixture"]);
     expect(flush.status, flush.stderr).toBe(0);
     assertRootsReadBack("after the entries flush, with no --rewrite-roots");
 
@@ -6303,9 +6304,9 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
 
   it("--flush refuses before any write: flush-row-exists, flush-codify-exists, flush-mint-search-malformed", () => {
     const root = flushRoot();
-    expect(runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F270", "--pays", "F270", "--mint-search", "1 active, 0 archive"]).status).toBe(0);
+    expect(runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive"]).status).toBe(0);
     const before = allText(root).length;
-    const exists = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F270", "--pays", "F270", "--mint-search", "1 active, 0 archive"]);
+    const exists = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive"]);
     expect(exists.status).not.toBe(0);
     expect(exists.stderr).toContain("flush-row-exists");
     expect(runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--codify", "D-FIXTURE:test-suite:x", "--mint-search", "1 active, 0 archive"]).status).toBe(0);
@@ -6342,5 +6343,45 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A dogfood", () => {
       const m = /base="(\d+)" headroom="(\d+)" ceiling="(\d+)"/.exec(readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8").split("\n")[0]!);
       expect(Number(m![1]) + Number(m![2]), `${file} base + headroom = ceiling`).toBe(Number(m![3]));
     }
+  });
+});
+
+// C-CLONE-FAITHFUL-TESTS-1-D68520A2 T-002: F279 and the row exist exactly once
+// across their layers, the index Entry layer agrees with the holding file, and
+// the row Pays F279 with no F token outside Pays in StatusText. No per-test pin.
+describe("C-CLONE-FAITHFUL-TESTS-1-D68520A2 row relations", () => {
+  it("f279 and the row exist exactly once across their layers with the index layer agreeing and Pays containing F279", () => {
+    const record = (file: string) => parseGraceXmlArtifact(file, readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8")).root!;
+    const carriers = [
+      ...[...walkNodes(record("findings.xml"))].filter((n) => n.tag === "Finding" && n.attributes.id === "f279").map((n) => ({ file: "findings.xml", node: n })),
+      ...[...walkNodes(record("findings-retired.xml"))].filter((n) => n.tag === "Finding" && n.attributes.id === "f279").map((n) => ({ file: "findings-retired.xml", node: n })),
+    ];
+    expect(carriers.length, "f279 exactly once across the findings pair").toBe(1);
+    const holder = carriers[0]!;
+    const layer = holder.file === "findings.xml" ? "live" : "retired";
+    expect(holder.node.attributes.status, "status agrees with the holding file").toBe(layer);
+    expect(holder.node.attributes.token, "token agrees with the id").toBe("F279");
+    const entries = [...walkNodes(record("decisions.xml"))].filter((e) => e.tag === "Entry" && e.attributes.id === "f279");
+    expect(entries.length, "one index Entry").toBe(1);
+    expect(entries[0]!.attributes.genre, "finding genre").toBe("finding");
+    expect(entries[0]!.attributes.layer, "index layer agrees").toBe(layer);
+    const body = childText(holder.node, "Body") ?? "";
+    const lines = body.split("\n");
+    let i = lines.length - 1;
+    while (i >= 0 && lines[i]!.trim() === "") i--;
+    expect(lines[i]?.trim(), "no separator tail").not.toBe("---");
+    const rows = ["registry.xml", "registry-retired.xml"].flatMap((file) =>
+      [...walkNodes(record(file))].filter((n) => n.tag === "Row" && n.attributes.name === "C-CLONE-FAITHFUL-TESTS-1-D68520A2").map((n) => ({ file, node: n })),
+    );
+    expect(rows.length, "the row exactly once across the registry layers").toBe(1);
+    const { file, node } = rows[0]!;
+    expect(node.attributes.status, "row status agrees with the holding file").toBe(file === "registry.xml" ? "live" : "retired");
+    expect(node.attributes.kind).toBe("chartered");
+    const pays = childText(node, "Pays") ?? "";
+    expect(pays, "Pays contains F279").toContain("F279");
+    const statusText = childText(node, "StatusText") ?? "";
+    expect(statusText.includes("Closed with")).toBe(false);
+    const outside = (statusText.match(/\bF\d+(?:\.\d+)*\b/g) ?? []).filter((t) => !pays.includes(t));
+    expect(outside).toEqual([]);
   });
 });
