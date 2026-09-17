@@ -1,4 +1,4 @@
-<Findings base="7343" headroom="372" ceiling="7715">
+<Findings base="7396" headroom="319" ceiling="7715">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7338,6 +7338,59 @@ one commit earlier — the criteria were relations, not events.
 Owner: the authority's procedure, from this entry forward; the skill text that teaches supersede
 (`ngrace-plan` `approved_plan_immutability`) says nothing about payer rows and is the surface a later
 bundle amends. Neighbour to [F225](#f225) and [F229](#f229).
+</Body>
+  </Finding>
+  <Finding id="f266" token="F266" status="live">
+    <Title>### F266 — a per-test timeout is a ceiling that expires with the archive: the 111th archived bundle pushed two archive-walking review tests past the runner's 30 s, the fourth timeout incident in a week, and no fixed per-test number can hold on a corpus that grows by design. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-16** on CI run `35138369045` (branch `c-record-schema` at `844acd3`, the close of
+`C-RECORD-SCHEMA-2-0785BD5E`): `src/review/core.test.ts`'s &quot;archive corpus: zero live and retired findings on every
+dynamically enumerated C-*&quot; (30 640 ms) and &quot;archive ratchet: exact product multiset of three pairs&quot; (31 353 ms) timed
+out under `bun test --timeout=30000`; locally the two take about 19 s together. Both enumerate every directory under
+`.ngrace/changes/archive/` (111 after the close), so their duration is linear in the corpus on a runner about three
+times slower than the development machine. The third archive walker in the run passed at 32 154 ms only because
+`C-STATUS-TEST-TIMEOUT-1-E7DA46E8` gave it `}, 60_000)` after the same failure shape (run `35017776037`); the next one
+sits at 25 976 ms. The tree carries 29 per-test pins across 5 files and three global values (`test` 30 s,
+`validate:cli` and `validate:determinism` 120 s), and `validate.yml` sets no `timeout-minutes` — the only real ceiling
+today is GitHub's six-hour default.
+
+**The class.** A per-test timeout guards against a hung test, but every one of these pins was written to outrun the
+runner on a walk whose length is the archive, and the archive grows with every close. Each pin is therefore a dated
+measurement wearing a guard's clothes, and the incident recurs at the next threshold: four times this week. Bun
+honours `--timeout=0` as no per-test timeout (probed: a seven-second test passes under it and fails under the
+5 s default), and the job-level `timeout-minutes` bounds a hang at the only scale that matters in CI.
+
+**The remedy, the maintainer's ruling 2026-09-16 (variant B).** No per-test timeout: `--timeout=0` on every `bun test`
+invocation in `package.json`, every per-test pin removed (82 across six files once both syntactic forms are counted — the 29 above
+were the one-line form only), and one `timeout-minutes` on the CI job as the sole
+ceiling. This overturns `C-STATUS-TEST-TIMEOUT-1-E7DA46E8`'s per-test remedy and answers its argument: a walk over the
+real archive cannot carry a fixed number, so the guard moves to the job. Owner: a T0 bundle on the same branch,
+riding the same PR as the record-schema close (the #101 shape).
+</Body>
+  </Finding>
+  <Finding id="f267" token="F267" status="live">
+    <Title>### F267 — a T0 spec that rewrites a skill sentence omitted the skill-footprint pin from its write scope and its byte-invariance criterion; the plan drive proved the criterion unsatisfiable, the third supersede of a bundle's own spec this week. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-16 at `e62ecf6`** by the executor's plan-time copy drive and re-driven by the authority. The approved
+`C-TEST-TIMEOUT-CEILING-1-4985C820` spec rewrites one sentence of `skills/ngrace/ngrace-spec/SKILL.md` (and its packaged
+mirror), which moves the skill footprint `skillTextLines().totalBytes` from 78 384 to 78 456. That figure is pinned in
+`src/test-support/token-accounting.test.ts:49` and in `README.md:304`; the plan skill's own row 6 says a skill-text change
+declares the skill-footprint pin, and every teaching bundle in the archive names `token-accounting.test.ts` in scope. The
+T0 spec named neither: its write-scope Constraint lists `README.md` for one line (`:382`) and its `AC-NO-OTHER-SRC` command
+excludes seventeen paths, not that test. On the post-close copy the criterion exits 1 naming exactly
+`src/test-support/token-accounting.test.ts`, and `gate verdict` refuses `pass`. The spec's own tier Constraint lists
+&quot;footprint Goals&quot; among what T0 drops — the Goal is optional; the pin is a file the deliverable forces.
+
+**The class is [F136](#f136) and [F265](#f265).** A scope contract that misses a file the deliverable forces cannot be satisfied by
+any plan, and the miss was in a place the authority had ruled to check (a pin grep before ratification — but for the
+*timeout* values, not for the skill bytes the same bundle moved). Third supersede of a bundle's own spec in one week
+([F264](#f264), [F265](#f265), this): the pattern is a spec that changes one surface and is checked against that surface's pins
+only, while the change's second-order effect (a config's test pin, a fixture's bytes, a skill's footprint) sits in a
+file the spec never names. The pin grep must be run per *effect*, not per edited value.
+
+**Remedy.** Superseded under D27: the successor names `src/test-support/token-accounting.test.ts` in the write-scope
+Constraint and in `AC-NO-OTHER-SRC`'s excludes, states `README.md` carries two edits (`:304` and `:382`), and pays this
+finding with `F266`. Owner: `C-TEST-TIMEOUT-CEILING-2`.
 </Body>
   </Finding>
 </Findings>

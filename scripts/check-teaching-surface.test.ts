@@ -472,7 +472,6 @@ describe("checkRecordTokens", () => {
     () => {
       expect(checkRecordTokens(REPO_ROOT)).toBe(0);
     },
-    60_000,
   );
 });
 
@@ -493,7 +492,7 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "every module list" },
   { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "shipped parser" },
   { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "through a pipe" },
-  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "explicit generous timeout" },
+  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "only ceiling" },
   { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "shipped engine" },
   { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "both directions" },
   { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "only against an active" },
@@ -724,7 +723,6 @@ describe("checkTaughtRules", () => {
     () => {
       expect(checkTaughtRules(REPO_ROOT)).toBe(0);
     },
-    60_000,
   );
 });
 
@@ -896,7 +894,6 @@ describe("checkCliTokenForms", () => {
     () => {
       expect(checkCliTokenForms(REPO_ROOT)).toBe(0);
     },
-    60_000,
   );
 });
 
@@ -956,7 +953,6 @@ describe("checkStaleReviewClaims", () => {
     () => {
       expect(checkStaleReviewClaims(REPO_ROOT)).toBe(0);
     },
-    60_000,
   );
 });
 

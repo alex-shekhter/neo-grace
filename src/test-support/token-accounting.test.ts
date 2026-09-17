@@ -94,9 +94,12 @@ describe("token-accounting (D15)", () => {
     // C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA T-005: the namespaced-codes sentence
     // landed in ngrace-spec, both trees (line-neutral, byte-moving): 864 → 864
     // lines and 77124 → 77198 bytes.
+    // C-TEST-TIMEOUT-CEILING-2-7AD2A006 T-001: the per-test-timeout rule became the
+    // --timeout=0 + job-ceiling rule in ngrace-spec, both trees (line-neutral,
+    // byte-moving): 866 → 866 lines and 78384 → 78456 bytes.
     const measured = skillTextLines();
     expect(measured.total).toBe(866);
-    expect(measured.totalBytes).toBe(78384);
+    expect(measured.totalBytes).toBe(78456);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

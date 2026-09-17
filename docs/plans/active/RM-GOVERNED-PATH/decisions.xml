@@ -1,4 +1,4 @@
-<RecordIndex base="265" headroom="31" ceiling="296">
+<RecordIndex base="267" headroom="29" ceiling="296">
   <Entry id="f1" token="F1" genre="finding" layer="live" />
   <Entry id="f2" token="F2" genre="finding" layer="live" />
   <Entry id="f3" token="F3" genre="finding" layer="live" />
@@ -402,4 +402,6 @@
   <Entry id="f252" token="F252" genre="finding" layer="retired" />
   <Entry id="d40" token="D40" genre="decision" layer="live" />
   <Entry id="f265" token="F265" genre="finding" layer="retired" />
+  <Entry id="f266" token="F266" genre="finding" layer="live" />
+  <Entry id="f267" token="F267" genre="finding" layer="live" />
 </RecordIndex>

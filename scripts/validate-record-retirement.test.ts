@@ -424,7 +424,6 @@ token: F1
         ["F999", "C-PROSE-PROBE"],
       ]);
     },
-    60_000,
   );
 
   it("stamp-paid-by writes PaidBy and does not move; validate still fails until --retire moves", () => {
@@ -779,7 +778,7 @@ ${inner}
     for (const [name, text] of Object.entries(before)) {
       expect(readFileSync(path.join(root, RECORD_REL, name), "utf8"), `${name}: the second run is again a byte no-op`).toBe(text);
     }
-  }, 60_000);
+  });
 
   it("C-ROOT-WINDOW rewrite-roots refusal: an exceeded ceiling exits 1 with nothing written, naming the genre, both counts in their unit, and the move as the remedy", () => {
     const root = isolatedRoot();
@@ -803,7 +802,7 @@ ${inner}
     for (const [name, text] of Object.entries(before)) {
       expect(readFileSync(path.join(root, RECORD_REL, name), "utf8"), `${name}: nothing written`).toBe(text);
     }
-  }, 60_000);
+  });
 
   it("C-ROOT-WINDOW rewrite-roots refusal: a missing ceiling attribute exits 1 with nothing written", () => {
     const root = isolatedRoot();
@@ -818,7 +817,7 @@ ${inner}
     for (const [name, text] of Object.entries(before)) {
       expect(readFileSync(path.join(root, RECORD_REL, name), "utf8"), `${name}: nothing written`).toBe(text);
     }
-  }, 60_000);
+  });
 
   it("C-ROOT-WINDOW rewrite-roots hold: a hand-raised ceiling passes through byte-for-byte — never recomputed and never adopted — while the base is repaired to the read-back", () => {
     const root = isolatedRoot();
@@ -840,7 +839,7 @@ ${inner}
     for (const name of ["findings.xml", "rulings.xml", "decisions.xml", "findings-retired.xml", "rulings-retired.xml", "registry-retired.xml", "decisions.md", "record-inventory.json"]) {
       expect(readFileSync(path.join(root, RECORD_REL, name), "utf8"), `${name}: untouched by the registry run`).toBe(before[name]);
     }
-  }, 60_000);
+  });
 
   it("C-ROOT-WINDOW floored derivation: an even post-move population with differing middles persists the floored integer where the shipped unfloored form persists the fractional value on the identical fixture", () => {
     const root = isolatedRoot();
@@ -878,7 +877,7 @@ ${inner}
     expect(written.ceiling, "the persisted ceiling is the pre-move base plus the floored product").toBe(baseLive + Math.floor(unfloored));
     expect(written.ceiling, "the shipped unfloored form would have persisted the fractional value on the identical fixture").not.toBe(baseLive + unfloored);
     expect(written.headroom).toBe(written.ceiling - written.base);
-  }, 60_000);
+  });
 
   it("C-ROOT-WINDOW unmoved window across two consecutive moves: the genre the moves did not change stays byte-identical through both and keeps its persisted ceiling", () => {
     const root = isolatedRoot();
@@ -919,7 +918,7 @@ ${inner}
     const written = rootAttrs(rulingsAfterSecond);
     expect(written.headroom).toBe(written.ceiling - written.base);
     expect(written.base).toBe(newlineCount(rulingsAfterSecond));
-  }, 60_000);
+  });
 
   it("C-ROOT-WINDOW normalising pass: after a move every surviving top-level element is byte-identical with canonical gaps, and a mutated element's own bytes redden the walk", () => {
     const root = isolatedRoot();
@@ -970,7 +969,7 @@ ${inner}
       if (survivor !== bytes) mutatedChanged += 1;
     }
     expect(mutatedChanged, "the mutated copy reddens the walk (changed 1)").toBe(1);
-  }, 60_000);
+  });
 
   it("T-001 Delta = 0: a decision-only --retire leaves findings at window H when the snapshot sits at base + H", () => {
     const root = isolatedRoot();
@@ -1671,7 +1670,6 @@ ${names
       expect(validate.status).toBe(0);
       expect(validate.stdout).toContain("record-retirement: ok");
     },
-    60_000,
   );
 
   it(
@@ -1714,7 +1712,6 @@ ${names
       expect(validate.status).toBe(0);
       expect(validate.stdout).toContain("record-retirement: ok");
     },
-    60_000,
   );
 
   it(
@@ -1785,7 +1782,6 @@ ${names
         expect(readFileSync(productionFiles[i]!, "utf8")).toBe(before[i]!);
       }
     },
-    60_000,
   );
 
   it(
@@ -1830,7 +1826,6 @@ ${names
         }
       }
     },
-    60_000,
   );
 
   it(
@@ -1869,7 +1864,6 @@ ${names
         "F193 appears nowhere in the row",
       ).toBe(false);
     },
-    60_000,
   );
 
   it(
@@ -1908,7 +1902,6 @@ ${names
       ]);
       expect([...derived.keys()].sort(), "the sweep mints no live payment").toEqual(["F187"]);
     },
-    60_000,
   );
 
   // ---------------------------------------------------------------------------
@@ -1981,7 +1974,6 @@ ${names
         expect(post.status, `${variant}: post-move validate`).toBe(0);
       }
     },
-    300_000,
   );
 
   it(
@@ -2002,7 +1994,6 @@ ${names
       const withoutResult = runValidator(withoutSpec);
       expect(withoutResult.status, "without the parked spec").toBe(0);
     },
-    300_000,
   );
 
   it(
@@ -2153,12 +2144,16 @@ ${names
         F235: "C-RECORD-SCHEMA-2-0785BD5E",
         F252: "C-RECORD-SCHEMA-2-0785BD5E",
         F265: "C-RECORD-SCHEMA-2-0785BD5E",
+        // C-TEST-TIMEOUT-CEILING-2-7AD2A006 T-002: the chartered row's two minted tokens.
+        // Consulted only for tokens the derivation actually mints; green with the row live
+        // and green in the applied-archive state (the close's mint).
+        F266: "C-TEST-TIMEOUT-CEILING-2-7AD2A006",
+        F267: "C-TEST-TIMEOUT-CEILING-2-7AD2A006",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
       }
     },
-    60_000,
   );
 
   it(
@@ -2178,7 +2173,6 @@ ${names
         ).toBe(true);
       }
     },
-    300_000,
   );
 
   it(
@@ -2236,7 +2230,6 @@ ${names
       expect(cf.committedDrift.baseLess).toBe(0);
       expect(cf.committedDrift.baseNamed).toBe(1);
     },
-    60_000,
   );
 
   it("C-RECORD-PARSE shape check: the clean control stays green while each refuse case exits non-zero with its record-shape- code", () => {
@@ -2298,7 +2291,7 @@ ${names
     const sameTagResult = runValidator(sameTag);
     expect(sameTagResult.status).not.toBe(0);
     expect(sameTagResult.stderr).toContain("record-shape-same-tag-nested");
-  }, 60_000);
+  });
 
   it(
     "C-PAYMENT-RECORD-4 flush invariant: f204 is exactly once and live in the production record",
@@ -2339,7 +2332,6 @@ ${names
         "the f204 Entry is live",
       ).toBe("live");
     },
-    60_000,
   );
 
   it(
@@ -2377,7 +2369,6 @@ ${names
         expect(base, `${file}: base equals its shipped metric read back`).toBe(metric);
       }
     },
-    60_000,
   );
 
   it(
@@ -2443,7 +2434,6 @@ ${names
         ).toBe(true);
       }
     },
-    60_000,
   );
 
   it(
@@ -2508,7 +2498,6 @@ ${names
       expect(base, "findings.xml: base equals the file's newlineCount").toBe(newlineCount(findingsText));
       expect(base + headroom, "findings.xml: base + headroom = ceiling").toBe(ceiling);
     },
-    60_000,
   );
 
   it(
@@ -2667,7 +2656,6 @@ ${names
         ).toBe(expected);
       }
     },
-    60_000,
   );
 
   it(
@@ -2706,7 +2694,6 @@ ${names
       expect(result.status).toBe(0);
       expect(result.stderr).toBe("");
     },
-    60_000,
   );
 
   it(
@@ -2728,7 +2715,6 @@ ${names
       expect(result.stderr).toContain("ceiling-exceeded");
       expect(result.stderr).toContain("live index live-entry count 2 exceeds persisted ceiling 1");
     },
-    60_000,
   );
 
   it(
@@ -2758,7 +2744,6 @@ ${names
       expect(result.stderr.toLowerCase()).not.toContain("config key");
       expect(result.stderr).not.toContain("ignoredDirs");
     },
-    60_000,
   );
 
   it(
@@ -2780,7 +2765,6 @@ ${names
       expect(result.stderr).toContain("move the eligible entry to the retired sibling");
       expect(result.stderr).not.toContain("flip their index Entry layer");
     },
-    60_000,
   );
 
   it(
@@ -2825,7 +2809,6 @@ body of the decision.
         Number(root.attributes.base) + Number(root.attributes.headroom),
       );
     },
-    60_000,
   );
 
   it(
@@ -2872,7 +2855,6 @@ body of the decision.
         "findings headroom equals ceiling minus base",
       ).toBe(Number(root.attributes.ceiling) - base);
     },
-    60_000,
   );
 
   it(
@@ -2948,7 +2930,6 @@ body of the decision.
       expect(f205Entries[0]!.attributes.layer, "the f205 Entry layer is retired").toBe("retired");
       expect(f205Entries[0]!.attributes.token, "the f205 Entry token is F205").toBe("F205");
     },
-    60_000,
   );
 
   it(
@@ -2984,7 +2965,6 @@ body of the decision.
         "the same call reports planted eligibility on the mutated copy",
       ).toBe(1);
     },
-    60_000,
   );
 
   it(
@@ -3056,7 +3036,6 @@ body of the decision.
         "rulings headroom equals ceiling minus base",
       ).toBe(Number(rulingsRoot.attributes.ceiling) - rulingsBase);
     },
-    60_000,
   );
 
   it(
@@ -3113,7 +3092,6 @@ body of the decision.
         "the planted row's token mints over the isolated archive root — the derivation is not vacuously empty",
       ).toEqual(["F222"]);
     },
-    60_000,
   );
 
 
@@ -3174,7 +3152,6 @@ body of the decision.
       ).length;
       expect(mutatedCount, "the mutated copy reddens the exactly-once clause").toBe(2);
     },
-    60_000,
   );
 
   it(
@@ -3259,7 +3236,6 @@ body of the decision.
       const isolatedMap = derivePayerMap(isolatedRepo, [{ name: "C-ROOT-WINDOW", pays: "F226", statusText: "" }]);
       expect(isolatedMap.get("F226"), "the archived row's token mints over the isolated archive root").toBe("C-ROOT-WINDOW");
     },
-    60_000,
   );
 });
 
@@ -3822,7 +3798,6 @@ describe("C-TAUGHT-RULES row", () => {
     () => {
       expectTaughtRowInvariants(walkTaughtRow(path.join(REPO_ROOT, RECORD_REL)));
     },
-    60_000,
   );
 
   it(
@@ -3853,7 +3828,6 @@ describe("C-TAUGHT-RULES row", () => {
         ).toBe(expected);
       }
     },
-    60_000,
   );
 
   it("red direction — a second row with the same name reddens the exactly-once clause", () => {
@@ -3936,7 +3910,6 @@ describe("C-TAUGHT-RULES row", () => {
         }
       }).toThrow();
     },
-    60_000,
   );
 
   it(
@@ -4036,7 +4009,6 @@ describe("C-TAUGHT-RULES row", () => {
       expect(rBase, "rulings.xml: base equals the file's newlineCount").toBe(newlineCount(rulingsText));
       expect(rBase + rHeadroom, "rulings.xml: base + headroom = ceiling").toBe(rCeiling);
     },
-    60_000,
   );
 
   it(
@@ -4135,7 +4107,6 @@ describe("C-TAUGHT-RULES row", () => {
         ["F237", "C-FLUSH-TWO-WAVES"],
       ]);
     },
-    60_000,
   );
 });
 
@@ -4207,7 +4178,6 @@ describe("C-APPLY-VERB T-006 record-row", () => {
       const violations = cApplyVerbRowViolations(parseRegistryLayers(path.join(REPO_ROOT, RECORD_REL)));
       expect(violations, violations.join("; ")).toEqual([]);
     },
-    60_000,
   );
 });
 
@@ -4320,7 +4290,6 @@ describe("C-FLUSH-AND-TEACH flush invariant", () => {
     () => {
       expectFlushedFindingInvariants(path.join(REPO_ROOT, RECORD_REL));
     },
-    60_000,
   );
 });
 
@@ -4439,7 +4408,6 @@ describe("C-FLUSH-AND-TEACH row", () => {
     () => {
       expectCftRowInvariants(walkCftRow(path.join(REPO_ROOT, RECORD_REL)));
     },
-    60_000,
   );
 
   it(
@@ -4476,7 +4444,6 @@ describe("C-FLUSH-AND-TEACH row", () => {
         ).toBe(before.get(file)!);
       }
     },
-    60_000,
   );
 
   it("red direction — a second row with the same name reddens the exactly-once clause (mutating whichever layer holds the row)", () => {
@@ -4615,7 +4582,6 @@ describe("C-PAYMENT-INTEGRITY carrier and row relations", () => {
     () => {
       expectCpiCarrierAndRowRelations(path.join(REPO_ROOT, RECORD_REL));
     },
-    60_000,
   );
 
   it("red direction — a second C-PAYMENT-INTEGRITY row reddens the exactly-once clause on a mutated copy of whichever layer holds it", () => {
@@ -4765,7 +4731,6 @@ describe("C-GUARD-RATCHET carrier and row relations", () => {
     () => {
       expectCgrCarrierAndRowRelations(path.join(REPO_ROOT, RECORD_REL));
     },
-    60_000,
   );
 
   it("red direction — a second C-GUARD-RATCHET row reddens the exactly-once clause on a mutated copy of whichever layer holds it", () => {
@@ -4874,7 +4839,6 @@ describe("C-REVIEW-SELF-SCOPE-2 carrier and row relations", () => {
     () => {
       expectCselfCarrierAndRowRelations(path.join(REPO_ROOT, RECORD_REL));
     },
-    60_000,
   );
 
   it("red direction — a second C-REVIEW-SELF-SCOPE-2 row reddens the exactly-once clause on a mutated copy of whichever layer holds it", () => {
@@ -4946,7 +4910,6 @@ describe("C-TEACH-DRIVE-BEFORE-APPROVE-2 flush invariant", () => {
     () => {
       expectCtdbaFlushInvariant(path.join(REPO_ROOT, RECORD_REL));
     },
-    60_000,
   );
 
   it("red direction — a duplicated carrier reddens the at-most-once flush clause", () => {
@@ -5041,7 +5004,6 @@ describe("C-TEACH-DRIVE-BEFORE-APPROVE-2 carrier and row relations", () => {
     () => {
       expectCtdbaCarrierAndRowRelations(path.join(REPO_ROOT, RECORD_REL));
     },
-    60_000,
   );
 
   it(
@@ -5050,7 +5012,6 @@ describe("C-TEACH-DRIVE-BEFORE-APPROVE-2 carrier and row relations", () => {
       expect(validateStubAndIndex(path.join(REPO_ROOT, RECORD_REL, "decisions.md")).length).toBe(0);
       expect(proveRecordPreservation(path.join(REPO_ROOT, RECORD_REL)).length).toBe(0);
     },
-    60_000,
   );
 
   it("red direction — a second C-TEACH-DRIVE-BEFORE-APPROVE-2 row reddens the exactly-once clause", () => {
@@ -5158,7 +5119,6 @@ describe("C-HASHED-BUNDLE-IDS-2 carrier and row relations", () => {
     () => {
       expectChbiCarrierAndRowRelations(path.join(REPO_ROOT, RECORD_REL));
     },
-    60_000,
   );
 
   it("red direction — a second C-HASHED-BUNDLE-IDS-2 row reddens the exactly-once clause", () => {
@@ -5216,7 +5176,6 @@ describe("D38 codification", () => {
     () => {
       expectD38Codification(path.join(REPO_ROOT, RECORD_REL));
     },
-    60_000,
   );
 
   it("red direction — a retired D38 with fewer than two CodifiedIn children reddens the codification clause", () => {
@@ -5298,7 +5257,6 @@ describe("C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 flush invariant", () => {
     () => {
       expectPairFlushInvariant(path.join(REPO_ROOT, RECORD_REL));
     },
-    60_000,
   );
 
   it("red direction — a duplicated carrier reddens the at-most-once flush clause", () => {
@@ -5391,7 +5349,6 @@ describe("C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 carrier and row relations", () => {
     () => {
       expectPairCarrierAndRowRelations(path.join(REPO_ROOT, RECORD_REL));
     },
-    60_000,
   );
 
   it(
@@ -5400,7 +5357,6 @@ describe("C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 carrier and row relations", () => {
       expect(validateStubAndIndex(path.join(REPO_ROOT, RECORD_REL, "decisions.md")).length).toBe(0);
       expect(proveRecordPreservation(path.join(REPO_ROOT, RECORD_REL)).length).toBe(0);
     },
-    60_000,
   );
 
   it("red direction — a second C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 row reddens the exactly-once clause", () => {
@@ -5462,7 +5418,7 @@ describe("C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA flush invariant", () => {
     expect(Number(root.attributes.base) + Number(root.attributes.headroom)).toBe(Number(root.attributes.ceiling));
     expect(validateStubAndIndex(path.join(REPO_ROOT, RECORD_REL, "decisions.md"))).toEqual([]);
     expect(proveRecordPreservation(path.join(REPO_ROOT, RECORD_REL))).toEqual([]);
-  }, 60_000);
+  });
 
   it("the row is exactly once across the registry layers with Pays containing F253 and F254 and StatusText naming no F token outside Pays", () => {
     const rowName = "C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA";
@@ -5484,7 +5440,7 @@ describe("C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA flush invariant", () => {
     expect(statusText.includes("Closed with")).toBe(false);
     const outside = (statusText.match(/\bF\d+(?:\.\d+)*\b/g) ?? []).filter((t) => !pays.includes(t));
     expect(outside).toEqual([]);
-  }, 60_000);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -5524,7 +5480,7 @@ describe("C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA flush invariant", () => {
     expect(Number(root.attributes.base) + Number(root.attributes.headroom)).toBe(Number(root.attributes.ceiling));
     expect(validateStubAndIndex(path.join(REPO_ROOT, RECORD_REL, "decisions.md"))).toEqual([]);
     expect(proveRecordPreservation(path.join(REPO_ROOT, RECORD_REL))).toEqual([]);
-  }, 60_000);
+  });
 });
 
 describe("C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA row relations", () => {
@@ -5549,7 +5505,7 @@ describe("C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA row relations", () => {
     expect(statusText.includes("Closed with")).toBe(false);
     const outside = (statusText.match(/\bF\d+(?:\.\d+)*\b/g) ?? []).filter((t) => !pays.includes(t));
     expect(outside).toEqual([]);
-  }, 60_000);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -5589,7 +5545,7 @@ describe("C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F flush invariant", () => {
     expect(Number(root.attributes.base) + Number(root.attributes.headroom)).toBe(Number(root.attributes.ceiling));
     expect(validateStubAndIndex(path.join(REPO_ROOT, RECORD_REL, "decisions.md"))).toEqual([]);
     expect(proveRecordPreservation(path.join(REPO_ROOT, RECORD_REL))).toEqual([]);
-  }, 60_000);
+  });
 });
 
 describe("C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F row relations", () => {
@@ -5616,7 +5572,7 @@ describe("C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F row relations", () => {
     expect(statusText.includes("Closed with")).toBe(false);
     const outside = (statusText.match(/\bF\d+(?:\.\d+)*\b/g) ?? []).filter((t) => !pays.includes(t));
     expect(outside).toEqual([]);
-  }, 60_000);
+  });
 });
 
 
@@ -5656,7 +5612,7 @@ describe("C-STATUS-TEST-TIMEOUT-1-E7DA46E8 flush invariant", () => {
     expect(Number(root.attributes.base) + Number(root.attributes.headroom)).toBe(Number(root.attributes.ceiling));
     expect(validateStubAndIndex(path.join(REPO_ROOT, RECORD_REL, "decisions.md"))).toEqual([]);
     expect(proveRecordPreservation(path.join(REPO_ROOT, RECORD_REL))).toEqual([]);
-  }, 60_000);
+  });
 });
 
 
@@ -5680,7 +5636,7 @@ describe("C-STATUS-TEST-TIMEOUT-1-E7DA46E8 row relations", () => {
     expect(statusText.includes("Closed with")).toBe(false);
     const outside = (statusText.match(/\bF\d+(?:\.\d+)*\b/g) ?? []).filter((t) => !pays.includes(t));
     expect(outside).toEqual([]);
-  }, 60_000);
+  });
 });
 
 describe("C-SCRIPTS-ADOPTION-2-36DEB1BD flush relations", () => {
@@ -5714,7 +5670,7 @@ describe("C-SCRIPTS-ADOPTION-2-36DEB1BD flush relations", () => {
     const ceiling = Number(findingsRoot.attributes.ceiling);
     expect(base, "findings.xml: base equals the file's newlineCount").toBe(newlineCount(findingsText));
     expect(base + headroom, "findings.xml: base + headroom = ceiling").toBe(ceiling);
-  }, 60_000);
+  });
 });
 
 describe("C-SCRIPTS-ADOPTION-2-36DEB1BD row relations", () => {
@@ -5744,7 +5700,7 @@ describe("C-SCRIPTS-ADOPTION-2-36DEB1BD row relations", () => {
     expect(statusText.includes("Closed with")).toBe(false);
     const outside = (statusText.match(/\bF\d+(?:\.\d+)*\b/g) ?? []).filter((t) => !pays.includes(t));
     expect(outside).toEqual([]);
-  }, 60_000);
+  });
 });
 
 /** Every .xml file in a copied record, found by walking the directory, never by a name chosen in advance. */
@@ -5860,7 +5816,7 @@ describe("record schema and canonical serializer (C-RECORD-SCHEMA-2)", () => {
       const xml = readFileSync(file, "utf8");
       expect(serializeRecordDocument(file, xml), `${name}: canonical at rest`).toBe(xml);
     }
-  }, 60_000);
+  });
 
   it("reddens canonical-at-rest when a non-canonical byte is planted in a copy", () => {
     const root = isolatedRoot();
@@ -5976,7 +5932,7 @@ describe("record schema and canonical serializer (C-RECORD-SCHEMA-2)", () => {
         expect(recordSchemaViolations(file, parseGraceXmlArtifact(file, xml).root), `${file}: schema`).toEqual([]);
       }
     }
-  }, 60_000);
+  });
 
   it("derives headroom through one floored function on both paths", () => {
     expect(FINDINGS_HEADROOM_MULTIPLIER).toBe(7);
@@ -6010,7 +5966,7 @@ describe("repository-boundary refusal (C-RECORD-SCHEMA-2 T-002)", () => {
     writeHappy(root);
     const result = runValidator(root, [RECORD_REL]);
     expect(result.status).toBe(0);
-  }, 60_000);
+  });
 });
 
 describe("separator sweep (C-RECORD-SCHEMA-2 T-003)", () => {
@@ -6062,7 +6018,7 @@ describe("separator sweep (C-RECORD-SCHEMA-2 T-003)", () => {
       );
       expect(hits.length, `${file}: no separator tail`).toBe(0);
     }
-  }, 60_000);
+  });
 
   it("is canonical-at-rest and preservation-green over the seven live record files after the sweep", () => {
     const recordDir = path.join(REPO_ROOT, RECORD_REL);
@@ -6080,7 +6036,7 @@ describe("separator sweep (C-RECORD-SCHEMA-2 T-003)", () => {
       expect(serializeRecordDocument(file, xml), `${name}: canonical at rest after the sweep`).toBe(xml);
     }
     expect(proveRecordPreservation(recordDir)).toEqual([]);
-  }, 60_000);
+  });
 });
 
 describe("flush (C-RECORD-SCHEMA-2 T-004)", () => {
@@ -6106,5 +6062,72 @@ describe("flush (C-RECORD-SCHEMA-2 T-004)", () => {
     expect(countToken("F252"), "F252 exactly once across the findings layers").toBe(1);
     expect(countToken("F265"), "F265 exactly once across the findings layers").toBe(1);
     expect(countRow("C-RECORD-SCHEMA-2-0785BD5E"), "the row exactly once across the registry layers").toBe(1);
-  }, 60_000);
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// C-TEST-TIMEOUT-CEILING-2-7AD2A006 T-002: the flush-invariant walk for F266
+// and F267. No per-test pin: the suite runs under `bun test --timeout=0`.
+// ---------------------------------------------------------------------------
+describe("C-TEST-TIMEOUT-CEILING-2-7AD2A006 flush invariant", () => {
+  it("f266 and f267 each exist exactly once across the findings pair with status, token, index genre and layer agreeing, no separator tail, and the roots arithmetic holds", () => {
+    const flushed = ["f266", "f267"];
+    const liveParsed = parseGraceXmlArtifact("findings.xml", readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings.xml"), "utf8"));
+    const retiredParsed = parseGraceXmlArtifact("findings-retired.xml", readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings-retired.xml"), "utf8"));
+    const indexParsed = parseGraceXmlArtifact("decisions.xml", readFileSync(path.join(REPO_ROOT, RECORD_REL, "decisions.xml"), "utf8"));
+    for (const id of flushed) {
+      const carriers = (["findings.xml", "findings-retired.xml"] as const).flatMap((file) => {
+        const parsed = file === "findings.xml" ? liveParsed : retiredParsed;
+        return [...walkNodes(parsed.root!)].filter((n) => n.tag === "Finding" && n.attributes.id === id).map((n) => ({ file, node: n }));
+      });
+      expect(carriers.length, id).toBe(1);
+      const { file, node } = carriers[0]!;
+      const expectedStatus = file === "findings.xml" ? "live" : "retired";
+      expect(node.attributes.status, id).toBe(expectedStatus);
+      expect(node.attributes.token, id).toBe("F" + id.slice(1));
+      const entries = [...walkNodes(indexParsed.root!)].filter((e) => e.tag === "Entry" && e.attributes.id === id);
+      expect(entries.length, id).toBe(1);
+      expect(entries[0]!.attributes.genre, id).toBe("finding");
+      expect(entries[0]!.attributes.layer, id).toBe(expectedStatus);
+      const body = childText(node, "Body") ?? "";
+      const lines = body.split("\n");
+      let i = lines.length - 1;
+      while (i >= 0 && lines[i]!.trim() === "") i--;
+      expect(lines[i]?.trim(), id + " separator tail").not.toBe("---");
+    }
+    const findingsText = readFileSync(path.join(REPO_ROOT, RECORD_REL, "findings.xml"), "utf8");
+    const root = parseGraceXmlArtifact("findings.xml", findingsText).root!;
+    expect(Number(root.attributes.base)).toBe(newlineCount(findingsText));
+    expect(Number(root.attributes.base) + Number(root.attributes.headroom)).toBe(Number(root.attributes.ceiling));
+    const indexText = readFileSync(path.join(REPO_ROOT, RECORD_REL, "decisions.xml"), "utf8");
+    const indexRoot = parseGraceXmlArtifact("decisions.xml", indexText).root!;
+    expect(Number(indexRoot.attributes.base)).toBe([...walkNodes(indexRoot)].filter((e) => e.tag === "Entry" && e.attributes.layer === "live").length);
+    expect(validateStubAndIndex(path.join(REPO_ROOT, RECORD_REL, "decisions.md"))).toEqual([]);
+    expect(proveRecordPreservation(path.join(REPO_ROOT, RECORD_REL))).toEqual([]);
+  });
+});
+
+describe("C-TEST-TIMEOUT-CEILING-2-7AD2A006 row relations", () => {
+  it("the row is exactly once across the registry layers with Pays containing F266 and F267 and StatusText naming no F token outside Pays", () => {
+    const rowName = "C-TEST-TIMEOUT-CEILING-2-7AD2A006";
+    const rows: Array<{ file: string; node: { attributes: Record<string, string> } }> = [];
+    for (const file of ["registry.xml", "registry-retired.xml"] as const) {
+      const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8"));
+      for (const node of walkNodes(parsed.root!)) {
+        if (node.tag === "Row" && node.attributes.name === rowName) rows.push({ file, node });
+      }
+    }
+    expect(rows.length).toBe(1);
+    const { file, node } = rows[0]!;
+    expect(node.attributes.status).toBe(file === "registry.xml" ? "live" : "retired");
+    expect(node.attributes.kind).toBe("chartered");
+    const pays = childText(node as never, "Pays") ?? "";
+    expect(pays).toContain("F266");
+    expect(pays).toContain("F267");
+    const statusText = childText(node as never, "StatusText") ?? "";
+    expect(statusText.includes("Closed with")).toBe(false);
+    const outside = (statusText.match(/\bF\d+(?:\.\d+)*\b/g) ?? []).filter((t) => !pays.includes(t));
+    expect(outside).toEqual([]);
+  });
 });
