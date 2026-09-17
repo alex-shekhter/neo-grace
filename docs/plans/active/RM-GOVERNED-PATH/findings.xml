@@ -1,4 +1,4 @@
-<Findings base="7343" headroom="291" ceiling="7634">
+<Findings base="7434" headroom="200" ceiling="7634">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7338,6 +7338,97 @@ one commit earlier — the criteria were relations, not events.
 Owner: the authority's procedure, from this entry forward; the skill text that teaches supersede
 (`ngrace-plan` `approved_plan_immutability`) says nothing about payer rows and is the surface a later
 bundle amends. Neighbour to [F225](#f225) and [F229](#f229).
+</Body>
+  </Finding>
+  <Finding id="f268" token="F268" status="live">
+    <Title>### F268 — `--assertions final --run-commands` re-opens an epoch and leaves a loose `command-run`, and `gate archive` refuses `gate.archive.open-epoch`; rule 7's note says &quot;terminal and fold before gate archive&quot; without saying *again, after final*. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `da727d0`** on a whole-repository copy (`rsync -a` of the working tree with a symlinked `node_modules`, `.ngrace/scratch` present, `active/` holding only `.gitkeep`). A throwaway bundle with an approved spec and plan (`C-PROBE-EPOCH-1-28D45FFA`, one `&lt;MustPassCommand&gt;true&lt;/MustPassCommand&gt;`), driven through the close order:
+
+- `cursor advance --change C-PROBE-EPOCH-1-28D45FFA --task T-001 --open-epoch` → epoch 1 open; `cursor advance --task T-001 --kind terminal`; `cursor fold` → `Epoch: 1 Events: 2`, `run/` empty.
+- `bun ./src/grace.ts lint --path . --change C-PROBE-EPOCH-1-28D45FFA --assertions final --run-commands` → `Commands: 1 evaluated, 1 exit 0` (exit 1 on the throwaway's own lint errors), and `run/` now holds `3-T-001-command-run.xml` — final's `--run-commands` opened a fresh epoch and left a loose event.
+- `bun ./src/grace.ts gate archive --change C-PROBE-EPOCH-1-28D45FFA --path .` → `Decision: refuse`, `no-open-epoch: required=true present=false blocking=true — 1 loose run/ event(s)`, `[error] gate.archive.open-epoch`, exit 1.
+- second `cursor advance --task T-001 --kind terminal`; `cursor fold` (`Epoch: 2 Events: 3`) → `run/` empty; `gate archive` → `Decision: permit`, `no-open-epoch: required=true present=true blocking=false — run/ empty`, exit 0.
+
+**The class.** Rule 7's note pins &quot;*after a fold, final run-commands writes loose events and archive requires no-open-epoch, so terminal the declared task and fold before gate archive*&quot; (`scripts/skill-contracts.test.ts:146`). It constrains *fold after terminal* and *final not after the fold*, but it does not say the terminal+fold must be re-emitted **after** `--assertions final --run-commands`. An executor that reads &quot;before gate archive&quot; as satisfied by one terminal+fold before final refuses at the archive gate; re-emitting terminal and folding again is what folds final's loose events. Recurrence of the same class as [F179](#f179), one layer later.
+
+**Proposed rule.** `ngrace-execute` `execution_rules` (rule 7), appended: &quot;After `--assertions final --run-commands`, terminal the declared task and fold again before `gate archive`: final run-commands opens a fresh epoch and leaves loose events, and the archive gate refuses `gate.archive.open-epoch` until they are folded.&quot; Token: `fold again before`.
+
+Owner: the next teaching increment.
+</Body>
+  </Finding>
+  <Finding id="f269" token="F269" status="live">
+    <Title>### F269 — rule 9 forbids the implementing executor to invoke `ngrace gate verdict` with no carve-out for the copy drive that row 19 requires; two executors met the contradiction and resolved it by reading the rule as production-scoped. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `da727d0`, from the tree and the two executors' reports.** `skills/ngrace/ngrace-execute/SKILL.md` rule 9 states verbatim: &quot;*The implementing executor does not invoke `ngrace gate verdict`.*&quot; `skills/ngrace/ngrace-plan/SKILL.md` `must_do` row 19 requires the opposite act on a copy: &quot;*Also drive the spec's `CloseEvidence` commands and the full CI in a faithful post-close copy at plan time*&quot; and &quot;*On the post-close copy, `ngrace gate verdict --change C --outcome pass` … evaluates every `CloseEvidence` command through the shell*.&quot; The `ngrace-execute` copy drive does the same. Two executors disclosed the conflict in their `SKILL GAPS`: one wrote &quot;*The skill's rule 9 says the implementing executor does not invoke ngrace gate verdict; the brief item 5 requires it on the copy as the CloseEvidence probe. Brief/spec (copy probe) won over the skill's literal (production-close) reading; no gate verdict ran on production*&quot;; the other wrote &quot;*rule 9 … with no carve-out for the row-19 / sentence-(5) copy-drive use of the verb as a CloseEvidence probe. The plan (and the brief) require exactly that on a copy; the rule as written would forbid the only product-path evidence the bundle teaches*.&quot; Each resolved it by brief-over-skill, not by the skill.
+
+**The class.** A rule scoped to the production close reads as a global prohibition, so the only compliant executor either produces no copy-drive evidence or knowingly routes around the skill — the latter being the exact failure the teaching surface exists to prevent.
+
+**Proposed rule.** `ngrace-execute` `execution_rules` (rule 9), appended: &quot;The prohibition is scoped to the production bundle: a faithful throwaway copy may invoke `ngrace gate verdict` as the `CloseEvidence` probe, and such a verdict is never recorded on the production record.&quot; Token: `a faithful throwaway copy may invoke`.
+
+Owner: the next teaching increment.
+</Body>
+  </Finding>
+  <Finding id="f271" token="F271" status="live">
+    <Title>### F271 — `ngrace-spec` names `spec new --supersedes` and `ngrace supersede` but not how a successor's *bytes* come to be, so authoring one is rediscovered each time. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `da727d0` over the archive.** Four successors were minted this month, each from a superseded predecessor and each carrying a lineage paragraph in `Problem`: `C-TEST-TIMEOUT-CEILING-2-7AD2A006` (from `C-TEST-TIMEOUT-CEILING-1-4985C820`, predecessor id appears 2 times in the successor's `spec.xml`, successor id 11), `C-SCRIPTS-ADOPTION-2-36DEB1BD` (from `C-SCRIPTS-ADOPTION-1-F621B7C0`; 3 / 15), `C-RECORD-SCHEMA-2-0785BD5E` (from `C-RECORD-SCHEMA-1-1D8D868F`; 7 / 15), and `C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA` (from `C-TEACH-PLAN-DRIVES-CORRECTIONS-1-14457871`; 6 / 18); each predecessor's `spec.xml` reads `status=&quot;superseded&quot;`. Every successor's `Problem` opens with a measured lineage paragraph naming the predecessor, the supersede commit and the reason; the remaining predecessor-id occurrences are lineage citations. `ngrace-spec` `shape_sources` names the lineage *path* (`spec new --supersedes`, `ngrace supersede`) and stops there; the authoring method — carry the predecessor's approved bytes and apply a bounded diff — is in no skill.
+
+**Proposed rule.** `ngrace-spec` `shape_sources`, appended: &quot;To author a successor, carry the archived approved predecessor's bytes and apply a bounded diff — the id where it is data, the lineage paragraph in `Problem`, and the change that forced the supersede — then count the diff and report the predecessor-id occurrences that remain.&quot; Token: `bounded diff`.
+
+Owner: the next teaching increment.
+</Body>
+  </Finding>
+  <Finding id="f272" token="F272" status="live">
+    <Title>### F272 — a criterion that pins the byte total of an artifact the executor will write, or of a fixture regenerated later, is falsified by the executed artifact and forces a supersede; the criterion states the relation and the projected figure belongs in `Assumptions`. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `da727d0` from the closed bundles.** `C-TEST-TIMEOUT-CEILING-2-7AD2A006`'s spec `Assumptions` carries the copy drive's **draft** sentence figure (&quot;**866 lines / 78 456 bytes** … a projection of that draft, not of the sentence the executor will write&quot;) while its `AC-TAUGHT-RULE` states the criterion as a **relation**: &quot;*`src/test-support/token-accounting.test.ts`'s `total`/`totalBytes` assertions and `README.md:304`'s cell equal the footprint **measured at HEAD after the rewrite** … the relation, not a number, is the criterion*.&quot; Its plan therefore carries `bun run test` (which evaluates the relation through the shipped test) rather than the number, and moved the predecessor's pinned `MustContain` figures out of `TargetAssertions`. The counterexample is [F265](#f265): `C-RECORD-SCHEMA-1-1D8D868F`'s write-scope Constraint ruled the golden fixtures &quot;regenerated only if the measured fixture diff is non-empty — measured 0&quot;, a figure taken over the live record and never over the fixtures; the plan-time drive found ten non-canonical goldens and the figure was already false at ratification.
+
+**The class.** A number projected onto an artifact that does not exist yet at approval time is a dated measurement in a criterion's clothes: the executed artifact overwrites it, the pin reddens, and the repair is a supersede. The relation (`pin equals measurement`) is invariant under the executor's bytes.
+
+**Proposed rule.** `ngrace-spec` `acceptance_criteria_anchors`, appended: &quot;A criterion that pins an artifact the executor will write, or a fixture regenerated later, states the relation — the pin equals the measurement — and never the projected figure; the figure belongs in `Assumptions`, where it expires.&quot; Token: `states the relation`.
+
+Owner: the next teaching increment.
+</Body>
+  </Finding>
+  <Finding id="f273" token="F273" status="live">
+    <Title>### F273 — three supersedes in one week had one shape: the spec was checked against the pins of the value it edited while the change's second-order effect sat in a file the spec never named; the pin grep must be run per effect, before ratification. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `da727d0` over the retired record.** The bodies of [F264](#f264), [F265](#f265) and [F267](#f267) each describe the same failure: a spec that flips one value and is checked against that value's pins while a *different* file pins the consequence. `F264`: `C-SCRIPTS-ADOPTION-1-F621B7C0` forbade every `src/` write while `src/grace-lint.test.ts:1930` pins `ignoredDirs ∋ scripts`, so `validate:ci` and the spec's own `AC-NO-OTHER-FILES` could not both pass — superseded. `F265`: `C-RECORD-SCHEMA-1-1D8D868F` ruled the golden fixtures out of scope on &quot;measured 0&quot; while `scripts/validate-record-retirement.test.ts:2147` pins the goldens byte-for-byte — superseded. `F267`: `C-TEST-TIMEOUT-CEILING-1-4985C820` rewrote a skill sentence and omitted `src/test-support/token-accounting.test.ts` and `README.md:304` from scope and criterion — superseded. The archive search is the wrong population for a second-order pin: it is the *test suites* that pin the consequence.
+
+**Proposed rule.** `ngrace-spec` `acceptance_criteria_anchors`, appended: &quot;Before ratification, list what the deliverable moves and grep the test suites for each — skill text moves the footprint pins, fixture inputs or engine output move golden bytes, config values move the audit and lint guards, the record moves the payer maps — and name every file the grep finds in the write scope.&quot; Token: `list what the deliverable moves`.
+
+Owner: the next teaching increment.
+</Body>
+  </Finding>
+  <Finding id="f274" token="F274" status="live">
+    <Title>### F274 — landing a later guard in an earlier pair's landing makes the earlier pair's whole-suite green impossible; the T0 executor reworked its first landing, and no rule says one guard per pair. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `da727d0` from the T0 bundle's report and ledger.** `C-TEST-TIMEOUT-CEILING-2-7AD2A006`'s report `SKILL GAPS` records: &quot;*ngrace-execute does not warn that a task's first red-first pair can be invalidated by landing a second guard the same task's later pair owns: the plan sequences pin-guard before ceiling-guard, but nothing tells the executor not to batch both into the first landing, and batching makes the first pass's whole-suite green impossible. A sentence in `must_do`/`assertion_commands` would have saved a rework of the first landing.*&quot; Its `run-ledger.xml` shows the corrected shape after the rework: three separate pairs, `fail pin-guard` → `pass`, `fail ceiling-guard` → `pass`, `fail footprint-pin` → `pass` (events 7–12). `ngrace-execute` rule 5 governs the fix budget and rule 13 the pass-only cycle; neither says a guard lands with its own pair.
+
+**Proposed rule.** `ngrace-execute` `execution_rules` (rule 5), appended: &quot;Land one guard per pair: a guard a later pair owns, landed with the first pair's fix, is red until its own pair lands and makes the first pair's whole-suite green impossible — batch the fix, not the guards.&quot; Token: `one guard per pair`.
+
+Owner: the next teaching increment.
+</Body>
+  </Finding>
+  <Finding id="f275" token="F275" status="live">
+    <Title>### F275 — when a successor spec turns a pinned number into a relation, the archived plan's `TargetAssertions` that pinned the number must become the relation; `approved_plan_immutability` says re-home from the archived draft and nothing about this. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `da727d0` over the two archived plans.** `C-TEST-TIMEOUT-CEILING-1-4985C820`'s `plan.xml` `TargetAssertions` pin the footprint as a number: `&lt;MustContain&gt;&lt;File&gt;README.md&lt;/File&gt;&lt;Text&gt;**866 lines** / **78456 UTF-8 bytes**&lt;/Text&gt;&lt;/MustContain&gt;` and `&lt;MustContain&gt;&lt;File&gt;src/test-support/token-accounting.test.ts&lt;/File&gt;&lt;Text&gt;expect(measured.totalBytes).toBe(78456);&lt;/Text&gt;&lt;/MustContain&gt;`. The successor `C-TEST-TIMEOUT-CEILING-2-7AD2A006` turned the criterion into a relation and its `TargetAssertions` carry `bun run test` (the shipped test evaluates the relation) and no footprint number. `ngrace-plan` `approved_plan_immutability` says to author the successor's artifacts from the archived predecessor's draft, changing the id where it is data; it does not say that a criterion which changed *kind* — number to relation — must be re-homed in `TargetAssertions`, not carried.
+
+**Proposed rule.** `ngrace-plan` `approved_plan_immutability`, appended: &quot;When the successor's spec turns a pinned number into a relation, re-home the archived plan's `TargetAssertions` the same way: the pinned number becomes the relation, never a figure carried across the supersede.&quot; Token: `the pinned number becomes the relation`.
+
+Owner: the next teaching increment.
+</Body>
+  </Finding>
+  <Finding id="f276" token="F276" status="live">
+    <Title>### F276 — a tier drops Goals, never a forced file: the T0 that dropped the footprint Goal also dropped the footprint pin from write scope, and the bundle was uncloseable. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `da727d0` from [F267](#f267)'s body and the predecessor spec.** The T0 tier table in `ngrace-spec` `ceremony_tiers` says T0 shrinks `Summary`/`Problem`, narrows `AffectedAreas` and keeps &quot;minimal `AcceptanceCriteria`&quot;, and the T0 spec's own tier Constraint listed &quot;footprint Goals&quot; among what T0 drops. `C-TEST-TIMEOUT-CEILING-1-4985C820` dropped the footprint *Goal* and, with it, `src/test-support/token-accounting.test.ts` and `README.md:304` from the write-scope Constraint and the byte-invariance criterion; on the post-close copy the criterion exited 1 naming that test and `gate verdict` refused `pass` — superseded as `C-TEST-TIMEOUT-CEILING-2-7AD2A006`. The Goal is optional at T0; the file the deliverable forces is not, because without it the bundle cannot close.
+
+**Proposed rule.** `ngrace-spec` `ceremony_tiers`, appended: &quot;A tier changes which sections must be rich, never which files are in scope: T0 may drop a Goal, but a file the deliverable forces stays in the write scope, or the bundle is uncloseable.&quot; Token: `never which files are in scope`.
+
+Owner: the next teaching increment.
 </Body>
   </Finding>
 </Findings>
