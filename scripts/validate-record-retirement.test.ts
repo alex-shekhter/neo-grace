@@ -16,6 +16,7 @@ import {
   listArchiveNames,
   liveH2DecisionLineCounts,
   median,
+  main,
   newlineCount,
   recordHeadroom,
   resolveRecordDirWithinBoundary,
@@ -43,6 +44,7 @@ function plant(root: string, rel: string, body: string): string {
   return abs;
 }
 
+/** The real process boundary: one test keeps it, where the OS exit code is the contract. */
 function runValidator(
   cwd: string,
   args: string[] = [],
@@ -52,6 +54,36 @@ function runValidator(
     status: result.status,
     stdout: result.stdout ?? "",
     stderr: result.stderr ?? "",
+  };
+}
+
+/**
+ * The bulk path: call the validator's exported `main(argv, cwd)` in-process and
+ * capture its console output through a seam that is restored in a `finally`, so
+ * no buffer leaks between calls or tests.
+ */
+function runValidatorInProcess(
+  cwd: string,
+  args: string[] = [],
+): { status: number | null; stdout: string; stderr: string } {
+  const captured: string[] = [];
+  const errored: string[] = [];
+  const originalLog = console.log;
+  const originalError = console.error;
+  console.log = (...parts: unknown[]) => captured.push(parts.map(String).join(" "));
+  console.error = (...parts: unknown[]) => errored.push(parts.map(String).join(" "));
+  let status: number;
+  try {
+    status = main(args, cwd);
+  } finally {
+    // Restore in a finally so no buffer can leak into the next call or test.
+    console.log = originalLog;
+    console.error = originalError;
+  }
+  return {
+    status,
+    stdout: captured.length > 0 ? `${captured.join("\n")}\n` : "",
+    stderr: errored.length > 0 ? `${errored.join("\n")}\n` : "",
   };
 }
 
@@ -146,6 +178,7 @@ describe("validate-record-retirement", () => {
   it("exits 0 on a happy fixture", () => {
     const root = isolatedRoot();
     writeHappy(root);
+    // This one keeps the real process boundary: the contract is the OS exit code.
     const result = runValidator(root);
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("record-retirement: ok");
@@ -164,7 +197,7 @@ describe("validate-record-retirement", () => {
 </Findings>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("finding-eligible-still-live");
     expect(result.stderr).toContain("C-OLD");
@@ -184,7 +217,7 @@ describe("validate-record-retirement", () => {
 </Registry>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("registry-eligible-still-live");
     expect(result.stderr).toContain("C-OLD");
@@ -202,7 +235,7 @@ describe("validate-record-retirement", () => {
 </Findings>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("ceiling-exceeded");
     expect(result.stderr).toContain("retired sibling");
@@ -223,7 +256,7 @@ describe("validate-record-retirement", () => {
 </Rulings>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("codified-in-unresolved");
     expect(result.stderr).toContain("no.such.lint.rule");
@@ -241,7 +274,7 @@ describe("validate-record-retirement", () => {
 </Rulings>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("codified-in-unresolved");
     expect(result.stderr).toContain("tests/missing.test.ts");
@@ -259,7 +292,7 @@ describe("validate-record-retirement", () => {
 </Rulings>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("taught-in-unresolved");
     expect(result.stderr).toContain("skills/ngrace/missing/SKILL.md");
@@ -278,7 +311,7 @@ describe("validate-record-retirement", () => {
 </Rulings>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("taught-in-unresolved");
     expect(result.stderr).toContain("no-such-section");
@@ -297,7 +330,7 @@ describe("validate-record-retirement", () => {
 </Rulings>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("decision-eligible-still-live");
     expect(result.stderr).toContain("CodifiedIn");
@@ -314,7 +347,7 @@ describe("validate-record-retirement", () => {
 </Findings>
 `;
     writeHappy(root, parts);
-    const ok = runValidator(root);
+    const ok = runValidatorInProcess(root);
     expect(ok.status).toBe(0);
     parts.findings = `<Findings base="20" headroom="70" ceiling="1000">
 \`\`\`
@@ -327,7 +360,7 @@ token: F1
 </Findings>
 `;
     writeHappy(root, parts);
-    const bad = runValidator(root);
+    const bad = runValidatorInProcess(root);
     expect(bad.status).not.toBe(0);
     expect(bad.stderr).toContain("fenced-metadata");
   });
@@ -343,7 +376,7 @@ token: F1
 </Findings>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("status-file-mismatch");
   });
@@ -400,7 +433,7 @@ token: F1
 </Registry>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("finding-eligible-still-live");
     expect(result.stderr).toContain("C-OLD");
@@ -441,14 +474,14 @@ token: F1
     writeHappy(root, parts);
     const productionFindings = path.join(REPO_ROOT, RECORD_REL, "findings.xml");
     const beforeProduction = readFileSync(productionFindings, "utf8");
-    const stamped = runValidator(root, ["--stamp-paid-by"]);
+    const stamped = runValidatorInProcess(root, ["--stamp-paid-by"]);
     expect(stamped.status).toBe(0);
     const live = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const retired = readFileSync(path.join(root, RECORD_REL, "findings-retired.xml"), "utf8");
     expect(live).toContain("<PaidBy>C-OLD</PaidBy>");
     expect(live).toContain('token="F1"');
     expect(retired).not.toContain('token="F1"');
-    const stillRed = runValidator(root);
+    const stillRed = runValidatorInProcess(root);
     expect(stillRed.status).not.toBe(0);
     expect(stillRed.stderr).toContain("finding-eligible-still-live");
     expect(readFileSync(productionFindings, "utf8")).toBe(beforeProduction);
@@ -477,7 +510,7 @@ token: F1
       "decisions.xml",
     ].map((name) => path.join(REPO_ROOT, RECORD_REL, name));
     const before = productionFiles.map((file) => readFileSync(file, "utf8"));
-    const result = runValidator(root, ["--retire", RECORD_REL]);
+    const result = runValidatorInProcess(root, ["--retire", RECORD_REL]);
     expect(result.status).toBe(0);
     for (let i = 0; i < productionFiles.length; i++) {
       expect(readFileSync(productionFiles[i]!, "utf8")).toBe(before[i]);
@@ -497,7 +530,7 @@ token: F1
       `${RECORD_REL}/decisions.md`,
       `# RM-GOVERNED-PATH record stub\n\nThe parseable citation index is [./decisions.xml](./decisions.xml).\n`,
     );
-    const result = runValidator(root, ["--split"]);
+    const result = runValidatorInProcess(root, ["--split"]);
     expect(result.status).not.toBe(0);
     expect(`${result.stdout}${result.stderr}`).toMatch(/refusing to split a stub|not the pre-split dump/);
   });
@@ -511,7 +544,7 @@ token: F1
     const H = 7 * median(h2LineCounts(before));
     // the split-shaped fixture carries the uncorrected 2x headroom, so the 7-times term exceeds the persisted ceiling
     expect(newlineCount(before) + H).toBeGreaterThan(persisted.ceiling);
-    const result = runValidator(root, ["--retire"]);
+    const result = runValidatorInProcess(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
     const written = rootAttrs(after);
@@ -524,7 +557,7 @@ token: F1
     const root = isolatedRoot();
     const parts = splitShapedParts();
     writeHappy(root, parts);
-    const first = runValidator(root, ["--retire"]);
+    const first = runValidatorInProcess(root, ["--retire"]);
     expect(first.status).toBe(0);
     const afterFirstPath = path.join(root, RECORD_REL, "rulings.xml");
     const afterFirst = readFileSync(afterFirstPath, "utf8");
@@ -535,7 +568,7 @@ token: F1
     );
     plant(root, `${RECORD_REL}/rulings.xml`, tagged);
     plant(root, "tests/exists.test.ts", "export {}\n");
-    const second = runValidator(root, ["--retire"]);
+    const second = runValidatorInProcess(root, ["--retire"]);
     expect(second.status).toBe(0);
     const afterSecond = readFileSync(afterFirstPath, "utf8");
     expect(rootAttrs(afterSecond).ceiling).toBeLessThanOrEqual(ceilingAfterFirst);
@@ -578,7 +611,7 @@ ${inner}
 </RecordIndex>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root, ["--retire"]);
+    const result = runValidatorInProcess(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
     const written = rootAttrs(after);
@@ -593,7 +626,7 @@ ${inner}
     writeHappy(root, parts);
     const begin = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
     const persisted = rootAttrs(begin);
-    const first = runValidator(root, ["--retire"]);
+    const first = runValidatorInProcess(root, ["--retire"]);
     expect(first.status).toBe(0);
     const afterFirst = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
     expect(rootAttrs(afterFirst).ceiling).toBe(persisted.ceiling);
@@ -611,7 +644,7 @@ ${inner}
       `  <Row name="C-LATE" status="retired" kind="chartered">\n    <Number>3</Number>\n    <Charter>late</Charter>\n    <Pays>F9</Pays>\n    <StatusText>Delivered</StatusText>\n  </Row>\n</Registry>`,
     );
     plant(root, `${RECORD_REL}/registry-retired.xml`, reg);
-    const second = runValidator(root, ["--retire"]);
+    const second = runValidatorInProcess(root, ["--retire"]);
     expect(second.status).toBe(0);
     const afterSecond = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
     expect(rootAttrs(afterSecond).ceiling).toBe(persisted.ceiling);
@@ -630,7 +663,7 @@ ${inner}
 </Findings>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("ceiling-exceeded");
     expect(result.stderr).toContain("--retire");
@@ -662,7 +695,7 @@ ${inner}
     writeHappy(root, parts);
     const asRead = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const baseLive = newlineCount(asRead);
-    const result = runValidator(root, ["--retire"]);
+    const result = runValidatorInProcess(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const written = rootAttrs(after);
@@ -710,7 +743,7 @@ ${inner}
     const ceilingLow = baseLive + H - 1;
     parts.findings = `<Findings base="${baseLive}" headroom="${H}" ceiling="${ceilingLow}">\n${inner}\n</Findings>\n`;
     writeHappy(root, parts);
-    const result = runValidator(root, ["--retire"]);
+    const result = runValidatorInProcess(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const written = rootAttrs(after);
@@ -748,7 +781,7 @@ ${inner}
     const asRead = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const persisted = rootAttrs(asRead);
     const baseLive = newlineCount(asRead);
-    const result = runValidator(root, ["--retire"]);
+    const result = runValidatorInProcess(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const written = rootAttrs(after);
@@ -766,14 +799,14 @@ ${inner}
   it("C-ROOT-WINDOW rewrite-roots byte no-op: on a consistent record the mode re-derives all four live roots from the held ceilings and the metric read-backs and leaves every record file byte-identical, and a second run is again a byte no-op", () => {
     const root = isolatedRoot();
     writeHappy(root, consistentParts());
-    expect(runValidator(root).status, "the consistent fixture validates clean").toBe(0);
+    expect(runValidatorInProcess(root).status, "the consistent fixture validates clean").toBe(0);
     const before = snapshotRecord(root);
-    const result = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    const result = runValidatorInProcess(root, ["--rewrite-roots", RECORD_REL]);
     expect(result.status, result.stderr).toBe(0);
     for (const [name, text] of Object.entries(before)) {
       expect(readFileSync(path.join(root, RECORD_REL, name), "utf8"), `${name}: byte-identical`).toBe(text);
     }
-    const second = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    const second = runValidatorInProcess(root, ["--rewrite-roots", RECORD_REL]);
     expect(second.status).toBe(0);
     for (const [name, text] of Object.entries(before)) {
       expect(readFileSync(path.join(root, RECORD_REL, name), "utf8"), `${name}: the second run is again a byte no-op`).toBe(text);
@@ -790,7 +823,7 @@ ${inner}
     );
     writeHappy(root, parts);
     const before = snapshotRecord(root);
-    const result = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    const result = runValidatorInProcess(root, ["--rewrite-roots", RECORD_REL]);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("ceiling-exceeded");
     expect(result.stderr).toContain(
@@ -810,7 +843,7 @@ ${inner}
     parts.registry = parts.registry.replace(/ ceiling="[0-9]+">/, ">");
     writeHappy(root, parts);
     const before = snapshotRecord(root);
-    const result = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    const result = runValidatorInProcess(root, ["--rewrite-roots", RECORD_REL]);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("missing-ceiling");
     expect(result.stderr).toContain("has no persisted ceiling");
@@ -828,7 +861,7 @@ ${inner}
     );
     writeHappy(root, parts);
     const before = snapshotRecord(root);
-    const result = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    const result = runValidatorInProcess(root, ["--rewrite-roots", RECORD_REL]);
     expect(result.status, result.stderr).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "registry.xml"), "utf8");
     expect(after, "the ceiling's raw bytes pass through untouched").toContain('ceiling="90"');
@@ -866,7 +899,7 @@ ${inner}
     writeHappy(root, parts);
     const asRead = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const baseLive = newlineCount(asRead);
-    const result = runValidator(root, ["--retire"]);
+    const result = runValidatorInProcess(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const written = rootAttrs(after);
@@ -893,7 +926,7 @@ ${inner}
 `;
     writeHappy(root, parts);
     const rulingsBefore = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
-    const first = runValidator(root, ["--retire"]);
+    const first = runValidatorInProcess(root, ["--retire"]);
     expect(first.status, first.stderr).toBe(0);
     const rulingsAfterFirst = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
     expect(rulingsAfterFirst, "the unmoved rulings genre is byte-identical across the first move").toBe(rulingsBefore);
@@ -911,7 +944,7 @@ ${inner}
       `  <Row name="C-LATE" status="retired" kind="chartered">\n    <Number>3</Number>\n    <Charter>late</Charter>\n    <Pays>F9</Pays>\n    <StatusText>Delivered</StatusText>\n  </Row>\n</Registry>`,
     );
     plant(root, `${RECORD_REL}/registry-retired.xml`, reg);
-    const second = runValidator(root, ["--retire"]);
+    const second = runValidatorInProcess(root, ["--retire"]);
     expect(second.status, second.stderr).toBe(0);
     const rulingsAfterSecond = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
     expect(rulingsAfterSecond, "the unmoved rulings genre is byte-identical through both moves").toBe(rulingsBefore);
@@ -941,7 +974,7 @@ ${inner}
     writeHappy(root, parts);
     const beforeXml = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     expect(gapShapesCanonical(beforeXml), "the pre-move fixture carries non-canonical gaps (the drift the pass repairs)").toBe(false);
-    const result = runValidator(root, ["--retire"]);
+    const result = runValidatorInProcess(root, ["--retire"]);
     expect(result.status).toBe(0);
     const afterXml = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const beforeBytes = topElementBytes(beforeXml);
@@ -993,7 +1026,7 @@ ${inner}
     const H = 7 * median(findingLineCounts(noAttrs));
     parts.findings = `<Findings base="${baseLive}" headroom="${H}" ceiling="${baseLive + H}">\n${f}\n</Findings>\n`;
     writeHappy(root, parts);
-    const result = runValidator(root, ["--retire"]);
+    const result = runValidatorInProcess(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const written = rootAttrs(after);
@@ -1013,7 +1046,7 @@ ${inner}
 </Rulings>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
   });
@@ -1029,7 +1062,7 @@ ${inner}
 </Rulings>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root);
+    const result = runValidatorInProcess(root);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("rulings-ceiling-above-provenance");
     expect(result.stderr).toContain("C-RETIRE-AND-CODIFY");
@@ -1071,7 +1104,7 @@ ${inner}
 </RecordIndex>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root, ["--retire"]);
+    const result = runValidatorInProcess(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
     expect(after).not.toContain('token="D-MOVE"');
@@ -1123,7 +1156,7 @@ ${inner}
 </RecordIndex>
 `;
     writeHappy(root, parts);
-    const result = runValidator(root, ["--retire"]);
+    const result = runValidatorInProcess(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
     const written = rootAttrs(after);
@@ -1166,7 +1199,7 @@ ${inner}
 `;
     writeHappy(root, parts);
     const before = rootAttrs(readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8"));
-    const result = runValidator(root, ["--retire"]);
+    const result = runValidatorInProcess(root, ["--retire"]);
     expect(result.status).toBe(0);
     const afterXml = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
     const after = rootAttrs(afterXml);
@@ -1192,10 +1225,10 @@ ${inner}
 `;
     writeHappy(root, parts);
     const before = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
-    const validated = runValidator(root);
+    const validated = runValidatorInProcess(root);
     expect(validated.status).toBe(0);
     expect(validated.stderr).not.toContain("decision-eligible-still-live");
-    const retired = runValidator(root, ["--retire"]);
+    const retired = runValidatorInProcess(root, ["--retire"]);
     expect(retired.status).toBe(0);
     expect(readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8")).toBe(before);
     expect(readFileSync(path.join(root, RECORD_REL, "rulings-retired.xml"), "utf8")).not.toContain(
@@ -1210,7 +1243,7 @@ ${inner}
 </Rulings>
 `;
     writeHappy(root, parts);
-    const moved = runValidator(root, ["--retire"]);
+    const moved = runValidatorInProcess(root, ["--retire"]);
     expect(moved.status).toBe(0);
     expect(readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8")).not.toContain(
       'token="D1"',
@@ -1234,7 +1267,7 @@ ${inner}
 </Rulings>
 `;
     writeHappy(root, parts);
-    const taught = runValidator(root);
+    const taught = runValidatorInProcess(root);
     expect(taught.status).not.toBe(0);
     expect(taught.stderr).toContain("taught-in-unresolved");
     expect(taught.stderr).not.toContain("decision-eligible-still-live");
@@ -1247,7 +1280,7 @@ ${inner}
 </Rulings>
 `;
     writeHappy(root, parts);
-    const coded = runValidator(root);
+    const coded = runValidatorInProcess(root);
     expect(coded.status).not.toBe(0);
     expect(coded.stderr).toContain("codified-in-unresolved");
     expect(coded.stderr).not.toContain("decision-eligible-still-live");
@@ -1267,11 +1300,11 @@ ${inner}
 </Rulings>
 `;
     writeHappy(root, parts);
-    const validated = runValidator(root);
+    const validated = runValidatorInProcess(root);
     expect(validated.status).not.toBe(0);
     expect(validated.stderr).toContain("codified-in-unresolved");
     const before = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
-    const retired = runValidator(root, ["--retire"]);
+    const retired = runValidatorInProcess(root, ["--retire"]);
     expect(retired.status).toBe(0);
     expect(readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8")).toBe(before);
   });
@@ -1290,11 +1323,11 @@ ${inner}
 </Rulings>
 `;
     writeHappy(root, parts);
-    const validated = runValidator(root);
+    const validated = runValidatorInProcess(root);
     expect(validated.status).not.toBe(0);
     expect(validated.stderr).toContain("codified-in-unresolved");
     const before = readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8");
-    const retired = runValidator(root, ["--retire"]);
+    const retired = runValidatorInProcess(root, ["--retire"]);
     expect(retired.status).toBe(0);
     expect(readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8")).toBe(before);
   });
@@ -1314,7 +1347,7 @@ ${inner}
 </Rulings>
 `;
     writeHappy(root, parts);
-    const both = runValidator(root, ["--retire"]);
+    const both = runValidatorInProcess(root, ["--retire"]);
     expect(both.status).toBe(0);
     expect(readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8")).not.toContain(
       'token="D1"',
@@ -1334,7 +1367,7 @@ ${inner}
 </Rulings>
 `;
     writeHappy(root2, parts2);
-    const one = runValidator(root2, ["--retire"]);
+    const one = runValidatorInProcess(root2, ["--retire"]);
     expect(one.status).toBe(0);
     expect(readFileSync(path.join(root2, RECORD_REL, "rulings.xml"), "utf8")).not.toContain(
       'token="D1"',
@@ -1358,7 +1391,7 @@ ${inner}
     const readAll = () =>
       Object.fromEntries(names.map((name) => [name, readFileSync(path.join(root, RECORD_REL, name), "utf8")]));
     const before = readAll();
-    const result = runValidator(root, ["--retire"]);
+    const result = runValidatorInProcess(root, ["--retire"]);
     expect(result.status).toBe(0);
     const after = readAll();
     for (const name of names) {
@@ -1389,7 +1422,7 @@ ${inner}
 </Registry>
 `;
     writeHappy(historicalRoot, historicalParts);
-    const historical = runValidator(historicalRoot);
+    const historical = runValidatorInProcess(historicalRoot);
     expect(historical.status).not.toBe(0);
     expect(historical.stderr).toContain("finding-eligible-still-live");
     expect(historical.stderr).toContain('token="F1"');
@@ -1414,7 +1447,7 @@ ${inner}
 </Registry>
 `;
     writeHappy(sweepRoot, sweepParts);
-    const sweep = runValidator(sweepRoot);
+    const sweep = runValidatorInProcess(sweepRoot);
     expect(sweep.status).toBe(0);
     expect(sweep.stderr).not.toContain("finding-eligible-still-live");
 
@@ -1430,7 +1463,7 @@ ${inner}
 </Registry>
 `;
     writeHappy(charteredRoot, charteredParts);
-    const chartered = runValidator(charteredRoot);
+    const chartered = runValidatorInProcess(charteredRoot);
     expect(chartered.status).not.toBe(0);
     expect(chartered.stderr).toContain("finding-eligible-still-live");
     expect(chartered.stderr).toContain('token="F1"');
@@ -1451,7 +1484,7 @@ ${inner}
 </Registry>
 `;
       writeHappy(root, parts);
-      const result = runValidator(root);
+      const result = runValidatorInProcess(root);
       expect(result.status, illegal).not.toBe(0);
       expect(result.stderr, illegal).toContain(illegal);
       expect(result.stderr, illegal).not.toContain("finding-eligible-still-live");
@@ -1469,7 +1502,7 @@ ${inner}
 </Registry>
 `;
     writeHappy(retiredRoot, retiredParts);
-    const retired = runValidator(retiredRoot);
+    const retired = runValidatorInProcess(retiredRoot);
     expect(retired.status).not.toBe(0);
     expect(retired.stderr).toContain("history");
   });
@@ -1514,7 +1547,7 @@ ${historicalXml}
     const persistedBefore = rootAttrs(liveBefore);
     expect(persistedBefore.ceiling).toBe(ceiling);
 
-    const retired = runValidator(insertRoot, ["--retire", RECORD_REL]);
+    const retired = runValidatorInProcess(insertRoot, ["--retire", RECORD_REL]);
     expect(retired.status).toBe(0);
     const liveAfter = readFileSync(path.join(insertRoot, RECORD_REL, "registry.xml"), "utf8");
     const retiredAfter = readFileSync(path.join(insertRoot, RECORD_REL, "registry-retired.xml"), "utf8");
@@ -1599,7 +1632,7 @@ ${names
     const asRead = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const before = rootAttrs(asRead);
     expect(before.ceiling).toBe(baseLive + H);
-    const result = runValidator(root, ["--retire", RECORD_REL]);
+    const result = runValidatorInProcess(root, ["--retire", RECORD_REL]);
     expect(result.status).toBe(0);
     const afterXml = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
     const after = rootAttrs(afterXml);
@@ -1667,7 +1700,7 @@ ${names
       const index = readFileSync(path.join(recordDir, "decisions.xml"), "utf8");
       expectDuplicateTokenPair(liveFindings, retiredFindings, index, "F21", ["f21", "f21-correction"]);
 
-      const validate = runValidator(REPO_ROOT);
+      const validate = runValidatorInProcess(REPO_ROOT);
       expect(validate.status).toBe(0);
       expect(validate.stdout).toContain("record-retirement: ok");
     },
@@ -1709,7 +1742,7 @@ ${names
       expect(d24!).not.toContain("change.task-invalid-dependency");
       expect(d24!).not.toContain("review.approval-never-asked");
 
-      const validate = runValidator(REPO_ROOT);
+      const validate = runValidatorInProcess(REPO_ROOT);
       expect(validate.status).toBe(0);
       expect(validate.stdout).toContain("record-retirement: ok");
     },
@@ -1764,7 +1797,7 @@ ${names
       const readAll = () =>
         Object.fromEntries(fixtureFiles.map((file) => [file, readFileSync(file, "utf8")]));
 
-      const first = runValidator(root, ["--retire"]);
+      const first = runValidatorInProcess(root, ["--retire"]);
       expect(first.status).toBe(0);
       const retiredFixture = readFileSync(path.join(root, RECORD_REL, "findings-retired.xml"), "utf8");
       expect(retiredFixture, "the first --retire must move on the fixture").toContain(
@@ -1772,7 +1805,7 @@ ${names
       );
 
       const beforeSecond = readAll();
-      const second = runValidator(root, ["--retire"]);
+      const second = runValidatorInProcess(root, ["--retire"]);
       expect(second.status).toBe(0);
       const afterSecond = readAll();
       for (const file of fixtureFiles) {
@@ -1940,16 +1973,16 @@ ${names
     () => {
       const control = isolatedRoot();
       buildFixture(control, ["--c-selection-row"]);
-      const controlRetire = runValidator(control, ["--retire", RECORD_REL]);
+      const controlRetire = runValidatorInProcess(control, ["--retire", RECORD_REL]);
       expect(controlRetire.status).toBe(0);
       expect(controlRetire.stdout).toContain("moved 3");
-      const controlPost = runValidator(control);
+      const controlPost = runValidatorInProcess(control);
       expect(controlPost.status, "the unmodified tag is the control").toBe(0);
 
       for (const variant of ["single-quoted", "spaced", "reordered"] as const) {
         const root = isolatedRoot();
         buildFixture(root, ["--c-selection-row", `--f21-tag=${variant}`]);
-        const retire = runValidator(root, ["--retire", RECORD_REL]);
+        const retire = runValidatorInProcess(root, ["--retire", RECORD_REL]);
         expect(retire.status, variant).toBe(0);
         expect(retire.stdout, variant).toContain("moved 3");
         // the element moved to the retired sibling, stamped, and every open-tag
@@ -1971,7 +2004,7 @@ ${names
         const index = readFileSync(path.join(root, RECORD_REL, "decisions.xml"), "utf8");
         expect(index, variant).toMatch(/<Entry id="f21"[^>]*layer="retired" \/>/);
         // and the moved record validates clean
-        const post = runValidator(root);
+        const post = runValidatorInProcess(root);
         expect(post.status, `${variant}: post-move validate`).toBe(0);
       }
     },
@@ -1984,7 +2017,7 @@ ${names
       // no finding becomes eligible because a sentence matched a pattern
       const withSpec = isolatedRoot();
       buildFixture(withSpec, ["--parked-spec"]);
-      const withResult = runValidator(withSpec);
+      const withResult = runValidatorInProcess(withSpec);
       expect(withResult.status, "with the parked spec planted").toBe(0);
       expect(withResult.stderr).not.toContain("finding-eligible-still-live");
 
@@ -1992,7 +2025,7 @@ ${names
       // so the test discriminates
       const withoutSpec = isolatedRoot();
       buildFixture(withoutSpec, []);
-      const withoutResult = runValidator(withoutSpec);
+      const withoutResult = runValidatorInProcess(withoutSpec);
       expect(withoutResult.status, "without the parked spec").toBe(0);
     },
   );
@@ -2177,7 +2210,7 @@ ${names
     () => {
       const root = isolatedRoot();
       buildFixture(root, ["--c-selection-row"]);
-      const result = runValidator(root, ["--retire", RECORD_REL]);
+      const result = runValidatorInProcess(root, ["--retire", RECORD_REL]);
       expect(result.status).toBe(0);
       expect(result.stdout).toContain("moved 3");
       for (const name of GOLDEN_FILES) {
@@ -2253,7 +2286,7 @@ ${names
     // of the expected roots and no same-tag nesting
     const clean = isolatedRoot();
     writeHappy(clean);
-    expect(runValidator(clean).status).toBe(0);
+    expect(runValidatorInProcess(clean).status).toBe(0);
 
     // wrong root element
     const wrongRoot = isolatedRoot();
@@ -2266,7 +2299,7 @@ ${names
 </WrongRoot>
 `;
     writeHappy(wrongRoot, wrongParts);
-    const wrongResult = runValidator(wrongRoot);
+    const wrongResult = runValidatorInProcess(wrongRoot);
     expect(wrongResult.status).not.toBe(0);
     expect(wrongResult.stderr).toContain("record-shape-wrong-root");
     expect(wrongResult.stderr).toContain("expected \u003cFindings\u003e");
@@ -2284,7 +2317,7 @@ ${names
 </Findings>
 `;
     writeHappy(nested, nestedParts);
-    const nestedResult = runValidator(nested);
+    const nestedResult = runValidatorInProcess(nested);
     expect(nestedResult.status).not.toBe(0);
     expect(nestedResult.stderr).toContain("record-shape-genre-not-direct-child");
     expect(nestedResult.stderr).toContain("<Wrapper>");
@@ -2304,7 +2337,7 @@ ${names
 </Findings>
 `;
     writeHappy(sameTag, sameTagParts);
-    const sameTagResult = runValidator(sameTag);
+    const sameTagResult = runValidatorInProcess(sameTag);
     expect(sameTagResult.status).not.toBe(0);
     expect(sameTagResult.stderr).toContain("record-shape-same-tag-nested");
   });
@@ -2706,7 +2739,7 @@ ${names
 `;
       writeHappy(root, parts);
       expect(newlineCount(parts.index), "the fixture's line count exceeds the ceiling").toBeGreaterThan(12);
-      const result = runValidator(root);
+      const result = runValidatorInProcess(root);
       expect(result.status).toBe(0);
       expect(result.stderr).toBe("");
     },
@@ -2726,7 +2759,7 @@ ${names
 </RecordIndex>
 `;
       writeHappy(root, parts);
-      const result = runValidator(root);
+      const result = runValidatorInProcess(root);
       expect(result.status).not.toBe(0);
       expect(result.stderr).toContain("ceiling-exceeded");
       expect(result.stderr).toContain("live index live-entry count 2 exceeds persisted ceiling 1");
@@ -2745,7 +2778,7 @@ ${names
 </RecordIndex>
 `;
       writeHappy(root, parts);
-      const result = runValidator(root);
+      const result = runValidatorInProcess(root);
       expect(result.status).not.toBe(0);
       expect(result.stderr).toContain("ceiling-exceeded");
       expect(result.stderr).toContain("live index live-entry count");
@@ -2775,7 +2808,7 @@ ${names
 </Findings>
 `;
       writeHappy(root, parts);
-      const result = runValidator(root);
+      const result = runValidatorInProcess(root);
       expect(result.status).not.toBe(0);
       expect(result.stderr).toContain("ceiling-exceeded");
       expect(result.stderr).toContain("move the eligible entry to the retired sibling");
@@ -2802,7 +2835,7 @@ body of the finding.
 body of the decision.
 `;
       plant(fixtureRoot, `${RECORD_REL}/decisions.md`, dump);
-      const result = runValidator(fixtureRoot, ["--split"]);
+      const result = runValidatorInProcess(fixtureRoot, ["--split"]);
       expect(result.status, `${result.stderr}`).toBe(0);
       const written = readFileSync(
         path.join(fixtureRoot, RECORD_REL, "decisions.xml"),
@@ -3491,7 +3524,7 @@ function gapShapesCanonical(xml: string): boolean {
 // initializers. Mutating argv: a flag arriving through a literal, an array, or
 // a variable. Refusal, not filtering: an argv shape the scan cannot prove
 // flag-free (a spread, a call, a parameter, an import) fails the guard. The
-// bare non-mutating runValidator(REPO_ROOT) calls stay legal. The helper's own
+// bare non-mutating runValidatorInProcess(REPO_ROOT) calls stay legal. The helper's own
 // internal spawn call is excluded (it is covered by scanning runValidator call
 // sites); a direct spawn call naming the SCRIPT constant elsewhere is scanned.
 // =============================================================================
@@ -5764,7 +5797,7 @@ describe("record schema and canonical serializer (C-RECORD-SCHEMA-2)", () => {
 `;
     writeHappy(root, { findings: nested });
     const before = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
-    const result = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    const result = runValidatorInProcess(root, ["--rewrite-roots", RECORD_REL]);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toMatch(/record-shape-(same-tag-nested|genre-not-direct-child)/);
     expect(readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8")).toBe(before);
@@ -5961,7 +5994,7 @@ describe("record schema and canonical serializer (C-RECORD-SCHEMA-2)", () => {
 describe("repository-boundary refusal (C-RECORD-SCHEMA-2 T-002)", () => {
   it("refuses a cwd with no .ngrace/ — the repository boundary is undefined", () => {
     const outside = isolatedRoot();
-    const result = runValidator(outside, []);
+    const result = runValidatorInProcess(outside, []);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("record-outside-repository-boundary");
   });
@@ -5980,7 +6013,7 @@ describe("repository-boundary refusal (C-RECORD-SCHEMA-2 T-002)", () => {
   it("accepts the whole-repository copy run from inside the copy", () => {
     const root = isolatedRoot();
     writeHappy(root);
-    const result = runValidator(root, [RECORD_REL]);
+    const result = runValidatorInProcess(root, [RECORD_REL]);
     expect(result.status).toBe(0);
   });
 });
@@ -6243,7 +6276,7 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
 
   it("--flush writes the selected finding and the row, and the codify-only invocation writes one CodifiedIn without re-minting", () => {
     const root = flushRoot();
-    const flush = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive", "--status-text", "fixture"]);
+    const flush = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive", "--status-text", "fixture"]);
     expect(flush.status, flush.stderr).toBe(0);
     expect([...walkNodes(parse(root, "findings.xml"))].filter((n) => n.tag === "Finding" && n.attributes.token === "F999").length, "F999 flushed").toBe(1);
     expect(rowsOf(root).length, "one row after the flush").toBe(1);
@@ -6252,7 +6285,7 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
       const m = /base="(\d+)" headroom="(\d+)" ceiling="(\d+)"/.exec(readFileSync(path.join(root, RECORD_REL, file), "utf8").split("\n")[0]!);
       expect(Number(m![1]) + Number(m![2]), file).toBe(Number(m![3]));
     }
-    const cod = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--codify", "D-FIXTURE:test-suite:scripts/validate-record-retirement.test.ts", "--mint-search", "1 active, 0 archive"]);
+    const cod = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--codify", "D-FIXTURE:test-suite:scripts/validate-record-retirement.test.ts", "--mint-search", "1 active, 0 archive"]);
     expect(cod.status, cod.stderr).toBe(0);
     expect(rowsOf(root).length, "the row is not re-minted").toBe(1);
     const tgt = [...walkNodes(parse(root, "rulings.xml"))].find((n) => n.tag === "Decision" && n.attributes.token === "D-FIXTURE")!;
@@ -6263,7 +6296,7 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
     const root = flushRoot();
     // Normalise the fixture's roots first, so the read-back below can only fail
     // because of what the flush itself fails to re-derive.
-    const seed = runValidator(root, ["--rewrite-roots", RECORD_REL]);
+    const seed = runValidatorInProcess(root, ["--rewrite-roots", RECORD_REL]);
     expect(seed.status, seed.stderr).toBe(0);
     const readBack = (file: string) => {
       const text = readFileSync(path.join(root, RECORD_REL, file), "utf8");
@@ -6287,11 +6320,11 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
     };
     assertRootsReadBack("control after --rewrite-roots");
 
-    const flush = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive", "--status-text", "fixture"]);
+    const flush = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive", "--status-text", "fixture"]);
     expect(flush.status, flush.stderr).toBe(0);
     assertRootsReadBack("after the entries flush, with no --rewrite-roots");
 
-    const cod = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--codify", "D-FIXTURE:test-suite:scripts/validate-record-retirement.test.ts", "--mint-search", "1 active, 0 archive"]);
+    const cod = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--codify", "D-FIXTURE:test-suite:scripts/validate-record-retirement.test.ts", "--mint-search", "1 active, 0 archive"]);
     expect(cod.status, cod.stderr).toBe(0);
     assertRootsReadBack("after the codify-only invocation, with no --rewrite-roots");
   });
@@ -6304,16 +6337,16 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
 
   it("--flush refuses before any write: flush-row-exists, flush-codify-exists, flush-mint-search-malformed", () => {
     const root = flushRoot();
-    expect(runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive"]).status).toBe(0);
+    expect(runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive"]).status).toBe(0);
     const before = allText(root).length;
-    const exists = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive"]);
+    const exists = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive"]);
     expect(exists.status).not.toBe(0);
     expect(exists.stderr).toContain("flush-row-exists");
-    expect(runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--codify", "D-FIXTURE:test-suite:x", "--mint-search", "1 active, 0 archive"]).status).toBe(0);
-    const recod = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--codify", "D-FIXTURE:test-suite:x", "--mint-search", "1 active, 0 archive"]);
+    expect(runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--codify", "D-FIXTURE:test-suite:x", "--mint-search", "1 active, 0 archive"]).status).toBe(0);
+    const recod = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--codify", "D-FIXTURE:test-suite:x", "--mint-search", "1 active, 0 archive"]);
     expect(recod.status).not.toBe(0);
     expect(recod.stderr).toContain("flush-codify-exists");
-    const malformed = runValidator(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--mint-search", "bad"]);
+    const malformed = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--mint-search", "bad"]);
     expect(malformed.status).not.toBe(0);
     expect(malformed.stderr).toContain("flush-mint-search-malformed");
     expect(allText(root).length).toBeGreaterThan(before);
@@ -6383,5 +6416,36 @@ describe("C-CLONE-FAITHFUL-TESTS-1-D68520A2 row relations", () => {
     expect(statusText.includes("Closed with")).toBe(false);
     const outside = (statusText.match(/\bF\d+(?:\.\d+)*\b/g) ?? []).filter((t) => !pays.includes(t));
     expect(outside).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-TEST-TIME-BUDGET-2-3EC1F016 T-005 — in-process validator: capture isolation
+// and a bounded spawn count. A leaked buffer is a false green.
+// ---------------------------------------------------------------------------
+
+const SELF_TEST_PATH = path.join(import.meta.dir, "validate-record-retirement.test.ts");
+
+describe("C-TEST-TIME-BUDGET-2-3EC1F016 in-process validator", () => {
+  it("isolates capture between calls and keeps exactly one spawn site", () => {
+    const ok = isolatedRoot();
+    writeHappy(ok);
+    const realLog = console.log;
+    const first = runValidatorInProcess(ok);
+    expect(first.status).toBe(0);
+    expect(first.stdout).toContain("record-retirement: ok");
+    // the seam is restored after the call
+    expect(console.log).toBe(realLog);
+
+    // a second call observes only its own output — no buffer leaked from the first
+    const bad = isolatedRoot();
+    const second = runValidatorInProcess(bad);
+    expect(second.status).not.toBe(0);
+    expect(second.stdout).not.toContain("record-retirement: ok");
+    expect(second.stderr).toContain("record-retirement");
+
+    // bounded spawns: one spawn site remains, for the exit-code/CWD contract
+    const source = readFileSync(SELF_TEST_PATH, "utf8");
+    expect((source.match(/spawnSync\("bun", \[SCRIPT/g) ?? []).length).toBe(1);
   });
 });

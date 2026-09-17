@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -2673,3 +2673,69 @@ describe("C-AMENDMENT-COUNT T-001 readAmendmentInstrument", () => {
   });
 });
 
+
+// ---------------------------------------------------------------------------
+// C-TEST-TIME-BUDGET-2-3EC1F016 T-002 — predecessor-map memo: invalidation both
+// ways. A stale cache is a false green; every mutation must invalidate.
+// ---------------------------------------------------------------------------
+
+import { __predecessorMemoStats, __resetPredecessorCache, __predecessorMapView } from "./ledger";
+
+describe("C-TEST-TIME-BUDGET-2-3EC1F016 predecessor memo invalidation", () => {
+  function writePredecessor(root: string, id: string, replaces: string): string {
+    writeChangeBundleFixture(root, { changeId: id, location: "archive", specStatus: "superseded" });
+    const specPath = path.join(root, ARTIFACT_DIR, "changes", "archive", id, "spec.xml");
+    const spec = readFileSync(specPath, "utf8");
+    writeFileSync(specPath, spec.replace(`<${id}>`, `<${id}><Replacement>${replaces}</Replacement>`));
+    return path.join(root, ARTIFACT_DIR, "changes", "archive", id);
+  }
+
+  it("rebuilds once, then add/remove/rename/in-place each invalidate; view mutation is isolated", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-memo-"));
+    tempRoots.push(root);
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, { changeId: "C-TARGET", location: "archive", specStatus: "applied" });
+    __resetPredecessorCache();
+    const old = writePredecessor(root, "C-OLD", "C-TARGET");
+
+    expect(readAmendmentInstrument(root, "C-TARGET").supersedeChainDepth).toBe(1);
+    expect(__predecessorMemoStats.builds).toBe(1);
+    expect(readAmendmentInstrument(root, "C-TARGET").supersedeChainDepth).toBe(1);
+    expect(__predecessorMemoStats.builds).toBe(1);
+
+    const view = __predecessorMapView(root);
+    view.set("C-TARGET", ["C-HACK"]);
+    expect(readAmendmentInstrument(root, "C-TARGET").supersedeChainDepth).toBe(1);
+    expect(__predecessorMemoStats.builds).toBe(1);
+
+    // add
+    writePredecessor(root, "C-OLD-TWO", "C-OLD");
+    expect(readAmendmentInstrument(root, "C-TARGET").supersedeChainDepth).toBe(2);
+    expect(__predecessorMemoStats.builds).toBe(2);
+
+    // edit in place (size changes, so the revision token moves)
+    writeFileSync(
+      path.join(old, "spec.xml"),
+      `<NgraceChangeSpec graceVersion="1.0" status="superseded"><C-OLD><Replacement>C-SOMEWHERE-ELSE</Replacement></C-OLD></NgraceChangeSpec>`,
+    );
+    expect(readAmendmentInstrument(root, "C-TARGET").supersedeChainDepth).toBe(0);
+    expect(__predecessorMemoStats.builds).toBe(3);
+
+    // rename
+    renameSync(
+      path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD-TWO"),
+      path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD-TWO-RENAMED"),
+    );
+    expect(readAmendmentInstrument(root, "C-TARGET").supersedeChainDepth).toBe(0);
+    expect(__predecessorMemoStats.builds).toBe(4);
+
+    // remove
+    rmSync(path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD-TWO-RENAMED"), { recursive: true, force: true });
+    expect(readAmendmentInstrument(root, "C-TARGET").supersedeChainDepth).toBe(0);
+    expect(__predecessorMemoStats.builds).toBe(5);
+
+    __resetPredecessorCache();
+    expect(readAmendmentInstrument(root, "C-TARGET").supersedeChainDepth).toBe(0);
+    expect(__predecessorMemoStats.builds).toBe(1);
+  });
+});

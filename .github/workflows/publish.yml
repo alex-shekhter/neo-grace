@@ -120,9 +120,6 @@ jobs:
       - name: Test
         run: bun run test
 
-      - name: CLI validation
-        run: bun run validate:cli
-
       - name: Marketplace validation
         run: bun run validate:marketplace
 

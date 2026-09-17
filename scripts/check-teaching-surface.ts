@@ -452,6 +452,9 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "list what the deliverable moves" },
   { skill: "ngrace-spec", section: "ceremony_tiers", token: "never which files are in scope" },
   { skill: "ngrace-plan", section: "approved_plan_immutability", token: "the pinned number becomes the relation" },
+  { skill: "ngrace-plan", section: "must_do", token: "narrowest instrument" },
+  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "close-time only" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "close-time only" },
 ];
 
 // ---------------------------------------------------------------------------

@@ -49,6 +49,9 @@
 //   readPermittingDecision
 //   recordGateDecision
 //   recordReviewVerdict
+//   __predecessorMapView
+//   __predecessorMemoStats
+//   __resetPredecessorCache
 // END_MODULE_MAP
 /**
  * Bundle-scoped Verdicts and Decisions on run-ledger.xml (A30.2).
@@ -1131,21 +1134,71 @@ function listChangeBundleDirs(projectRoot: string): Array<{ changeId: string; bu
   return out;
 }
 
-function buildPredecessorMap(projectRoot: string): Map<string, string[]> {
-  const predecessors = new Map<string, string[]>();
-  for (const { changeId, bundlePath } of listChangeBundleDirs(projectRoot)) {
-    for (const target of replacementIdsForBundle(bundlePath)) {
-      const list = predecessors.get(target) ?? [];
-      list.push(changeId);
-      predecessors.set(target, list);
+const PREDECESSOR_CACHE = new Map<string, { revision: string; map: Map<string, readonly string[]> }>();
+
+/** Test seam: rebuilds observed, so a guard can assert the memo is used. */
+export const __predecessorMemoStats = { builds: 0 };
+
+/** Test seam: drop every cached predecessor map. */
+export function __resetPredecessorCache(): void {
+  PREDECESSOR_CACHE.clear();
+  __predecessorMemoStats.builds = 0;
+}
+
+/** Test seam: the read-only view the memo hands back, for the mutation-boundary probe. */
+export function __predecessorMapView(projectRoot: string): Map<string, readonly string[]> {
+  return buildPredecessorMap(projectRoot);
+}
+
+/** Sorted (bundle name, spec/plan size, mtimeMs) over active+archive bundle dirs. */
+function bundleRevision(root: string): string {
+  const parts: string[] = [];
+  for (const location of ["active", "archive"] as const) {
+    const directory = path.join(root, ARTIFACT_DIR, "changes", location);
+    if (!existsSync(directory)) continue;
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !ANCHOR_PATTERNS.change.test(entry.name)) continue;
+      let sig = "";
+      for (const file of ["spec.xml", "plan.xml"]) {
+        try {
+          const st = statSync(path.join(directory, entry.name, file));
+          sig += `:${st.size}:${st.mtimeMs}`;
+        } catch {
+          sig += ":-";
+        }
+      }
+      parts.push(`${location}/${entry.name}${sig}`);
     }
   }
-  return predecessors;
+  parts.sort();
+  return parts.join("|");
+}
+
+function buildPredecessorMap(projectRoot: string): Map<string, readonly string[]> {
+  const root = path.resolve(projectRoot);
+  const revision = bundleRevision(root);
+  const cached = PREDECESSOR_CACHE.get(root);
+  if (cached && cached.revision === revision) {
+    return new Map(cached.map);
+  }
+  const mutable = new Map<string, string[]>();
+  for (const { changeId, bundlePath } of listChangeBundleDirs(root)) {
+    for (const target of replacementIdsForBundle(bundlePath)) {
+      const list = mutable.get(target) ?? [];
+      list.push(changeId);
+      mutable.set(target, list);
+    }
+  }
+  const predecessors = new Map<string, readonly string[]>();
+  for (const [target, list] of mutable) predecessors.set(target, Object.freeze([...list]));
+  __predecessorMemoStats.builds += 1;
+  PREDECESSOR_CACHE.set(root, { revision, map: predecessors });
+  return new Map(predecessors);
 }
 
 function chainDepth(
   changeId: string,
-  predecessors: Map<string, string[]>,
+  predecessors: Map<string, readonly string[]>,
   visited: Set<string>,
 ): number {
   if (visited.has(changeId)) return 0;

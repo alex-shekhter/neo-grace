@@ -568,6 +568,9 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "list what the deliverable moves" },
   { skill: "ngrace-spec", section: "ceremony_tiers", token: "never which files are in scope" },
   { skill: "ngrace-plan", section: "approved_plan_immutability", token: "the pinned number becomes the relation" },
+  { skill: "ngrace-plan", section: "must_do", token: "narrowest instrument" },
+  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "close-time only" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "close-time only" },
 ];
 
 function taughtSkillBody(skill: string, drop?: { section: string; token?: string }): string {
@@ -1002,6 +1005,9 @@ const NEW_NEEDLES_C6 = [
   { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "list what the deliverable moves" },
   { skill: "ngrace-spec", section: "ceremony_tiers", token: "never which files are in scope" },
   { skill: "ngrace-plan", section: "approved_plan_immutability", token: "the pinned number becomes the relation" },
+  { skill: "ngrace-plan", section: "must_do", token: "narrowest instrument" },
+  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "close-time only" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "close-time only" },
 ];
 
 describe("C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD red directions", () => {

@@ -16,9 +16,12 @@ describe("publish workflow release channels", () => {
     expect(workflow).toContain('if [ "${TAG_COMMIT}" != "${HEAD_COMMIT}" ]');
     expect(workflow).toContain('ORIGIN_MAIN="$(git rev-parse origin/main)"');
     expect(workflow).toContain('if [ "${TAG_COMMIT}" != "${ORIGIN_MAIN}" ]');
-    for (const command of ["bun run release:check", "bun run typecheck", "bun run test", "bun run validate:cli", "bun run validate:marketplace", "bun run validate:packed"]) {
+    for (const command of ["bun run release:check", "bun run typecheck", "bun run test", "bun run validate:marketplace", "bun run validate:packed"]) {
       expect(workflow).toContain(command);
     }
+    // C-TEST-TIME-BUDGET-2-3EC1F016: the CLI files are covered by `bun run test`; the
+    // standalone `validate:cli` step duplicated 211 already-executed tests.
+    expect(workflow).not.toContain("bun run validate:cli");
   });
 
   it("publishes prereleases to their identifier tag and stable releases to npm latest", () => {

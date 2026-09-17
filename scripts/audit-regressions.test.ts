@@ -289,3 +289,66 @@ describe("C-CLONE-FAITHFUL-TESTS-1-D68520A2 fixture-read hygiene", () => {
     expect(findUntrackedFixtureReads(repoRoot), "a filesystem read of a git-untracked repository path").toEqual([]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// C-TEST-TIME-BUDGET-2-3EC1F016 T-001: `validate:ci` runs each test file once.
+// Only `validate:ci` is guarded; `validate:release` deliberately keeps
+// `validate:cli` and is asserted to still do so.
+// ---------------------------------------------------------------------------
+
+function resolvesToTests(segment: string, scripts: Record<string, string>): boolean {
+  if (/^bun (?:run )?test\b/.test(segment)) return true;
+  const named = /^bun run ([a-z0-9:-]+)$/.exec(segment);
+  if (named && scripts[named[1]!]) {
+    return scripts[named[1]!].split("&&").map((s) => s.trim()).some((inner) => /^bun (?:run )?test\b/.test(inner));
+  }
+  return false;
+}
+
+export function validateCiRerunsSuite(scripts: Record<string, string>): string[] {
+  const command = scripts["validate:ci"];
+  if (!command) return ["validate:ci: missing"];
+  const segments = command.split("&&").map((s) => s.trim()).filter(Boolean);
+  const suites = segments.filter((s) => /^bun (?:run )?test$/.test(s));
+  const extras = segments.filter((s) => resolvesToTests(s, scripts) && !/^bun (?:run )?test$/.test(s));
+  return suites.length === 1 && extras.length === 0
+    ? []
+    : [`validate:ci: full-suite=${suites.length} extra=${extras.join(", ") || "none"}`];
+}
+
+describe("C-TEST-TIME-BUDGET-2-3EC1F016 validate:ci one suite run", () => {
+  it("validate:ci contains the full suite and no other test command; validate:release is untouched", () => {
+    const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as { scripts: Record<string, string> };
+    expect(validateCiRerunsSuite(pkg.scripts)).toEqual([]);
+    expect(pkg.scripts["validate:release"]).toContain("validate:cli");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-TEST-TIME-BUDGET-2-3EC1F016 T-008: coverage never falls. No test file
+// carries fewer `it(`/`test(` declarations than at the spec's base commit.
+// ---------------------------------------------------------------------------
+
+const COVERAGE_BASE = "2434fd467458e15c12414a74e37b09f9d71bdfd2";
+
+function declaredTests(text: string): number {
+  return (text.match(/(?:^|\s)(?:it|test)\s*\(/g) ?? []).length;
+}
+
+export function coverageRegressions(root: string): string[] {
+  const out: string[] = [];
+  for (const file of collectTestFiles(root)) {
+    const rel = path.relative(root, file);
+    const atHead = declaredTests(readFileSync(file, "utf8"));
+    const base = spawnSync("git", ["show", `${COVERAGE_BASE}:${rel}`], { cwd: root, encoding: "utf8" });
+    if (base.status !== 0) continue;
+    if (atHead < declaredTests(base.stdout ?? "")) out.push(`${rel}: ${atHead} < base`);
+  }
+  return out;
+}
+
+describe("C-TEST-TIME-BUDGET-2-3EC1F016 coverage never falls", () => {
+  it("no *.test.ts has fewer test declarations than at the base commit", () => {
+    expect(coverageRegressions(repoRoot)).toEqual([]);
+  });
+});
