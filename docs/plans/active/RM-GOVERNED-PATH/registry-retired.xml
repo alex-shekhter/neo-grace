@@ -404,4 +404,10 @@
     <Pays>F279</Pays>
     <StatusText>Clone-faithful fixtures and the read-audit guard; one finding paid</StatusText>
   </Row>
+  <Row name="C-TEST-TIME-BUDGET-4-F173437E" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 3 active, 0 archive prior bundle(s) share slug TEST-TIME-BUDGET. Author half: searched before minting over the archive directories and both registry layers; the fourth of a lineage, minted by the supersede verb, which prints no mint-search line, so the value half is the mint-time count measured by the authority rather than pasted tool output.</Charter>
+    <Pays>F281 F282 F286</Pays>
+    <StatusText>Test-time budget: the suite halved, a non-gating selective runner, per-test metrics, in-process validator calls, the close-time only rule, and the attempt-pair exemption for abandoned archived governance.</StatusText>
+  </Row>
 </Registry>

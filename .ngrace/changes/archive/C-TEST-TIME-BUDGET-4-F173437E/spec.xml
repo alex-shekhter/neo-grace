@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-TEST-TIME-BUDGET-4-F173437E>
     <Summary>
       T3 change on `RM-GOVERNED-PATH`: **the test-time budget.** The maintainer's target is an
