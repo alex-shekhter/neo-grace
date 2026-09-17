@@ -444,6 +444,14 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-plan", section: "approved_plan_immutability", token: "archived predecessor's draft" },
   { skill: "ngrace-spec", section: "shape_sources", token: "exactly one of a bare slug" },
   { skill: "ngrace-plan", section: "must_do", token: "never from a hand-rolled reader" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "fold again before" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "a faithful throwaway copy may invoke" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "one guard per pair" },
+  { skill: "ngrace-spec", section: "shape_sources", token: "bounded diff" },
+  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "states the relation" },
+  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "list what the deliverable moves" },
+  { skill: "ngrace-spec", section: "ceremony_tiers", token: "never which files are in scope" },
+  { skill: "ngrace-plan", section: "approved_plan_immutability", token: "the pinned number becomes the relation" },
 ];
 
 // ---------------------------------------------------------------------------

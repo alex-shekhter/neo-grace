@@ -30,7 +30,7 @@ Optional-section teaching source: `references/change-plan-template.xml`.
 - If `plan.xml` already exists with status `approved`, stop before writing.
 - Do not refresh `BaselineAssertions`, `TargetAssertions`, `DurableScope`, `ObservedWriteScope`, or tasks in place.
 - Create a new `C-*` bundle and mark the old bundle superseded with an explicit replacement reference: create the replacement with `ngrace spec new --supersedes &lt;C-PRED&gt;`, then run `ngrace supersede`. The verb folds any open epoch (no-op when none exists) and discards governance, never code. Replacement-first is the only linting order. Named checks: `change.invalid-active-status`, `change.archive-status-mismatch`, `change.superseded-missing-replacement`, `change.superseded-self-replacement`, and `change.superseded-replacement-not-found`. Do not hand-write a superseded status or move the bundle directory by hand.
-- Author the successor's artifacts from the archived predecessor's draft, changing the id where it is data — the archived `plan.xml` is the only copy, and an approved plan is never edited in place.
+- Author the successor's artifacts from the archived predecessor's draft, changing the id where it is data — the archived `plan.xml` is the only copy, and an approved plan is never edited in place. When the successor's spec turns a pinned number into a relation, re-home the archived plan's `TargetAssertions` the same way: the pinned number becomes the relation, never a figure carried across the supersede.
 </approved_plan_immutability>
 
 <approval_lexicon>

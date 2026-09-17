@@ -18,7 +18,7 @@ Explain a shape or code: `ngrace lint --explain <code|shape>`. Issue codes are n
 Primary write path: `ngrace spec new &lt;SLUG&gt;` mints `C-&lt;SLUG&gt;-&lt;N&gt;-&lt;HASH&gt;` from a bare slug, a handed-in `--timestamp` and the branch. The minted skeleton is a starting shape, not a verdict: when a rich, precedent-shaped artifact does not fit it, the skeleton is rewritten wholesale after the mint — the command is the write path, never the source of the final section shape.
 Optional-section teaching source: `references/change-spec-template.xml`. That path is relative to this skill's directory, as every `references/` path a skill cites is.
 Optional design-context copy-source: `references/design-context-template.xml`.
-Lineage path: `ngrace spec new --supersedes &lt;C-PRED&gt;` mints the successor and requires exactly one of a bare slug or `--supersedes`; `ngrace supersede` stamps `superseded` and `&lt;Replacement&gt;` on the spec and the draft plan and moves the bundle.
+Lineage path: `ngrace spec new --supersedes &lt;C-PRED&gt;` mints the successor and requires exactly one of a bare slug or `--supersedes`; `ngrace supersede` stamps `superseded` and `&lt;Replacement&gt;` on the spec and the draft plan and moves the bundle. To author a successor, carry the archived approved predecessor's bytes and apply a bounded diff — the id where it is data, the lineage paragraph in `Problem`, and the change that forced the supersede — then count the diff and report the predecessor-id occurrences that remain.
 </shape_sources>
 
 <status_rules>
@@ -71,6 +71,7 @@ Hard rules for tiers:
 - T0 is **not** an ungoverned edit. A `NgraceChangeSpec` still exists; only section depth shrinks.
 - Tiers never skip baseline, target, or final assertion gates and never skip user approval of the spec.
 - Mis-classifying an architectural change as T0 is a review failure — see `ngrace-reviewer`.
+A tier changes which sections must be rich, never which files are in scope: T0 may drop a Goal, but a file the deliverable forces stays in the write scope, or the bundle is uncloseable.
 </ceremony_tiers>
 
 <clarifications>
@@ -119,6 +120,8 @@ Rules:
 - Any test driven against this repository's real archive runs under `bun run test` (equivalently `bun test --timeout=0`): no per-test number is pinned, because a number written to outrun a corpus that grows by design expires at the next threshold, and the CI job's `timeout-minutes` is the only ceiling.
 - A criterion is producible: it asserts no state the shipped engine will not produce, requires no change another criterion forbids, and names no probe that cannot be run — an unsatisfiable criterion is a refusal the close discovers.
 - Probe every guard in both directions on a throwaway copy: the clean direction proves it can pass, a planted violation proves it can redden, and a guard whose red direction was never driven may be vacuously green.
+- A criterion that pins an artifact the executor will write, or a fixture regenerated later, states the relation — the pin equals the measurement — and never the projected figure; the figure belongs in `Assumptions`, where it expires.
+- Before ratification, list what the deliverable moves and grep the test suites for each — skill text moves the footprint pins, fixture inputs or engine output move golden bytes, config values move the audit and lint guards, the record moves the payer maps — and name every file the grep finds in the write scope.
 </acceptance_criteria_anchors>
 
 <design_references>

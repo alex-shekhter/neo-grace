@@ -560,6 +560,14 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-plan", section: "approved_plan_immutability", token: "archived predecessor's draft" },
   { skill: "ngrace-spec", section: "shape_sources", token: "exactly one of a bare slug" },
   { skill: "ngrace-plan", section: "must_do", token: "never from a hand-rolled reader" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "fold again before" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "a faithful throwaway copy may invoke" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "one guard per pair" },
+  { skill: "ngrace-spec", section: "shape_sources", token: "bounded diff" },
+  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "states the relation" },
+  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "list what the deliverable moves" },
+  { skill: "ngrace-spec", section: "ceremony_tiers", token: "never which files are in scope" },
+  { skill: "ngrace-plan", section: "approved_plan_immutability", token: "the pinned number becomes the relation" },
 ];
 
 function taughtSkillBody(skill: string, drop?: { section: string; token?: string }): string {
@@ -969,6 +977,35 @@ const NEW_NEEDLES = [
 
 describe("C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA red directions", () => {
   for (const needle of NEW_NEEDLES) {
+    it("returns non-zero naming the file, section and token when " + needle.token + " is deleted from one tree", () => {
+      const root = isolatedRoot();
+      plantTaughtSkills(root, {
+        relative: "skills/ngrace/" + needle.skill + "/SKILL.md",
+        body: taughtSkillBody(needle.skill, { section: needle.section, token: needle.token }),
+      });
+      const { code, output } = captureStderr(() => checkTaughtRules(root));
+      expect(code).not.toBe(0);
+      expect(output).toContain(needle.token);
+    });
+  }
+});
+
+
+// C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD T-002/T-003/T-004: one red-direction case per added
+// needle, grown one needle per pair as each needle lands.
+const NEW_NEEDLES_C6 = [
+  { skill: "ngrace-execute", section: "execution_rules", token: "fold again before" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "a faithful throwaway copy may invoke" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "one guard per pair" },
+  { skill: "ngrace-spec", section: "shape_sources", token: "bounded diff" },
+  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "states the relation" },
+  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "list what the deliverable moves" },
+  { skill: "ngrace-spec", section: "ceremony_tiers", token: "never which files are in scope" },
+  { skill: "ngrace-plan", section: "approved_plan_immutability", token: "the pinned number becomes the relation" },
+];
+
+describe("C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD red directions", () => {
+  for (const needle of NEW_NEEDLES_C6) {
     it("returns non-zero naming the file, section and token when " + needle.token + " is deleted from one tree", () => {
       const root = isolatedRoot();
       plantTaughtSkills(root, {
