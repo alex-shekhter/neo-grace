@@ -71,6 +71,7 @@
     "validate:determinism": "bun test --timeout=0 src/review/core.test.ts src/review/scorer.test.ts && bun run ./scripts/validate-determinism.ts",
     "validate:citation-anchors": "bun ./scripts/validate-citation-anchors.ts",
     "validate:record-retirement": "bun ./scripts/validate-record-retirement.ts",
+    "record:flush": "bun ./scripts/validate-record-retirement.ts --flush",
     "prove-record-preservation": "bun ./scripts/prove-record-preservation.ts",
     "validate:schema-reference": "bun run ./scripts/generate-schema-reference.ts check",
     "validate:skeleton-templates": "bun run ./scripts/generate-skeleton-templates.ts check",

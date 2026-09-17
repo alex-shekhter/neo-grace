@@ -1067,6 +1067,7 @@ export function stampPaidBy(options: RetirementOptions): void {
 }
 
 export function retireRecord(options: RetirementOptions): { moved: number } {
+  refuseStructural(options.recordDir);
   const paths = recordPaths(options.recordDir);
   const files = {
     findings: readFileSync(paths.findings, "utf8"),
@@ -1307,108 +1308,123 @@ export function retireRecord(options: RetirementOptions): { moved: number } {
 }
 
 /**
+ * One live genre root: the shipped metric that re-derives its base, and the
+ * words its refusal names. Shared by --rewrite-roots and the --flush
+ * transaction, so both leave base equal to the metric read back.
+ */
+interface LiveRootGenre {
+  part: string;
+  unit: string;
+  remedy: string;
+  metric: (xml: string) => number;
+}
+
+const LIVE_ROOT_GENRES: Record<"findings" | "rulings" | "registry" | "index", LiveRootGenre> = {
+  findings: {
+    part: "findings",
+    unit: "line",
+    remedy: "move the eligible entry to the retired sibling",
+    metric: (xml) => newlineCount(xml),
+  },
+  rulings: {
+    part: "rulings",
+    unit: "line",
+    remedy: "move the eligible entry to the retired sibling",
+    metric: (xml) => newlineCount(xml),
+  },
+  registry: {
+    part: "registry",
+    unit: "live-row",
+    remedy: "move the eligible entry to the retired sibling",
+    metric: (xml) => liveRowCount(xml),
+  },
+  index: {
+    part: "index",
+    unit: "live-entry",
+    remedy:
+      "the eligible entries flip their index Entry layer to retired in place; the index has no retired sibling and its Entry lines stay",
+    metric: (xml) => liveEntryCount(xml),
+  },
+};
+
+/**
+ * Re-derives one live genre root: base from the shipped metric over the bytes
+ * it is handed, the persisted ceiling held byte-for-byte (the raw attribute
+ * value passes through, never recomputed and never re-serialised), headroom =
+ * ceiling − base. Refuses, before any write, when the ceiling attribute is
+ * missing or unreadable and when the metric exceeds the persisted ceiling —
+ * the one state whose only remedy is the move. `mode` names the caller in the
+ * refusal, so a --flush refusal does not blame --rewrite-roots.
+ */
+function deriveLiveRoot(file: string, xml: string, genre: LiveRootGenre, mode: string): string {
+  const parsed = parseGraceXmlArtifact(file, xml);
+  if (!parsed.root) {
+    throw new Error(
+      `missing-ceiling: ${file}: live ${genre.part} has no readable root; ${mode} holds the persisted ceiling and cannot re-derive one`,
+    );
+  }
+  let rootSpan: XmlElementSpan;
+  try {
+    rootSpan = computeElementSpans(xml, parsed).get(parsed.root)!;
+  } catch (error) {
+    throw new Error(
+      `missing-ceiling: ${file}: live ${genre.part} has no readable root open tag; ${mode} holds the persisted ceiling and cannot re-derive one (${error instanceof Error ? error.message : String(error)})`,
+    );
+  }
+  const openTag = xml.slice(rootSpan.openStart, rootSpan.openEnd);
+  const range = attributeValueRange(openTag, "ceiling");
+  const ceilingRaw = range ? openTag.slice(range.valueStart, range.valueEnd) : undefined;
+  if (ceilingRaw === undefined || ceilingRaw === "") {
+    throw new Error(
+      `missing-ceiling: ${file}: live ${genre.part} has no persisted ceiling; ${mode} holds ceilings and never derives one; --retire / ${genre.remedy} persists ceiling = base + headroom`,
+    );
+  }
+  const ceiling = Number(ceilingRaw);
+  if (!Number.isFinite(ceiling)) {
+    throw new Error(
+      `ceiling-unreadable: ${file}: live ${genre.part} carries ceiling="${ceilingRaw}", which is not a readable number; ${mode} holds the persisted ceiling and cannot re-derive around it`,
+    );
+  }
+  const base = genre.metric(xml);
+  if (base > ceiling) {
+    throw new Error(
+      `ceiling-exceeded: ${file}: live ${genre.part} ${genre.unit} count ${base} exceeds persisted ceiling ${ceiling}; --retire / ${genre.remedy}. Raising the persisted ceiling is not the remedy.`,
+    );
+  }
+  return withRootSnapshotHeld(xml, parsed.root, rootSpan, base, ceiling - base, ceilingRaw);
+}
+
+/**
  * The --rewrite-roots mode (C-ROOT-WINDOW, F216, INV-ROOT-WINDOW-MODE-CEILING
  * maintainer's resolution): re-derives, for each of the four live genre
  * roots, base from the shipped metric read back — newlineCount of the whole
  * file for findings and rulings, the live Row count for the registry, the
- * live Entry count for the index — holds the persisted ceiling byte-for-byte
- * (the raw attribute value passes through, never recomputed and never
- * re-serialised), and persists headroom = ceiling − base. It refuses, before
- * any write, when any live genre's count exceeds its persisted ceiling — the
- * one state whose only remedy is the move — and when a ceiling attribute is
- * missing or unreadable. It re-derives all four live roots or none; retired
- * siblings carry no root attributes and are not touched; the stub and the
- * inventory are not touched. A hand-raised ceiling is held, never adopted
- * and never recomputed — the laundering boundary stated in the spec's
- * Known-boundary Constraint.
+ * live Entry count for the index — holds the persisted ceiling byte-for-byte,
+ * and persists headroom = ceiling − base. It refuses, before any write, when
+ * any live genre's count exceeds its persisted ceiling — the one state whose
+ * only remedy is the move — and when a ceiling attribute is missing or
+ * unreadable. It re-derives all four live roots or none; retired siblings
+ * carry no root attributes and are not touched; the stub and the inventory are
+ * not touched. A hand-raised ceiling is held, never adopted and never
+ * recomputed — the laundering boundary stated in the spec's Known-boundary
+ * Constraint. The --flush transaction reuses `deriveLiveRoot` on the next
+ * documents' canonical bytes, so the verb alone leaves each base equal to the
+ * metric with no separate --rewrite-roots step.
  */
 export function rewriteRecordRoots(options: RetirementOptions): void {
   const paths = recordPaths(options.recordDir);
-  const liveGenres: Array<{
-    part: string;
-    file: string;
-    xml: string;
-    unit: string;
-    remedy: string;
-    metric: (xml: string) => number;
-  }> = [
-    {
-      part: "findings",
-      file: paths.findings,
-      xml: readFileSync(paths.findings, "utf8"),
-      unit: "line",
-      remedy: "move the eligible entry to the retired sibling",
-      metric: (xml) => newlineCount(xml),
-    },
-    {
-      part: "rulings",
-      file: paths.rulings,
-      xml: readFileSync(paths.rulings, "utf8"),
-      unit: "line",
-      remedy: "move the eligible entry to the retired sibling",
-      metric: (xml) => newlineCount(xml),
-    },
-    {
-      part: "registry",
-      file: paths.registry,
-      xml: readFileSync(paths.registry, "utf8"),
-      unit: "live-row",
-      remedy: "move the eligible entry to the retired sibling",
-      metric: (xml) => liveRowCount(xml),
-    },
-    {
-      part: "index",
-      file: paths.index,
-      xml: readFileSync(paths.index, "utf8"),
-      unit: "live-entry",
-      remedy:
-        "the eligible entries flip their index Entry layer to retired in place; the index has no retired sibling and its Entry lines stay",
-      metric: (xml) => liveEntryCount(xml),
-    },
+  const targets: Array<[string, LiveRootGenre]> = [
+    [paths.findings, LIVE_ROOT_GENRES.findings],
+    [paths.rulings, LIVE_ROOT_GENRES.rulings],
+    [paths.registry, LIVE_ROOT_GENRES.registry],
+    [paths.index, LIVE_ROOT_GENRES.index],
   ];
   // Every root is derived before any file is written: the mode re-derives
   // all four live roots or none.
-  const rewrites: Array<{ file: string; next: string }> = [];
-  for (const genre of liveGenres) {
-    const parsed = parseGraceXmlArtifact(genre.file, genre.xml);
-    if (!parsed.root) {
-      throw new Error(
-        `missing-ceiling: ${genre.file}: live ${genre.part} has no readable root; --rewrite-roots holds the persisted ceiling and cannot re-derive one`,
-      );
-    }
-    let rootSpan: XmlElementSpan;
-    try {
-      rootSpan = computeElementSpans(genre.xml, parsed).get(parsed.root)!;
-    } catch (error) {
-      throw new Error(
-        `missing-ceiling: ${genre.file}: live ${genre.part} has no readable root open tag; --rewrite-roots holds the persisted ceiling and cannot re-derive one (${error instanceof Error ? error.message : String(error)})`,
-      );
-    }
-    const openTag = genre.xml.slice(rootSpan.openStart, rootSpan.openEnd);
-    const range = attributeValueRange(openTag, "ceiling");
-    const ceilingRaw = range ? openTag.slice(range.valueStart, range.valueEnd) : undefined;
-    if (ceilingRaw === undefined || ceilingRaw === "") {
-      throw new Error(
-        `missing-ceiling: ${genre.file}: live ${genre.part} has no persisted ceiling; --rewrite-roots holds ceilings and never derives one; --retire / ${genre.remedy} persists ceiling = base + headroom`,
-      );
-    }
-    const ceiling = Number(ceilingRaw);
-    if (!Number.isFinite(ceiling)) {
-      throw new Error(
-        `ceiling-unreadable: ${genre.file}: live ${genre.part} carries ceiling="${ceilingRaw}", which is not a readable number; --rewrite-roots holds the persisted ceiling and cannot re-derive around it`,
-      );
-    }
-    const base = genre.metric(genre.xml);
-    if (base > ceiling) {
-      throw new Error(
-        `ceiling-exceeded: ${genre.file}: live ${genre.part} ${genre.unit} count ${base} exceeds persisted ceiling ${ceiling}; --retire / ${genre.remedy}. Raising the persisted ceiling is not the remedy.`,
-      );
-    }
-    rewrites.push({
-      file: genre.file,
-      next: withRootSnapshotHeld(genre.xml, parsed.root, rootSpan, base, ceiling - base, ceilingRaw),
-    });
-  }
+  const rewrites = targets.map(([file, genre]) => ({
+    file,
+    next: deriveLiveRoot(file, readFileSync(file, "utf8"), genre, "--rewrite-roots"),
+  }));
   for (const rewrite of rewrites) {
     writeRecordXml(rewrite.file, rewrite.next);
   }
@@ -1435,6 +1451,187 @@ function requiredFile(file: string, findings: RetirementFinding[]): string | und
     return undefined;
   }
   return readFileSync(file, "utf8");
+}
+
+/* ------------------------------------------------------------------ */
+/* T-001 shared structural check and T-002 --flush mode.               */
+/* Every record write below routes through writeRecordXml, so the      */
+/* record stays canonical at rest; the check is one relation over both */
+/* genre pairs and the index, consumed by the validator, --retire and  */
+/* --flush.                                                            */
+/* ------------------------------------------------------------------ */
+
+function genreLayerEntries(recordDir: string, file: string, tag: string): Array<{ id: string; layer: "live" | "retired" }> {
+  const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+  if (!parsed.root) {
+    return [];
+  }
+  const layer = file.endsWith("-retired.xml") ? "retired" : "live";
+  return [...walkNodes(parsed.root)]
+    .filter((n) => n.tag === tag)
+    .map((n) => ({ id: n.attributes.id ?? n.attributes.name ?? "", layer }));
+}
+
+export function structuralCheck(recordDir: string): RetirementFinding[] {
+  const out: RetirementFinding[] = [];
+  const pairs: Array<[string, string, string]> = [
+    ["findings", "findings.xml", "findings-retired.xml"],
+    ["rulings", "rulings.xml", "rulings-retired.xml"],
+  ];
+  const holding = new Map<string, "live" | "retired">();
+  for (const [label, live, retired] of pairs) {
+    const seen = new Set<string>();
+    for (const item of [...genreLayerEntries(recordDir, live, label === "findings" ? "Finding" : "Decision"), ...genreLayerEntries(recordDir, retired, label === "findings" ? "Finding" : "Decision")]) {
+      if (seen.has(item.id)) {
+        out.push({ code: "record-duplicate-id", message: `record: duplicate id "${item.id}" across the ${label} pair` });
+      }
+      seen.add(item.id);
+      holding.set(item.id, item.layer);
+    }
+  }
+  const indexXml = readFileSync(path.join(recordDir, "decisions.xml"), "utf8");
+  const indexParsed = parseGraceXmlArtifact("decisions.xml", indexXml);
+  if (indexParsed.root) {
+    for (const node of walkNodes(indexParsed.root)) {
+      if (node.tag !== "Entry") continue;
+      const id = node.attributes.id ?? "";
+      const expected = holding.get(id);
+      if (expected && expected !== node.attributes.layer) {
+        out.push({ code: "record-index-layer-mismatch", message: `decisions.xml: Entry id="${id}" layer="${node.attributes.layer}" disagrees with the holding file (${expected})` });
+      }
+    }
+  }
+  return out;
+}
+
+function refuseStructural(recordDir: string): void {
+  const bad = structuralCheck(recordDir);
+  if (bad.length > 0) {
+    throw new Error(`${bad[0]!.code}: ${bad[0]!.message}`);
+  }
+}
+
+function renderLiveFinding(id: string, token: string, headingLine: string, bodyRaw: string): string {
+  return [
+    `  <Finding id="${xmlEscape(id)}" token="${xmlEscape(token)}" status="live">`,
+    `    <Title>${xmlEscape(headingLine)}</Title>`,
+    `    <Body>${xmlEscape(bodyRaw)}</Body>`,
+    `  </Finding>`,
+  ].join("\n");
+}
+
+function flushRecord(opts: {
+  repoRoot: string; recordDir: string; change: string; findings: string[]; decisions: string[];
+  pays?: string; mintSearch?: string; charter?: string; statusText?: string; codify?: string;
+}): void {
+  refuseStructural(opts.recordDir);
+  const buffer = readFileSync(path.join(opts.repoRoot, ".ngrace", "scratch", "staged-findings.md"), "utf8");
+  const parsed = parseFrozenMarkdown(buffer);
+  for (const id of [...opts.findings, ...opts.decisions]) {
+    if (!parsed.entries.some((e) => e.token === id)) throw new Error(`flush-id-absent: ${id} is not in the buffer`);
+  }
+  if (!existsSync(path.join(opts.repoRoot, ".ngrace", "changes", "active", opts.change))) {
+    throw new Error(`flush-row-not-active: ${opts.change} is not an active bundle`);
+  }
+  const selF = parsed.entries.filter((e) => e.genre === "finding" && opts.findings.includes(e.token));
+  const selD = parsed.entries.filter((e) => e.genre === "decision" && opts.decisions.includes(e.token));
+  const rowExists = [...walkNodes(parseGraceXmlArtifact("registry.xml", readFileSync(path.join(opts.recordDir, "registry.xml"), "utf8")).root!)]
+    .some((n) => n.tag === "Row" && n.attributes.name === opts.change && n.attributes.status !== "retired");
+  if (rowExists && (selF.length > 0 || selD.length > 0)) {
+    throw new Error(`flush-row-exists: the ${opts.change} row is already live and this run selects entries`);
+  }
+  const mintSearch = opts.mintSearch ?? "";
+  if (!/^[0-9]+ active, [0-9]+ archive$/.test(mintSearch)) {
+    throw new Error(`flush-mint-search-malformed: "${mintSearch}" is not shaped <n> active, <n> archive`);
+  }
+  if (/\bF[0-9]+/.test(opts.charter ?? "")) {
+    throw new Error("flush-charter-f-token: the Charter author half names an F token");
+  }
+  if (/\bF[0-9]+/.test(opts.statusText ?? "")) {
+    throw new Error("flush-status-text-f-token: the StatusText names an F token");
+  }
+  if (/Closed with/.test(opts.statusText ?? "")) {
+    throw new Error("flush-status-closed-with: the StatusText carries a Closed with sentence");
+  }
+  {
+    const liveTokens = new Set<string>();
+    const findingsRoot = parseGraceXmlArtifact("findings.xml", readFileSync(path.join(opts.recordDir, "findings.xml"), "utf8")).root;
+    if (findingsRoot) {
+      for (const node of walkNodes(findingsRoot)) {
+        if (node.tag === "Finding" && node.attributes.status !== "retired") liveTokens.add(node.attributes.token ?? "");
+      }
+    }
+    for (const token of opts.pays ? opts.pays.match(/\bF[0-9]+(?:\.[0-9]+)*\b/g) ?? [] : []) {
+      if (!opts.findings.includes(token) && !liveTokens.has(token)) {
+        throw new Error(`flush-pays-unknown: ${token} is neither a flushed token nor a live finding's token`);
+      }
+    }
+  }
+  {
+    const allIds = new Set<string>();
+    for (const file of ["findings.xml", "findings-retired.xml", "rulings.xml", "rulings-retired.xml"]) {
+      const root = parseGraceXmlArtifact(file, readFileSync(path.join(opts.recordDir, file), "utf8")).root;
+      if (root) {
+        for (const node of walkNodes(root)) {
+          if (node.tag === "Finding" || node.tag === "Decision") allIds.add(node.attributes.id ?? "");
+        }
+      }
+    }
+    for (const e of [...selF, ...selD]) {
+      if (allIds.has(e.id)) throw new Error(`flush-id-duplicate: ${e.id} already exists in the record`);
+    }
+  }
+  const findingsXml = readFileSync(path.join(opts.recordDir, "findings.xml"), "utf8");
+  const rulingsXml = readFileSync(path.join(opts.recordDir, "rulings.xml"), "utf8");
+  const registryXml = readFileSync(path.join(opts.recordDir, "registry.xml"), "utf8");
+  const indexXml = readFileSync(path.join(opts.recordDir, "decisions.xml"), "utf8");
+  const nextFindings = findingsXml.replace("</Findings>", selF.map((e) => `${renderLiveFinding(e.id, e.token, e.headingLine, e.bodyRaw)}\n`).join("") + "</Findings>");
+  const nextIndex = indexXml.replace("</RecordIndex>", [...selF.map((e) => `  <Entry id="${xmlEscape(e.id)}" token="${xmlEscape(e.token)}" genre="finding" layer="live" />`), ...selD.map((e) => `  <Entry id="${xmlEscape(e.id)}" token="${xmlEscape(e.token)}" genre="decision" layer="live" />`)].join("\n") + "</RecordIndex>");
+  const pays = opts.pays ?? selF.map((e) => e.token).join(" ");
+  const slug = opts.change.replace(/^C-/, "").replace(/-\d+-[0-9A-F]+$/, "");
+  const charter = `mint-search: ${opts.mintSearch ?? ""} prior bundle(s) share slug ${slug}. ${opts.charter ?? ""}`;
+  const row = [`  <Row name="${xmlEscape(opts.change)}" status="live" kind="chartered">`, "    <Number></Number>", `    <Charter>${xmlEscape(charter)}</Charter>`, `    <Pays>${xmlEscape(pays)}</Pays>`, `    <StatusText>${xmlEscape(opts.statusText ?? "")}</StatusText>`, "  </Row>"].join("\n");
+  const nextRegistry = rowExists ? registryXml : registryXml.replace("</Registry>", row + "\n</Registry>");
+  let nextRulings = rulingsXml;
+  if (opts.codify) {
+    const [did, kind, val] = opts.codify.split(":");
+    const target = [...walkNodes(parseGraceXmlArtifact("rulings.xml", rulingsXml).root!)].find((n) => n.tag === "Decision" && (n.attributes.id === did || n.attributes.token === did));
+    if (!target) {
+      throw new Error(`flush-codify-absent: ${did} is not a decision`);
+    }
+    if ([...walkNodes(target)].some((n) => n.tag === "CodifiedIn")) {
+      throw new Error(`flush-codify-exists: ${did} already carries a CodifiedIn`);
+    }
+    const rid = target.attributes.id ?? did;
+    nextRulings = rulingsXml.replace(new RegExp(`(<Decision id="${rid}"[^>]*>)([\\s\\S]*?)(\n  </Decision>)`), `$1$2\n    <CodifiedIn kind="${kind}">${val}</CodifiedIn>$3`);
+  }
+  const nextDocs: Array<[string, LiveRootGenre, string]> = [
+    ["findings.xml", LIVE_ROOT_GENRES.findings, nextFindings],
+    ["rulings.xml", LIVE_ROOT_GENRES.rulings, nextRulings],
+    ["decisions.xml", LIVE_ROOT_GENRES.index, nextIndex],
+    ["registry.xml", LIVE_ROOT_GENRES.registry, nextRegistry],
+  ];
+  // Build and schema-check every next-document in memory first: every refusal
+  // computes before the write loop, so a refused run writes nothing.
+  for (const [file, , xml] of nextDocs) {
+    assertRecordSchema(file, xml);
+  }
+  // Serialize to the canonical bytes the file will hold, then re-derive each
+  // live root from that metric and hold its persisted ceiling byte-for-byte —
+  // the flush is its own root rewrite, with no separate --rewrite-roots step.
+  const writes: Array<[string, string]> = [];
+  for (const [file, genre, xml] of nextDocs) {
+    const canonical = serializeRecordDocument(file, xml);
+    writes.push([file, deriveLiveRoot(path.join(opts.recordDir, file), canonical, genre, "--flush")]);
+  }
+  for (const [file, xml] of writes) {
+    writeRecordXml(path.join(opts.recordDir, file), xml);
+  }
+  if (rowExists) {
+    console.log(`record-flush: codify-only (row ${opts.change}${opts.codify ? ", codified " + opts.codify.split(":")[0] : ""})`);
+  } else {
+    console.log(`record-flush: flushed ${[...opts.findings, ...opts.decisions].join(" ")} (row ${opts.change}, pays ${pays})`);
+  }
 }
 
 export function validateRecordRetirement(options: RetirementOptions): RetirementFinding[] {
@@ -1586,6 +1783,7 @@ export function validateRecordRetirement(options: RetirementOptions): Retirement
     : 0;
   checkCeilingValue("registry", paths.registry, registryRoot, registryLiveRows, "live-row", findings);
 
+  findings.push(...structuralCheck(options.recordDir));
   return findings;
 }
 
@@ -1768,9 +1966,9 @@ export function resolveRecordDirWithinBoundary(repoRoot: string, recordDir: stri
 
 export function main(argv = process.argv.slice(2), cwd = process.cwd()): number {
   const mode = argv.find(
-    (a) => a === "--split" || a === "--retire" || a === "--stamp-paid-by" || a === "--rewrite-roots",
+    (a) => a === "--split" || a === "--retire" || a === "--stamp-paid-by" || a === "--rewrite-roots" || a === "--flush",
   );
-  const positional = argv.filter((a) => !a.startsWith("--"));
+  const positional = argv.filter((a, i) => !a.startsWith("--") && !(i > 0 && ["--change","--pays","--mint-search","--charter","--status-text","--codify","--finding","--decision"].includes(argv[i-1]!)));
   if (mode === "--split") {
     try {
       splitFrozenRecord(cwd);
@@ -1789,9 +1987,48 @@ export function main(argv = process.argv.slice(2), cwd = process.cwd()): number 
     return 1;
   }
   if (mode === "--retire") {
-    const result = retireRecord({ repoRoot: cwd, recordDir });
-    console.log(`record-retirement: retire ok (${recordDir}, moved ${result.moved})`);
-    return 0;
+    try {
+      const result = retireRecord({ repoRoot: cwd, recordDir });
+      console.log(`record-retirement: retire ok (${recordDir}, moved ${result.moved})`);
+      return 0;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      return 1;
+    }
+  }
+  if (mode === "--flush") {
+    const opt = (name: string): string | undefined => {
+      const inline = argv.find((a) => a.startsWith(`${name}=`));
+      if (inline) return inline.slice(name.length + 1);
+      const i = argv.indexOf(name);
+      return i >= 0 && i + 1 < argv.length && !argv[i + 1]!.startsWith("--") ? argv[i + 1] : undefined;
+    };
+    const all = (name: string): string[] => {
+      const out: string[] = [];
+      for (let i = 0; i < argv.length; i++) {
+        if (argv[i] === name && i + 1 < argv.length) out.push(argv[i + 1]!);
+        else if (argv[i]!.startsWith(`${name}=`)) out.push(argv[i]!.slice(name.length + 1));
+      }
+      return out;
+    };
+    try {
+      flushRecord({
+        repoRoot: cwd,
+        recordDir,
+        change: opt("--change") ?? "",
+        findings: all("--finding"),
+        decisions: all("--decision"),
+        pays: opt("--pays"),
+        mintSearch: opt("--mint-search"),
+        charter: opt("--charter"),
+        statusText: opt("--status-text"),
+        codify: opt("--codify"),
+      });
+      return 0;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      return 1;
+    }
   }
   if (mode === "--stamp-paid-by") {
     stampPaidBy({ repoRoot: cwd, recordDir });

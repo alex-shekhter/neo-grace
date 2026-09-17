@@ -1,0 +1,349 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-CLONE-FAITHFUL-TESTS-1-D68520A2>
+    <IntentSummary>
+      This T0 plan converts the approved `C-CLONE-FAITHFUL-TESTS-1-D68520A2` spec into two
+      sequential tasks. **T-001 — the guard and the repair:** land the fixture-read guard in
+      `scripts/audit-regressions.test.ts` (keyed on filesystem-read call sites, batched git calls),
+      which reds on the shipped defect; repair the `C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode`
+      fixture (`scripts/validate-record-retirement.test.ts:6232`) to a self-contained inline literal
+      and move its F-token references to a record-absent token, which greens the guard; then drive
+      every guard in both directions on copies. **T-002 — the payment:** extend the shipped
+      `bundleMinted` payer map with `F279`, flush `F279` and the chartered row through the shipped
+      `--flush` verb, land the `row relations` walk, and drive the faithful post-close applied-archive
+      copy.
+
+      **The pairs this plan owes, each driven in both directions.** T-001: the fixture-read guard
+      (red — the shipped defect; green — the repair); the four repair-discrimination pairs — dropped
+      `flush-row-exists` (reds the refusal test), no `Finding` appended (reds the flush test), skipped
+      root re-derivation (reds the root test), dropped `flush-codify-exists` (reds the refusal test),
+      each reverting green — and the guard's negative controls (`src/review/core.ts:396`'s
+      `node_modules` comparison and the flush engine's segment-assembled buffer read stay unflagged;
+      a planted read reddens naming file and literal). T-002: the `row relations` walk reds before
+      the flush and greens after it, with `moved 2` then `0` at the close. One guard per pair: no
+      guard is landed with another pair's fix.
+
+      **Driven on a faithful copy at planning time (rule 19), never against the production record.**
+      The shipped guard's prototype returned exactly the two real hits at the base tree
+      (`scripts/validate-record-retirement.test.ts: .ngrace/scratch/staged-findings.md` and, before
+      the false-positive fix, `examples/polyglot`); after the repair it returned `[]`; a planted read
+      returned exactly one hit naming `scripts/prove-record-preservation.test.ts:
+      .ngrace/scratch/planted-probe.md`; the guard run changed no byte. The four engine mutations each
+      reddened exactly one of the three flush-mode tests, restored green. The flush of `F279` and the
+      row through the verb exited 0 (`record-flush: flushed F279 (row …, pays F279)`); the added
+      `row relations` walk red then green; the record suite 163 pass; the audit suite 46 pass;
+      `bun run typecheck`, `bun run test` (2014 pass, 0 fail) and `bun run validate:ci` all exit 0 at
+      the T-002 state. A fresh clone of base `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb` with the two
+      repaired files overlaid, `bun install --frozen-lockfile` and `bun run test` exited 0
+      (2013 pass, 0 fail) with no `.ngrace/scratch` present. The full close was carried through on a
+      closed copy: `gate approve --artifact plan` permit; baseline, target and final `--run-commands`
+      each exit 0 (2/2, 4/4, 4/4 commands); review 0 findings; `gate verdict` pass; `gate apply` and
+      `gate archive` permit; `apply` archived the bundle; `--retire` `moved 2` then `0`; and on the
+      applied-archive bundle a second `review` plus `gate verdict` whose **last** `Verdict` element
+      carries 8 `AC-*` children — one per close-bound criterion — each `Exit=0 Result=pass` (the
+      first, pre-apply `Verdict` is self-closing and carries none by design). All figures are
+      readings, not criteria.
+
+      **What this T0 plan drops from the larger house form, and why each drop is safe.** No teaching
+      task (no skill text moves), no instrument task (T-001 is the instrument), no footprint task
+      (nothing forces a footprint pin), no third task (the closing drive is pass-only and shares
+      T-002's end state), and no `Satisfies` mapping: every authorizing `AC-*` is close-bound (it
+      carries `CloseEvidence`), and `Satisfies` of a close-bound `AC-*` is the shipped
+      `change.close-evidence-and-satisfied` error. `DurableScope` is `<None />` (checked by the
+      shipped predicate, not assumed): both deliverable files are `scripts/*.test.ts`, for which
+      `isModuleOwnableWritePath` is false, and no graph module is written. Baseline needles assert
+      only what the bundle leaves unchanged; **no baseline needle asserts the buffer exists**
+      (`.ngrace/scratch/staged-findings.md` is never named in `BaselineAssertions` — asserting a
+      `.gitignore`d path is the very defect this bundle pays, moved one layer up). The last task ends
+      at the live row and `--rewrite-roots` applied; the close (`gate verdict`, `gate apply`,
+      `gate archive`, `apply`, the production `--retire`) is the authority's.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-CLONE-FAITHFUL-TESTS-1-D68520A2/spec.xml</Value></MustExist>
+      <MustPassCommand><Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command></MustPassCommand>
+      <MustPassCommand><Command>bun ./scripts/prove-record-preservation.ts</Command></MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-CLONE-FAITHFUL-TESTS-1-D68520A2/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/C-CLONE-FAITHFUL-TESTS-1-D68520A2/plan.xml</Value></MustExist>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>C-CLONE-FAITHFUL-TESTS-1-D68520A2 fixture-read hygiene</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>check-ignore</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>C-CLONE-FAITHFUL-TESTS-1-D68520A2 row relations</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>F279: "C-CLONE-FAITHFUL-TESTS-1-D68520A2"</Text></MustContain>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>f999</Text></MustContain>
+      <MustNotContain><File>scripts/validate-record-retirement.test.ts</File><Text>readFileSync(path.join(REPO_ROOT, ".ngrace/scratch</Text></MustNotContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File><Text>&lt;Finding id="f279"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File><Text>&lt;Entry id="f279"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Row name="C-CLONE-FAITHFUL-TESTS-1-D68520A2"</Text></MustContain>
+      <MustContain><File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File><Text>&lt;Pays&gt;F279&lt;/Pays&gt;</Text></MustContain>
+      <MustPassCommand><Command>bun run typecheck</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test scripts/audit-regressions.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun test scripts/validate-record-retirement.test.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Land the fixture-read guard, repair the flush-mode fixture to a clone-faithful literal, and
+          drive every guard in both directions
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (fixture-read-guard), fail: in its own tool round trip, before the fixture is
+            repaired, land the shipped guard in `scripts/audit-regressions.test.ts` in the
+            suite-hygiene style of `C-TEST-TIMEOUT-CEILING-2-7AD2A006`, with `existsSync` added to
+            the `node:fs` import. The guard walks every `.ts` under `src/` and `scripts/` (excluding
+            `node_modules` and `.git`), keys on filesystem-read call sites (`readFileSync`,
+            `readFile`, `readdirSync`, `existsSync`, `statSync`, `lstatSync`, `cpSync`,
+            `copyFileSync`, `openSync`, `createReadStream`, `realpathSync`), extracts the path
+            literals from those calls' argument text, and flags a repository-root-relative literal
+            that git ignores or leaves untracked — using **one** `git ls-files -z` snapshot and
+            **one** batched `git check-ignore --stdin` pass, never a process per literal. It names its
+            two stated limits in the source: a path assembled entirely from separate segments is not
+            detected (the flush engine's declared-input buffer read must stay unflagged), and `.ts`
+            only. Run `bun test scripts/audit-regressions.test.ts -t "fixture-read hygiene"`; it reds
+            naming `scripts/validate-record-retirement.test.ts: .ngrace/scratch/staged-findings.md`.
+            Record the cursor attempt with outcome fail, signature-kind `test`, signature-key
+            `fixture-read-guard`. Do not repair the fixture in this round trip. Failure conditions:
+            this round trip also repairs the fixture; the guard flags a correct skip filter
+            (`src/review/core.ts:396`'s `node_modules` comparison); the guard spawns a git process per
+            literal.
+          </Criterion>
+          <Criterion>
+            Pair pass: repair `scripts/validate-record-retirement.test.ts`'s `C-RECORD-FLUSH-VERB-2-6BB9DF5A
+            flush mode` fixture — replace `:6232`'s source argument (the
+            `readFileSync(path.join(REPO_ROOT, ".ngrace/scratch/staged-findings.md"), "utf8")` read)
+            with a self-contained inline literal whose buffer holds one finding under the token
+            `F999` (anchor id `f999`; neither findings layer carries it at any point in this bundle's
+            lifecycle — the record holds neither `F270` nor `F279`), and move the describe's F-token
+            references (the `--finding`/`--pays` arguments and the assertions) to `F999`.
+            The `plant(root, ".ngrace/scratch/staged-findings.md", …)` destination stays — it writes
+            a temp root, it does not read the repository — and the fixture must read no repository
+            path. Then `bun test scripts/audit-regressions.test.ts -t "fixture-read hygiene"` greens
+            and `bun test scripts/validate-record-retirement.test.ts -t "C-RECORD-FLUSH-VERB-2-6BB9DF5A
+            flush mode"` is 4 pass. Record the cursor attempt with outcome pass for signature-key
+            `fixture-read-guard`. Failure conditions: the fixture still reads an untracked path; the
+            token chosen collides with a findings layer; a per-test timeout is added.
+          </Criterion>
+          <Criterion>
+            The four repair-discrimination drives (pass-only cycle, on throwaway copies): plant each
+            engine mutation in turn on a copy of `scripts/validate-record-retirement.ts` and run
+            `bun test scripts/validate-record-retirement.test.ts -t "C-RECORD-FLUSH-VERB-2-6BB9DF5A
+            flush mode"` — dropped `flush-row-exists` reds the refusal test; no `Finding` appended
+            reds the flush test; skipped root re-derivation reds the root re-derivation test;
+            dropped `flush-codify-exists` reds the refusal test — each reddening exactly one test,
+            and the reverted tree green. Restore every copy. This cycle has no production red of its
+            own (the production tree is green in place), so record the cursor attempt with outcome
+            pass and state that it is pass-only. Failure conditions: a plant mutates the production
+            tree; a mutation reddens zero or more than one test; the red direction is claimed without
+            running it.
+          </Criterion>
+          <Criterion>
+            The guard's red direction and its negative controls (pass-only cycle, on throwaway
+            copies): append a read of `.ngrace/scratch/&lt;name&gt;` to a `*.test.ts` copy and run the
+            guard — it reds naming that file and literal; restore and it greens, with a hashed
+            snapshot of the `src/` and `scripts/` `.ts` corpus identical before and after the guard
+            run (the guard writes no byte). **Also plant an ignored *directory* read**
+            (`readdirSync(".ngrace/scratch")`) and run the guard — it must red naming that file
+            and `.ngrace/scratch`; the directory branch is reachable because `git check-ignore`
+            reports a `.gitignore`d directory path as ignored even when no tracked file sits under
+            it (driven at planning time: red naming
+            `scripts/prove-record-preservation.test.ts: .ngrace/scratch`, restored green), so the
+            `examples/polyglot` false-positive fix did not make the guard blind to directory
+            literals. Drive the guard against `src/review/core.ts:396`'s
+            `entry.name === "node_modules"` comparison and against the flush engine's
+            `readFileSync(path.join(root, ".ngrace", "scratch", "staged-findings.md"))` read — both
+            stay unflagged, proved by the whole-corpus run being green. Record the cursor attempt with
+            outcome pass and state that it is pass-only. Failure conditions: the planted read stays
+            green; the trap line or the engine read is flagged; the guard mutates a file.
+          </Criterion>
+          <Criterion>
+            The clone drive (pass-only cycle): `git clone` base
+            `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb`, overlay the two repaired files
+            (`scripts/validate-record-retirement.test.ts`, `scripts/audit-regressions.test.ts`), run
+            `bun install --frozen-lockfile`, then `bun run test` with the exit read directly. It must
+            exit 0 (driven at planning time: 2013 pass, 0 fail, 3 skip) in a tree with **no**
+            `.ngrace/scratch` directory. Record the cursor attempt with outcome pass and state that
+            it is pass-only. Failure conditions: the clone's suite is red; the drive copies a
+            `.ngrace/scratch` or the production record into the clone; the exit is read through a
+            pipe.
+          </Criterion>
+          <Criterion>
+            The T-001 boundary: after this task no file under `docs/plans/active/RM-GOVERNED-PATH/`
+            has changed and no `src/` non-test file has changed. `F279` is **not** flushed here. The
+            buffer `.ngrace/scratch/staged-findings.md` is read by nothing and written by nothing.
+            Findings raised while this bundle is open go to that buffer under the next staged number
+            (`D30`).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run typecheck</Command>
+          <Command>bun test scripts/audit-regressions.test.ts</Command>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun run test</Command>
+          <Command>git diff --exit-code 0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb -- docs/plans/active/RM-GOVERNED-PATH</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>
+          Flush F279 and the chartered row through the shipped verb, land the row walk, then drive the
+          faithful post-close applied-archive copy
+        </Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (record-row), fail: in its own tool round trip, before any record write,
+            append the `C-CLONE-FAITHFUL-TESTS-1-D68520A2 row relations` walk to
+            `scripts/validate-record-retirement.test.ts` in the house form of the
+            `C-RECORD-FLUSH-VERB-2-6BB9DF5A dogfood` walk (no per-test pin — the suite runs under
+            `--timeout=0`): `f279` exists exactly once across `findings.xml` and
+            `findings-retired.xml` with no fixed expectation of which file holds it, its `status`
+            agreeing with the holding file, its `token` agreeing with the id, its single index
+            `Entry` carrying `genre="finding"` and a `layer` agreeing with the holding file, its
+            landed `Body` not ending with a `---` separator, and the chartered row existing exactly
+            once across `registry.xml` and `registry-retired.xml` with `kind="chartered"`, a `Pays`
+            containing `F279`, and a `StatusText` naming no `F` token outside `Pays` and carrying no
+            `Closed with` sentence. Wrap every `walkNodes(...)` result in `[... ]` — `walkNodes`
+            returns an `Iterable`, not an array, and `.filter` on it is a typecheck error (driven:
+            `bun run typecheck` caught it). Parsed with the shipped parser over both layers. `f279` is
+            absent at this state, so the walk reds. Record the cursor attempt with outcome fail,
+            signature-kind `test`, signature-key `record-row`. Do not flush in this round trip.
+            Failure conditions: this round trip also flushes; the walk hardcodes `registry.xml`; the
+            `Pays` clause pins an exact set; `walkNodes` is not spread.
+          </Criterion>
+          <Criterion>
+            Pair pass: extend the shipped C-RECORD-PARSE payer map `bundleMinted` in
+            `scripts/validate-record-retirement.test.ts` with
+            `F279: "C-CLONE-FAITHFUL-TESTS-1-D68520A2"` (consulted only for tokens the derivation
+            actually mints). Then flush `F279` and the row through the **shipped verb**:
+            `bun ./scripts/validate-record-retirement.ts --flush docs/plans/active/RM-GOVERNED-PATH
+            --change C-CLONE-FAITHFUL-TESTS-1-D68520A2 --finding F279 --pays F279 --mint-search
+            "0 active, 0 archive" --charter "&lt;searched-before-minting statement, no F token&gt;"
+            --status-text "&lt;a sentence naming no F token and no Closed with&gt;"`. It must print
+            `record-flush: flushed F279 (row C-CLONE-FAITHFUL-TESTS-1-D68520A2, pays F279)` and exit
+            0; then read back that `f279` is a live `Finding` in `findings.xml` with one live index
+            `Entry`, and the live row in `registry.xml` carries the tool's `mint-search: 0 active, 0
+            archive prior bundle(s) share slug CLONE-FAITHFUL-TESTS` line, a `Pays` naming exactly
+            `F279`, and a `StatusText` naming no `F` token. Then the `row relations` walk greens,
+            `bun test scripts/validate-record-retirement.test.ts` is green (driven: 163 pass),
+            `bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH` and
+            `bun ./scripts/prove-record-preservation.ts` return zero, and every live root satisfies
+            `base + headroom = ceiling`. Record the cursor attempt with outcome pass for signature-key
+            `record-row`. Do not run `--retire` against the production record, do not set `applied`,
+            do not archive the bundle, and do not prune or reorder the buffer. Failure conditions: the
+            row written by hand rather than by the verb; a root attribute hand-written; `F270`/`F277`/
+            `F278` selected; the buffer written or pruned.
+          </Criterion>
+          <Criterion>
+            The closing drive (pass-only cycle, on a faithful whole-repository copy at the T-002 state
+            — `cp -R` including `.git`, a real `node_modules` directory and `.ngrace/scratch`):
+            commit the approved plan before opening the epoch (rule 19's copy-commit rule), then
+            `bun ./src/grace.ts gate approve --change C-CLONE-FAITHFUL-TESTS-1-D68520A2 --artifact
+            plan --path .`, `bun ./src/grace.ts cursor advance --task T-001 --open-epoch`, run the
+            baseline assertions with `--run-commands`, then `--assertions target --run-commands`.
+            Drive both task states with their reds and greens in the copy (the guard red, the repair,
+            the four mutations, the guard's planted read and negatives, the `row relations` red, the
+            flush, the greens). Then the close sequence: `--assertions final --run-commands`; the
+            second `terminal` plus `fold` so `gate archive` is not refused on loose events;
+            `bun ./src/grace.ts review --change C-CLONE-FAITHFUL-TESTS-1-D68520A2 --path .`, then
+            `bun ./src/grace.ts gate verdict --change C-CLONE-FAITHFUL-TESTS-1-D68520A2 --outcome
+            pass` with one `--ack-finding=&lt;id&gt;` per finding id the review displays (one separate
+            argument per id, built as a shell array — zsh does not word-split a single variable) —
+            this pre-apply verdict satisfies the apply gate but carries **no** criterion children by
+            design (`evaluateCloseEvidenceChildren`, `src/gates/ledger.ts:490`, returns `[]` unless
+            `isAppliedArchiveBundle` is true, `:494`); then
+            `bun ./src/grace.ts gate apply --change C-CLONE-FAITHFUL-TESTS-1-D68520A2 --path .` and
+            `bun ./src/grace.ts gate archive --change C-CLONE-FAITHFUL-TESTS-1-D68520A2 --path .`
+            (each must print `Decision: permit`); then
+            `bun ./src/grace.ts apply --change C-CLONE-FAITHFUL-TESTS-1-D68520A2 --path .`, which
+            renames the bundle into `.ngrace/changes/archive/`; then the shipped
+            `bun ./scripts/validate-record-retirement.ts --retire
+            docs/plans/active/RM-GOVERNED-PATH` from inside the copy: it reports **`moved 2`** (the
+            finding `f279` and the row), the row sits in `registry-retired.xml` with
+            `status="retired"`, `f279` sits in `findings-retired.xml` stamped
+            `&lt;PaidBy&gt;C-CLONE-FAITHFUL-TESTS-1-D68520A2&lt;/PaidBy&gt;`, the index `Entry` line
+            stays and its `layer` flips in place, and a second `--retire` reports `moved 0`. **Then,
+            on the now-applied-archive bundle**, repeat `bun ./src/grace.ts review --change
+            C-CLONE-FAITHFUL-TESTS-1-D68520A2 --path .` (it now reports one
+            `review.close-evidence-unevaluated` per close-bound `AC-*`) and
+            `bun ./src/grace.ts gate verdict --change C-CLONE-FAITHFUL-TESTS-1-D68520A2 --outcome
+            pass` with one `--ack-finding=&lt;id&gt;` per displayed id: this post-archive verdict
+            evaluates every `CloseEvidence` `Command` through the shell, refuses `pass` when any
+            evaluated `Result` is `fail`, and records `&lt;Exit&gt;` and `&lt;Result&gt;` per criterion
+            on a **second** `Verdict` element. Read the **last** `Verdict` element in
+            `run-ledger.xml`, never a hand-rolled reader: the number of its `AC-*` children equals
+            the number of close-bound `AC-*` in the spec — the relation, never a count pinned here —
+            and each child carries `Exit=0` and `Result=pass` (driven at planning time: two `Verdict`
+            elements, the last carrying 8 `AC-*` children all `Exit=0 Result=pass` and the 8 acked
+            `Finding` children). The tally is **recorded**; no shipped verb *prints* it (`F270`) —
+            the close reads the ledger. Then `bun run validate:ci` exits 0 and `bun ./src/grace.ts lint --path .
+            --fail-on warnings` is 0/0 inside the copy. The production record and the production
+            bundle are never mutated by this drive. Leave the copy in place and name it in the
+            report. This cycle has no recordable red of its own, so record the cursor attempt with
+            outcome pass, signature-kind `test`, signature-key `post-close-drive`, and state that it
+            is pass-only. Failure conditions: the drive copies only the record directory or omits
+            `.git`; the drive stops at the in-tree suites and skips `validate:ci`; the production
+            record is mutated.
+          </Criterion>
+          <Criterion>
+            The close boundary. This task ends at the live row, `--rewrite-roots` applied by the
+            verb, the shipped validators at zero, and the `row relations` walk green. The `--retire`
+            (`moved 2`), the gate-applied Decisions, the `apply` verb, the archive move, and every
+            `CloseEvidence` evaluation on the production record are the authority's close acts; the
+            executor performs no gate, no status write, no archive move and no production `--retire`.
+            No `CodifiedIn` is written by this bundle. Findings raised while this bundle is open go to
+            `.ngrace/scratch/staged-findings.md` under the next staged number (`D30`).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run typecheck</Command>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>bun run validate:ci</Command>
+          <Command>git diff --exit-code 0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb -- src/ skills/ngrace/ plugins/ngrace/skills/ngrace/</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-CLONE-FAITHFUL-TESTS-1-D68520A2>
+</NgraceChangePlan>

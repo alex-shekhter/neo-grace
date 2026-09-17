@@ -1,0 +1,452 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-CLONE-FAITHFUL-TESTS-1-D68520A2>
+    <Summary>
+      T0 hotfix on `RM-GOVERNED-PATH`: **the suite must be clone-faithful.** Three tests in
+      `scripts/validate-record-retirement.test.ts`'s `C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode`
+      describe are green in the maintainer's working tree and red in every clone, because their
+      fixture is planted from `.ngrace/scratch/staged-findings.md` (`:6232`) — a `.gitignore`d,
+      untracked authority buffer. The repair makes the fixture a self-contained literal in the test
+      file, independent of the record's state and the buffer's contents, and a shipped suite-hygiene
+      guard in `scripts/audit-regressions.test.ts` fails when any `.ts` file under `src/` or
+      `scripts/` passes a path git ignores or leaves untracked to a filesystem read — keyed on read
+      call sites, so a correct skip-filter that merely *names* an ignored directory is not a false
+      positive. This bundle stages and flushes **`F279`** through the shipped flush verb
+      (`bun ./scripts/validate-record-retirement.ts --flush …`), mints its chartered row with
+      `Pays F279`, and at the close `--retire` moves **2** (the finding and the row). No `src/`
+      production file changes, no skill text, no version surface, no lint issue code, no new CLI
+      verb. This spec is written at `status="draft"` and stops there: the approval write, the gates,
+      the applied close and the `--retire` are the authority's.
+    </Summary>
+    <Problem>
+      **The CI failure, measured.** `bun test --timeout=0` at base
+      `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb` is **2009 pass, 3 fail, 3 skip** (EXIT=1) in a fresh
+      `git clone` of branch `c-record-flush-verb` plus `bun install --frozen-lockfile`, and **2012
+      pass, 0 fail, 3 skip** (EXIT=0) in the working tree; the delta is exactly the three tests in
+      the `C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode` describe (`:6221`). Each of the three carries
+      `error: ENOENT: no such file or directory, open '&lt;clone&gt;/.ngrace/scratch/staged-findings.md'`
+      at `flushRoot (scripts/validate-record-retirement.test.ts:6232:55)`. `:6232` is
+      `plant(root, ".ngrace/scratch/staged-findings.md", readFileSync(path.join(REPO_ROOT,
+      ".ngrace/scratch/staged-findings.md"), "utf8"))`: the fixture is sourced from the live buffer,
+      which is `.gitignore`d (`.gitignore:8`, `.ngrace/scratch/`) and tracked by nothing, so it
+      exists in the maintainer's tree and in no clone.
+
+      **The population, measured.** Across **64** `*.test.ts` files (the whole set), exactly **one**
+      read names a `.gitignore`d or untracked repository path — that line. Non-test code under
+      `src/` and `scripts/` has **none**: the six hits on `node_modules` are skip filters, a doc
+      comment and a name list (`src/project-utils.ts:102`, `src/review/core.ts:396`, `:432` — the
+      doc comment — `:461`,
+      `scripts/validate-marketplace.ts:161`) and a temp consumer's own install
+      (`scripts/packed-cli-smoke.ts:155`). **No guard exists** that checks a read path is tracked:
+      `git check-ignore`, `git ls-files`, `git worktree`, `git archive` and `git clone` appear in no
+      `src/`, `scripts/` or workflow file.
+
+      **The class.** A shipped test whose fixture is sourced from a path git does not track passes
+      only where that path exists — the maintainer's tree. `bun run validate:ci` run there therefore
+      does not predict CI, and a close that signs off on that green signs off on evidence the runner
+      disproves. The archived bundle's own `CloseEvidence` (`bun test
+      scripts/validate-record-retirement.test.ts`, its `AC-FLUSH-MODE`) is exactly this shape: it was
+      green locally for a reason CI cannot reproduce. The dependency is on session state as well as a
+      missing file: the buffer's header rule prunes entries after their PR merges, so the fixture's
+      content changes under the test even where the file exists. The archived spec that pointed the
+      fixture at that buffer is `.ngrace/changes/archive/C-RECORD-FLUSH-VERB-2-6BB9DF5A/spec.xml:323`
+      ("`.ngrace/scratch/staged-findings.md` is **read, never written**") with `:341`.
+
+      **The remedy, two halves, both in scope.** Half 1: the three tests' fixture becomes a literal
+      held in the test file, independent of the record's state and the buffer's contents, reading no
+      untracked path; the plan proves the smaller fixture still discriminates by planting four engine
+      mutations (dropped `flush-row-exists`; no `Finding` appended; skipped root re-derivation;
+      dropped `flush-codify-exists`), each reddening exactly one test with the reverted tree green.
+      Half 2: a shipped guard in `scripts/audit-regressions.test.ts` (the shape
+      `C-TEST-TIMEOUT-CEILING-2-7AD2A006` used) fails when any `.ts` under `src/` or `scripts/`
+      passes a path git ignores or leaves untracked to a filesystem read, driven in both directions.
+      The guard keys on filesystem-read call sites so the correct skip-filters — the
+      `entry.name === "node_modules"` comparison in `src/review/core.ts` is the authority's located
+      trap — are not flagged.
+
+      **The base commit and the record.** Branch `c-record-flush-verb` at `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb`,
+      tracked tree clean, `.ngrace/changes/active/` holding `.gitkeep` only, 116 archive
+      directories, the buffer holding `F270`, `F277`, `F278` before this run stages `F279`. The
+      record's live roots read `&lt;Findings base="7329" headroom="285" ceiling="7614"&gt;`,
+      `&lt;Rulings base="1670" headroom="213" ceiling="1883"&gt;`,
+      `&lt;Registry base="12" headroom="14" ceiling="26"&gt;` and
+      `&lt;RecordIndex base="263" headroom="33" ceiling="296"&gt;`. Minted 2026-09-17 as
+      `C-CLONE-FAITHFUL-TESTS-1-D68520A2` with `bun ./src/grace.ts spec new CLONE-FAITHFUL-TESTS
+      --timestamp 2026-09-17T15:21:36Z --path .`; printed
+      `mint: C-CLONE-FAITHFUL-TESTS-1-D68520A2 slug=CLONE-FAITHFUL-TESTS lineage=1 hash=D68520A2
+      branch=c-record-flush-verb timestamp=2026-09-17T15:21:36.000Z` and
+      `mint-search: 0 active, 0 archive prior bundle(s) share slug CLONE-FAITHFUL-TESTS` — whose
+      value half, `0 active, 0 archive`, is this bundle's `--mint-search` input, carried verbatim
+      because a recomputed count is not the mint-time fact. Searched before minting over
+      `.ngrace/changes/archive/` (116 directories) and both registry layers for any prior bundle
+      carrying `CLONE-FAITHFUL-TESTS`: none. The prior art this bundle's guard follows is
+      `C-TEST-TIMEOUT-CEILING-2-7AD2A006` (its suite-hygiene test in
+      `scripts/audit-regressions.test.ts`), and the tests-not-reading-the-production-record rule is
+      `C-RECORD-TEST-ISOLATION-2`'s.
+    </Problem>
+    <Goals>
+      <Goal>
+        **Half 1 — the repair.** The `C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode` fixture in
+        `scripts/validate-record-retirement.test.ts` is a self-contained string literal held in the
+        test file: it sources no repository path, is independent of the record's state and of the
+        buffer's contents, and names a finding token that neither findings layer carries at the base
+        commit, so the fixture cannot collide with the record as it grows. The three tests
+        (the flush + codify-only walk, the root re-derivation walk, the refusal walk) pass in a fresh
+        clone. The fixture still discriminates: four planted engine mutations — dropped
+        `flush-row-exists`, no `Finding` appended, skipped root re-derivation, dropped
+        `flush-codify-exists` — each redden exactly one of the three tests, and the reverted tree is
+        green.
+      </Goal>
+      <Goal>
+        **Half 2 — the guard.** A shipped suite-hygiene guard in `scripts/audit-regressions.test.ts`
+        fails when any `.ts` file under `src/` or `scripts/` passes a path that git ignores or leaves
+        untracked to a filesystem read. The guard expresses the **read**, never the appearance of an
+        ignored path: it keys on filesystem-read call sites and their path literals, so
+        `src/review/core.ts:396`'s `entry.name === "node_modules"` comparison is not flagged. It is
+        driven in both directions on a copy: the clean repository passes with an empty finding list,
+        and a planted test read of `.ngrace/scratch/&lt;name&gt;` reddens naming the offending file
+        and literal, with no byte changed by the guard run. The guard names the limit it does not
+        cover.
+      </Goal>
+      <Goal>
+        **The payment.** The plan flushes **`F279`** through the shipped verb — `bun
+        ./scripts/validate-record-retirement.ts --flush docs/plans/active/RM-GOVERNED-PATH --change
+        C-CLONE-FAITHFUL-TESTS-1-D68520A2 --finding F279 --pays F279 --mint-search "0 active, 0
+        archive" --status-text …` — into `findings.xml` with one index `Entry` (`f279`,
+        `genre="finding"`, `layer="live"`), and mints the chartered row
+        `C-CLONE-FAITHFUL-TESTS-1-D68520A2` into `registry.xml` with `&lt;Pays&gt;F279&lt;/Pays&gt;`;
+        the verb holds every live root. The plan extends the shipped C-RECORD-PARSE payer map
+        `bundleMinted` in `scripts/validate-record-retirement.test.ts` with
+        `F279 → C-CLONE-FAITHFUL-TESTS-1-D68520A2`, so the post-close payer walk reads the payment
+        the spec names. At the close the authority archives the bundle and runs `--retire`, which
+        moves **2** (the finding, stamped `&lt;PaidBy&gt;C-CLONE-FAITHFUL-TESTS-1-D68520A2&lt;/PaidBy&gt;`,
+        and the row) and flips the index layer in place; a second `--retire` reports `moved 0`.
+        `F270`, `F277` and `F278` are selected by no flag and stay staged. No `CodifiedIn` is
+        written by this bundle (there is no ruling to codify), so the one-wave rule is not engaged.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T0** (hotfix: a test fixture that dies in every clone, the guard that would
+        have caught it, and the record payment for `F279`). Roadmap `RM-GOVERNED-PATH`. Issue: PR
+        #105's red CI, staged as `F279` in `.ngrace/scratch/staged-findings.md:78`. The T0 tier
+        shrinks section depth, never the write scope, never a gate, never approval. Binding live
+        rulings: `D27` (a draft is revised in place; approved artifacts are repaired only by
+        supersede), `D30` (the record freezes for the lifetime of a bundle that measures it; no hard
+        `Constraint` here transcribes a scalar count of a file it changes — every occupancy and root
+        figure lives in `Assumptions` and expires), `D31` (the index has no retired sibling; its
+        `Entry` layer flips in place), `D28`/`D28.1` (no ceiling is raised), `D11` (nothing
+        deferred), `D20` (the authority owns the close), `F43` (markup is escaped as character data,
+        never stripped).
+      </Constraint>
+      <Constraint>
+        **The property the guard expresses, and its two limits.** The guard's property is: no `.ts`
+        file under `src/` or `scripts/` passes a path that git ignores or leaves untracked **to a
+        filesystem read**. It keys on a filesystem-read call site (`readFileSync`, `readFile`,
+        `readdirSync`, `existsSync`, `statSync`, `lstatSync`, `cpSync`, `copyFileSync`, `openSync`,
+        `createReadStream`, `realpathSync`) and the path literals in that call's argument text, and
+        asks git (`check-ignore` for ignored, `ls-files --error-unmatch` for tracked) about each
+        repository-root-relative literal. **Trap:** a guard keyed on "this file names a path git
+        ignores" would false-positive on `src/review/core.ts:396`, where `node_modules` is a
+        comparison in a correct skip filter; the read-call keying excludes it, and this must be
+        driven. **Limit 1 (stated, not hidden):** a path assembled entirely from separate segments
+        (the flush engine's own `readFileSync(path.join(root, ".ngrace", "scratch",
+        "staged-findings.md"))`) is not flagged by the literal keying — and it **must not** be, because
+        that read is the verb's declared input, not a fixture. **Limit 2:** the guard covers `.ts`
+        only; a non-TypeScript artifact is out of population. The guard names both limits in its own
+        source so a later reader cannot mistake a pass for total coverage.
+      </Constraint>
+      <Constraint>
+        **Write scope, anchors and modules — enumerated once (`F136.1`'s rule; no second module list
+        anywhere in this artifact).** Files this bundle forces: `scripts/validate-record-retirement.test.ts`
+        (Half 1's fixture repair — the buffer read at `:6232` replaced by a literal, the F-token
+        references moved to the literal's token — and the `bundleMinted` payer-map extension
+        `F279 → C-CLONE-FAITHFUL-TESTS-1-D68520A2`);
+        `scripts/audit-regressions.test.ts` (Half 2's guard, in the suite-hygiene describe beside the
+        timeout-ceiling guard); the record files
+        `docs/plans/active/RM-GOVERNED-PATH/{findings.xml,rulings.xml,registry.xml,decisions.xml}`
+        (the execution flush writes the finding, its index `Entry` and the row and holds all four
+        roots), `{findings-retired.xml,rulings-retired.xml,registry-retired.xml,decisions.md,record-inventory.json}`
+        (the close's `--retire` writes the layers and the inventory); and this bundle's own artifacts
+        under `.ngrace/changes/active/C-CLONE-FAITHFUL-TESTS-1-D68520A2/` with their close arrival
+        under `.ngrace/changes/archive/C-CLONE-FAITHFUL-TESTS-1-D68520A2/`. **No graph module is
+        written or minted**, and no `LINKS:` header is added: `scripts/` is linted and type-checked
+        (`.ngrace-lint.json` `ignoredDirs` is `["examples"]`) and a `LINKS:`-less script there raises
+        nothing; `scripts/validate-record-retirement.test.ts` and `scripts/audit-regressions.test.ts`
+        are `*.test.ts` (not module-ownable), and `scripts/` paths are not module-ownable, so no
+        module-ownable write scope exists and the plan's `DurableScope` carries `<None />`. Do not
+        mint a synthetic module and do not add a `LINKS:` header to a governance script.
+      </Constraint>
+      <Constraint>
+        Row and payment law. The row is `C-CLONE-FAITHFUL-TESTS-1-D68520A2` (the minted id, an archive
+        directory only at the close), `kind="chartered"`; its `Pays` names exactly `F279` and no other
+        `F` token; its `StatusText` names no `F` token and carries no `Closed with` sentence; its
+        `Charter` carries the tool's `mint-search: 0 active, 0 archive … CLONE-FAITHFUL-TESTS` line.
+        `F279` is flushed live with one index `Entry` whose `genre` and `layer` agree with the holding
+        file; the close's `--retire` moves the finding and the row and stamps `PaidBy`. Structural
+        counts come from the shipped parser, never `grep -c`. Probes mutate copies, never the
+        production record.
+      </Constraint>
+      <Constraint>
+        **No debt carried forward, and no scope widened on a guess.** The remedy is both halves: a
+        repair without the guard re-opens the class at the next fixture, and a guard without the
+        repair leaves the red tests shipped. The deliverable moves no skill text, no version surface,
+        no `.ngrace-lint.json`, no lint catalog and no `src/` non-test file: grep the suites for each
+        — the buffer path (one hit, the repaired line), the `bundleMinted` map (the payer walk), the
+        skill-footprint pins in `src/test-support/token-accounting.test.ts` (unmoved because no skill
+        text moves), and the workflow `timeout-minutes` guards (unmoved) — and name every file the
+        grep finds in the write scope, which is done above.
+      </Constraint>
+      <Constraint>
+        Evidence hygiene. The byte-invariance baseline is the full base commit
+        `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb` (`F210`'s rule: the base-less diff form cannot
+        fail). `git diff` sees tracked paths only (`F174`); the record moves by design and is
+        enumerated here, so no "record unmoved" criterion is written. Every `CloseEvidence` command is
+        evaluated in the applied-archive state (`F196`) and each matches a shipped discriminating
+        shape; exits are read directly, never through a pipe. Every criterion states a relation and
+        pins no projected figure; occupancy and root numbers live in `Assumptions`. Any test driven
+        against this repository's real archive or the real record runs under `bun run test`
+        (`bun test --timeout=0`); no per-test timeout number is added (`C-TEST-TIMEOUT-CEILING-2-7AD2A006`),
+        and the CI job's `timeout-minutes: 30` is the only ceiling.
+      </Constraint>
+      <Constraint>
+        **What T0 drops, and what it keeps.** T0 makes teaching-sentence Goals, instrument Goals,
+        footprint Goals and a criterion-mapping Constraint optional. It does **not** make the guard or
+        the repair optional: both are the deliverable. Kept: the fixture repair and its
+        discrimination drive, the guard and its both-direction drive, a base-pinned byte-invariance
+        guard naming `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb` with the bundle's own archive arrival
+        excluded, the row-and-pays criterion, and the post-archive close-lint criterion. Every
+        `CloseEvidence` `Command` matches a shipped discriminating shape (`bun test` for the suites,
+        `bun run test`, the `git-diff-exit-code` shape with the named base commit, and the
+        `grace-ts-lint-fail-on` shape for close-time lint).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` and `examples/` are byte-identical to this spec's base commit
+        `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb`. Owner: unchanged; no user-visible surface — the
+        fixture and the guard are `scripts/` test-hygiene internals of this repository, never a
+        shipped `ngrace` command, so the marketplace overview and the walkthrough project have
+        nothing to learn.
+      </NonGoal>
+      <NonGoal>
+        No skill text changes (`skills/ngrace/*` and the packaged mirror `plugins/ngrace/skills/ngrace/*`
+        are byte-identical to the base). The guard is the mechanical enforcement; the observation
+        that no shipped skill passage tells an author a test fixture may not be sourced from an
+        ignored path is a teaching gap reported to the authority, not paid here — a skill sentence
+        would force the skill-footprint pins (`src/test-support/token-accounting.test.ts`,
+        `README.md`) and widen this T0. Owner: a later teaching increment, if the maintainer
+        commissions one.
+      </NonGoal>
+      <NonGoal>
+        No `src/` production file changes and no new CLI verb, lint issue code or lint-ignore: the
+        product CLI does not gain a fixture-hygiene rule, and the record engine's flush verb
+        behaviour, refusals and record contract are untouched. Owner: unchanged; no product grammar
+        moves.
+      </NonGoal>
+      <NonGoal>
+        Nothing under `.ngrace/changes/archive/` is edited; the archived
+        `C-RECORD-FLUSH-VERB-2-6BB9DF5A` bundle's `spec.xml`, `plan.xml` and ledger are history. Its
+        delivered test file `scripts/validate-record-retirement.test.ts` is ordinary source and is
+        where this bundle works. Owner: unchanged; archives are immutable.
+      </NonGoal>
+      <NonGoal>
+        The buffer `.ngrace/scratch/staged-findings.md` is not pruned and not reordered; only `F279`
+        is appended by this authoring run, and pruning stays the authority's post-merge act. Owner:
+        the authority, post-merge.
+      </NonGoal>
+      <NonGoal>
+        Running a gate, a cursor verb, `ngrace review` beyond the pre-report command, or committing
+        against the production bundle. Owner: the authority; this spec is authored at
+        `status="draft"`.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-FIXTURE-SELF-CONTAINED>
+        The `C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode` fixture sources no repository path that git
+        does not track: its buffer is a literal held in `scripts/validate-record-retirement.test.ts`,
+        and its finding token is one neither findings layer carries, so the fixture is independent of
+        the record's state and the buffer's contents. The three tests pass in a fresh clone of the
+        base commit `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb`. The smaller fixture still
+        discriminates: four planted engine mutations — dropped `flush-row-exists`, no `Finding`
+        appended, skipped root re-derivation, dropped `flush-codify-exists` — each redden exactly one
+        of the three tests, and the reverted tree is green. Failure: a fixture that still reads an
+        untracked path, a test green only in the working tree, or a mutation that reddens nothing.
+        The instrument is the shipped suite.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-FIXTURE-SELF-CONTAINED>
+      <AC-GUARD-TWO-WAYS>
+        `scripts/audit-regressions.test.ts` carries a shipped guard that fails when any `.ts` file
+        under `src/` or `scripts/` passes a path git ignores or leaves untracked to a filesystem
+        read. Keyed on read call sites, it does not flag `src/review/core.ts:396`'s `node_modules`
+        comparison. Driven in both directions on a copy: the clean repository yields an empty finding
+        list, and a planted test read of `.ngrace/scratch/&lt;name&gt;` reddens naming the offending
+        file and literal, with the guard's run changing no byte. The guard's source names its two
+        stated limits (segment-assembled paths are not detected; `.ts` only). Failure: a guard that
+        flags a skip filter, that stays green on the planted read, or that mutates a file. The
+        instrument is the shipped suite.
+        <CloseEvidence>
+          <Command>bun test scripts/audit-regressions.test.ts</Command>
+        </CloseEvidence>
+      </AC-GUARD-TWO-WAYS>
+      <AC-CLONE-FAITHFUL>
+        Every `*.test.ts` sources its fixtures from git-tracked paths — the guard's assertion over the
+        whole test corpus — so the suite is green in a tree holding the tracked files, the
+        installed dependencies and the runtime temp roots it creates itself, and no others; and
+        `bun run test` is green in place. The
+        relation is the criterion (the guard passes and the suite passes); no projected pass figure is
+        pinned. The plan drives a fresh `git clone` of the base commit
+        `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb` plus `bun install --frozen-lockfile` plus
+        `bun run test` as a probe and records its exit. Failure: a test read of an untracked path left
+        in the corpus, or a clone run that is red.
+        <CloseEvidence>
+          <Command>bun run test</Command>
+          <Command>bun test scripts/audit-regressions.test.ts</Command>
+        </CloseEvidence>
+      </AC-CLONE-FAITHFUL>
+      <AC-ROW-AND-PAYS>
+        After the flush, `f279` exists exactly once across `findings.xml` and
+        `findings-retired.xml` with no fixed expectation of which file holds it: its `status` agrees
+        with the holding file, its `token` and `genre` agree, and its single index `Entry` has `genre`
+        and `layer` agreeing with that holding file; no landed `Body` ends with a `---` separator
+        line. This bundle's registry row exists exactly once across `registry.xml` and
+        `registry-retired.xml`: `status` agrees with the holding file, `kind="chartered"`, its `Pays`
+        contains `F279` (containment, never an exact set), and its `StatusText` names no `F` token
+        outside `Pays` and carries no `Closed with` sentence. The close's `--retire` reports
+        `moved 2`; a second `--retire` reports `moved 0`; the applied-archive record validates clean.
+        Failure: a duplicate row, a `Pays` token outside the allowed set, a paid finding left live at
+        the close, or a `moved` count other than 2 then 0. The instrument is the shipped suite over
+        the real record.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROW-AND-PAYS>
+      <AC-NO-SRC>
+        No file under `src/` changes relative to this spec's base commit
+        `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb`, and no skill text under `skills/ngrace/` or
+        `plugins/ngrace/skills/ngrace/` changes. Prose and command name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code 0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb -- src/ skills/ngrace/ plugins/ngrace/skills/ngrace/</Command>
+        </CloseEvidence>
+      </AC-NO-SRC>
+      <AC-DOCS-EXAMPLES>
+        `README.md` and `examples/` are byte-identical to this spec's base commit
+        `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb`; no version surface moves. Prose and command name
+        the same pathset; the command sees tracked edits and deletions only (`F174`).
+        <CloseEvidence>
+          <Command>git diff --exit-code 0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb -- README.md examples/ openpackage.yml .claude-plugin/marketplace.json plugins/ngrace/.claude-plugin/plugin.json</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` are not modified; under `.ngrace/changes/archive/`
+        the only arrival is this bundle's own close arrival under
+        `.ngrace/changes/archive/C-CLONE-FAITHFUL-TESTS-1-D68520A2/`, which the close itself renames
+        into place — excluded with its reason (`F188`'s law), and probed in the post-close state
+        (`F196`). Failure: any other tracked archive byte differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code 0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-CLONE-FAITHFUL-TESTS-1-D68520A2'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No graph module is written or minted. The deliverable is two `scripts/` files — a test file
+      whose fixture is repaired and a test file that gains a suite-hygiene guard — plus the record
+      files under `docs/plans/active/RM-GOVERNED-PATH/`, which are owned by no module in
+      `.ngrace/graph/main.xml`. `scripts/` **is** linted and type-checked (`.ngrace-lint.json`
+      `ignoredDirs` is `["examples"]`), but `*.test.ts` files are not module-ownable
+      (`isModuleOwnableWritePath` is false) and neither is any `scripts/` path, so the module
+      enumeration is empty and the later plan's `DurableScope` will be `&lt;None /&gt;`. Do not mint
+      a synthetic module and do not add a `LINKS:` header to a governance script. The write scope is
+      enumerated once, in the write-scope `Constraint` (`F136.1`'s rule — no second module list
+      anywhere). `M-SKILLS` and `src/` are not touched.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test scripts/audit-regressions.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run test</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path . --fail-on warnings</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes against the delivered work, never a green suite alone. (1) **The
+        repair's discrimination:** four engine mutations on copies (dropped `flush-row-exists`, no
+        `Finding` appended, skipped root re-derivation, dropped `flush-codify-exists`), each reddening
+        exactly one of the three flush-mode tests, with the reverted tree green — exits read directly.
+        (2) **The guard's both directions:** over the clean corpus the finding list is empty; a
+        planted test read of `.ngrace/scratch/&lt;name&gt;` reddens naming the file and literal with
+        no byte changed; and the guard is driven against `src/review/core.ts:396` and the flush
+        engine's own buffer read to show neither is flagged. (3) **The clone drive:** a fresh
+        `git clone` of base `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb` plus
+        `bun install --frozen-lockfile` plus `bun run test` is green after the repair — the criterion
+        is the relation, and the base-state `2009 / 3` figure expires at the repair. (4) **The
+        payment:** the verb flush of `F279` and its row on a copy, then the close's `--retire`
+        reporting `moved 2` then `0`, the copy's validator returning 0. (5) **Byte-invariance** per
+        `AC-NO-SRC`, `AC-DOCS-EXAMPLES` and `AC-NO-ARCHIVE-EDIT` — `git diff --exit-code` against the
+        base commit, probed in the post-close state, each command's can-fail demonstrated on a
+        scratch copy before recording (`F188`, `F196`, `F174`). The full `bun run validate:ci` is a
+        drive in `VerificationIntent`, never a `CloseEvidence` (it matches no default discriminating
+        shape).
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        All measurements 2026-09-17 at `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb` (`git rev-parse
+        HEAD`), branch `c-record-flush-verb`, tracked tree clean, `.ngrace/changes/active/` holding
+        `.gitkeep` only before the mint, 116 archive directories, the buffer holding `F270`, `F277`,
+        `F278` before this run stages `F279`. These are occupied states and expire; they are not
+        criteria.
+      </Assumption>
+      <Assumption>
+        The base-state suite readings. Working tree: `bun test --timeout=0` → 2012 pass, 0 fail, 3
+        skip, EXIT=0. Fresh clone (`git clone`, `bun install --frozen-lockfile`): 2009 pass, 3 fail,
+        3 skip, EXIT=1, the three failures in the `C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode`
+        describe with `ENOENT … staged-findings.md` at `scripts/validate-record-retirement.test.ts:6232:55`.
+        After the repair these figures project to a green clone; the criterion is the relation, not
+        the figures.
+      </Assumption>
+      <Assumption>
+        The guard prototype, driven 2026-09-17 on the base tree and on a clone copy. Over the base
+        tree's **148** `.ts` files under `src/` and `scripts/`, the read-call literal instrument
+        returns exactly one flag — `scripts/validate-record-retirement.test.ts: ignored read literal
+        ".ngrace/scratch/staged-findings.md"`; over the repaired clone copy it returns `[]`; a
+        planted read of `.ngrace/scratch/planted.md` in another test file returns exactly one flag
+        naming that file and literal, and reverting it returns `[]`. `src/review/core.ts:396` and the
+        flush engine's `readFileSync(path.join(root, ".ngrace", "scratch", "staged-findings.md"))`
+        are not flagged. This is a prototype; the plan's shipped guard may differ in mechanism and
+        must re-establish both directions.
+      </Assumption>
+      <Assumption>
+        The repair's shape (measured on a clone copy, expires). Replacing `:6232`'s third argument
+        with an inline literal — `'&lt;a id="f999" name="f999"&gt;&lt;/a&gt;\n### F999 — …\n\n…\n\n---\n'`
+        — and moving the describe's F-token references to that literal's token leaves the four
+        flush-mode tests green (4 pass, 0 fail). The literal's token must be one neither findings
+        layer carries at any point in this bundle's lifecycle (the record holds neither `F270` nor
+        `F279`); the plan chooses it and drives the four mutations against it.
+        The record's live-root readings at base are findings `7329 / 285 / 7614`, rulings
+        `1670 / 213 / 1883`, registry `12 / 14 / 26`, index `263 / 33 / 296`.
+      </Assumption>
+      <Assumption>
+        The payer map. `derivePayerMap` mints the record's tokens from registry rows whose name is an
+        archive directory; `scripts/validate-record-retirement.test.ts`'s `bundleMinted` extension
+        (`:2047`) is the frozen expectation for tokens absent from the `payerMapBaseline.map` fixture
+        and is consulted only for tokens the derivation actually mints. Its last entries include
+        `F228`, `F277` and `F278 → C-RECORD-FLUSH-VERB-2-6BB9DF5A` (`:2164`–`:2166`); this bundle adds
+        `F279 → C-CLONE-FAITHFUL-TESTS-1-D68520A2`, without which the post-close payer walk reds on
+        `F279`.
+      </Assumption>
+      <Assumption>
+        The projected record moves (readings, not criteria; the close re-derives and clamps). The
+        execution flush of `F279` and the row writes one `Finding` and one `Row` before
+        `--rewrite-roots`; the close's `--retire` moves the finding and the row (`moved 2`), flips the
+        index `Entry` layer in place, stamps `PaidBy` and holds every ceiling. No `CodifiedIn` is
+        written by this bundle, so no `--codify` invocation is needed and the one-wave rule is not
+        engaged.
+      </Assumption>
+    </Assumptions>
+  </C-CLONE-FAITHFUL-TESTS-1-D68520A2>
+</NgraceChangeSpec>

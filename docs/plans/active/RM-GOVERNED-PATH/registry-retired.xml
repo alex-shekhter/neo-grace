@@ -392,4 +392,16 @@
     <Pays>F268 F269 F271 F272 F273 F274 F275 F276</Pays>
     <StatusText>Teaching increment 6 of the governed-path record: the eight taught rules and their instruments, minted live.</StatusText>
   </Row>
+  <Row name="C-RECORD-FLUSH-VERB-2-6BB9DF5A" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 1 active, 0 archive prior bundle(s) share slug RECORD-FLUSH-VERB. Author half: the flush/mint verb, D40 step (2), successor; searched before minting over the 115 archive directories and both registry layers, no colliding name.</Charter>
+    <Pays>F228 F277 F278</Pays>
+    <StatusText>Step (2) of D40; the flush/mint verb, successor dogfood flush.</StatusText>
+  </Row>
+  <Row name="C-CLONE-FAITHFUL-TESTS-1-D68520A2" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug CLONE-FAITHFUL-TESTS. Searched before minting over the archive and both registry layers for CLONE-FAITHFUL-TESTS; none.</Charter>
+    <Pays>F279</Pays>
+    <StatusText>Clone-faithful fixtures and the read-audit guard; one finding paid</StatusText>
+  </Row>
 </Registry>

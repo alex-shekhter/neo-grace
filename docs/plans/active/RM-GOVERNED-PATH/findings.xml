@@ -1,4 +1,4 @@
-<Findings base="7343" headroom="291" ceiling="7634">
+<Findings base="7329" headroom="250" ceiling="7579">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7242,20 +7242,6 @@ Disposition: repaired by `C-ROOT-WINDOW-2`, the successor that carries the corre
 asserts the delivered end state. The procedure change is the authority's own and applies from this
 entry forward. Neighbour to [F136.1](#f136.1) (the same error one enumeration earlier) and
 [F226](#f226) item 9.
-</Body>
-  </Finding>
-  <Finding id="f228" token="F228" status="live">
-    <Title>### F228 — a duplicate live finding id crashes `--retire` before any write, with a message that names the wrong cause. **[verified]**</Title>
-    <Body>
-Measured by the executor during `C-ROOT-WINDOW`'s probes, 2026-09-11: a `Finding` whose `id` already
-names an index `Entry` that an earlier item of the same move spliced — a duplicate live id, which the
-record shape check does not forbid — makes `--retire` throw in `setEntryLayer` with *&quot;no readable
-layer attribute&quot;*. The throw is before any write, so the record is not corrupted; the message blames
-the attribute when the cause is the duplicate. Loud-before-write is the right behaviour; the
-diagnosis is the defect. The shape check's silence on duplicate ids is the same gap
-[F207](#f207) records from the schema side.
-
-Owner: a later bundle on the engine surface, sized by the authority. Neighbour to [F207](#f207).
 </Body>
   </Finding>
   <Finding id="f229" token="F229" status="live">

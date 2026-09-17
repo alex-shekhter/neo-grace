@@ -1,0 +1,654 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-RECORD-FLUSH-VERB-2-6BB9DF5A>
+    <IntentSummary>
+      Author the execution for the approved, fingerprinted spec
+      `.ngrace/changes/active/C-RECORD-FLUSH-VERB-2-6BB9DF5A/spec.xml` (approved `approved` at
+      `8c4eb43`, three commits above `main` `5d9a5c8`) and only within it; the plan conforms to the
+      spec, it does not extend, narrow or reinterpret it. The spec carries no unresolved
+      `Clarifications`; its `AMBIGUITIES` were ruled as the author recommended and the authority
+      added one refusal, `flush-codify-exists`, so the successor keeps `--flush` as an engine mode,
+      writes no buffer, treats the payer table as the ratchet, codifies `D40` with
+      `kind="test-suite"` **at the close** through the verb's codify-only invocation, pays `F228`,
+      `F277` and `F278`, and adds one sentence each in `CLAUDE.md` and `docs/plans/README.md`.
+      This plan is re-homed from the archived predecessor draft
+      `.ngrace/changes/archive/C-RECORD-FLUSH-VERB-1-464041EE/plan.xml` (the skill's
+      `approved_plan_immutability` path), changing only the id where it is data and the items the
+      successor spec forces: the record instruments go back on the boundary, `T-002` gains the
+      codify-only invocation, and `T-003`'s dogfood flushes `F277` and `F278` with no `--codify`.
+
+      The task order is the spec's order of operations, one task per stage, and each task's
+      `Verification` is evaluated on the tree that stage leaves (the phase rule): `T-001` lands the
+      shared structural check (a duplicate entry id across either genre pair, and every index
+      `Entry`'s `layer` against the file holding its genre element) in the engine, consumed by the
+      validator and `--retire` — it must land first because `--flush`'s refusals reuse it; `T-002`
+      lands the `--flush` mode (selection, row and root writes, the **codify-only invocation**, the
+      named refusals, the all-or-nothing transaction); `T-003` runs the first verb flush on the
+      production record (`F277`, `F278`, `Pays F228 F277 F278`, the row, the `bundleMinted`
+      extension) with **no `--codify`**, so the record is green at every task boundary, and reads
+      the roots back; `T-004` names the verb in `package.json` and the two record paragraphs. The
+      close (`--retire` `moved 5`, the gates, the status write, the archive move) is not a task; it
+      is owned by the authority, and no task performs any part of it. The authority's close runs the
+      verb's codify-only invocation (with the bundle still under `active/`), then `ngrace apply`,
+      then `--retire` in one wave (`C-APPLY-VERB`'s rule: "the close writes the element and --retire
+      in one wave"); the executor writes no `CodifiedIn`.
+
+      The `D30` window. It opens at `T-003`, the first production record write, and stays open until
+      the close: no other dispatch reads or rewrites the record while this bundle does. `T-001` and
+      `T-002` write only `scripts/` files and drive isolated copies; the production record is first
+      touched by `T-003`'s `--flush`, run under the open window. `F270` is selected by no flag and
+      stays staged; the buffer `.ngrace/scratch/staged-findings.md` is read whole by the verb and by
+      this plan's probes and is never written.
+
+      The reds, split into ledger pairs and test-internal directions, because the refusal set alone
+      is eleven named codes and eleven ledger pairs would burn the distinct-signature budget
+      (`FIX_DISTINCT_SIGNATURE_BUDGET` = 4, at most three red-first keys per task). **Ledger pairs
+      (a cursor attempt with outcome fail, then outcome pass, each with its signature kind and
+      key):** `T-001` carries two — `record-duplicate-id` (fail: the shipped validator accepts a
+      planted duplicate, `record-retirement: ok` exit 0, and `--retire` throws through
+      `setEntryLayer`; pass: `record-duplicate-id` reddens the validator and `--retire` refuses with
+      the id) and `record-index-layer-mismatch` (fail: the validator accepts a planted layer flip
+      and `--rewrite-roots` relieves the index budget; pass: the named code reddens and `--retire`
+      refuses). `T-002` carries one — `flush-mode` (fail: no `--flush` mode exists and the suite's
+      transaction test reds; pass: the mode flushes). `T-003` carries one — `dogfood-flush` (fail:
+      the exists-once walks are at zero for `F277`, `F278`, their index `Entry`s and the row; pass:
+      the verb writes them and the walks green). `D40`'s `CodifiedIn` is written by the authority's
+      close, not a task, so no ledger pair covers it. `T-004` carries one —
+      `docs-script` (fail: `package.json` lacks `record:flush` and the two record paragraphs lack
+      the sentence; pass: both present). **Test-internal directions (driven by the suite inside the
+      `flush-mode` pair, never as separate ledger pairs):** every named refusal both ways
+      (`flush-id-absent`, `flush-id-duplicate`, `flush-row-not-active`, `flush-row-exists`,
+      `flush-pays-unknown`, `flush-charter-f-token`, `flush-status-text-f-token`,
+      `flush-status-closed-with`, `flush-codify-absent`, `flush-codify-exists`,
+      `flush-mint-search-malformed`, the serializer's `record-schema-*`, `--rewrite-roots`'s
+      `ceiling-exceeded`), the **codify-only invocation** (live row, no entries → exactly one
+      `CodifiedIn`, roots held, nothing re-minted), the transaction plant (sha256 of the four files
+      before and after a refused run), the buffer checksum, and the index-layer redirection. One
+      guard per pair: each pair's guard lands with that pair's fix, never earlier.
+
+      The vehicle, the scopes and the per-effect grep. The verb is a `--flush` mode of
+      `scripts/validate-record-retirement.ts`; the engine's writers stay module-private, because a
+      sibling script would force exporting `writeRecordXml` (and the three renderers) out of the
+      engine (`D40`'s boundary). `DurableScope` is `&lt;None /&gt;`: the spec's `AffectedAreas`
+      names no `M-*` / `DF-*` / `IC-*` ("No graph module is written or minted … the record files
+      under `docs/plans/active/RM-GOVERNED-PATH/` are owned by no module in
+      `.ngrace/graph/main.xml`"), so the plan's `DurableScope` covers nothing and no
+      `OutOfPlanScope` is needed. `ObservedWriteScope` is the spec's write-scope Constraint
+      verbatim: `scripts/validate-record-retirement.ts` (the `--flush` mode, the shared check, the
+      `--retire` refusal), `scripts/validate-record-retirement.test.ts` (the suite, the `F228`,
+      `F277` and `F278` walks, the codify-only invocation's walk, the row and flush invariants, the
+      `bundleMinted` extension), `package.json`
+      (the `record:flush` script), `CLAUDE.md` and `docs/plans/README.md` (one sentence each), the
+      seven record files plus the stub `decisions.md` and `record-inventory.json`; it does **not**
+      list the bundle's own artifacts (the review skips `spec.xml`, `plan.xml` and
+      `design-context.xml` by identity) and does **not** list `.ngrace/scratch/staged-findings.md`
+      (read, never written). `isModuleOwnableWritePath` is false for every path outside `src/`, and
+      this scope names no `src/` path, so `change.graph-anchors-miss-write-scope` cannot fire. The
+      **per-effect grep**, run at plan time and recorded: `package.json` →
+      `scripts/audit-regressions.test.ts` (it asserts `tsconfig` includes `scripts/**/*.ts`, the
+      lint config does not ignore `scripts/`, and `bun run typecheck` exits 0 — none pins the
+      `record:flush` text) and `scripts/validate-record-retirement.test.ts:386`–`387` (they assert
+      `validate:ci` and `validate:record-retirement` contain no `--retire`; the new `record:flush`
+      script must not be added to either); `CLAUDE.md` and `docs/plans/README.md` →
+      `scripts/validate-record-retirement.test.ts:348`–`378` (the record-paragraph token pins the
+      spec's Goal 7 lists: `--retire`, "index Entry layers flip in place", "the index has no retired
+      sibling", `decisions.md`, `decisions.xml`, findings/decisions/registry/index/live/retired,
+      "re-derives PaidBy", "never raised", "resolving CodifiedIn", "a resolving TaughtIn does not
+      move it"); the record → the payer table (`bundleMinted`,
+      `scripts/validate-record-retirement.test.ts:2046`, the fixed `payerMapBaseline.map` fixture
+      and the per-bundle row/flush invariant walks); `src/` → `AC-NO-SRC`'s diff. Every file the
+      grep finds is in `ObservedWriteScope`.
+
+      The mapping, fixed by the spec's own Constraint. Exactly one criterion —
+      `AC-NO-CURRENT-MODE` — carries no `CloseEvidence` and is mapped by exactly one task
+      `Satisfies`, carried by `T-001`; it is this plan's only `Satisfies` and no other task carries
+      one. Every other criterion is close-bound by its own `CloseEvidence`, and a `Satisfies` of
+      any of them is the shipped error `change.close-evidence-and-satisfied`. `AC-CLOSE-LINT`'s
+      `CloseEvidence` runs `--fail-on warnings`, so an unmapped `AC-NO-CURRENT-MODE` would make the
+      bundle's own close unsatisfiable; it is mapped. No task `Verification` contains a current-mode
+      lint of this root: no command text contains `--assertions current`, and none invokes
+      `ngrace lint` of this root omitting `--assertions`; the only root lint is the close-bound
+      `AC-CLOSE-LINT` and `AC-DOCS-EXAMPLES` `CloseEvidence`, evaluated by the verdict at the
+      close.
+
+      The assertions. `BaselineAssertions` pin the standing world with existence pins and the
+      instruments that are green at the baseline — the record suite, the preservation suite, the
+      shipped validator, the preservation validator and the citation-anchor validator. They do
+      **not** pin the validator's current silence on a duplicate id or a wrong index layer (that is
+      the red `T-001` flips), a root value, or a `moved N` string; a needle the bundle flips by
+      design belongs in a test or a probe, not a baseline assertion. `TargetAssertions` **restore
+      every one of those instruments** — the record suite, the preservation suite, the shipped
+      validator, the preservation validator and the citation-anchor validator, plus the full
+      `bun run validate:ci` — because the successor removed the reason the predecessor draft had to
+      take them off the boundary: `T-003`'s dogfood flush writes `F277`, `F278` and the row with no
+      `--codify`, so the shipped validator reports zero findings on the production record at the
+      target boundary (the predecessor's mid-execution `CodifiedIn` and its
+      `decision-eligible-still-live` red are gone; that is `F278`'s remedy). They add `MustContain`
+      for the delivered surfaces: `--flush` in the engine, `record:flush` in `package.json`, and the
+      `--flush` sentence in `CLAUDE.md` and `docs/plans/README.md`. `D40`'s `CodifiedIn` is written
+      by the authority's close, after the target gate, so nothing reddens the boundary and the
+      record's green state is also asserted post-close by the close-bound `AC-DUPLICATE-ID`,
+      `AC-INDEX-LAYER`, `AC-ROW-AND-PAYS` and `AC-D40-CODIFIED` `CloseEvidence`.
+      Every needle is driven with `--assertions baseline --run-commands`
+      inside an open epoch on the approved-shaped copy before approval (a baseline drive without
+      `--run-commands` reports `assertion.command-not-evaluated` for each declared command, a
+      report that reads like breakage and is not), and the `MustContain` needles are driven on the
+      approved-shaped copy where the engine already carries the change.
+
+      The faithful-copy law (`F231`) and the copy close, discharged at plan time on a
+      whole-repository copy from `8c4eb43` with untracked `.ngrace/changes/` carried, `.git`
+      carried, a real `node_modules` and `.ngrace/scratch` present, the approved plan committed on
+      the copy before the epoch opens. The engine pieces the plan itself adds (the shared check and
+      `--flush`) are not yet written at plan time, so the copy close stands them in with a
+      throwaway prototype — the `--flush` mode including the codify-only invocation, the shared
+      check, and a hand repair of the five fixtures the check reds — exactly as the prior engine
+      bundles drove their close on a hand prototype. The prototype close was driven end to end
+      2026-09-17 and read: baseline `Commands: 5 evaluated, 5 exit 0` (exit 0, on a clean copy
+      before the check); the T-states (structural check 158 pass / 0 fail after the five fixture
+      repairs; the execution flush `--flush --change C-RECORD-FLUSH-VERB-2-6BB9DF5A --finding F277
+      --finding F278 --pays "F228 F277 F278" --mint-search "1 active, 0 archive"` flushing `F277`
+      and `F278` and the row with no `--codify`, then `--rewrite-roots` persisting findings
+      `7376/258/7634`, rulings held `1715/168/1883`, registry `13/13/26`, index `267/29/296` —
+      **the shipped validator green at that boundary** (`record-retirement: ok`), the thing the
+      predecessor could not have; the codify-only invocation on an isolated root wrote one
+      `CodifiedIn` and re-minted nothing, entries against a live row refused `flush-row-exists`, and
+      a re-codify refused `flush-codify-exists`); target `Commands: 6 evaluated, 6 exit 0`; final
+      `Commands: 6 evaluated, 6 exit 0`; pre-close `review` 0 findings; `gate verdict --outcome
+      pass`; `gate apply` permit; `gate archive` permit; the authority's one wave — the codify-only
+      invocation (bundle still under `active/`) writing `D40`'s `CodifiedIn`, then `ngrace apply`
+      archiving the bundle, then `--retire` **`moved 5`** (`F228`, `F277`, `F278`, `D40`, the row)
+      then **`moved 0`**; post-close roots findings `7329/285/7614`, rulings `1670/213/1883`,
+      registry `12/14/26`, index `263/33/296`; post-archive `review` reporting the thirteen
+      `review.close-evidence-unevaluated` findings; the acking `gate verdict --outcome pass
+      --ack-finding …` recording all thirteen close-bound criteria `Result=pass Exit=0`; and
+      `bun run validate:ci` exit 0. Those are readings, not pins. On the copy the house sequence is:
+      commit the approved plan, `gate approve --artifact plan`, `cursor advance --open-epoch`,
+      `--assertions baseline --run-commands`, the T-states with their reds and greens, `--assertions
+      target`, terminal + fold, `--assertions final --run-commands`, terminal + fold again,
+      `review`, `gate verdict --outcome pass` (copy only, never the production bundle), `gate
+      apply`, `gate archive`, the codify-only invocation (bundle still under `active/`), `ngrace
+      apply`, `--retire` (`moved 5`) then `--retire` (`moved 0`), post-archive `review`,
+      `gate verdict --outcome pass --ack-finding …` (one argument per default-threshold finding id,
+      the thirteen close-bound criteria `Exit=0` read from the ledger, never from a hand-rolled
+      reader), and `bun run validate:ci`.
+      The byte-invariance baseline for every diff command is the spec's base commit
+      `5d9a5c89a4b6e57999051e169c89d36570e4081d`; every diff sees tracked paths only (`F174`) and
+      every archive diff excludes this bundle's own departure and arrival. Every new test that
+      walks the real record or the real archive runs under `bun run test`; no per-test timeout
+      number is pinned. When this plan names a tag or attribute form it writes character data with
+      entities (`&lt;`, `&gt;`, `&amp;`) and never paraphrases the brackets away.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>package.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>CLAUDE.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/README.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-RECORD-FLUSH-VERB-2-6BB9DF5A/spec.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>package.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>CLAUDE.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/README.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Value>
+      </MustExist>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>--flush</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>record:flush</Text>
+      </MustContain>
+      <MustContain>
+        <File>CLAUDE.md</File>
+        <Text>--flush</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/plans/README.md</File>
+        <Text>--flush</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>scripts/validate-record-retirement.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>package.json</File>
+      <File>CLAUDE.md</File>
+      <File>docs/plans/README.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Land the shared structural check — a duplicate entry id across either genre pair, and
+          every index Entry's layer against the file holding its genre element — in the engine,
+          consumed by the validator and --retire, with F228's and F277's reds driven first
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (pair A, `record-duplicate-id`), fail: in its own tool round trip, before
+            the engine changes, plant a second live finding — a copy of the record with
+            `&lt;Finding id="f1" token="F1" status="live"&gt;` added — and drive the shipped
+            validator and `--retire`. The shipped validator accepts the duplicate
+            (`record-retirement: ok`, exit 0) and `--retire` on a copy whose duplicate live id is
+            eligible exits 1 through `setEntryLayer`'s "no readable layer attribute" (a Bun stack
+            trace, the wrong cause). Record the cursor attempt with outcome fail, signature-kind
+            `test`, signature-key `record-duplicate-id`. Run only this case; do not edit the engine
+            in this round trip. Failure conditions: this round trip also fixes the check; the
+            duplicate is planted in the production record; the red is recorded against a mutated
+            copy that no longer matches the shipped bytes.
+          </Criterion>
+          <Criterion>
+            Pair A pass: after the shared check lands, the validator reports the named finding
+            `record-duplicate-id` and exits non-zero on a planted duplicate in either genre pair
+            (findings findings/retired, rulings rulings/retired), the production record still
+            returns `record-retirement: ok` (203 live findings, zero duplicate ids), and `--retire`
+            on the planted duplicate exits non-zero **before any write** with a message naming the
+            duplicate id — never the `layer` attribute, never a stack trace — and leaves the record
+            byte-identical. Record the cursor attempt with outcome pass for `record-duplicate-id`.
+            Failure conditions: the check fires on the production record; a refusal writes first;
+            the message blames the attribute.
+          </Criterion>
+          <Criterion>
+            AC-HEAD-RED (pair B, `record-index-layer-mismatch`), fail: in its own tool round trip,
+            before the check lands, flip one live finding's index `Entry` from `layer="live"` to
+            `layer="retired"` on a whole-record copy with `findings.xml` unmoved. The shipped
+            validator accepts it (`record-retirement: ok`, exit 0) and `--rewrite-roots` then
+            persists the index one live-entry lower (`base` 265 → 264, `headroom` 31 → 32) with
+            the genre file unmoved — a hand edit that relieves the index budget. Record the cursor
+            attempt with outcome fail, signature-kind `test`, signature-key
+            `record-index-layer-mismatch`. Run only this case; do not edit the engine in this round
+            trip. Failure conditions: this round trip also fixes the check; the flip is planted in
+            the production record.
+          </Criterion>
+          <Criterion>
+            Pair B pass: after the check lands, the validator reports
+            `record-index-layer-mismatch` and exits non-zero on a planted flip in both directions
+            (a live finding's `Entry` flipped to `retired`, and a retired finding's `Entry` flipped
+            to `live`), the production record still returns `ok` (zero index layer disagreements),
+            and `--retire` refuses both before any write. Record the cursor attempt with outcome
+            pass for `record-index-layer-mismatch`. Failure conditions: a flipped `Entry` left
+            green; a refusal that writes first.
+          </Criterion>
+          <Criterion>
+            The check is one shared helper in `scripts/validate-record-retirement.ts` (a relation —
+            "an id occurs at most once across its genre's pair", and "every `Entry`'s `layer` equals
+            the layer of the file holding its genre element" — pinning no count), consumed by
+            `validateRecordRetirement` and by `--retire` before its first write, and reused by
+            `--flush` in `T-002`. The suite carries the planted reds and the both-direction drives
+            over isolated roots; no `src/` file changes. **The check reds five pre-existing suite
+            fixtures** because they re-use an id across a genre pair or leave an index `Entry`
+            disagreeing with its holder — `T-001 window: persisting the findings snapshot`, `T-001
+            window anti-ratchet`, `C-ROOT-WINDOW floored derivation`, `C-ROOT-WINDOW normalising
+            pass` and `AC-WINDOW-FUEL` (measured 2026-09-17 at the base commit by landing the check
+            on the branch and running the suite: 152 pass / 5 fail). Each fixture is repaired in
+            this task so its ids are distinct per layer and its index `layer` agrees with the
+            holder, without weakening the check or changing the root-window arithmetic each test
+            measures; after the repairs `bun test scripts/validate-record-retirement.test.ts` is
+            green. Failure condition: two implementations of one check; a `--retire` that reaches
+            `setEntryLayer` before the check; a reddened fixture silenced by weakening the check
+            instead of repaired.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>git diff --exit-code 5d9a5c89a4b6e57999051e169c89d36570e4081d -- src/</Command>
+          <Command>git diff --exit-code 5d9a5c89a4b6e57999051e169c89d36570e4081d -- docs/plans/active/RM-GOVERNED-PATH/ package.json CLAUDE.md docs/plans/README.md README.md examples/</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>
+          Land the --flush mode — buffer selection by anchor id, the row and root writes, the
+          codify-only invocation, the eleven named refusals and the all-or-nothing transaction —
+          with its red first and every refusal driven both ways
+        </Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (pair, `flush-mode`), fail: in its own tool round trip, before the mode
+            exists, drive `bun ./scripts/validate-record-retirement.ts --flush` on an isolated root
+            with a fixture buffer and a fixture active bundle, and add the suite's flush-transaction
+            test. The mode is absent (no flush occurs; the shipped `main` resolves only `--split`,
+            `--retire`, `--stamp-paid-by`, `--rewrite-roots`) and the suite's flush test reds.
+            Record the cursor attempt with outcome fail, signature-kind `test`, signature-key
+            `flush-mode`. Run only this case; do not implement the mode in this round trip.
+            Failure conditions: this round trip also lands `--flush`; the red is recorded against
+            the production record.
+          </Criterion>
+          <Criterion>
+            Pair pass: `--flush` exists and, on an isolated root with a fixture buffer and a fixture
+            active bundle, flushes the selected finding and decision, writes one index `Entry` per
+            entry (genre and layer agreeing with the holding file), mints the row
+            (`kind="chartered"`, empty `Number`), writes `D40`'s `CodifiedIn` when `--codify`
+            names it, and holds all four live roots (base re-derived from the shipped metric read
+            back, persisted ceiling byte-for-byte, headroom the remainder); each of the four files
+            is canonical at rest (`serialize(parse(file))` byte-equal to `file`). On an isolated
+            root whose row is already live and which selects no entries, the **codify-only
+            invocation** writes exactly one `CodifiedIn`, re-mints nothing and holds the roots; the
+            same run with an entry selected refuses `flush-row-exists`, and a `--codify` whose target
+            already carries a resolving `CodifiedIn` refuses `flush-codify-exists`. The verb is
+            invoked as `bun ./scripts/validate-record-retirement.ts --flush
+            docs/plans/active/RM-GOVERNED-PATH` and is never invoked as `ngrace`. Record the cursor
+            attempt with outcome pass for `flush-mode`. Failure conditions: a write bypassing
+            `writeRecordXml`; a root not holding its ceiling; the writers exported outside the
+            engine.
+          </Criterion>
+          <Criterion>
+            Test-internal directions (inside the `flush-mode` pair, not separate ledger pairs):
+            every named refusal is driven both ways on a throwaway copy — `flush-id-absent`
+            (an id absent from the buffer), `flush-id-duplicate` (an id already in either layer, or
+            twice in the buffer), `flush-row-not-active` (`--change` is not a directory under
+            `.ngrace/changes/active/`), `flush-row-exists` (entries selected while the `--change`
+            row is already live), `flush-pays-unknown` (a `Pays` token neither a flushed `F`
+            token nor a live finding's token), `flush-charter-f-token`,
+            `flush-status-text-f-token`, `flush-status-closed-with`, `flush-codify-absent` (the
+            named decision is absent), `flush-codify-exists` (that decision already carries a
+            resolving `CodifiedIn`), `flush-mint-search-malformed` (a `--mint-search` value not
+            shaped `&lt;n&gt; active, &lt;n&gt; archive`), the serializer's `record-schema-*`
+            violations, and `--rewrite-roots`'s `ceiling-exceeded`. The clean fixture passes; a
+            planted violation reddens with the code in the message, exit non-zero, and no byte
+            changed. Failure conditions: a refusal that exits 0; a code that fires on the clean
+            fixture; a refusal that writes before refusing.
+          </Criterion>
+          <Criterion>
+            Test-internal directions: the all-or-nothing transaction. All four next-documents are
+            built and schema-validated in memory and every ceiling is checked before the write loop
+            (validate-then-write, never temp-and-rename). A schema violation planted in the registry
+            document and a `flush-pays-unknown` breach each leave findings, rulings, index and
+            registry byte-identical (sha256 before equals after). A driven run also leaves
+            `.ngrace/scratch/staged-findings.md`'s sha256 unchanged, and the verb prints the flushed
+            ids rather than pruning. Failure conditions: any of the four files differing after a
+            refused run; the buffer differing after a driven run; the verb printing a prune.
+          </Criterion>
+          <Criterion>
+            `--flush` reuses the `T-001` shared check for `flush-id-duplicate` and
+            `flush-index-layer-mismatch`, and the engine's writers (`renderFinding`,
+            `renderDecision`, `renderRow`, `writeRecordXml`) and the check stay module-private — no
+            record write path is exported. `validate:ci` and `validate:record-retirement` still
+            contain no mutating mode. Failure condition: a second duplicate/index-layer
+            implementation, or an exported writer.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>git diff --exit-code 5d9a5c89a4b6e57999051e169c89d36570e4081d -- src/</Command>
+          <Command>git diff --exit-code 5d9a5c89a4b6e57999051e169c89d36570e4081d -- docs/plans/active/RM-GOVERNED-PATH/ package.json CLAUDE.md docs/plans/README.md README.md examples/</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>
+          Run the first verb flush on the production record — F277, F278, Pays F228 F277 F278, the
+          row and the bundleMinted extension, with no --codify — and read every root back
+        </Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (pair, `dogfood-flush`), fail: in its own tool round trip, before the verb
+            runs on the production record, add this bundle's exists-once walks to
+            `scripts/validate-record-retirement.test.ts` in the house form: `F277` and `F278` each
+            exactly once across `findings.xml` and `findings-retired.xml` with no fixed expectation
+            of which file holds each, each `token` agreeing with its id, each single index `Entry`
+            carrying the agreeing `genre` and a `layer` agreeing with the holding file, and the
+            shipped read-back arithmetic (`base` equals the file's `newlineCount`, `base + headroom =
+            ceiling`); the `C-RECORD-FLUSH-VERB-2-6BB9DF5A` row exactly once across the registry
+            layers with no fixed expectation of which file holds it, `status` agreeing,
+            `kind="chartered"`, its `Pays` **containing** `F228`, `F277` and `F278` (containment,
+            never an exact set), its `StatusText` naming no `F` token outside `Pays` and carrying no
+            `Closed with` sentence, its `Charter` carrying the `mint-search:` line and naming no `F`
+            token. Extend the shipped `bundleMinted` payer table with
+            `F228: "C-RECORD-FLUSH-VERB-2-6BB9DF5A"`, `F277: "C-RECORD-FLUSH-VERB-2-6BB9DF5A"` and
+            `F278: "C-RECORD-FLUSH-VERB-2-6BB9DF5A"`, consulted only for tokens the derivation
+            actually mints. The elements are absent at this state, so the walks red. Record the
+            cursor attempt with outcome fail, signature-kind `test`, signature-key `dogfood-flush`.
+            Run only this case; do not flush in this round trip. Failure conditions: this round trip
+            also flushes; the walk hardcodes `registry.xml`; the `Pays` clause pins an exact set; a
+            red fixture mutates only one layer.
+          </Criterion>
+          <Criterion>
+            Pair pass: run the verb on the production record —
+            `bun ./scripts/validate-record-retirement.ts --flush docs/plans/active/RM-GOVERNED-PATH
+            --change C-RECORD-FLUSH-VERB-2-6BB9DF5A --finding F277 --finding F278 --pays
+            "F228 F277 F278" --mint-search "1 active, 0 archive"` — which reads the buffer (never
+            writes it), writes `F277` and `F278` live into `findings.xml`, their index `Entry`s
+            `layer="live"` into `decisions.xml`, and the live row into `registry.xml`, then runs the
+            held root splice. It carries **no `--codify`**, so no `Decision` gains a resolving
+            `CodifiedIn` at this boundary and the shipped validator returns **zero findings** on the
+            production record (`record-retirement: ok`; the predecessor's
+            `decision-eligible-still-live` red is gone — `F278`'s remedy). Then the walks green; the
+            whole record suite, `bun ./scripts/validate-record-retirement.ts
+            docs/plans/active/RM-GOVERNED-PATH`, `bun ./scripts/validate-citation-anchors.ts` and
+            `bun ./scripts/prove-record-preservation.ts docs/plans/active/RM-GOVERNED-PATH` each
+            return 0; and `F270` is selected by no flag and stays staged. Record the cursor attempt
+            with outcome pass for `dogfood-flush`. Failure conditions: `F270` flushed; the buffer
+            written or pruned; a root written by hand; a `--codify` in this task; a workaround that
+            hides a red instead of leaving the record green.
+          </Criterion>
+          <Criterion>
+            The roots read back as relations, not pinned figures: the four live genre roots satisfy
+            `base + headroom = ceiling` with `base` equal to the shipped metric read back
+            (`newlineCount` for findings and rulings, the live `Row` count for the registry, the
+            live `Entry` count for the index), and every ceiling is held, never raised. The readings
+            are reported, never pinned to a number in any criterion. Failure condition: a ceiling
+            that rises, or a `base` that disagrees with the metric read back.
+          </Criterion>
+          <Criterion>
+            The close boundary (the authority's act, not a task). After the gates permit and with
+            the bundle still under `.ngrace/changes/active/`, the authority runs the verb's
+            codify-only invocation —
+            `bun ./scripts/validate-record-retirement.ts --flush docs/plans/active/RM-GOVERNED-PATH
+            --change C-RECORD-FLUSH-VERB-2-6BB9DF5A --codify
+            D40:test-suite:scripts/validate-record-retirement.test.ts --mint-search "1 active, 0
+            archive"` — then `ngrace apply`, then
+            `bun ./scripts/validate-record-retirement.ts --retire docs/plans/active/RM-GOVERNED-PATH`,
+            in one wave (`C-APPLY-VERB`'s rule: "the close writes the element and --retire in one
+            wave"). The codify-only invocation recognises the existing live row (it neither re-mints
+            nor duplicates it and does not refuse `flush-row-exists`), writes exactly one resolving
+            `&lt;CodifiedIn kind="test-suite"&gt;` on `D40` through the same validate-then-write
+            transaction and holds the roots; the `ngrace apply` archives the bundle; the `--retire`
+            moves **five** (`F228`, `F277`, `F278`, `D40`, the row) and a second `--retire` moves
+            zero. The executor writes no `CodifiedIn` and performs no part of this wave. Failure
+            conditions: a task writing the `CodifiedIn`; the codify-only invocation re-minting the
+            row or refusing `flush-row-exists`; `--retire` running before the codify-only invocation
+            or in a separate wave.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>git diff --exit-code 5d9a5c89a4b6e57999051e169c89d36570e4081d -- src/ README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>
+          Name the --flush writer where the record's writers are described and expose the
+          record:flush script, without moving any record-paragraph token the suite pins
+        </Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            AC-HEAD-RED (pair, `docs-script`), fail: before the change, `package.json`'s `scripts`
+            carries no `record:flush`, and neither `CLAUDE.md`'s record paragraph nor
+            `docs/plans/README.md`'s names a `--flush` writer (measured: zero occurrences of
+            `--flush` in either file). Record the cursor attempt with outcome fail, signature-kind
+            `test`, signature-key `docs-script`. Run only this case; do not edit the three files in
+            this round trip.
+          </Criterion>
+          <Criterion>
+            Pair pass: `package.json` gains
+            `"record:flush": "bun ./scripts/validate-record-retirement.ts --flush"`; `CLAUDE.md`'s
+            record paragraph and `docs/plans/README.md`'s record paragraph each gain one sentence
+            naming the `--flush` writer beside `--retire`. Every token
+            `scripts/validate-record-retirement.test.ts` asserts of those two files stays present
+            (`--retire`, "index Entry layers flip in place", "the index has no retired sibling",
+            `decisions.md`, `decisions.xml`, findings/decisions/registry/index/live/retired,
+            "re-derives PaidBy", "never raised", "resolving CodifiedIn", "a resolving TaughtIn does
+            not move it"), and `validate:ci` and `validate:record-retirement` still contain no
+            mutating mode. Record the cursor attempt with outcome pass for `docs-script`. Failure
+            conditions: a pinned token dropped; `record:flush` added to `validate:ci` or
+            `validate:record-retirement`; more than one sentence added per file.
+          </Criterion>
+          <Criterion>
+            No task `Verification` and no `TargetAssertions` entry contains a current-mode lint of
+            this root (no command text contains `--assertions current`, and none invokes
+            `ngrace lint` of this root omitting `--assertions`); the only root lint is the
+            close-bound `AC-CLOSE-LINT` and `AC-DOCS-EXAMPLES` `CloseEvidence`. This is the plan's
+            single `Satisfies` criterion, mapped on `T-001`, and this criterion names the property
+            the mapping discharges. Failure condition: a task command carrying `--assertions
+            current` or a root lint without `--assertions`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>git diff --exit-code 5d9a5c89a4b6e57999051e169c89d36570e4081d -- src/ README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-RECORD-FLUSH-VERB-2-6BB9DF5A>
+</NgraceChangePlan>

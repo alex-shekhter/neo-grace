@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 type AuditRegressionCase = {
@@ -164,5 +164,128 @@ describe("C-TEST-TIMEOUT-CEILING-2-7AD2A006 suite hygiene", () => {
       const missing = suiteJobsMissingCeiling(readFileSync(path.join(repoRoot, file), "utf8"));
       expect(missing, `${file}: suite-running jobs without a ceiling`).toEqual([]);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-CLONE-FAITHFUL-TESTS-1-D68520A2: no test sources a fixture from a path git
+// does not track. A test that reads a .gitignore'd or untracked repository path
+// passes only where that path exists (the maintainer's tree) and dies in every
+// clone. The guard expresses a READ, never the appearance of an ignored path:
+// it keys on filesystem-read call sites and the path literals in their arguments.
+//
+// Limits, stated so a later reader cannot mistake a pass for total coverage:
+//   (1) a path assembled entirely from separate segments is not detected — the
+//       flush engine's declared-input buffer read (root + ".ngrace" + "scratch"
+//       + the file name) is the verb's input, not a fixture, and must not be
+//       flagged;
+//   (2) the guard covers `.ts` only; a non-TypeScript artifact is out of scope;
+//   (3) a read of an ignored *directory* is detected only where that directory
+//       exists on disk: `git check-ignore` matches a trailing-slash pattern
+//       against a bare directory path only when it can see the directory, so
+//       this branch fires in the maintainer's tree and not in a clone. Reads of
+//       ignored *files* — the class this guard exists for — are detected in both.
+// ---------------------------------------------------------------------------
+
+const FIXTURE_READ_APIS = [
+  "readFileSync", "readFile", "readdirSync", "existsSync", "statSync",
+  "lstatSync", "cpSync", "copyFileSync", "openSync", "createReadStream",
+  "realpathSync",
+];
+
+/** Argument text of every filesystem-read call site in `src`. */
+function fixtureReadArguments(src: string): string[] {
+  const out: string[] = [];
+  for (const api of FIXTURE_READ_APIS) {
+    const re = new RegExp(`\\b${api}\\s*\\(`, "g");
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(src))) {
+      let i = m.index + m[0].length;
+      let depth = 1;
+      const start = i;
+      while (i < src.length && depth > 0) {
+        const c = src[i]!;
+        if (c === "(") depth++;
+        else if (c === ")") depth--;
+        i++;
+      }
+      out.push(src.slice(start, i - 1));
+    }
+  }
+  return out;
+}
+
+function fixturePathLiterals(args: string): string[] {
+  const out: string[] = [];
+  for (const m of args.matchAll(/(["'])((?:\\.|(?!\1)[^\\])*)\1/g)) out.push(m[2]!);
+  return out;
+}
+
+function isRepoRelativeLiteral(literal: string): boolean {
+  if (!literal || literal.startsWith("/") || literal.includes("..")) return false;
+  return literal !== "utf8" && literal !== "utf-8" && literal !== ".";
+}
+
+/** Every *.ts under src/ and scripts/, excluding node_modules and .git. */
+export function collectGuardSourceFiles(root: string): string[] {
+  const out: string[] = [];
+  const walk = (rel: string): void => {
+    for (const ent of readdirSync(path.join(root, rel), { withFileTypes: true })) {
+      if (ent.name === "node_modules" || ent.name === ".git") continue;
+      const r = `${rel}/${ent.name}`;
+      if (ent.isDirectory()) walk(r);
+      else if (ent.name.endsWith(".ts")) out.push(r);
+    }
+  };
+  for (const dir of ["src", "scripts"]) walk(dir);
+  return out.sort();
+}
+
+/**
+ * Keys on filesystem-read call sites, then asks git about each
+ * repository-relative literal with one `git ls-files -z` snapshot and one
+ * batched `git check-ignore --stdin` pass — never a process per literal.
+ * Returns `file: literal` hits.
+ */
+export function findUntrackedFixtureReads(root: string): string[] {
+  const files = collectGuardSourceFiles(root);
+  const candidates = new Map<string, string[]>();
+  for (const file of files) {
+    const src = readFileSync(path.join(root, file), "utf8");
+    for (const args of fixtureReadArguments(src)) {
+      for (const literal of fixturePathLiterals(args)) {
+        if (!isRepoRelativeLiteral(literal)) continue;
+        candidates.set(literal, [...(candidates.get(literal) ?? []), file]);
+      }
+    }
+  }
+  const literals = [...candidates.keys()];
+  const tracked = new Set(
+    spawnSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8" })
+      .stdout.split("\0")
+      .filter(Boolean),
+  );
+  const ignored = new Set(
+    spawnSync("git", ["check-ignore", "--stdin"], {
+      cwd: root,
+      encoding: "utf8",
+      input: `${literals.join("\n")}\n`,
+    })
+      .stdout.split("\n")
+      .filter(Boolean),
+  );
+  const hits: string[] = [];
+  for (const [literal, owners] of candidates) {
+    const exists = existsSync(path.join(root, literal));
+    const untracked = exists && !tracked.has(literal) && ![...tracked].some((p) => p.startsWith(`${literal}/`));
+    if (!ignored.has(literal) && !untracked) continue;
+    for (const owner of owners) hits.push(`${owner}: ${literal}`);
+  }
+  return hits.sort();
+}
+
+describe("C-CLONE-FAITHFUL-TESTS-1-D68520A2 fixture-read hygiene", () => {
+  it("no .ts under src/ or scripts/ reads a path git ignores or leaves untracked", () => {
+    expect(findUntrackedFixtureReads(repoRoot), "a filesystem read of a git-untracked repository path").toEqual([]);
   });
 });

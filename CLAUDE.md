@@ -43,7 +43,10 @@ rewritten only by the move and never raised. An
 entry moves when: a finding's PaidBy names an archived bundle; a decision
 carries a resolving CodifiedIn (a resolving TaughtIn does not move it); a
 registry row's name equals an archive directory. Existing markdown citations of the `decisions.md` path may
-stay — that path is the stub.
+stay — that path is the stub. `--flush`
+(`bun ./scripts/validate-record-retirement.ts --flush`) is the writer that reads the staged
+buffer and writes findings, decisions, index entries, the charter row and the held roots through
+the canonical serializer, with `--retire` as the move it feeds.
 
 ## Core Purpose
 
