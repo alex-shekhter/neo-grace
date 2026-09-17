@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-TEST-TIMEOUT-CEILING-2-7AD2A006>
     <IntentSummary>
       This T0 plan converts the approved `C-TEST-TIMEOUT-CEILING-2-7AD2A006` spec into two

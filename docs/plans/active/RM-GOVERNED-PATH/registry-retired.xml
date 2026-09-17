@@ -380,4 +380,10 @@
     <Pays>F207 F221 F235 F252 F265</Pays>
     <StatusText>Step (1) of D40; the flush/mint verb is the chartered successor.</StatusText>
   </Row>
+  <Row name="C-TEST-TIMEOUT-CEILING-2-7AD2A006" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>T0 hotfix on RM-GOVERNED-PATH: no per-test timeout, one job ceiling; the successor names the skill-footprint pin the predecessor missed. mint-search: 1 active, 0 archive prior bundle(s) share slug TEST-TIMEOUT-CEILING. Author half: no archived bundle name collides with a test-timeout hotfix; the bundle flips the test-runner ceiling, the taught ngrace-spec rule and the skill-footprint pin. This Charter names no F token.</Charter>
+    <Pays>F266 F267</Pays>
+    <StatusText>**Ordered, not deferred** — the T0 hotfix; the close retires both findings and this row.</StatusText>
+  </Row>
 </Registry>
