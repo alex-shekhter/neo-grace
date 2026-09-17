@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-TEST-TIME-BUDGET-1-98736D59>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-TEST-TIME-BUDGET-1-98736D59><Replacement>C-TEST-TIME-BUDGET-2-3EC1F016</Replacement>
     <Summary>
       T3 change on `RM-GOVERNED-PATH`: **the test-time budget.** The maintainer's target is an
       order-of-magnitude reduction in development wall time, measured before it is pinned. Act 1
