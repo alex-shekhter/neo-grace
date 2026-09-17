@@ -386,4 +386,10 @@
     <Pays>F266 F267</Pays>
     <StatusText>**Ordered, not deferred** — the T0 hotfix; the close retires both findings and this row.</StatusText>
   </Row>
+  <Row name="C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>**Name.** `C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD`. Tool half (verbatim): `mint-search: 0 active, 0 archive prior bundle(s) share slug TEACH-CLOSE-DRIVES-PINS`. Author half (the scope search, measured at the base commit): the last bundle to open `ngrace-spec/SKILL.md` is `C-TEST-TIMEOUT-CEILING-2-7AD2A006` and the last to open `ngrace-plan/SKILL.md` and `ngrace-execute/SKILL.md` is `C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F`; over the 113 archive directories and both registry layers no name collides with or better fits a bundle that teaches the second terminal and fold, the copy-drive verdict exception, one guard per pair, the successor-authoring bounded diff, the relation-not-number criterion, the per-effect pin grep, the forced-file tier invariant and the re-homed plan assertion.</Charter>
+    <Pays>F268 F269 F271 F272 F273 F274 F275 F276</Pays>
+    <StatusText>Teaching increment 6 of the governed-path record: the eight taught rules and their instruments, minted live.</StatusText>
+  </Row>
 </Registry>

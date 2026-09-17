@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD>
     <IntentSummary>
       This plan converts the approved `C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD` spec into five
