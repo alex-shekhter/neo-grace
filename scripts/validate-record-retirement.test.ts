@@ -2198,6 +2198,13 @@ ${names
         F277: "C-RECORD-FLUSH-VERB-2-6BB9DF5A",
         F278: "C-RECORD-FLUSH-VERB-2-6BB9DF5A",
         F279: "C-CLONE-FAITHFUL-TESTS-1-D68520A2",
+        // C-TEST-TIME-BUDGET-4-F173437E T-009: the chartered row's three minted tokens
+        // (F281, F282 and F286). Consulted only for tokens the derivation actually
+        // mints; green with the row live and green in the applied-archive state (the
+        // close's mint).
+        F281: "C-TEST-TIME-BUDGET-4-F173437E",
+        F282: "C-TEST-TIME-BUDGET-4-F173437E",
+        F286: "C-TEST-TIME-BUDGET-4-F173437E",
       };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
