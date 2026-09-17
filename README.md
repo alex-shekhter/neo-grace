@@ -301,7 +301,7 @@ skip depth (adversarial probe, mutation audit, checklist volume).
 
 | What | Subject / state | Normalized stdout bytes | Commit |
 |---|---|---|---|
-| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **866 lines** / **78384 UTF-8 bytes** | pin in `token-accounting.test.ts` |
+| `skillTextLines().total` / `totalBytes` (16 `SKILL.md`) | package root | **866 lines** / **78456 UTF-8 bytes** | pin in `token-accounting.test.ts` |
 | `skillTextLines().referencesTotal` | package root | **1435 lines** (includes recovery.md) | same instrument |
 | `ngrace lint --path <polyglot>` | polyglot, clean | **163** | `f641334` (the squashed Phase 11 merge; release cut updates) |
 | `ngrace status --path <polyglot>` | polyglot | **761** (state-dependent) | same |
@@ -379,7 +379,7 @@ ngrace gate verdict --change C-ID --outcome pass|fail|unable-to-determine [--rea
 ## Development
 
 ```bash
-bun test
+bun run test
 bun run ./scripts/validate-marketplace.ts
 bun run validate:packed
 bun run validate:release

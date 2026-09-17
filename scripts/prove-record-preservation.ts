@@ -13,6 +13,7 @@ import { childNodes, childText, parseGraceXmlArtifact, walkNodes } from "../src/
 import {
   DEFAULT_RECORD_DIR,
   hashBody,
+  stripBodySeparator,
   xmlDecode,
 } from "./validate-record-retirement.ts";
 
@@ -112,7 +113,7 @@ export function proveRecordPreservation(recordDir: string): PreservationFinding[
     for (let i = 0; i < parents.length; i++) {
       const raw = spans[i] ?? "";
       const body = raw.match(/<Body>([\s\S]*?)<\/Body>/)?.[1] ?? childText(parents[i]!, "Body") ?? "";
-      bodyHashes.add(hashBody(xmlDecode(body)));
+      bodyHashes.add(hashBody(stripBodySeparator(xmlDecode(body))));
     }
   }
 

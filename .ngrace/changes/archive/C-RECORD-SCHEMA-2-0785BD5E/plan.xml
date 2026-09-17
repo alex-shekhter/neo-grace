@@ -1,0 +1,503 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-RECORD-SCHEMA-2-0785BD5E>
+    <IntentSummary>
+      Author the execution for the approved, fingerprinted spec
+      `.ngrace/changes/active/C-RECORD-SCHEMA-2-0785BD5E/spec.xml` (approved `approved` at
+      `437d9bd`, three commits above `main` `aaae414`) and only within it; the plan conforms to the spec,
+      it does not extend, narrow or reinterpret it. The spec's six resolved `Clarifications`
+      (`INV-RECORD-SERIALIZER-PLACEMENT`, `INV-RECORD-BOUNDARY`, `INV-RECORD-SEPARATOR`,
+      `INV-RECORD-HASH`, `INV-RECORD-HEADROOM`, `INV-RECORD-SWEEP-RETIRED`) are the maintainer's
+      rulings and stand as written; every one is implemented here or named a `NonGoal` by the spec.
+
+      This plan is re-homed from the archived predecessor draft
+      `.ngrace/changes/archive/C-RECORD-SCHEMA-1-1D8D868F/plan.xml` (the skill's
+      `approved_plan_immutability` path), changing only the id where it is data and the items the
+      successor spec forces: the golden re-capture, the three-entry flush, and the corrected
+      projections.
+
+      The task order is the spec's order of operations, one task per stage, and each task's
+      `Verification` is evaluated on the tree that stage leaves (the phase rule): `T-001` lands the
+      shape schema, the canonical serializer (the new `scripts/record-serialize.ts`), the
+      shared-headroom fold **and the golden re-capture** — the serializer and the regenerated
+      goldens must land in one task, because the `:2147` golden relation test is red between them
+      and `T-001`'s own suite command would fail otherwise; `T-002` lands the repository-boundary
+      refusal; `T-003` lands the separator trim at the parse boundary, the one-time sweep and the
+      56 recomputed `record-inventory.json` hashes; `T-004` performs the one-time flush of `F252`,
+      `D40` and `F265` plus the charter row, then `--rewrite-roots`. The close (`--retire`
+      `moved 6`, the gates, the status write, the archive move) is not a task; it is owned by the
+      authority, and no task performs any part of it.
+
+      The `D30` window. It opens when this bundle's execution begins — `T-001` — and stays open
+      until the close: no other dispatch reads or rewrites the record while this bundle does. The
+      flush runs during execution under that window (`T-004`, after the sweep), never at the close;
+      the spec's "at the start of execution" means during execution and before the close. The
+      sweep and the flush are the spec's two hand writes and both run under the open window.
+
+      The two hand writes and their vehicle. Both are one-time and neither is committed: a
+      throwaway script that imports the engine's exported `stripBodySeparator`, its canonical
+      serializer and `parseFrozenMarkdown`, is authored under a scratch path outside the tree,
+      and is run once. The precedent read for shape only is `C-FLUSH-AND-PAY-3`'s archived plan
+      (the last flush before this one); it was never transformed. Canonical-at-rest after each
+      hand write — `serialize(parse(file))` byte-equal to `file`, asserted by `T-001`'s shipped
+      test — is the proof that the hand write went through the serializer and not around it.
+      The sweep applies the trim to the four genre files and recomputes exactly the 56
+      `record-inventory.json` hashes it holds for swept bodies, with a parse-equality proof that
+      only the separator tail moved; the flush writes `F252` and `F265` live into `findings.xml`,
+      `D40` live into `rulings.xml` with no `CodifiedIn`, three `Entry` elements into
+      `decisions.xml`, and the row into `registry.xml`, and it does **not** append to the
+      inventory. The flush's delta equals the element sum exactly — findings +43 (`F252` 20 +
+      `F265` 23), rulings +45 (`D40` 45) — with no non-element line. The row is minted with an
+      empty `&lt;Number&gt;`, a `&lt;Charter&gt;` carrying the successor's searched-before-minting
+      statement (the predecessor `C-RECORD-SCHEMA-1-1D8D868F` is the one prior bundle, its
+      `mint-search` line `1 active, 0 archive`), `&lt;Pays&gt;F207 F221 F235 F252 F265&lt;/Pays&gt;`,
+      and a token-free `&lt;StatusText&gt;` with no `Closed with` sentence.
+
+      The scopes, stated with their reasons and checked against the shipped predicate.
+      `DurableScope` is `&lt;None /&gt;`: the spec's `AffectedAreas` names no module ("No graph
+      module is written or minted … the record files under
+      `docs/plans/active/RM-GOVERNED-PATH/` are owned by no module in `.ngrace/graph/main.xml`"),
+      and no `M-*` / `DF-*` / `IC-*` appears in the spec's `AffectedAreas`, so the plan's
+      `DurableScope` covers nothing. `ObservedWriteScope` lists exactly the paths the four tasks
+      force: the two engine scripts and their two suites, the new serializer module,
+      `scripts/prove-record-preservation.ts`, the seven record files, `record-inventory.json`,
+      **and the seven golden fixtures under `scripts/fixtures/record-parse/golden/`** (regenerated
+      by `T-001` because the serializer's canonical form differs from their bytes — the spec
+      measured 10 top-level gap anomalies, 5+5). It does **not** list `decisions.md`: the stub is
+      written only by `--split` (`scripts/validate-record-retirement.ts:579`), which this bundle
+      never reruns, and the flush writes index entries to `decisions.xml`, not the stub — driven,
+      the stub is unchanged. It does **not** list the predicate inputs
+      `scripts/fixtures/record-parse/input/` (the spec rules them untouched, the committed snapshot
+      materialized verbatim) and does **not** list the bundle's own artifacts (the review skips
+      `spec.xml`, `plan.xml` and `design-context.xml` by identity) and does **not** list
+      `.ngrace/scratch/staged-findings.md` (read, never written).
+      `isModuleOwnableWritePath` is false for every path outside `src/`, and this scope names no
+      `src/` path, so `change.graph-anchors-miss-write-scope` cannot fire.
+
+      The mapping, fixed by the spec's own Constraint: exactly one criterion —
+      `AC-NO-CURRENT-MODE` — carries no `CloseEvidence` and is mapped by exactly one task
+      `Satisfies`, carried by `T-001`; it is this plan's only `Satisfies` and no other task carries
+      one. Every other criterion is close-bound by its own `CloseEvidence` and a `Satisfies` of any
+      of them is the shipped error `change.close-evidence-and-satisfied`. `AC-CLOSE-LINT`'s
+      `CloseEvidence` runs `--fail-on warnings`, so an unmapped `AC-NO-CURRENT-MODE` would make the
+      bundle's own close unsatisfiable; it is mapped. No task `Verification` contains a
+      current-mode lint of this root: no command text contains `--assertions current`, and none
+      invokes `ngrace lint` of this root omitting `--assertions`.
+
+      The assertions. `BaselineAssertions` pin the standing world with existence pins and the four
+      shipped instruments that are green at the baseline — the record suite (131 pass / 0 fail /
+      2656 `expect()` call, measured at this plan's commit), the preservation suite (5 pass / 0
+      fail / 11 `expect()` call), the shipped validator and the preservation validator (each
+      `record-retirement: ok` / `record-preservation: ok`, exit 0). They do **not** pin the
+      68-body count, a root value, or a `moved N` string — a needle the bundle flips by design
+      belongs in a test or a probe, not a baseline assertion. `TargetAssertions` re-assert the four
+      instruments (they must stay green on the changed engine) and add `MustExist` for the new
+      `scripts/record-serialize.ts`.
+
+      The faithful-copy law (`F231`), discharged at plan time on a whole-repository `rsync` copy
+      from `437d9bd` with untracked `.ngrace/changes/` carried, `.git` carried, a real
+      `node_modules`, and `.ngrace/scratch` present; once the refusal exists in a copy, every
+      engine command in that copy runs from inside the copy, because the refusal makes the
+      partial-copy shape loud by design. The driven close on the prototype copy (the engine, with a
+      hand flush and a hand sweep, no serializer and no refusal yet, with the spec's
+      whitespace-stripped-tail trim) reproduced the whole state chain: sweep 68 bodies, roots
+      findings `7434/333/7767` and rulings `1670/213/1883` after `--rewrite-roots`; flush roots
+      findings `7477/290/7767`, rulings `1715/168/1883`, registry `13/13/26`, index `270/26/296`;
+      `--retire` **`moved 6`** then **`moved 0`**; post-close roots findings `7343/372/7715` (the
+      moving-genre clamp lowered the ceiling, never raised it), rulings held `1715/168/1883`,
+      registry `12/14/26`, index `265/31/296`; the five findings retired with
+      `&lt;PaidBy&gt;C-RECORD-SCHEMA-2-0785BD5E&lt;/PaidBy&gt;`, the row retired
+      `kind="chartered"`, `D40` live with its index layer live, and the shipped validator green
+      before and after. The engine pieces the plan itself adds (the serializer, the schema
+      enforcement, the refusal) are not drivable at plan time because the tasks below write them;
+      their commands are recorded and are driven green in the executor's tree as the task leaves
+      it, and every red direction the plan names is driven by the task's own test.
+
+      The golden fixtures, in scope and regenerated. The successor spec rules the seven files under
+      `scripts/fixtures/record-parse/golden/` into write scope as regenerated because the
+      serializer's canonical form differs from their bytes: the copy drive measured ten top-level
+      gap anomalies — golden `rulings.xml` carries five `Decision`s at four-space indent (`D5.2`,
+      `D6`, `D9.1`, `D19`, `D25`) and golden `rulings-retired.xml` five at column zero (`D24`,
+      `D5.1`, `D7`, `D9`, `D18`) — and the shipped golden relation test ("a fixture `--retire`
+      writes byte-for-byte the files the shipped engine wrote at capture time",
+      `scripts/validate-record-retirement.test.ts:2147`) pins those bytes. `T-001` therefore
+      regenerates them: it runs the serializer-routed engine over the untouched predicate inputs
+      (`scripts/fixtures/record-parse/input/`) and writes `golden/`. The red direction of the
+      `:2147` test is the pre-regeneration goldens against the serializer-routed engine (the test
+      fails on the drifted gaps); its green is the re-captured canonical bytes. The re-capture is
+      the pin this bundle flips, and it is why the goldens are in `ObservedWriteScope`.
+
+      The close, stated once and never performed by a task. The executor emits its own
+      execution-time cursor events per task inside the open epoch (opened, progress, an attempt
+      with signature kind and key on every failed verification cycle, verification-unavailable
+      when evidence cannot be collected, pause and resume around interruptions) and does not omit
+      them; command-run is produced by the CLI's `--run-commands` path, never hand-invented. The
+      terminal event, the cursor fold, every gate, the status write, the archive move and the
+      close's own record retirement move are close acts owned by the authority. On the faithful
+      post-close copy the house sequence is: commit the approved plan, `gate approve --artifact
+      plan`, baseline `--run-commands`, the T-states with their reds and greens, `--assertions
+      target`, `cursor advance --kind terminal` + `cursor fold`, `lint --assertions final
+      --run-commands`, `review`, `gate verdict --outcome pass`, `gate apply`, `gate archive`,
+      `apply --change C --path .`, `--retire` (`moved 6`) then `--retire` (`moved 0`), post-archive
+      `review`, `gate verdict --outcome pass` (the CloseEvidence evaluator; `Result` and `Exit` per
+      criterion read from the ledger), and `bun run validate:ci`. The byte-invariance baseline for
+      every diff command is the spec's base commit `aaae414ba89c86b1e3e7125943637b453591a9f9`;
+      every diff sees tracked paths only; every archive diff excludes this bundle's own departure
+      and arrival. Every new test that walks the real record or the real archive carries the house
+      per-test timeout `}, 60_000)`. When this plan names a tag or attribute form it writes
+      character data with entities (`&lt;`, `&gt;`, `&amp;`) and never paraphrases the brackets
+      away.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-RECORD-SCHEMA-2-0785BD5E/spec.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>scripts/record-serialize.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>scripts/record-serialize.ts</File>
+      <File>scripts/validate-record-retirement.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>scripts/prove-record-preservation.ts</File>
+      <File>scripts/prove-record-preservation.test.ts</File>
+      <File>scripts/fixtures/record-parse/golden/decisions.xml</File>
+      <File>scripts/fixtures/record-parse/golden/findings-retired.xml</File>
+      <File>scripts/fixtures/record-parse/golden/findings.xml</File>
+      <File>scripts/fixtures/record-parse/golden/registry-retired.xml</File>
+      <File>scripts/fixtures/record-parse/golden/registry.xml</File>
+      <File>scripts/fixtures/record-parse/golden/rulings-retired.xml</File>
+      <File>scripts/fixtures/record-parse/golden/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/record-inventory.json</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Land the declared shape schema and the canonical serializer in the new module
+          `scripts/record-serialize.ts`, route every record write through it, fold the rulings
+          headroom onto the retire path's constant, and regenerate the seven byte-pinned golden
+          fixtures against the serializer's canonical output
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The schema, declared and enforced. `scripts/record-serialize.ts` declares the shape of
+            the seven record files as the engine's contract, not a corpus snapshot: per file the
+            expected root (`Findings`, `Rulings`, `Registry`, `RecordIndex`) with the root attribute
+            set present on live roots and absent on retired siblings; the genre element
+            (`Finding` / `Decision` / `Row` / `Entry`); its required attribute set and value forms;
+            its required children and their order (`Finding`: `PaidBy`? `Title` `Body`; `Decision`:
+            `Title` `Body` (`CodifiedIn` | `TaughtIn`)*; `Row`: `Number` `Charter` `Pays`
+            `StatusText` `Successor`?; `Entry`: none, self-closing); the layer-conditional children
+            (`PaidBy` on `Finding` in either layer, required only on the retired layer; `Successor`
+            retired `Row` only; `CodifiedIn`/`TaughtIn` on `Decision` in either layer); and the
+            depth bound. `TaughtIn` (`path`, `section`) is admitted even though the corpus carries
+            zero instances, because the engine reads it (`childNodes(node, "TaughtIn")`). The
+            default validation and all four write modes (`--split`, `--retire`, `--stamp-paid-by`,
+            `--rewrite-roots`) check the schema before any write; a violation refuses (exit
+            non-zero, nothing written). Green: the seven live record files and the seven goldens
+            report zero violations, and the suite's planted violations — a `Finding` nested in a
+            `Finding`, a genre element nested below the root, an unexpected grandchild, a missing
+            required child — each refuse. Red (driven by the task's test): the planted nested
+            `Finding`.
+          </Criterion>
+          <Criterion>
+            The canonical serializer, on every write, and canonical at rest. `scripts/record-serialize.ts`
+            emits the declared canonical form (two spaces per depth, close tag at the open tag's
+            indent, self-closing empty elements, canonical attribute order per element type, entity
+            escaping of `&amp;` `&lt;` `&gt;` `&quot;`, a trailing newline after the root close
+            tag) and preserves body prose byte-for-byte — only structural whitespace moves. Of the
+            18 `writeFileSync` call sites in `scripts/validate-record-retirement.ts`, the **16 XML
+            writes** route through the serializer; the other two are not XML and cannot: `:456`
+            writes `record-inventory.json` and keeps its fixed JSON form
+            (`JSON.stringify(..., null, 2)` plus a trailing newline), and `:579` writes the
+            `decisions.md` stub and is unreachable (only `--split` writes it, and `--split` refuses
+            a stub — this bundle never reruns it). `scripts/prove-record-preservation.ts` hashes the
+            same bytes. Green: `serialize(parse(serialize(x)))` is byte-equal to `serialize(x)` for
+            the seven golden fixtures and the planted documents; and at every run
+            `serialize(parse(file))` is byte-equal to `file` for all seven live record files
+            (canonical at rest, which is what makes a hand edit outside the serializer visible).
+            Red (driven by the task's test): a planted non-canonical byte in a copied record file
+            reddens the canonical-at-rest walk; the walk locates its target by walking the record,
+            never a file named in advance.
+          </Criterion>
+          <Criterion>
+            The shared-headroom fold. The split path's dead copy of the rulings headroom formula
+            (`Math.floor(2 * median(...))`, `scripts/validate-record-retirement.ts:522`) and the
+            retire path's live one (`Math.floor(7 * median(...))`, `:1273`) are replaced by one
+            shared headroom function using the retire path's constant (7x); the split path's copy
+            is removed; and a test asserts both modes derive the same headroom from the same input.
+            Red (driven by the task's test): an input whose two paths would have disagreed under
+            the old constants.
+          </Criterion>
+          <Criterion>
+            The golden re-capture. The seven files under `scripts/fixtures/record-parse/golden/`
+            are regenerated against the serializer's canonical output by running the
+            serializer-routed engine over the untouched predicate inputs under
+            `scripts/fixtures/record-parse/input/` (the spec rules those inputs un-canonicalized):
+            the fixture builder `scripts/fixtures/record-parse/build-fixture.ts` is used
+            **unchanged** — it only materializes `input/` into the throwaway root and never writes
+            `golden/`, so it is not in `ObservedWriteScope` — invoked with the flags the golden
+            test uses (`--c-selection-row`); the engine's `--retire` then writes the record through
+            the serializer, and the seven emitted bytes are copied back into `golden/`. Green: the shipped golden relation test
+            (`scripts/validate-record-retirement.test.ts:2147`, "a fixture `--retire` writes
+            byte-for-byte the files the shipped engine wrote at capture time") passes on the
+            re-captured canonical bytes, and `serialize(parse(golden))` is byte-equal to the
+            regenerated golden for each file. Red (driven before the re-capture): the same test
+            against the pre-regeneration goldens fails on the ten drifted top-level gaps — golden
+            `rulings.xml` five `Decision`s at four-space indent (`D5.2`, `D6`, `D9.1`, `D19`,
+            `D25`), golden `rulings-retired.xml` five at column zero (`D24`, `D5.1`, `D7`, `D9`,
+            `D18`). The re-capture is the pin this bundle flips.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+          <Command>git diff --exit-code aaae414ba89c86b1e3e7125943637b453591a9f9 -- src/</Command>
+          <Command>git diff --exit-code aaae414ba89c86b1e3e7125943637b453591a9f9 -- docs/plans/active/RM-GOVERNED-PATH/</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>
+          Add the repository-boundary refusal to the engine: a record directory outside the cwd's
+          `.ngrace/`-rooted boundary is refused before any read or write, with a named message,
+          while a whole-repository copy run from inside the copy is accepted
+        </Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The refusal, both directions. The engine resolves the repository boundary from the tree
+            — the presence of `.ngrace/` at the cwd, never git — and refuses, before any read or
+            write and with a named message that names the path, the boundary and the faithful-copy
+            remedy, a record directory that resolves outside it. Green (driven by the task's test
+            on isolated roots): a whole-repository copy run from inside the copy is accepted and
+            moves; the shipped validator stays green inside the copy. Red (driven by the task's
+            test): the same record bytes passed as a partial copy from the real root are refused
+            with exit non-zero and no file changed, where the shipped engine reports `moved 0`.
+            The test locates its fixture root by the shipped resolver, never a file named in
+            advance, and carries the house per-test timeout `}, 60_000)` for every case that walks
+            the real archive.
+          </Criterion>
+          <Criterion>
+            The engine surface stays under `scripts/`; no `src/` file moves for the refusal. The
+            engine and its suite are the only files this task writes; the record is untouched and
+            the goldens (regenerated by `T-001`) are not re-written here.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>git diff --exit-code aaae414ba89c86b1e3e7125943637b453591a9f9 -- src/</Command>
+          <Command>git diff --exit-code aaae414ba89c86b1e3e7125943637b453591a9f9 -- docs/plans/active/RM-GOVERNED-PATH/</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>
+          Trim the separator at the parse boundary, sweep the 68 existing bodies in one pass, and
+          recompute the 56 record-inventory.json hashes the sweep changes so the preservation proof
+          stays green
+        </Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The trim and the invariant walk, defined on the whitespace-stripped tail.
+            `stripBodySeparator` strips trailing whitespace and blank lines from a body's decoded
+            text, then removes a final `---` line and the blank gap before it, and keeps a single
+            trailing newline; it is applied at the parse boundary (`parseFrozenMarkdown`), in the
+            one-time sweep and in the preservation walk, so all three agree on bytes. Green: a
+            flush-invariant walk over every layer of the four genre files — "ends with a separator
+            line" evaluated after the same strip — asserts none carries one. Red (driven by the
+            task's test), the three shapes the walk must catch: a plain `---` as the last line; a
+            `---` followed by a blank line (`rulings.xml`'s `d20`); and the same-line
+            `---&lt;/Body&gt;`. The walk locates its target by walking both layers, never a file
+            named in advance.
+          </Criterion>
+          <Criterion>
+            The one-time hand sweep and the inventory. The sweep removes the separator from all 68
+            existing bodies (31 live findings, 23 retired findings, 13 live decisions including
+            `d20`, 1 retired decision), measured deltas **137 lines** across the four genre files
+            (findings live 62, findings-retired 46, rulings live 27 — `d20` loses three, the
+            others two — rulings-retired 2), and recomputes the 56 `record-inventory.json` hashes
+            it holds for swept bodies, with a parse-equality proof that only the separator tail
+            moved. The retired siblings are swept and that is a permitted write (the spec's
+            `INV-RECORD-SWEEP-RETIRED`). The inventory is not appended to. The sweep is a
+            throwaway script run once, not committed, importing the engine's exported helper and
+            serializer; canonical-at-rest after the write is the proof it went through the
+            serializer. Green: `prove-record-preservation` exits 0 and the shipped validator is
+            green. Red (driven): without the inventory recompute, the shipped proof reports
+            exactly 56 `missing-body-hash` findings (measured on the prototype copy).
+          </Criterion>
+          <Criterion>
+            The sweep touches only the four genre files and the inventory; the registry, the index
+            and the stub are untouched; no ceiling is raised (`--rewrite-roots`, run after the
+            sweep, holds ceilings and re-derives `base`).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+          <Command>bun ./scripts/prove-record-preservation.ts</Command>
+          <Command>git diff --exit-code aaae414ba89c86b1e3e7125943637b453591a9f9 -- src/</Command>
+          <Command>git diff --exit-code aaae414ba89c86b1e3e7125943637b453591a9f9 -- docs/plans/active/RM-GOVERNED-PATH/registry.xml docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml docs/plans/active/RM-GOVERNED-PATH/decisions.xml docs/plans/active/RM-GOVERNED-PATH/decisions.md</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>
+          Flush the staged F252, D40 and F265 through the serializer, mint the charter row with its
+          five-token Pays, and re-derive the four live roots with --rewrite-roots, leaving the
+          inventory untouched
+        </Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The flush. `F252` and `F265` are written live into `findings.xml` (retired later by the
+            close); `D40` is written live into `rulings.xml` with no `CodifiedIn` and no `TaughtIn`
+            (the `D38` manner, "not yet built"); three index `Entry` elements are written into
+            `decisions.xml`, with `genre` and `layer` agreeing with the holding file; the charter
+            row `C-RECORD-SCHEMA-2-0785BD5E` is written into `registry.xml` with an empty
+            `&lt;Number&gt;`, a `&lt;Charter&gt;` carrying the successor's searched-before-minting
+            statement — that the name was searched over `.ngrace/changes/archive/` and both
+            registry layers and the predecessor `C-RECORD-SCHEMA-1-1D8D868F` is the one prior
+            bundle (its `mint-search` line, `1 active, 0 archive`), no other row or directory
+            carrying the name — `&lt;Pays&gt;F207 F221 F235 F252 F265&lt;/Pays&gt;` naming exactly
+            those five tokens, and a token-free `&lt;StatusText&gt;` with no `Closed with`
+            sentence. Green: the shipped validator is green and the four live roots satisfy
+            `base + headroom = ceiling` with `base` equal to the shipped metric read back after
+            `--rewrite-roots` (prototype copy: findings `7477/290/7767`, rulings `1715/168/1883`,
+            registry `13/13/26`, index `270/26/296`), the flush's delta equal to the element sum
+            (+43 findings, +45 rulings) with no non-element line. Red (driven by the task's own
+            test, not the validator): an exists-once-across-layers walk for `D40`, `F252`, `F265`
+            and the row `C-RECORD-SCHEMA-2-0785BD5E` fails before the flush — each is zero across
+            both layers — and passes after — each exactly once, layer agreeing. The shipped
+            validator knows nothing of the buffer and is green before the flush, so it is not the
+            red instrument.
+          </Criterion>
+          <Criterion>
+            The flush is the last sanctioned hand write and leaves the inventory untouched, exactly
+            as every flush since the split has. It is a throwaway script run once, not committed,
+            importing the engine's serializer and `parseFrozenMarkdown`; canonical-at-rest after
+            the write is the proof it went through the serializer. The buffer
+            `.ngrace/scratch/staged-findings.md` is read, never written. The registry and index
+            files it writes are not appended to elsewhere; the stub `decisions.md` is not written.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts</Command>
+          <Command>git diff --exit-code aaae414ba89c86b1e3e7125943637b453591a9f9 -- src/</Command>
+          <Command>git diff --exit-code aaae414ba89c86b1e3e7125943637b453591a9f9 -- docs/plans/active/RM-GOVERNED-PATH/decisions.md</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-RECORD-SCHEMA-2-0785BD5E>
+</NgraceChangePlan>

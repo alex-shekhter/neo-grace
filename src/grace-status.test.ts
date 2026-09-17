@@ -1160,7 +1160,7 @@ describe("C-AMENDMENT-COUNT T-002 status surfaces", () => {
         expect(change.supersedeChainDepth).toBe(expectedDepth[change.changeId]);
       }
     }
-  }, 60_000);
+  });
 
   it("formatStatusText omits zero counts and prints non-zero re-ratifications and supersede-depth", () => {
     const zeros = createProject();

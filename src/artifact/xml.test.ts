@@ -663,7 +663,7 @@ describe("computeElementSpans", () => {
       Number(indexRoot.attributes.base),
       "decisions.xml base equals its live Entry children",
     ).toBe(liveEntries.length);
-  }, 60_000);
+  });
 
   it(
     "regression guard: the pairing test carries no transcribed record element count in any form — keyed on the count forms, refusing what it cannot prove",
@@ -898,7 +898,7 @@ const GUARD_ASYNC_CALLBACK_FIXTURE = `describe("pairing guard fixture", () => {
   it("${PAIRING_TEST_TITLE}", async () => {
     const nodes = readNodes();
     expect(nodes).toBeDefined();
-  }, 60_000);
+  });
 });`;
 
 const GUARD_STRING_PROSE_FIXTURE = `describe("pairing guard fixture", () => {

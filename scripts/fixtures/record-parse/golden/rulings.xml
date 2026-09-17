@@ -188,7 +188,7 @@ Two halves. The separator set is the immediate answer; the standing rule is what
 asking for, and it settles the rest of the track.
 </Body>
   </Decision>
-    <Decision id="d5.2" token="D5.2" status="live">
+  <Decision id="d5.2" token="D5.2" status="live">
     <Title>### D5.2 — Standing rule: what is and is not a compatibility break</Title>
     <Body>
 Applies to the whole track, not to P0 alone.
@@ -249,7 +249,7 @@ rather than accumulating them for a phase-end entry.
 ---
 </Body>
   </Decision>
-    <Decision id="d6" token="D6" status="live">
+  <Decision id="d6" token="D6" status="live">
     <Title>## D6 — P0.8 re-derives from recorded evidence, never from the current tree</Title>
     <Body>
 **Raised by the P0 derivation pass**, open question 1. **Ratified 2026-08-09.**
@@ -429,7 +429,7 @@ cascade the standing rule exists to prevent. It ships with P0.4.
 ---
 </Body>
   </Decision>
-    <Decision id="d9.1" token="D9.1" status="live">
+  <Decision id="d9.1" token="D9.1" status="live">
     <Title>### D9.1 — `extend-allocation` keeps its name, and becomes true</Title>
     <Body>
 The flag claims an operation the code does not perform (it always writes a new covering opened, never
@@ -811,7 +811,7 @@ second bundle names a criterion after a mechanism and pays for it.
 ---
 </Body>
   </Decision>
-    <Decision id="d19" token="D19" status="live">
+  <Decision id="d19" token="D19" status="live">
     <Title>## D19 — an approval covers the current step only</Title>
     <Body>
 **Decided 2026-08-15 by the maintainer**, on evidence from the SLM brownfield
@@ -1107,7 +1107,7 @@ approved artifacts in place, the instrument is already there and the reading fli
 that bundle's scope audit as a new out-of-scope file.
 </Body>
   </Decision>
-    <Decision id="d25" token="D25" status="live">
+  <Decision id="d25" token="D25" status="live">
     <Title>## D25 — a CI-red hotfix on an unmerged branch does not require a change bundle</Title>
     <Body>
 **Decided 2026-09-02 by the maintainer**, on the [F146](#f146) fix committed at `4004170`, when

@@ -70,8 +70,6 @@ the separator set, the accepted forms — and assert the literal bytes in the **
 TypeScript and has no escaping constraint. State the divergence in the criterion rather than
 letting the paraphrase read as a quotation. Related: [D16](#d16) (a criterion may only bind evidence
 that lives in an artifact) — F43 bounds *what kind* of evidence an artifact can hold at all.
-
----
 </Body>
   </Finding>
   <Finding id="f81" token="F81" status="retired">
@@ -1745,8 +1743,6 @@ digests against `ObservedWriteScope`, at the same severity as the existing `scop
 open question of whether it fires per attempt or only at fold. Natural companion to the D14 repairs
 (`cause` support and the unhandled-rejection handler) — both are gaps between a declared contract and
 what is actually enforced, which is this roadmap's whole subject.
-
----
 </Body>
   </Finding>
   <Finding id="f27.1" token="F27.1" status="retired">
@@ -1819,8 +1815,6 @@ difference between a rule keyed to what an agent must do and a rule keyed to wha
 - **Two true positives will stand after the doc exclusion**, one adjudicated and one not. Whether the
   check fires retroactively on archived bundles is a real decision, not a detail: a permanently-red check
   teaches its own audience to ignore it, which is the harm F11 named.
-
----
 </Body>
   </Finding>
   <Finding id="f27.2" token="F27.2" status="retired">
@@ -1871,8 +1865,6 @@ leave every future plan free to make the same omission and merely learn about it
 The scope cost is two files (`skills/ngrace/ngrace-plan/SKILL.md` and its packaged mirror), declared
 honestly — which is exactly what the bundle is arguing for, and a better dogfood than a bundle that keeps
 its scope small by leaving half the finding unfixed.
-
----
 </Body>
   </Finding>
   <Finding id="f35" token="F35" status="retired">
@@ -2027,8 +2019,6 @@ is real rather than a queue: it is the same file, the same class of change (an a
 consumer on the other side), and it must not be interleaved with the `lint --explain` bundle already in
 flight, whose declared write scope stops at `src/lint/*` and whose NonGoals require a re-spec before
 `grammar.ts` is touched.
-
----
 </Body>
   </Finding>
   <Finding id="f90" token="F90" status="retired">
@@ -2945,8 +2935,6 @@ has no way to enforce. The alternative — renaming the state to match what is e
 gives up the checkpoint.
 
 Disposition: follow-on queue, adjacent to F21 (same surface, same contract paragraph).
-
----
 </Body>
   </Finding>
   <Finding id="f29" token="F29" status="retired">
@@ -2990,8 +2978,6 @@ which the module comment says *&quot;do not change … without updating every ph
 that is a real dependency on a survey this bundle has no mandate to run, which is the kind of
 justification [D11](#d11) asks for before anything is deferred. The likely shape is a character or
 token-estimate field reported alongside lines, not in place of them, so existing citations stay readable.
-
----
 </Body>
   </Finding>
   <Finding id="f9.10" token="F9.10" status="retired">
@@ -3062,8 +3048,6 @@ deliverable) both present as *&quot;N non-test src/ path(s) seen, all identical.
 string produces a wrong taxonomy. Classify from `WriteEvidence` digests.
 
 Disposition: **next bundle**, with [F31](#f31) and [F32](#f32) — one surface, one repair.
-
----
 </Body>
   </Finding>
   <Finding id="f31" token="F31" status="retired">
@@ -3099,8 +3083,6 @@ claimed more scrutiny than it received, and that is disclosed rather than left t
 Disposition: **next bundle**, with F9.10 and F32. The repair is an absence record for the attempt-pair
 audit on the same shape as the scope audit's, so an unscoped review reports `not-run — no --change
 supplied` instead of nothing.
-
----
 </Body>
   </Finding>
   <Finding id="f32" token="F32" status="retired">
@@ -3129,8 +3111,6 @@ A reviewer following the path finds nothing and has no way to tell whether the b
 finding is stale.
 
 Disposition: **next bundle**, with F9.10 and F31.
-
----
 </Body>
   </Finding>
   <Finding id="f29.1" token="F29.1" status="retired">
@@ -3186,8 +3166,6 @@ grows by 9%.
 
 The module comment itself should be corrected in the same change — an instruction that cannot be
 followed is worse than no instruction, because the next reader defers on it exactly as I did.
-
----
 </Body>
   </Finding>
   <Finding id="f71" token="F71" status="retired">
@@ -4063,8 +4041,6 @@ life cycle is not one bundle's. The sentence needs &quot;any later lawful move o
 
 Owner: the next teaching-surface increment (with [F236](#f236) and [F237](#f237)) for the reviewer sentence; the
 repair itself is delivered. Neighbour to [F225](#f225), [F232](#f232) and [F237](#f237).
-
----
 </Body>
   </Finding>
   <Finding id="f239" token="F239" status="retired">
@@ -4092,8 +4068,6 @@ it dropped the one fact that makes the token usable: which command carries it.
 
 Owner: the next teaching-surface increment (with [F236](#f236), [F237](#f237), [F238](#f238)); every one of the
 twelve lines is in scope by name, canonical and mirror.
-
----
 </Body>
   </Finding>
   <Finding id="f241" token="F241" status="retired">
@@ -4121,8 +4095,6 @@ baseline exit reflects it.
 
 Owner: the next teaching-surface increment (with [F236](#f236), [F237](#f237), [F238](#f238), [F239](#f239)). Neighbour to F62,
 F119.
-
----
 </Body>
   </Finding>
   <Finding id="f185" token="F185" status="retired">
@@ -4254,8 +4226,6 @@ state at its own bundle's approval, written as an invariant. The two relations b
 Owner: `C-PAYMENT-INTEGRITY` repairs it (the clause removed; the test deleted or renamed so no test claims a clamp it
 does not assert); its payment is recorded at this entry's flush by appending `F244` to that bundle's retired row, the
 retired-row append the same bundle establishes as lawful for `F185`. Neighbour to [F225](#f225), [F237](#f237).
-
----
 </Body>
   </Finding>
   <Finding id="f222" token="F222" status="retired">
@@ -4355,8 +4325,6 @@ and the walk should read Baseline against disk and Target against the applied st
 Owner: the bundle that next opens `src/review/core.ts`, sequenced by the maintainer (`C-APPLY-VERB` excludes new `review.*`
 code by its spec, F101). Until then, plan-approve reviews of file-creating bundles carry these errors and the approval commit
 names them.
-
----
 </Body>
   </Finding>
   <Finding id="f245" token="F245" status="retired">
@@ -4376,8 +4344,6 @@ exempts its two siblings by identity.
 **The rule.** The identity skip covers every artifact the bundle contract defines for the reviewed change, or row 15
 says which of them must be declared and why. Owner: whoever next opens `src/review/core.ts` (with [F240](#f240)) for
 the skip; the next teaching-surface increment for row 15. Neighbour to [F236](#f236) (row 15's ground).
-
----
 </Body>
   </Finding>
   <Finding id="f243" token="F243" status="retired">
@@ -4405,8 +4371,6 @@ a design question this entry records and does not answer.
 
 Owner: the next teaching-surface increment (`ngrace-plan` row 19, beside the clause `C-FLUSH-AND-TEACH` added);
 the execution question to a chartered bundle. Neighbour to [F236](#f236), [F237](#f237).
-
----
 </Body>
   </Finding>
   <Finding id="f246" token="F246" status="retired">
@@ -4438,8 +4402,6 @@ slice, never a whole file. (2) `ngrace-execute`'s recovery table has no row for 
 false at HEAD&quot;; the executor inferred hard-stop from rule 11 — the row is written. (3) The authority runs root lint after every
 `gate approve` and before the approval commit: the gate's status write is what turns the baseline evaluation on. Owner: the next
 teaching increment (V2) for (1) and (2); (3) is the authority's standing rule from this date.
-
----
 </Body>
   </Finding>
   <Finding id="f247" token="F247" status="retired">
@@ -4459,8 +4421,6 @@ three skills names `design-context.xml`, which [F245](#f245)'s bundle (`C-REVIEW
 **The rule.** The sentence states what the product does: the reviewed bundle's own `spec.xml`, `plan.xml` and
 `design-context.xml` are identity-skipped in both locations and are never declared; `decisions.md` is reported and is
 expected only when that file changed. One sentence, in all four places, and the mirror. Owner: the next teaching increment.
-
----
 </Body>
   </Finding>
   <Finding id="f248" token="F248" status="retired">
@@ -4480,8 +4440,6 @@ from `ngrace-plan` entirely.
 **The rule.** Each listed assertion command carries its precondition beside it: `--run-commands` needs an open epoch on a
 declared task; `target` and `final` need an approved plan; the plan skill's row 19 says how to drive them on an approved-shaped
 copy (`gate approve --artifact plan` on the copy, then `cursor advance --open-epoch`). Owner: the next teaching increment.
-
----
 </Body>
   </Finding>
   <Finding id="f249" token="F249" status="retired">
@@ -4520,8 +4478,6 @@ order with the passes that follow), so two consecutive reds are two audited pair
 finding. Teaching: until then, `ngrace-execute` says a task with more than one red-first pair interleaves them — fail A, pass
 A, fail B, pass B — so each pair is audited. Owner: whoever next opens `src/review/core.ts` for the audit; the next teaching
 increment for the sentence.
-
----
 </Body>
   </Finding>
   <Finding id="f251" token="F251" status="retired">
@@ -4700,8 +4656,6 @@ does not read the file under test is `F125` with a narrower premise.
 
 Owner: a chartered bundle, sequenced by the maintainer; `.ngrace-lint.json` already names `scripts/` adoption as deferred to a
 later `C-*`, and this rides with it or ahead of it. Neighbour to F125.
-
----
 </Body>
   </Finding>
   <Finding id="f264" token="F264" status="retired">
@@ -4725,5 +4679,199 @@ in `ObservedWriteScope`, while the immutable `AC-NO-OTHER-FILES` command exclude
 the approved spec (add `src/grace-lint.test.ts` to the write scope and to `AC-NO-OTHER-FILES`'s excludes), or the next `C-*` that
 adopts `scripts/`. The plan `C-SCRIPTS-ADOPTION-1-F621B7C0` is authored at `status=&quot;draft&quot;` and must not be approved ahead of that
 supersede.</Body>
+  </Finding>
+  <Finding id="f207" token="F207" status="retired">
+    <PaidBy>C-RECORD-SCHEMA-2-0785BD5E</PaidBy>
+    <Title>### F207 — the record has no schema: its shape and depth are convention, and nothing verifies them. **[verified]**</Title>
+    <Body>
+Measured **2026-09-09** at `b62698e`, when the authority claimed the record's depth was &quot;fixed by
+schema&quot; and the maintainer asked whether the schema is verified every time. It is not.
+
+**What is checked:** XML well-formedness (`XMLValidator`, `parseGraceXmlArtifact`), targeted reads of
+named children (`childNodes(root, &quot;Row&quot;)`, `&quot;Decision&quot;`, `&quot;Finding&quot;`, `&quot;CodifiedIn&quot;`, `&quot;TaughtIn&quot;`),
+root size attributes, and citation resolution.
+
+**What is not checked, searched rather than assumed:** `grep` for `allowedChildren`, `requiredChildren`
+and `schema` across `scripts/validate-record-retirement.ts` and `scripts/prove-record-preservation.ts`
+returns **nothing**, and the record files appear nowhere in `src/artifact/grammar.ts` or
+`src/lint/catalog.ts`. The record is deliberately outside the artifact grammar —
+`C-RECORD-TEST-ISOLATION-2`'s spec forbids adding it — so **no rule constrains which children an
+element may have, how deep it may nest, or which are required.**
+
+**So the observed depth 3 is an artefact of every writer happening to agree.** A record with a `Finding`
+nested inside a `Finding`, or an unexpected child, is well-formed and passes every shipped check.
+
+**The consequence is not aesthetic.** `childNodes` reads **direct** children only, so a misplaced
+element is invisible to every structural count while still occupying lines. Under today's line metric
+it inflates the budget; under a structural metric it would vanish from it. **Any move to structural
+measurement ([F206](#f206)) must therefore ship a shape check first, or the new metric counts something
+undefined.**
+
+Owner: a later bundle, and a prerequisite of the structural-metric charter rather than an independent
+nicety.
+</Body>
+  </Finding>
+  <Finding id="f221" token="F221" status="retired">
+    <PaidBy>C-RECORD-SCHEMA-2-0785BD5E</PaidBy>
+    <Title>### F221 — byte-identity is not a holdable contract on a document nothing serializes canonically. **[verified]**</Title>
+    <Body>
+Measured **2026-09-10** at `299fc5c`, while verifying `C-FLUSH-AND-PAY`'s delivery.
+
+The record is written by at least three paths that treat surrounding whitespace differently: the
+flush render, `persistSnapshot`'s root-line splice, and `--retire`'s element moves, whose span cut
+starts at the `&amp;lt;` and so does not carry a close tag's leading indent. Delivery drifted
+`&amp;lt;/Findings&amp;gt;` from eight spaces to zero and `&amp;lt;/Registry&amp;gt;` from thirty to thirty-two.
+Both files still parse; no element, attribute or text node moved.
+
+**This is [F204](#f204)'s shape, and F204 blamed the wrong party.** There the drift came from
+`--retire` re-indenting structural lines and was recorded as bytes escaping a criterion's protection.
+The deeper fact is that **no writer canonicalizes**, so no two writers agree on whitespace, and a
+byte-level criterion is therefore a bet on which writer touched the file last.
+
+**The remedy is a canonical serializer on every write, and the scalability argument settles it.**
+The alternative — preservation criteria that compare parsed trees instead of bytes — materializes
+both sides, and `parseGraceXmlArtifact` already buffers a whole document, so it costs O(2 x doc) on
+a record whose entire premise is unbounded growth. A canonical serializer is O(depth): read,
+normalize, emit. And once every writer routes through it, the identity check becomes a **hash** —
+streaming, constant memory, the cheapest check available rather than the most expensive.
+
+A structural comparison could in principle stream too, two parsers walked in lockstep at O(depth).
+That does not rescue the alternative: it is more to build than a serializer, and it still only
+*detects* drift after it lands, where the serializer prevents it. The authority first recommended
+the tree comparison as &quot;cheaper&quot;, meaning cheaper to implement, having never priced the runtime.
+
+**Until the serializer lands, the standing rule:** a criterion asserting a file is unchanged says
+*structurally* unchanged and is answered by a parse, not by `git diff --exit-code`. Whitespace
+restored by hand to satisfy a byte check is a human doing a formatter's job, and it will drift again
+on the next write. The one-time cost the serializer carries is a single reflow of the record and the
+regeneration of every byte-pinned fixture; that is bounded, and the drift it removes is not.
+
+Owner: a chartered bundle. Neighbour to [F204](#f204) (the symptom) and [F206](#f206) (a text metric
+over a structured document — the same category error, measured on volume instead of identity).
+</Body>
+  </Finding>
+  <Finding id="f235" token="F235" status="retired">
+    <PaidBy>C-RECORD-SCHEMA-2-0785BD5E</PaidBy>
+    <Title>### F235 — a `--retire` pointed at a copied record directory from the repository's cwd reads the real archive, so a copy-drive of the close reports `moved 0` by construction. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-11 at `3f8a5ca`** by the executor revising `C-TAUGHT-RULES`'s spec, then re-driven by the
+authority. Eligibility keys on `&amp;lt;cwd&amp;gt;/.ngrace/changes/archive`: `listArchiveNames(repoRoot)` with
+`repoRoot = process.cwd()` (`scripts/validate-record-retirement.ts:1843`-1863), while the record files are read
+from the directory argument. A drive that copies only `docs/plans/active/RM-GOVERNED-PATH` and runs the move
+from the repository root therefore sees the copy's registry and the *real* archive: a row minted only in the
+copy, or a bundle archived only in the copy, is invisible, and the move reports `moved 0` — the spec's own
+`ExpectedCommand` carried exactly that form and could never have produced the `moved 5` it described. The
+faithful form copies the whole repository and runs the move from inside the copy (driven: `moved 5`).
+
+**The class.** [F231](#f231) made the whole-repository copy the rule for `validate:ci`; this is the same rule
+for the record's own move, arrived at from the other side — the record-directory argument invites a partial
+copy that the engine silently half-honours. The remedy candidates: the engine takes the archive root from the
+record directory's own repository (walk up to `.ngrace/`), or refuses a record directory outside the cwd's
+repository. Either makes a partial copy loud.
+
+Owner: the record-engine bundle that next touches `scripts/validate-record-retirement.ts`'s root resolution
+(the schema-and-serializer bundle `F207`/`F221` charter, or a payment-integrity bundle). Neighbour to
+[F231](#f231) and [F230](#f230).
+</Body>
+  </Finding>
+  <Finding id="f252" token="F252" status="retired">
+    <PaidBy>C-RECORD-SCHEMA-2-0785BD5E</PaidBy>
+    <Title>### F252 — the flush projects the buffer's `---` separator into every non-last rendered `&lt;Body&gt;`: 54 of 319 record bodies end with a literal `---` line, and the buffer's own header tells the flusher to cut at that boundary first. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-14 at `18941b7`, the close of `C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22`, by the authority's subagent and re-measured over the
+population.** Unescaping the rendered `&lt;Body&gt;` of `f250` and diffing it against its staged body shows one difference: a trailing blank line
+and a literal `---` that the staged entry does not carry — the section separator between it and `f251`. `f251`, the buffer's last entry,
+renders byte-identical. Over both findings layers (`perl -0777` over `&lt;Finding …&gt;&lt;Body&gt;…&lt;/Body&gt;`, 319 bodies), **54** end with a `---`
+line: `f8.1 … f242 f250` live and `f43 … f246 f247 f248` retired — every non-last entry of every flush since the split, so the shipped
+`parseFrozenMarkdown` returns `bodyRaw` with the separator and every flusher (`C-TEACH-DRIVE-BEFORE-APPROVE-2`'s included) rendered it
+through. The buffer header's own instruction — *&quot;cut each body at the `---` or `## STAGED CHARTER` boundary first&quot;* — is not what the
+parser does, and no walk asserts the body's tail.
+
+**The rule.** The separator belongs to the buffer, never to a rendered body: `parseFrozenMarkdown` (or the render step) trims a trailing
+`---` and the blank line before it, a flush-invariant walk asserts no `&lt;Body&gt;` ends with a separator line, and the 54 existing bodies are
+cleaned in one sweep. Cosmetic in every consumer measured (nothing parses body tails), so it rides the next record-schema bundle
+(`F207`/`F221`) rather than its own. Owner: that bundle. **Re-measured 2026-09-16 at `aaae414` by parser over all four genre files:
+68 bodies (findings 31 live + 23 retired; rulings 13 live + 1 retired) — the sweep covers every genre, and 56 of the 68 are attested by
+`record-inventory.json`, the split's preservation snapshot, whose hashes follow the sweep.**
+</Body>
+  </Finding>
+  <Finding id="f265" token="F265" status="retired">
+    <PaidBy>C-RECORD-SCHEMA-2-0785BD5E</PaidBy>
+    <Title>### F265 — an approved spec carried &quot;measured 0&quot; for the golden fixtures' reflow, a figure taken over the live record and never over the fixtures; the golden relation test pins those bytes, and the copy drive at plan time found ten non-canonical gaps. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-16 at `a715692`** by the executor's plan-time copy drive and re-measured by the authority. The approved
+`C-RECORD-SCHEMA-1-1D8D868F` spec's write-scope Constraint listed `scripts/fixtures/record-parse/golden/` as &quot;regenerated only if
+the measured fixture diff is non-empty — measured 0&quot;, and its pin-grep Assumption stated that no test pins &quot;a golden byte&quot;. Both
+were false when ratified: golden `rulings.xml` holds 5 of 61 `Decision`s at four-space indent and golden `rulings-retired.xml`
+holds all 5 at column zero (10 gap anomalies against the canonical form the spec defines), and
+`scripts/validate-record-retirement.test.ts:2147` asserts a fixture `--retire` writes the golden files byte-for-byte. A serializer
+on every write therefore regenerates the goldens — the &quot;regeneration of every byte-pinned fixture&quot; that `F221` itself named as the
+serializer's one-time cost — and the approved spec had ruled the fixtures out of scope on a measurement of a different population.
+
+**The class is [F130.1](#f130.1) and [F264](#f264) together.** The reflow was driven over the seven record files (0 bytes, true) and
+the result was written onto the fixtures (never driven); the pin grep looked for pins of root counts and indentation and did not
+open the one test whose title says &quot;byte-for-byte&quot;. The authority's own verification drive covered the same seven files and not the
+goldens, and approved on it — the population a spec names is every file it names, fixtures included, and a figure attached to a
+file is a measurement of that file or it is not written.
+
+**Remedy.** Superseded under D27 and the maintainer's V-A ruling (a stale figure in an approved spec is superseded, never carried):
+the successor states the fixtures' true state, puts the goldens in write scope as regenerated, names `:2147` as the pin the bundle
+flips, and pays this finding. Owner: `C-RECORD-SCHEMA-2`.
+</Body>
+  </Finding>
+  <Finding id="f266" token="F266" status="retired">
+    <PaidBy>C-TEST-TIMEOUT-CEILING-2-7AD2A006</PaidBy>
+    <Title>### F266 — a per-test timeout is a ceiling that expires with the archive: the 111th archived bundle pushed two archive-walking review tests past the runner's 30 s, the fourth timeout incident in a week, and no fixed per-test number can hold on a corpus that grows by design. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-16** on CI run `35138369045` (branch `c-record-schema` at `844acd3`, the close of
+`C-RECORD-SCHEMA-2-0785BD5E`): `src/review/core.test.ts`'s &quot;archive corpus: zero live and retired findings on every
+dynamically enumerated C-*&quot; (30 640 ms) and &quot;archive ratchet: exact product multiset of three pairs&quot; (31 353 ms) timed
+out under `bun test --timeout=30000`; locally the two take about 19 s together. Both enumerate every directory under
+`.ngrace/changes/archive/` (111 after the close), so their duration is linear in the corpus on a runner about three
+times slower than the development machine. The third archive walker in the run passed at 32 154 ms only because
+`C-STATUS-TEST-TIMEOUT-1-E7DA46E8` gave it `}, 60_000)` after the same failure shape (run `35017776037`); the next one
+sits at 25 976 ms. The tree carries 29 per-test pins across 5 files and three global values (`test` 30 s,
+`validate:cli` and `validate:determinism` 120 s), and `validate.yml` sets no `timeout-minutes` — the only real ceiling
+today is GitHub's six-hour default.
+
+**The class.** A per-test timeout guards against a hung test, but every one of these pins was written to outrun the
+runner on a walk whose length is the archive, and the archive grows with every close. Each pin is therefore a dated
+measurement wearing a guard's clothes, and the incident recurs at the next threshold: four times this week. Bun
+honours `--timeout=0` as no per-test timeout (probed: a seven-second test passes under it and fails under the
+5 s default), and the job-level `timeout-minutes` bounds a hang at the only scale that matters in CI.
+
+**The remedy, the maintainer's ruling 2026-09-16 (variant B).** No per-test timeout: `--timeout=0` on every `bun test`
+invocation in `package.json`, every per-test pin removed (82 across six files once both syntactic forms are counted — the 29 above
+were the one-line form only), and one `timeout-minutes` on the CI job as the sole
+ceiling. This overturns `C-STATUS-TEST-TIMEOUT-1-E7DA46E8`'s per-test remedy and answers its argument: a walk over the
+real archive cannot carry a fixed number, so the guard moves to the job. Owner: a T0 bundle on the same branch,
+riding the same PR as the record-schema close (the #101 shape).
+</Body>
+  </Finding>
+  <Finding id="f267" token="F267" status="retired">
+    <PaidBy>C-TEST-TIMEOUT-CEILING-2-7AD2A006</PaidBy>
+    <Title>### F267 — a T0 spec that rewrites a skill sentence omitted the skill-footprint pin from its write scope and its byte-invariance criterion; the plan drive proved the criterion unsatisfiable, the third supersede of a bundle's own spec this week. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-16 at `e62ecf6`** by the executor's plan-time copy drive and re-driven by the authority. The approved
+`C-TEST-TIMEOUT-CEILING-1-4985C820` spec rewrites one sentence of `skills/ngrace/ngrace-spec/SKILL.md` (and its packaged
+mirror), which moves the skill footprint `skillTextLines().totalBytes` from 78 384 to 78 456. That figure is pinned in
+`src/test-support/token-accounting.test.ts:49` and in `README.md:304`; the plan skill's own row 6 says a skill-text change
+declares the skill-footprint pin, and every teaching bundle in the archive names `token-accounting.test.ts` in scope. The
+T0 spec named neither: its write-scope Constraint lists `README.md` for one line (`:382`) and its `AC-NO-OTHER-SRC` command
+excludes seventeen paths, not that test. On the post-close copy the criterion exits 1 naming exactly
+`src/test-support/token-accounting.test.ts`, and `gate verdict` refuses `pass`. The spec's own tier Constraint lists
+&quot;footprint Goals&quot; among what T0 drops — the Goal is optional; the pin is a file the deliverable forces.
+
+**The class is [F136](#f136) and [F265](#f265).** A scope contract that misses a file the deliverable forces cannot be satisfied by
+any plan, and the miss was in a place the authority had ruled to check (a pin grep before ratification — but for the
+*timeout* values, not for the skill bytes the same bundle moved). Third supersede of a bundle's own spec in one week
+([F264](#f264), [F265](#f265), this): the pattern is a spec that changes one surface and is checked against that surface's pins
+only, while the change's second-order effect (a config's test pin, a fixture's bytes, a skill's footprint) sits in a
+file the spec never names. The pin grep must be run per *effect*, not per edited value.
+
+**Remedy.** Superseded under D27: the successor names `src/test-support/token-accounting.test.ts` in the write-scope
+Constraint and in `AC-NO-OTHER-SRC`'s excludes, states `README.md` carries two edits (`:304` and `:382`), and pays this
+finding with `F266`. Owner: `C-TEST-TIMEOUT-CEILING-2`.
+</Body>
   </Finding>
 </Findings>

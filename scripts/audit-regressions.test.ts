@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 type AuditRegressionCase = {
@@ -82,5 +82,87 @@ describe("Critical, High, and Medium audit regression matrix", () => {
     expect(claude).toContain("C-SCRIPTS-ADOPTION-2-36DEB1BD");
     const result = spawnSync("bun", ["run", "typecheck"], { cwd: repoRoot, encoding: "utf8" });
     expect(result.status).toBe(0);
-  }, 120_000);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-TEST-TIMEOUT-CEILING-2-7AD2A006: no per-test timeout pin, one job ceiling.
+// A timeout pin is a numeric last argument to `it(`/`test(` in either syntactic
+// form, recognized as a group of at least four digits so the repository's four
+// single-digit non-timeout numeric lines cannot be flagged.
+// ---------------------------------------------------------------------------
+
+const TIMEOUT_SHAPED = /[0-9_]{4,}/;
+
+/** Every *.test.ts under the tree, excluding node_modules, .git and .ngrace. */
+export function collectTestFiles(dir: string, acc: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    if (name === "node_modules" || name === ".git" || name === ".ngrace") continue;
+    const full = path.join(dir, name);
+    if (statSync(full).isDirectory()) collectTestFiles(full, acc);
+    else if (name.endsWith(".test.ts")) acc.push(full);
+  }
+  return acc;
+}
+
+export function findTimeoutPins(root: string): Array<{ file: string; line: number; text: string }> {
+  const pins: Array<{ file: string; line: number; text: string }> = [];
+  for (const full of collectTestFiles(root)) {
+    const rel = path.relative(root, full);
+    const lines = readFileSync(full, "utf8").split("\n");
+    lines.forEach((line, i) => {
+      const oneLine = /\},\s*([0-9][0-9_]*)\s*\);/.exec(line);
+      if (oneLine && TIMEOUT_SHAPED.test(oneLine[1]!)) {
+        pins.push({ file: rel, line: i + 1, text: line.trim() });
+        return;
+      }
+      const bare = /^\s+([0-9][0-9_]*)\s*,\s*$/.exec(line);
+      if (bare && TIMEOUT_SHAPED.test(bare[1]!)) {
+        let j = i + 1;
+        while (j < lines.length && lines[j]!.trim() === "") j++;
+        if (j < lines.length && /^\s*\);\s*$/.test(lines[j]!)) {
+          pins.push({ file: rel, line: i + 1, text: line.trim() });
+        }
+      }
+    });
+  }
+  return pins;
+}
+
+/** Jobs in a workflow's bytes whose steps run the suite but carry no timeout-minutes. */
+export function suiteJobsMissingCeiling(xml: string, expected = "30"): string[] {
+  const jobs: Array<{ name: string; body: string[] }> = [];
+  let current: { name: string; body: string[] } | null = null;
+  for (const line of xml.split("\n")) {
+    const m = /^  ([A-Za-z0-9_-]+):\s*$/.exec(line);
+    if (m) {
+      if (current) jobs.push(current);
+      current = { name: m[1]!, body: [] };
+    } else if (current) {
+      current.body.push(line);
+    }
+  }
+  if (current) jobs.push(current);
+  const suiteRun = /(bun run test\b|bun test\b|validate:ci|validate:cli|validate:determinism)/;
+  const missing: string[] = [];
+  for (const job of jobs) {
+    const runsSuite = job.body.some((l) => l.includes("run:") && suiteRun.test(l));
+    if (!runsSuite) continue;
+    const ceiling = job.body.some((l) => new RegExp(`^    timeout-minutes:\\s*${expected}\\s*$`).test(l));
+    if (!ceiling) missing.push(job.name);
+  }
+  return missing;
+}
+
+describe("C-TEST-TIMEOUT-CEILING-2-7AD2A006 suite hygiene", () => {
+  it("no *.test.ts carries a numeric per-test timeout", () => {
+    expect(findTimeoutPins(repoRoot)).toEqual([]);
+  });
+
+  it("every suite-running workflow job declares timeout-minutes: 30", () => {
+    for (const file of [".github/workflows/validate.yml", ".github/workflows/publish.yml"]) {
+      const missing = suiteJobsMissingCeiling(readFileSync(path.join(repoRoot, file), "utf8"));
+      expect(missing, `${file}: suite-running jobs without a ceiling`).toEqual([]);
+    }
+  });
 });

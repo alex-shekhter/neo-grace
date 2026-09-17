@@ -116,7 +116,7 @@ Rules:
 - Enumerate modules in every place the artifact enumerates modules, and confirm each forced file's owner against every module list: a module list that appears twice can be wrong twice, and fixing the copy you happened to look at leaves the other.
 - Structural counts come from the shipped parser, never `grep -c`: the grep form counts lines, not occurrences, and these artifacts wrap one phrase across lines — flatten whitespace first, and prefer parsing the artifact when the claim is about structure.
 - Read exit codes directly, never through a pipe: `cmd | tail` reports tail's status, not cmd's, and a criterion that names an exit code names the code of the command that produced the verdict.
-- Any test driven against a real repository carries an explicit generous timeout: a suite that builds fixtures or copies trees dies inside a default timeout, and that death is indistinguishable from the red it was meant to measure.
+- Any test driven against this repository's real archive runs under `bun run test` (equivalently `bun test --timeout=0`): no per-test number is pinned, because a number written to outrun a corpus that grows by design expires at the next threshold, and the CI job's `timeout-minutes` is the only ceiling.
 - A criterion is producible: it asserts no state the shipped engine will not produce, requires no change another criterion forbids, and names no probe that cannot be run — an unsatisfiable criterion is a refusal the close discovers.
 - Probe every guard in both directions on a throwaway copy: the clean direction proves it can pass, a planted violation proves it can redden, and a guard whose red direction was never driven may be vacuously green.
 </acceptance_criteria_anchors>

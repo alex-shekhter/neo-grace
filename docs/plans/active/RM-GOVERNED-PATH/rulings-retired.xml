@@ -103,8 +103,6 @@ permitted direction has no such cost.
 **Scope.** This is **site 11**, added to `C-TOKEN-INTEGRITY` T-002 — the same function P0.3 already
 opens. Not deferred, not a follow-up bundle. Fixing at the point of detection is the rule; the
 inventory's classification of `grammar.ts:2012` as justified is **corrected to silent discard**.
-
----
 </Body>
     <CodifiedIn kind="lint-rule">change.task-invalid-dependency</CodifiedIn>
   </Decision>

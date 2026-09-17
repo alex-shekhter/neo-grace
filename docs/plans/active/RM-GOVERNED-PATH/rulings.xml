@@ -1,4 +1,4 @@
-<Rulings base="1697" headroom="186" ceiling="1883">
+<Rulings base="1715" headroom="168" ceiling="1883">
   <Decision id="d1" token="D1" status="live">
     <Title>## D1 — The tool is the only sanctioned writer of `approved → applied`</Title>
     <Body>
@@ -92,8 +92,6 @@ distinguishable from a genuine tooling gap.
 The standing posture of this product is **make dishonesty visible, not impossible** — the same
 reasoning that rejected sandboxed enforcement (R3) and lifecycle-bypass bundles (R4). A hard &quot;only
 the tool&quot; with no recorded override drifts back toward a posture already refused.
-
----
 </Body>
   </Decision>
   <Decision id="d2" token="D2" status="live">
@@ -126,8 +124,6 @@ to treating everything as unattributable drift — that resurrects precisely the
 boundary exists to remove, and does so in the least visible way.
 
 **Cheap insurance, adopted:** record the inventory alongside the ref even where git is present.
-
----
 </Body>
   </Decision>
   <Decision id="d3" token="D3" status="live">
@@ -154,8 +150,6 @@ what the ledger is for and what keeps this consistent with gate purity (`plan.md
 **Rejected alternative.** A sidecar file beside `plan.xml` buys nothing and costs a new artifact
 with its own lifecycle, sitting among authored files while being CLI-written — the exact confusion
 the model works to avoid.
-
----
 </Body>
   </Decision>
   <Decision id="d4" token="D4" status="live">
@@ -177,8 +171,6 @@ itself. Guide count is demoted to an observation recorded afterwards.
 
 The benchmark is also the better test of the same claim: guides shrinking is a lagging indicator of
 an adopter not needing one.
-
----
 </Body>
   </Decision>
   <Decision id="d5" token="D5" status="live">
@@ -245,8 +237,6 @@ right thing, it is a defect.
 **Consequence for every P0 bundle:** `CHANGELOG.md` must **not** appear in `ObservedWriteScope`. The
 newly-erroring codes are listed in the commit body instead, and each bundle carries its own codes
 rather than accumulating them for a phase-end entry.
-
----
 </Body>
   </Decision>
   <Decision id="d6" token="D6" status="live">
@@ -328,8 +318,6 @@ recorded command evidence rather than from a `runCommands: false` lint.&quot;*
 
 If the bundle's design cannot satisfy P0.8 without touching corr 156's guarantee, **stop and report**
 — that is a wall (`plan.md` §3), not a tradeoff to make during execution.
-
----
 </Body>
   </Decision>
   <Decision id="d8" token="D8" status="live">
@@ -425,8 +413,6 @@ The derivation recommends deferring it to a P3 note. **Overruled.** `countLedger
 `0` throughout every in-progress run — the misreport that made F8 hard to see. The bundle already
 opens this surface, the fix is small, and deferring a known-misleading report to a later phase is the
 cascade the standing rule exists to prevent. It ships with P0.4.
-
----
 </Body>
   </Decision>
   <Decision id="d9.1" token="D9.1" status="live">
@@ -476,8 +462,6 @@ reaching for it on a pending pair will find it does nothing, and should find thi
 **before** fold adjudicates, because after fold there is no honest path to a boolean. That closes the
 derivation's Q2 by itself — an outcome-carrying restatement would be a new mechanism for moving a
 stored label after the fact, which is precisely what corr 156 forbids.
-
----
 </Body>
   </Decision>
   <Decision id="d10" token="D10" status="live">
@@ -740,8 +724,6 @@ same seam (`src/query/errors.ts` plus the process entry point), so they are **on
 Sequenced **after** Bundle B (`C-ESCALATION-HONESTY`), which is in flight — not displacing it. Recorded
 here rather than as an aspiration so the rule arrives with its compliance already owed, which is the
 same standard [F25.1](#f25.1) applied to the repair that raised it.
-
----
 </Body>
   </Decision>
   <Decision id="d16" token="D16" status="live">
@@ -773,8 +755,6 @@ single instance gets weakened by the next one — [F9.3](#f9.3) was refuted by t
 was written. It is recorded here as binding on this repository now, and promoted to product once a second
 bundle has authored a criterion under it. That is a dependency, not a queue: the promotion is blocked on
 evidence that does not yet exist.
-
----
 </Body>
   </Decision>
   <Decision id="d17" token="D17" status="live">
@@ -807,8 +787,6 @@ after the first `cursor attempt`, it is not.
 
 **Promotion held.** Same reason as [D16](#d16): one worked instance. `ngrace-plan` gets it when a
 second bundle names a criterion after a mechanism and pays for it.
-
----
 </Body>
   </Decision>
   <Decision id="d19" token="D19" status="live">
@@ -920,9 +898,6 @@ bundle [D19](#d19) already named. It already opens the spec, plan, and
 execute skills. It now also writes that the close acts listed above are the
 authority's, and removes the execute-skill sentences that assign them to
 the executor. It does not implement D18. Not created here.
-
----
-
 </Body>
   </Decision>
   <Decision id="d21" token="D21" status="live">
@@ -1066,8 +1041,6 @@ acceptance. A row with none of those is itself the finding.
 No row is an acceptance of the slip. The discard of the 2026-08-15
 self-certified `approved` is a named exception ([F65](#f65) class), not a
 repair and not a ratification.
-
----
 </Body>
   </Decision>
   <Decision id="d23" token="D23" status="live">
@@ -1693,5 +1666,50 @@ by every entry a session adds. Four arrived in the session that ratified this.
 `C-CI-CLAIM-PIN` at 8, `C-APPROVE-TARGET-DISCOVERY` at 9, `C-EFFORT-DEPTH` at 10 and
 `C-FUNCTION-CONTRACT-SURFACE` at 11. Each is one later from here. [D34](#d34)'s enumerated order is
 superseded by this one and stands as the dated record of what was true before.</Body>
+  </Decision>
+  <Decision id="d40" token="D40" status="live">
+    <Title>## D40 — every governed XML write goes through a verb: the agent authors prose, the tool owns ids, statuses, entries, roots and bytes. **[maintainer's direction, 2026-09-15 and 2026-09-16; not yet built]**</Title>
+    <Body>
+**The maintainer's direction, recorded verbatim in substance.** *&quot;Plan to make all xml changes through the cli … a
+step toward verifiable deterministic flow management … an abstraction facade between an agent and data layer
+implementation. Not now, but in the plans.&quot;* (2026-09-15). Sequenced 2026-09-16 with the record-schema bundle.
+
+**What exists and what does not.** [D1](#d1) makes the tool the only sanctioned writer of `applied`; [D18](#d18)
+made `gate approve` the writer of `approved`; [D37](#d37) sent `applied` and the archive move to `ngrace`; [D38](#d38)
+sent bundle identity to `spec new`. Every one of those is the same principle applied to one transition. Outside
+them the governed XML is still hand-written: spec and plan bodies after the mint and on every revision; the record
+flush (findings, decisions, index entries, the charter row, the roots) — rewritten as a throwaway script by every
+executor that flushed, no two alike; `.ngrace/graph/` documents (`M-RELEASE-AUTOMATION` was a hand write because no
+verb exists); the staged buffer itself. Measured 2026-09-16: no shipped verb is named `record`, `flush`, `mint`,
+`retire` or `rewrite-roots`; `spec` and `plan` carry only `new`; `graph` only `split`; `module` only
+`find`/`show`/`health`. [F221](#f221) is the consequence: three writers, no canonical form, and a byte contract
+nothing can hold.
+
+**Decision.** A governed XML document is written by a verb or not at all. The agent authors prose — a body, a
+section, a criterion; the facade owns everything that is identity or state: ids, statuses, index entries, roots,
+ceilings, and the bytes themselves through one canonical serializer. The sequence is fixed by dependency, not
+preference: **(1)** a shape schema and a canonical serializer for the record, so that a byte contract exists to
+hold ([F207](#f207), [F221](#f221)); **(2)** the verbs — a record flush/mint that writes findings, decisions, index
+entries, the row and the roots in one transaction, with `--retire` and `--rewrite-roots` as siblings of it; then,
+as separate `src/` scopes, `spec edit`/`plan edit` replacing a named section and re-serializing, and a verb that
+adds a module to the graph; **(3)** a lint rule generalising [D1.3](#d1.3): governed XML bytes the serializer did not
+produce are a finding.
+
+**Where the engine lives, ruled.** The record under `docs/plans/active/RM-GOVERNED-PATH/` is a meta-artifact of
+this repository's governance, not a capability of the shipped CLI. Its engine stays in `scripts/`
+(`validate-record-retirement.ts` or a helper module beside it) — no bloat or dependency leakage into the
+published binary, and the boundary `C-RECORD-TEST-ISOLATION-2` observed as a tier constraint (the record is not
+in the artifact grammar, `src/` untouched) becomes a standing rule here. Product-facing verbs — `spec edit`,
+`plan edit`, the graph-module verb — are `src/` scopes and register under this decision as later bundles.
+
+**Bounded by R1.** The RM-GOVERNED-PATH plan rejects a second authoring format (R1); the facade operates on the XML
+itself and introduces no projection. It answers the same pain R1 declined to treat with YAML — escaping,
+verbosity, authoring from memory — by taking the mechanical part of the write away from the author.
+
+**Sequencing.** Step (1) is the record-schema bundle that carries this decision into the record (&quot;not yet built&quot;
+in the D38 manner); the flush verb is its chartered successor and the first codifier; the `src/` verbs follow when
+the maintainer sequences them, each its own bundle, never folded into one in flight. Neighbour to [D37](#d37) and
+[D38](#d38) (state and identity belong to verbs — the same principle, now the whole write).
+</Body>
   </Decision>
 </Rulings>
