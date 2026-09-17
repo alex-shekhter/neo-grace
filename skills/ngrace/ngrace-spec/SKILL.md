@@ -122,6 +122,7 @@ Rules:
 - Probe every guard in both directions on a throwaway copy: the clean direction proves it can pass, a planted violation proves it can redden, and a guard whose red direction was never driven may be vacuously green.
 - A criterion that pins an artifact the executor will write, or a fixture regenerated later, states the relation — the pin equals the measurement — and never the projected figure; the figure belongs in `Assumptions`, where it expires.
 - Before ratification, list what the deliverable moves and grep the test suites for each — skill text moves the footprint pins, fixture inputs or engine output move golden bytes, config values move the audit and lint guards, the record moves the payer maps — and name every file the grep finds in the write scope.
+- The full CI-equivalent verification is **close-time only**: `--assertions final --run-commands` is where it runs. A whole-suite `CloseEvidence` `Command` (`bun run test`) belongs only on a criterion genuinely about the whole suite — an `AC-CLONE-FAITHFUL`-class criterion; otherwise a `CloseEvidence` command names the narrow instrument for its subject.
 </acceptance_criteria_anchors>
 
 <design_references>

@@ -1449,6 +1449,28 @@ export function auditAttemptPairWriteEvidence(input: AttemptPairEvidenceInput): 
 }
 
 /**
+ * Archived statuses that are terminal but not `applied` — abandoned governance
+ * (`ngrace supersede` discards governance, never code). F286.
+ */
+const ABANDONED_ARCHIVE_STATUSES = new Set(["superseded", "rejected", "cancelled"]);
+
+/**
+ * F286: an archived bundle whose spec status is terminal-but-not-`applied` is
+ * abandoned governance, not delivered evidence, so the attempt-pair
+ * corroboration standard does not apply to it — the same stance archived plans
+ * take in `src/lint/core.ts` (syntax only, never semantic). An `applied`
+ * archived bundle is not exempt and its stream is fully audited.
+ */
+function isAbandonedArchiveBundle(bundlePath: string): boolean {
+  const archiveMarker = `${path.sep}changes${path.sep}archive${path.sep}`;
+  if (!bundlePath.includes(archiveMarker)) return false;
+  const specPath = path.join(bundlePath, "spec.xml");
+  if (!existsSync(specPath)) return false;
+  const status = readGraceXmlArtifact(specPath).root?.attributes.status;
+  return status !== undefined && ABANDONED_ARCHIVE_STATUSES.has(status);
+}
+
+/**
  * Load fail→pass attempt pairs for a change from loose run/ + folded ledger.
  * Read-only. Pairs each pass with the most recent prior fail on the same task.
  */
@@ -1460,6 +1482,10 @@ function loadAttemptPairsFromBundle(
   try {
     bundlePath = resolveChangeBundle(projectRoot, changeId);
   } catch {
+    return { pairs: [], unpaired: [] };
+  }
+  // F286: abandoned archived governance is not held to the corroboration standard.
+  if (isAbandonedArchiveBundle(bundlePath)) {
     return { pairs: [], unpaired: [] };
   }
   const events: LooseEvent[] = [

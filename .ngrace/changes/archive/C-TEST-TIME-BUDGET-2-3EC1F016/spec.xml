@@ -1,0 +1,629 @@
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-TEST-TIME-BUDGET-2-3EC1F016><Replacement>C-TEST-TIME-BUDGET-3-7950A760</Replacement>
+    <Summary>
+      T3 change on `RM-GOVERNED-PATH`: **the test-time budget.** The maintainer's target is an
+      order-of-magnitude reduction in development wall time, measured before it is pinned. Act 1
+      measured the population — 2017 tests across 64 files in 138.83 s; 22 tests ≥ 1.0 s carrying
+      52.6 % of the suite; `validate:ci` executing **2424 test runs for 2017 distinct tests** (407
+      duplicates, 49.38 s) with the `validate` job running `validate:determinism` a third time; and
+      the dominant cost being **O(n²) re-derivation of the immutable archive**, not process startup
+      or file reads — and staged it as **`F281`** in `.ngrace/scratch/staged-findings.md`
+      (`[verified]`, measured 2026-09-17 at `2434fd4`). This spec's six Goals are derived from that
+      table and pay `F281` and `F282`:
+      **(1) fewer passes** — collapse the duplicated suite invocations in `validate:ci`
+      and the workflows;
+      **(2) collect once, view many** — memoize the immutable predecessor-map derivation
+      (`src/gates/ledger.ts:1134`) that `readAmendmentInstrument` (`:1187`) rebuilds once per change,
+      117 times per read;
+      **(3) a selective developer-loop runner** that never gates;
+      **(4) per-test metrics kept current**;
+      **(5) in-process calls** for the bulk of the 163 `bun ./scripts/validate-record-retirement.ts`
+      spawns whose contract is not the process boundary;
+      **(6) the verification-frequency rule** — teach in `ngrace-spec`, `ngrace-plan` and
+      `ngrace-execute` that the full CI-equivalent verification is **close-time only** — it runs at the
+      close-time gates that prove CI-readiness, never as a per-task command.
+      The order-of-magnitude direction is in **how often** the full verification runs, not in the
+      suite becoming ten times faster: measured, one memo takes the suite ~1.3× and the remaining
+      Goals approach ~2×, while a single turn currently pays the full verification six times over.
+      The measured payload is stated as a goal, not a criterion; the criteria are relations.
+      This spec is written at `status="draft"` and stops there: the approval write, the gates, the
+      applied close and the flush are the authority's.
+    </Summary>
+    <Problem>
+      **The maintainer's complaint, in his framing.** Development is too slow and the suite is the
+      reason. The standing ruling is **B — measured speedups, not a rewrite in another language**;
+      it is now sharpened to an order-of-magnitude target. The four directions he named:
+      (1) find the slowest tests; (2) reduce the number of passes; (3) collect the metrics once and
+      take different views; (4) stop running the whole suite during fixes, run the affected tests and
+      the whole suite once at the end, keeping per-test metrics current.
+
+      **The population — measured, not sampled.** 2026-09-17 at `2434fd4`, `bun 1.4.2`, macOS arm64.
+      One `bun test --timeout=0 --reporter=junit --reporter-outfile=…` over the tree: `Ran 2017 tests
+      across 64 files. [138.83s]`, exit 0. Testcase time sums to 138.62 s; **22 tests ≥ 1.0 s are
+      72.92 s (52.6 %)**; 41 ≥ 0.5 s are 86.76 s; 1701 &lt; 0.05 s are 4.38 s. Per-file totals, top
+      seven: `scripts/validate-record-retirement.test.ts` 42.14 s / 163 tests; `src/review/core.test.ts`
+      23.76 s / 188; `src/grace-context.test.ts` 19.59 s / 30; `src/gates/core.test.ts` 14.67 s / 111;
+      `src/grace-status.test.ts` 13.41 s / 55; `src/grace-query.test.ts` 5.93 s / 42;
+      `src/grace-lint.test.ts` 4.32 s / 114 — 123.82 s of 138.62 s (89.3 %).
+      The slowest single tests: `src/grace-status.test.ts:1131` 11.21 s (live-repo
+      `collectProjectStatus`), `src/review/core.test.ts:2456` 10.76 s and `:1982` 10.57 s (archive
+      loops over every `C-*` directory), `src/grace-context.test.ts:522` 9.03 s,
+      `scripts/validate-record-retirement.test.ts:1939` 3.80 s.
+
+      **The passes.** `package.json:79` chains `bun run typecheck &amp;&amp; bun run test &amp;&amp; …
+      &amp;&amp; bun run validate:cli &amp;&amp; … &amp;&amp; bun run validate:determinism &amp;&amp; …`.
+      `test` (`:67`) is the full 64-file/2017-test suite; `validate:cli` (`:69`) re-runs
+      `src/grace-lint.test.ts src/grace-status.test.ts src/grace-query.test.ts` — 211 tests, 25.02 s,
+      every one already executed by `test`; `validate:determinism` (`:71`) re-runs
+      `src/review/core.test.ts src/review/scorer.test.ts` — 196 tests, 24.36 s, every one already
+      executed by `test`. So one `bun run validate:ci` costs **2424 test runs for 2017 distinct
+      tests**: 407 duplicate executions, 49.38 s. `.github/workflows/validate.yml:30` then runs
+      `bun run validate:determinism` again (196 more executions, 24.36 s) after `validate:ci` already
+      ran it. `publish.yml`'s `verify` job runs `bun run test` and then `bun run validate:cli`
+      (another 211 duplicates on a tag push). Full-suite test wall of `validate:ci` is
+      138.83 + 25.02 + 24.36 = **188.21 s**, of which 49.38 s (26 %) repeats work completed moments
+      earlier.
+
+      **The frequency — the other half of the pain, and it is teaching.** One close of the
+      immediately preceding bundle, `C-CLONE-FAITHFUL-TESTS-1-D68520A2` (archived), ran the full
+      suite or its CI equivalent **six times** (parsed 2026-09-17 at `2434fd4` from that bundle's
+      `plan.xml` and `spec.xml`): T-001 `Verification` `bun run test`; T-002 `Verification`
+      `bun run validate:ci`; the `TargetAssertions` `MustPassCommand` `bun run validate:ci` evaluated
+      at `--assertions target`; the same evaluated again at `--assertions final`; the `AC-*`
+      `CloseEvidence` `bun run test`; and the authority's close `validate:ci`. It also ran
+      `bun run typecheck` ×3, `bun test scripts/validate-record-retirement.test.ts` ×3 and
+      `bun test scripts/audit-regressions.test.ts` ×2. At ~140 s that is ~17 minutes of suite time in
+      one bundle. No skill passage limits this: a search of `skills/ngrace/*/SKILL.md` for
+      `full suite`, `whole suite`, `exactly once`, `only once`, `once per` and `per-task` finds no
+      frequency cap — `ngrace-plan` `must_do` row 12 requires only non-empty per-task verification,
+      and `ngrace-execute` rule 7 runs `--assertions final --run-commands`. Speed work alone leaves
+      six runs; the frequency change alone leaves a slow suite; both together are the maintainer's
+      ask.
+
+      **Where the wall clock goes.** Not process startup, not file reads: `bun ./src/grace.ts
+      --version` starts in **0.09 s**; reading every archived `spec.xml`/`plan.xml` twice (11.07 MB
+      across 117 bundles) is **7.6 ms**; reading all seven record XML files twice (1.13 MB) is
+      **0.7 ms**. The cost is CPU **re-derivation of the same immutable corpus**. `collectProjectStatus`
+      (`src/grace-status.ts:373`) is **11.73 s** on this tree; `collectChangeBundleStatuses` (`:165`)
+      calls `readAmendmentInstrument(root, changeId)` (`:228`) once per bundle, and
+      `readAmendmentInstrument` (`src/gates/ledger.ts:1187`) calls `buildPredecessorMap(projectRoot)`
+      (`:1134`), which reads every bundle via `listChangeBundleDirs`/`replacementIdsForBundle`
+      (`:1119`/`:1113`). Measured: `readAmendmentInstrument` ×1 = **115.4 ms**, ×117 = **9.94 s** —
+      117 rebuilds of one map. `src/review/core.ts:1717` calls the same function inside every
+      `runReview` with `processAudits` on: `runReview(repoRoot, {changeId, changedFiles: [],
+      patterns: false, joinEngine: false})` is **114.6 ms** per call and **0.0 ms** with
+      `processAudits: false`; the archive loops at `src/review/core.test.ts:1995` and `:2483` each
+      call it 117 times — **10.33 s per test**, twice. Separately,
+      `scripts/validate-record-retirement.test.ts:50` spawns `bun ./scripts/validate-record-retirement.ts`
+      for 163 tests; that file is 42.14 s, ~258 ms per spawn, against a validator whose entry
+      `main(argv, cwd): number` is already exported (`:1967`).
+
+      **The three defects this names.** (a) **Duplicated passes**: 603 test executions per CI run
+      repeat work the full suite completed. (b) **O(n²) corpus re-derivation**: the same immutable
+      map is rebuilt once per change; the archive is read 117×117 times per top-level read.
+      (c) **A process boundary where none is needed**: 163 validator spawns for tests whose contract
+      is stdout and a return code, not an OS process.
+
+      **What is explicitly not to be bought.** Speed is never bought by deleting or weakening
+      coverage. The test population does not fall and no assertion is loosened except where
+      duplication is *proven* — the only removals proposed are the three named re-run invocations,
+      whose test bodies and assertions stay in the suite.
+
+      **The lineage — why this is a successor, measured 2026-09-17.** The approved
+      `C-TEST-TIME-BUDGET-1-98736D59` (ratified, gated, archived `superseded`) confined its write
+      scope for the duplicate-pass remedy to `validate:ci` and the workflows, **but drafted Goal 1(a)
+      as removing `bun run validate:cli` from `validate:ci` and `validate:release`**. Two shipped
+      guards require `validate:release` to invoke `validate:cli`
+      (`scripts/validate-marketplace.ts:336`–`338`, `scripts/release-checklist.ts:250`), and
+      `bun run validate:marketplace` is itself a member of `validate:ci` — so the dedup reddened CI,
+      and neither guard file was in the approved write scope or in `AC-NO-OTHER-SRC`'s excludes.
+      Driven at plan time on a `b9b45f3` copy: `bun run ./scripts/validate-marketplace.ts` exit 1,
+      `package.json: validate:release must invoke validate:cli`; the release checklist reported the
+      same. The bundle was uncloseable as approved. The authority ruled **narrow, do not widen** and
+      superseded it; the authority staged **`F282`** for that finding. `validate:release` keeps its
+      `validate:cli` and is untouched — it runs at release time, not inside a development turn, so
+      narrowing to `validate:ci` keeps the entire measured saving, leaves both guards green, and
+      forces no new file into scope. This successor carries the predecessor's bytes with that bounded
+      diff; no guard constrains `validate:ci`'s composition (`scripts/release-checklist.ts:245`
+      asserts only that the script exists).
+
+      **The base.** Branch `c-test-time-budget` at **`2434fd467458e15c12414a74e37b09f9d71bdfd2`**
+      (= merged `main`), tree clean, `.ngrace/changes/active/` holding `.gitkeep` only, 117 archive
+      directories. The buffer holds `F270`, `F280`, `F281` and `F282`; the record's max finding is
+      `F279` (retired); the authority staged `F282`, and this bundle pays **`F281`** and **`F282`**.
+    </Problem>
+    <Goals>
+      <Goal>
+        **(1) Fewer passes — one suite run per CI run.** The duplicated suite invocations are
+        removed and nothing else: (a) `bun run validate:cli` leaves `validate:ci` (`package.json:79`)
+        — its 211 tests are already executed by `bun run test` in the same script. `validate:release`
+        keeps its `validate:cli` and is untouched by this bundle: it runs at release time, never
+        inside a development turn, and two shipped guards assert that composition
+        (`scripts/validate-marketplace.ts:336`–`338`, `scripts/release-checklist.ts:250`). (b)
+        `validate:determinism` (`package.json:71`) loses its
+        `bun test --timeout=0 src/review/core.test.ts src/review/scorer.test.ts` prefix (196 tests
+        already executed by `bun run test`) and keeps `bun run ./scripts/validate-determinism.ts`,
+        which itself performs the two-run identity and the D4 ratchet; (c) the duplicate standalone
+        `Run determinism and corpus ratchet gate (D4)` step (`.github/workflows/validate.yml:30`) is
+        removed because `validate:ci` already runs that member; (d) `publish.yml`'s `verify` job
+        loses its `CLI validation` step (`bun run validate:cli`) because `bun run test` in the same
+        job already executes those 211 tests. `validate:cli` remains a runnable standalone command
+        (the Windows job's `bun run test &lt;files&gt;` + `validate:cli` pair runs **disjoint** file
+        sets and is not duplication, so it is untouched). A guard in
+        `scripts/audit-regressions.test.ts` asserts the relation structurally: an aggregate script
+        that invokes the full suite invokes no other `bun test`, and a workflow job that runs
+        `validate:ci` or the full suite runs no second suite command. `scripts/validate-record-retirement.test.ts`'s
+        and `scripts/publish-workflow.test.ts`'s composition assertions are updated to the deduped
+        shape (their positive coverage is preserved, not deleted).
+      </Goal>
+      <Goal>
+        **(2) Collect once, view many — memoize the immutable predecessor map.** `buildPredecessorMap`
+        (`src/gates/ledger.ts:1134`) is derived from immutable on-disk bundle metadata; it is
+        computed at most once per **resolved project root** per process, validated by a cheap
+        revision token recomputed on every call — the sorted `(bundle name, spec/plan size, mtimeMs)`
+        for the active and archive bundle directories — so an added, removed, renamed or
+        in-place-edited bundle invalidates the entry. The cached value is returned as a frozen,
+        read-only view (`chainDepth` already only reads it). No caller-visible behaviour changes:
+        `readAmendmentInstrument`, `collectProjectStatus` and `runReview` return byte-identical
+        results for the same tree. Measured before: `collectProjectStatus(REPO_ROOT)` 11.73 s, of
+        which `readAmendmentInstrument` ×117 is 9.94 s; `runReview(REPO_ROOT, {changeId})` ×117 is
+        10.33 s in each of two archive tests. The plan adds the invalidation and mutation-boundary
+        tests to `src/gates/core.test.ts`; the target is a Goal with a measured after, not a pinned
+        figure. No other parse is memoized unless the plan's own measurement shows it pays.
+      </Goal>
+      <Goal>
+        **(3) A selective developer-loop runner that never gates.** `scripts/test-affected.ts` (new),
+        run as `bun run test:affected` (`package.json`), takes a base ref (default `origin/main`,
+        overridable), reads the changed files from git, maps each to the test files that exercise it
+        (path convention plus an explicit dependency table in the script), prints the selection and
+        the reason for each, and runs only those with `bun test --timeout=0 …`. It is **fail-safe**:
+        an unmapped changed source file under `src/` or `scripts/`, an empty or unavailable diff, or
+        a merge-base failure selects the **full suite** rather than fewer tests. `scripts/test-affected.test.ts`
+        (new) proves the selection on a synthetic diff and proves the fail-safe fallback. The hard
+        rule: **a selective run never gates.** `validate:ci` and `validate:release` keep the full
+        `bun run test`; no `CloseEvidence` command anywhere may invoke the runner, and a guard
+        reddens if one does.
+      </Goal>
+      <Goal>
+        **(4) Per-test metrics kept current.** `scripts/test-metrics.ts` (new), run as
+        `bun run test:metrics`, executes the suite once with `--reporter=junit` and writes a
+        committed `test-metrics.json` holding, per test file, the test count and total ms, plus every
+        individual test's ms and file, a `schemaVersion` and the generation date — and **no hostname
+        or machine identifier** (this repository is public). It prints the slowest tests. The suite
+        need not run the meter; `scripts/test-metrics.test.ts` (new) asserts the freshness relation:
+        every `*.test.ts` in the tree appears exactly once in the artifact, the artifact's per-file
+        counts match the tree, and the artifact carries no machine identifier. The artifact records
+        durations; **no criterion compares a duration to a threshold** — the regression signal is a
+        regenerated diff against the committed baseline, and a planted slower test is proven to move
+        it (a relation), not a wall-clock gate. The `test-metrics.json` read is a tracked-path read
+        and must be committed before the fixture-read guard runs.
+      </Goal>
+      <Goal>
+        **(5) In-process calls where the process boundary is not the contract.** The bulk of
+        `scripts/validate-record-retirement.test.ts`'s 163 `runValidator` spawns (42.14 s, ~258 ms
+        each) are moved to an in-process helper that calls the validator's already-exported
+        `main(argv, cwd): number` (`scripts/validate-record-retirement.ts:1967`) and captures
+        stdout/stderr through an injectable writer seam, so no process is created. The spawn is
+        **kept** — and said so in the test — exactly where the contract under test *is* the process
+        boundary: the exit-code discriminations and the CWD-relative behaviour. The test population
+        does not fall; every assertion keeps its subject. A guard or an instrumented assertion states
+        the bounded spawn count so a later re-spawn is visible.
+      </Goal>
+      <Goal>
+        **(6) The verification-frequency rule, taught.** The full, CI-equivalent verification is
+        never avoided — it is what proves the branch will merge, and it runs inside the turn. The
+        rule is about *how many times*, not *whether*: the full CI-equivalent verification is
+        **close-time only** — it runs at `--assertions final --run-commands`, and at the close's
+        `CloseEvidence` only where a criterion is genuinely about the whole suite. It is never a
+        per-task command.
+        Written into three skills, in both trees: `skills/ngrace/ngrace-plan/SKILL.md` (a new
+        `must_do` row — a task's `Verification` names the **narrowest instrument** that exercises
+        that task's subject, the whole suite is not a per-task command, and a `TargetAssertions`
+        `MustPassCommand` does not duplicate what `final` runs);
+        `skills/ngrace/ngrace-spec/SKILL.md` (`acceptance_criteria_anchors` — a `CloseEvidence`
+        `Command` names the narrow instrument unless the criterion is genuinely about the whole
+        suite; `AC-CLONE-FAITHFUL` is the legitimate whole-suite case and stays legitimate); and
+        `skills/ngrace/ngrace-execute/SKILL.md` (`execution_rules` rule 7 — the full verification
+        runs once, at `final`; per-task verification is the task's own narrowest command). Each
+        canonical skill is mirrored byte-identically into `plugins/ngrace/skills/ngrace/*`. The
+        load-bearing tokens (`close-time only`, `narrowest instrument`) are added to `TAUGHT_RULES` in
+        `scripts/check-teaching-surface.ts` and to the fixture table in
+        `scripts/check-teaching-surface.test.ts`, so a later softening reddens. This Goal does not
+        weaken `AC-SELECTIVE-NOT-GATE`: a narrow **task** verification is a named command whose
+        subject is the task, not a selective run, and the full verification still runs at `final`
+        and at the close.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        **Tier and anchor.** Ceremony tier **T3** (architectural-in-method: the change moves the
+        taught lifecycle contract across `ngrace-spec`, `ngrace-plan` and `ngrace-execute`, both
+        skill trees, the taught-rule token tables, the skill-footprint pins and `README.md`, and the
+        taught rule must be designed so it does not contradict `AC-SELECTIVE-NOT-GATE` — it changes
+        methodology, not one package). Roadmap `RM-GOVERNED-PATH`. Base commit
+        `2434fd467458e15c12414a74e37b09f9d71bdfd2`. Two module-ownable paths this bundle writes:
+        `src/gates/ledger.ts` (`LINKS: M-GATES`, `src/gates/ledger.ts:5`) and the three canonical
+        `skills/ngrace/*/SKILL.md` files (`M-SKILLS`). Every other forced file is `package.json`, a
+        workflow, a `scripts/` path, a `*.test.ts`, the packaged skill mirror, `README.md` or
+        `test-metrics.json`, and `isModuleOwnableWritePath` (`src/lint/core.ts:734`) is false for all
+        of them. `AffectedAreas` therefore names exactly `M-GATES` and `M-SKILLS`; the module list
+        appears **once** (`F136.1`). The plan's `DurableScope` anchors `M-GATES` for
+        `src/gates/ledger.ts`.
+      </Constraint>
+      <Constraint>
+        **A selective run never gates.** This is the load-bearing constraint, written after
+        `C-CLONE-FAITHFUL-TESTS-1-D68520A2`, whose local green signed off a suite that died in every
+        clone. The dev-loop runner is a fix convenience only. CI and the close always run the whole
+        suite: `validate:ci` and `validate:release` keep `bun run test`; every `CloseEvidence`
+        command in this bundle names `bun run test`, a specific `bun test --timeout=0 &lt;file&gt;`,
+        `bun ./src/grace.ts lint --path . --fail-on warnings`, or a `git diff --exit-code` against a
+        named base — **never** `test:affected`. A guard reddens if any active or archived spec or
+        plan `CloseEvidence` invokes the runner.
+      </Constraint>
+      <Constraint>
+        **Memoize only immutable data; prove the boundary.** Caching a derivation of immutable
+        on-disk metadata is safe; caching a mutable fixture buys order-dependent flakiness. The
+        predecessor-map cache is keyed by the resolved project root and validated by the sorted
+        `(bundle name, spec/plan byte size, mtimeMs)` revision of the active and archive bundle
+        directories, recomputed on each call; a change to that revision rebuilds the map. The value
+        handed back is a frozen copy, so a caller that mutates a returned view cannot corrupt the
+        cache. Two directions are driven in `src/gates/core.test.ts`: (i) mutate the returned
+        structure, call again, and observe the original unchanged; (ii) add/remove a superseding
+        bundle in a temp root, call again, and observe the new chain depth. A writer that edits a
+        bundle in place without changing size or mtime must invalidate explicitly; no shipped writer
+        does so (the supersede path moves or restamps the bundle).
+      </Constraint>
+      <Constraint>
+        **Speed is never bought with coverage.** The executed test population does not fall relative
+        to base `2434fd467458e15c12414a74e37b09f9d71bdfd2`, and no assertion is loosened. The only
+        removed work is the three **proven duplicates**: `validate:ci`'s
+        `validate:cli` invocation (211 tests already run by `bun run test` in the same script),
+        `validate:determinism`'s `bun test src/review/core.test.ts src/review/scorer.test.ts` prefix
+        (196 tests already run by `bun run test`), and `validate.yml:30`'s standalone re-run of that
+        same member (and `publish.yml`'s `validate:cli` after `bun run test`). Their test bodies stay
+        in the suite and are not edited. A guard asserts the per-test-file test counts at HEAD are not
+        below base.
+      </Constraint>
+      <Constraint>
+        **No per-test timeouts; the fixture-read guard ships.** `bun test --timeout=0` stays on every
+        invocation; no numeric per-test timeout is introduced (`findTimeoutPins`); every suite-running
+        workflow job keeps `timeout-minutes: 30` (`suiteJobsMissingCeiling`). The new
+        `test-metrics.json` is a repository-relative tracked path; no `.ts` under `src/` or `scripts/`
+        may pass a git-ignored or untracked path to a filesystem read (`findUntrackedFixtureReads`),
+        so the artifact is `git add`ed as part of the change before that guard is green.
+      </Constraint>
+      <Constraint>
+        **The order of magnitude is frequency, not a ten-times-fast suite.** The corrected premise:
+        the maintainer's order-of-magnitude direction comes from **how often** the full verification
+        runs, not from the suite becoming ten times faster. Measured, the suite itself reaches ~1.3×
+        on the Goal 2 memo alone and approaches ~2× with the remaining Goals; the development win is
+        that a turn pays the full verification **once** instead of six times. No criterion in this
+        spec pins a ten-times figure; the criteria are the relations (once per CI run, once per
+        turn, byte-identical derivation results).
+      </Constraint>
+      <Constraint>
+        **Write scope, stated once.** Files this bundle forces into write scope: `package.json` (drop
+        `validate:cli` from `validate:ci` only; strip the test prefix from
+        `validate:determinism`; add `test:affected` and `test:metrics`); `.github/workflows/validate.yml`
+        (remove the duplicate D4 step); `.github/workflows/publish.yml` (remove the duplicate
+        `CLI validation` step); `scripts/audit-regressions.test.ts` (the dedup and coverage guards);
+        `scripts/validate-record-retirement.test.ts` (in-process runner; spawns kept where the exit
+        code/CWD is the contract); `scripts/validate-record-retirement.ts` (an injectable IO seam if
+        the capture needs one; `main` is already exported); `scripts/publish-workflow.test.ts`
+        (updated composition assertion) and `scripts/skill-contracts.test.ts` (only if the plan adds
+        a structural assertion for the new rule; its existing `published skill mirrors` check stays
+        green either way); new `scripts/test-affected.ts` and
+        `scripts/test-affected.test.ts`; new `scripts/test-metrics.ts` and
+        `scripts/test-metrics.test.ts`; new committed `test-metrics.json`; `src/gates/core.test.ts`
+        (memo validity + mutation-boundary tests); `src/gates/ledger.ts` (the memoized derivation);
+        `skills/ngrace/ngrace-plan/SKILL.md`, `skills/ngrace/ngrace-spec/SKILL.md` and
+        `skills/ngrace/ngrace-execute/SKILL.md` (the Goal 6 rule) plus their packaged mirrors
+        `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md`,
+        `plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md` and
+        `plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md` (byte-identical);
+        `scripts/check-teaching-surface.ts` (the new `TAUGHT_RULES` entries) and
+        `scripts/check-teaching-surface.test.ts` (their fixture-table copies);
+        `src/test-support/token-accounting.test.ts` (the `skillTextLines().total`/`totalBytes` pins
+        the skill-text change forces) and `README.md` (the Development block gains `bun run
+        test:affected` and `bun run test:metrics`, and the `:304` skill-footprint cell moves with the
+        measured footprint); and this bundle's own artifacts under
+        `.ngrace/changes/active/C-TEST-TIME-BUDGET-2-3EC1F016/`. Nothing else. The packaged-mirror
+        drift checks (`scripts/validate-marketplace.ts:261`–`277` and the `published skill mirrors`
+        block of `scripts/skill-contracts.test.ts`) stay green by identical edits, not by
+        suppression.
+      </Constraint>
+      <Constraint>
+        **Public-repository hygiene.** Nothing identifying a person, a secret or an agent session is
+        written to any artifact, message, name, comment, URI or prose. In particular
+        `test-metrics.json` carries no hostname or machine identifier (a JUnit reporter's `hostname`
+        field is dropped), and no session URL, session/conversation/thread identifier, or harness session trailer (in any harness's spelling) appears anywhere. XML
+        artifacts escape markup as character data (`&lt;`, `&gt;`, `&amp;`); no bracket is
+        paraphrased away.
+      </Constraint>
+      <Constraint>
+        **The README and `examples/` decision.** `README.md`'s Development block gains exactly two
+        commands (`bun run test:affected`, `bun run test:metrics`); its `bun run validate:determinism`
+        line (`README.md:349`) stays accurate because the script (not the dropped test prefix) is the
+        two-run identity and D4 ratchet; and its `:304` skill-footprint cell moves with the footprint
+        the Goal 6 rewrite forces (`skillTextLines().total` / `.totalBytes`, the relation
+        `src/test-support/token-accounting.test.ts` already pins). `examples/` is unchanged — see the
+        NonGoal that names its owner.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `examples/` unchanged: no polyglot surface, no `.ngrace` fixture, no evidence rebalance. The
+        change is a test-time budget; nothing under `examples/` states a suite or CI rule. Owner:
+        unchanged; no user-visible example surface.
+      </NonGoal>
+      <NonGoal>
+        No new lint issue code, no new CLI verb, no new lint-ignore, and no change to
+        `.ngrace-lint.json`: the dedup and coverage guards are TypeScript tests in `scripts/`, not
+        lint rules. Owner: unchanged; no product grammar moves.
+      </NonGoal>
+      <NonGoal>
+        The Windows job's `bun run test &lt;disjoint files&gt;` + `bun run validate:cli` pair is not
+        duplication and is not removed; the Windows-only and Dart-only coverage stays. Owner:
+        unchanged; platform coverage is deliberately retained.
+      </NonGoal>
+      <NonGoal>
+        No rewrite of the suite in another language and no test is deleted; `F281`'s and `F282`'s
+        remedy set is the six Goals above and nothing else. Owner: this bundle.
+      </NonGoal>
+      <NonGoal>
+        Running a gate, cursor, supersede or flush verb, or committing against the production record.
+        Owner: the authority; this spec is authored at `status="draft"`.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-FEWER-PASSES>
+        Within one `bun run validate:ci`, each discovered test file is executed exactly once: the
+        aggregate script `validate:ci` contains the full suite (`bun run test`) and no other
+        `bun test` invocation, and no workflow job that runs
+        `validate:ci` or the full suite runs a second suite command. The guard in
+        `scripts/audit-regressions.test.ts` parses `package.json` and both workflow files and reddens
+        on a re-introduced subset re-run; driven both ways (clean tree green, planted re-run red).
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+          <Command>bun run test</Command>
+        </CloseEvidence>
+      </AC-FEWER-PASSES>
+      <AC-COLLECT-ONCE>
+        `buildPredecessorMap` is computed at most once per resolved project root per process while the
+        bundle revision token is unchanged, for both `collectProjectStatus(REPO_ROOT)` and
+        `runReview(REPO_ROOT, {changeId, changedFiles: [], patterns: false, joinEngine: false})`; the
+        results are byte-identical to the unmemoized derivation for the same tree. A second call over
+        an unchanged tree performs no bundle XML parse; a changed revision token rebuilds. The
+        relation is evaluated by `src/gates/core.test.ts`, not by a wall-clock figure.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/gates/core.test.ts</Command>
+          <Command>bun test --timeout=0 src/grace-status.test.ts</Command>
+        </CloseEvidence>
+      </AC-COLLECT-ONCE>
+      <AC-MEMO-BOUNDARY>
+        Mutation of a returned view does not affect another caller, and tree mutation is observed:
+        (i) mutate the structure the API returns, call again, and the value is unchanged;
+        (ii) add or remove a superseding bundle in a temp root, call again, and the chain depth
+        reflects it. Driven both directions in `src/gates/core.test.ts`; a planted mutation that
+        leaves a stale cache reddens the criterion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/gates/core.test.ts</Command>
+        </CloseEvidence>
+      </AC-MEMO-BOUNDARY>
+      <AC-SELECTIVE-NOT-GATE>
+        `scripts/test-affected.ts` exists and, on a synthetic diff touching one source file, selects
+        that file's test and not the whole suite; on an unmapped source change or an unavailable diff
+        it selects the full suite. `validate:ci` and `validate:release` contain `bun run test` and do
+        not contain the runner; no `CloseEvidence` in any active or archived spec or plan contains
+        the runner token, and a guard reddens if one does. The runner is never a `CloseEvidence`
+        command of this bundle.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/test-affected.test.ts</Command>
+        </CloseEvidence>
+      </AC-SELECTIVE-NOT-GATE>
+      <AC-METRICS-FRESH>
+        `test-metrics.json` lists every `*.test.ts` under the tree exactly once with its test count
+        and total ms, and the artifact's counts agree with the tree; adding or removing a test file
+        without regenerating reddens the freshness guard; a planted slower test is driven to appear
+        in the emitted ranking (a relation, not a threshold). The artifact carries no hostname or
+        machine identifier.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts</Command>
+        </CloseEvidence>
+      </AC-METRICS-FRESH>
+      <AC-INPROCESS>
+        The bulk of `scripts/validate-record-retirement.test.ts` drives the validator through its
+        exported `main(argv, cwd)` in-process, and the `spawnSync("bun", [SCRIPT, …])` executions are
+        bounded to the tests whose contract is the process exit code or the CWD boundary; every
+        assertion keeps its subject and the file's test count does not fall. The in-process path is
+        discriminated (a planted violation returns non-zero) and at least one exit-code/CWD contract
+        is still driven through a real spawn.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-INPROCESS>
+      <AC-VERIFICATION-FREQUENCY>
+        The three skills teach the frequency rule in both trees, byte-identically: `ngrace-plan`'s
+        `must_do` carries the token `narrowest instrument`; `ngrace-spec`'s
+        `acceptance_criteria_anchors` and `ngrace-execute`'s `execution_rules` carry the token
+        `close-time only`; `TAUGHT_RULES` in `scripts/check-teaching-surface.ts` and the fixture table
+        in `scripts/check-teaching-surface.test.ts` carry the same tokens; the canonical and packaged
+        skill bodies are byte-identical. The rule does not weaken `AC-SELECTIVE-NOT-GATE`: the full
+        CI-equivalent suite still runs at `final` and at the close, and no `CloseEvidence` names the
+        runner.
+        <CloseEvidence>
+          <Command>bun run validate:teaching-surface</Command>
+          <Command>bun test --timeout=0 scripts/skill-contracts.test.ts</Command>
+        </CloseEvidence>
+      </AC-VERIFICATION-FREQUENCY>
+      <AC-FOOTPRINT>
+        The skill-footprint pins equal the footprint measured at HEAD **after** the Goal 6 rewrite:
+        `src/test-support/token-accounting.test.ts`'s `total`/`totalBytes` assertions and
+        `README.md`'s `:304` cell carry the relation, not a projected number — the criterion is that
+        both equal `skillTextLines()` at HEAD, and they are green together.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/test-support/token-accounting.test.ts</Command>
+        </CloseEvidence>
+      </AC-FOOTPRINT>
+      <AC-COVERAGE-INTACT>
+        No `*.test.ts` at HEAD has fewer `it(`/`test(` occurrences than at base
+        `2434fd467458e15c12414a74e37b09f9d71bdfd2`, and no removed duplicate was removed by editing
+        its test body. The guard reads each test file and the base revision (`git show
+        &lt;base&gt;:&lt;path&gt;`) and reddens on a dropped test; driven both ways.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+          <Command>bun run test</Command>
+        </CloseEvidence>
+      </AC-COVERAGE-INTACT>
+      <AC-NO-OTHER-SRC>
+        No file changes relative to this spec's base commit
+        `2434fd467458e15c12414a74e37b09f9d71bdfd2` except the write-scope files named in the
+        write-scope Constraint and in this command's excludes, and this bundle's own archive arrival
+        under `.ngrace/changes/` (the close renames the bundle's directory into the archive, so the
+        change's own arrival is excluded by path).
+        <CloseEvidence>
+          <Command>git diff --exit-code 2434fd467458e15c12414a74e37b09f9d71bdfd2 -- . ':(exclude)package.json' ':(exclude).github/workflows/validate.yml' ':(exclude).github/workflows/publish.yml' ':(exclude)scripts/audit-regressions.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts' ':(exclude)scripts/validate-record-retirement.ts' ':(exclude)scripts/publish-workflow.test.ts' ':(exclude)scripts/test-affected.ts' ':(exclude)scripts/test-affected.test.ts' ':(exclude)scripts/test-metrics.ts' ':(exclude)scripts/test-metrics.test.ts' ':(exclude)test-metrics.json' ':(exclude)src/gates/core.test.ts' ':(exclude)src/gates/ledger.ts' ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)scripts/skill-contracts.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)README.md' ':(exclude)docs/plans/active/RM-GOVERNED-PATH' ':(exclude).ngrace/changes'</Command>
+        </CloseEvidence>
+      </AC-NO-OTHER-SRC>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <Assumptions>
+      <Assumption>
+        **The suite population (measured 2026-09-17 at `2434fd4`, bun 1.4.2, macOS arm64; expires).**
+        2017 tests / 64 files / 138.83 s; testcase sum 138.62 s; 22 tests ≥ 1.0 s = 72.92 s (52.6 %);
+        41 ≥ 0.5 s = 86.76 s; 1701 &lt; 0.05 s = 4.38 s. Top files: 42.14 / 23.76 / 19.59 / 14.67 /
+        13.41 / 5.93 / 4.32 s. Command:
+        `bun test --timeout=0 --reporter=junit --reporter-outfile=/tmp/ngrace-junit.xml`, then parse
+        the JUnit testcase `time` attributes. The machine is not the CI runner; the archived
+        `C-TEST-TIMEOUT-CEILING-2-7AD2A006` measured the runner ~1.7× slower, and that ratio is
+        inherited, not re-driven here.
+      </Assumption>
+      <Assumption>
+        **The duplicate cost (measured 2026-09-17 at `2434fd4`; expires).** `validate:cli` =
+        `bun test --timeout=0 src/grace-lint.test.ts src/grace-status.test.ts src/grace-query.test.ts`
+        → 211 tests / 25.02 s; `validate:determinism` test prefix → 196 tests / 24.36 s; `validate:ci`
+        full-suite test wall 188.21 s; 407 duplicate executions = 49.38 s; the `validate` job's extra
+        `validate:determinism` = 196 executions / 24.36 s; `publish.yml` `verify`'s `validate:cli`
+        after `bun run test` = 211 executions. These are dated measurements, not criteria.
+      </Assumption>
+      <Assumption>
+        **The O(n²) attribution (measured 2026-09-17 at `2434fd4`; expires).**
+        `collectProjectStatus(".")` 11.73 s; `readAmendmentInstrument(".", id)` ×1 115.4 ms, ×117
+        9.94 s; `runReview(".", {changeId, changedFiles: [], patterns: false, joinEngine: false})`
+        ×1 114.6 ms, ×117 10.33 s, and 0.0 ms with `processAudits: false`;
+        `readGateDecisions` ×10 5.7 ms. `bun ./src/grace.ts --version` 0.09 s. Reading all archived
+        `spec.xml`/`plan.xml` ×2 = 7.6 ms; all seven record XML ×2 = 0.7 ms. Archive corpus 11.07 MB
+        across 117 bundles; record 1.13 MB. `scripts/validate-record-retirement.test.ts` 42.14 s over
+        163 `runValidator` spawns ≈ 258 ms each. All measured on a warm tree; the numbers expire.
+      </Assumption>
+      <Assumption>
+        **The projected reduction (a projection, never a criterion; expires).** Memoizing the
+        predecessor map removes ~9.94 s from `collectProjectStatus` and ~10.33 s from each of the two
+        archive tests (~30 s of the suite), and the in-process validator removes ~100–150 ms per
+        spawn over ~140 spawns (~14–21 s), so the suite is projected ~138.8 s → ~85–95 s. Removing
+        the duplicate passes removes 49.38 s from `validate:ci`'s test wall and 24.36 s from the
+        `validate` job, projected 188.21 s → ~138.8 s locally, plus the publish-job duplicate. The
+        fix-loop runner is projected to take a fix cycle from 138.8 s to a few seconds — the
+        order-of-magnitude direction — while CI and the close keep the full suite. These are
+        projections and may move.
+      </Assumption>
+      <Assumption>
+        **The in-process feasibility (measured 2026-09-17 at `2434fd4`).**
+        `scripts/validate-record-retirement.ts:1967` already exports `main(argv = process.argv.slice(2),
+        cwd = process.cwd()): number`, and `:2060` runs `if (import.meta.main) process.exit(main())`,
+        so a test can call `main(args, cwd)` directly and capture the returned code; stdout/stderr
+        capture needs an injectable writer or a scoped console/`process.stdout.write` override. The
+        spawn-based tests keep the real process where the exit code or CWD is the subject.
+      </Assumption>
+      <Assumption>
+        **The fixture-read guard edge (known, stated so it is not discovered as a red).** A new
+        `test-metrics.json` read through a repository-relative literal is flagged by
+        `findUntrackedFixtureReads` until the file is `git add`ed; the plan stages it before that
+        guard runs. This is the guard working as designed, not a defect in the artifact.
+      </Assumption>
+      <Assumption>
+        **The memo payoff, re-driven 2026-09-17 on a throwaway `git worktree` at `2434fd4` (not
+        inherited; expires).** A prototype memoizing `buildPredecessorMap` per resolved root, keyed
+        on the sorted `(bundle name, spec/plan size, mtimeMs)` revision, took `src/review/core.test.ts`
+        **23.44 s → 3.03 s** and `src/grace-status.test.ts` **13.92 s → 3.83 s**, 0 failures each,
+        and the full suite **138.83 s → 109.64 s** (`Ran 2017 tests across 64 files. [109.64s]`, exit
+        0). The authority's numbers were 23.55 → 2.99 and 14.30 → 4.05; re-driven, they agree within
+        noise.
+      </Assumption>
+      <Assumption>
+        **The verification-frequency population (parsed 2026-09-17 at `2434fd4` from the archived
+        `C-CLONE-FAITHFUL-TESTS-1-D68520A2` `plan.xml`/`spec.xml`; expires).** Full-suite-equivalent
+        runs = **6**: T-001 `Verification` `bun run test`; T-002 `Verification` `bun run validate:ci`;
+        the `TargetAssertions` `MustPassCommand` `bun run validate:ci` (also evaluated at
+        `--assertions final`); the `AC-*` `CloseEvidence` `bun run test`; and the close `validate:ci`.
+        Subset repeats: `bun run typecheck` ×3,
+        `bun test scripts/validate-record-retirement.test.ts` ×3,
+        `bun test scripts/audit-regressions.test.ts` ×2. The `TargetAssertions` `MustPassCommand`
+        list is `bun run typecheck`, `bun test scripts/audit-regressions.test.ts`,
+        `bun test scripts/validate-record-retirement.test.ts`, `bun run validate:ci`. A search of
+        `skills/ngrace/*/SKILL.md` for `full suite`, `whole suite`, `exactly once`, `only once`,
+        `once per`, `per-task` finds no passage that caps full-verification frequency.
+      </Assumption>
+      <Assumption>
+        **What the Goal 6 rewrite forces, greped 2026-09-17 at `2434fd4` (expires).** Skill text moves
+        the footprint pins: `src/test-support/token-accounting.test.ts:39` (`measured.total` 869),
+        `:101`/`:102` (`total` 869 / `totalBytes` 80354), and `README.md:304`
+        (`**869 lines** / **80354 UTF-8 bytes**`, asserted by `token-accounting.test.ts:111`–`114`).
+        The packaged mirror moves the drift checks `scripts/validate-marketplace.ts:261`–`277` and
+        the `published skill mirrors` block of `scripts/skill-contracts.test.ts`. New taught tokens
+        force `scripts/check-teaching-surface.ts`'s `TAUGHT_RULES` and the fixture table in
+        `scripts/check-teaching-surface.test.ts`. Other readers of the three skill files
+        (`src/review/core.test.ts`, `src/artifact/grammar.test.ts`, `src/grace-cursor.test.ts`,
+        `scripts/validate-record-retirement.test.ts`) assert prose and structure the additions
+        preserve, and are expected non-edits.
+      </Assumption>
+    </Assumptions>
+    <AffectedAreas>
+      <M-GATES />
+      <M-SKILLS />
+      The two module-ownable paths this bundle writes are `src/gates/ledger.ts` (`LINKS: M-GATES`)
+      and the canonical `skills/ngrace/{ngrace-spec,ngrace-plan,ngrace-execute}/SKILL.md`
+      (`M-SKILLS`); those are the two module anchors this spec honestly holds. Every other forced
+      file — `package.json`, `.github/workflows/*`, a `scripts/` path, a `*.test.ts`, the packaged
+      skill mirror, `README.md` and `test-metrics.json` — has `isModuleOwnableWritePath` false; do
+      not mint a synthetic module and do not add a `LINKS:` header to a script. The write scope is
+      enumerated once, in the write-scope Constraint — no second module list anywhere (`F136.1`).
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run test</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run validate:teaching-surface</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/audit-regressions.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 src/gates/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/test-affected.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/test-metrics.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/skill-contracts.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        T3 integration: `validate:ci` runs the full suite once and executes each test file once,
+        proven by a guard that parses `package.json` and both workflows and reddens on a planted
+        re-run; `buildPredecessorMap` is derived at most once per resolved root per process with a
+        revision-token invalidation, proven by both mutation directions in `src/gates/core.test.ts`
+        and by identical results for `collectProjectStatus`/`runReview`; the dev-loop runner selects
+        affected tests and falls back to the full suite on ambiguity, and no `CloseEvidence` anywhere
+        names it; `test-metrics.json` is fresh against the tree and carries no machine identifier;
+        the bulk of the 163 validator spawns is in-process with the exit-code/CWD spawns retained and
+        the test count not fallen; the suite's per-test-file counts are not below base
+        `2434fd467458e15c12414a74e37b09f9d71bdfd2`; the Goal 6 frequency rule is present in all
+        three skills in both trees with its `TAUGHT_RULES`/fixture tokens, and the mirror stays
+        byte-identical; the footprint pins and `README.md`'s `:304` cell equal `skillTextLines()` at
+        HEAD (a relation); `README.md`'s Development block carries the two new commands. Every
+        `CloseEvidence` command and the full `validate:ci` run green inside a faithful copy of the
+        post-close state, with both directions driven for each criterion (clean pass and planted
+        red). Structural counts come from the shipped parser; exit codes read directly, never
+        through a pipe; probes mutate copies, never the production record.
+      </ExpectedEvidence>
+    </VerificationIntent>
+  </C-TEST-TIME-BUDGET-2-3EC1F016>
+</NgraceChangeSpec>

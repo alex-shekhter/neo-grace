@@ -2010,6 +2010,79 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     expect(totalRetired).toBe(0);
   });
 
+  /** An archived bundle whose run/ holds one uncorroborated fail→pass pair. */
+  function writeArchivedAttemptPairBundle(
+    root: string,
+    changeId: string,
+    specStatus: "applied" | "rejected" | "cancelled" | "superseded",
+  ): void {
+    writeChangeBundleFixture(root, {
+      changeId,
+      location: "archive",
+      specStatus,
+      planStatus: specStatus,
+    });
+    const runDir = path.join(root, ARTIFACT_DIR, "changes", "archive", changeId, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, "1-T-001-attempt.xml"),
+      renderAttemptEvent({
+        id: 1,
+        task: "T-001",
+        outcome: "fail",
+        digests: [["src/example.ts", "same"]],
+        signature: { kind: "verification", key: "f286-archive-corpus" },
+      }),
+    );
+    writeFileSync(
+      path.join(runDir, "2-T-001-attempt.xml"),
+      renderAttemptEvent({
+        id: 2,
+        task: "T-001",
+        outcome: "pass",
+        digests: [["src/example.ts", "same"]],
+      }),
+    );
+  }
+
+  it("F286: an abandoned archived bundle is exempt; an applied archived bundle still reddens", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeArchivedAttemptPairBundle(root, "C-ABANDONED-F286", "superseded");
+    writeArchivedAttemptPairBundle(root, "C-APPLIED-F286", "applied");
+
+    const abandoned = runReview(root, {
+      changeId: "C-ABANDONED-F286",
+      changedFiles: [],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(abandoned.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE)).toHaveLength(0);
+
+    const applied = runReview(root, {
+      changeId: "C-APPLIED-F286",
+      changedFiles: [],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(applied.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE)).toHaveLength(1);
+  });
+
+  it("F286: rejected and cancelled archived bundles are exempt too", () => {
+    for (const status of ["rejected", "cancelled"] as const) {
+      const root = ensureTempRoot();
+      writeMinimalNgraceProject(root);
+      writeArchivedAttemptPairBundle(root, "C-ABANDONED-F286", status);
+      const report = runReview(root, {
+        changeId: "C-ABANDONED-F286",
+        changedFiles: [],
+        patterns: false,
+        joinEngine: false,
+      });
+      expect(report.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE)).toHaveLength(0);
+    }
+  });
+
   it("archived bundle finding anchors under archive/ not active/", () => {
     const repoRoot = path.resolve(import.meta.dir, "../..");
     const findings = auditAttemptPairWriteEvidence({
