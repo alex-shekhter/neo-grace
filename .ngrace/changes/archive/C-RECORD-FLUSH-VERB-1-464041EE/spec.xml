@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-RECORD-FLUSH-VERB-1-464041EE>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-RECORD-FLUSH-VERB-1-464041EE><Replacement>C-RECORD-FLUSH-VERB-2-6BB9DF5A</Replacement>
     <Summary>
       Step (2) of the maintainer's `D40` sequence, and the bundle that pays the live finding `F228`
       and the finding this authoring run stages, `F277`.

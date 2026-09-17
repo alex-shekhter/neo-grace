@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-RECORD-FLUSH-VERB-2-6BB9DF5A>
+    <Summary>Summary of C-RECORD-FLUSH-VERB-2-6BB9DF5A.</Summary>
+    <Goals>
+      <Goal>Goal for C-RECORD-FLUSH-VERB-2-6BB9DF5A.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-RECORD-FLUSH-VERB-2-6BB9DF5A.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-RECORD-FLUSH-VERB-2-6BB9DF5A; replace this placeholder by deciding README.md and examples/. Owner: the author.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-RECORD-FLUSH-VERB-2-6BB9DF5A.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-RECORD-FLUSH-VERB-2-6BB9DF5A.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-RECORD-FLUSH-VERB-2-6BB9DF5A>
+</NgraceChangeSpec>
