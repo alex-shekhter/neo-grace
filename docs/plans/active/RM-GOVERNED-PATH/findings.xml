@@ -1,4 +1,4 @@
-<Findings base="7341" headroom="273" ceiling="7614">
+<Findings base="7329" headroom="250" ceiling="7579">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -7324,18 +7324,6 @@ one commit earlier — the criteria were relations, not events.
 Owner: the authority's procedure, from this entry forward; the skill text that teaches supersede
 (`ngrace-plan` `approved_plan_immutability`) says nothing about payer rows and is the surface a later
 bundle amends. Neighbour to [F225](#f225) and [F229](#f229).
-</Body>
-  </Finding>
-  <Finding id="f279" token="F279" status="live">
-    <Title>### F279 — a shipped test sourced its fixture from a path git does not track, so the suite is green in the maintainer's working tree and red in every clone; a close can sign off on evidence CI disproves. **[verified]**</Title>
-    <Body>
-**Measured 2026-09-17 at `0044fbe1ef4aaadf9bfd38be0fef90e4a41a51cb`.** `scripts/validate-record-retirement.test.ts:6232`, inside the `C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode` describe (`:6221`), builds its fixture with `plant(root, &quot;.ngrace/scratch/staged-findings.md&quot;, readFileSync(path.join(REPO_ROOT, &quot;.ngrace/scratch/staged-findings.md&quot;), &quot;utf8&quot;))` — the live authority buffer, planted into an isolated root. The path is `.gitignore`d (`.gitignore:8`, `.ngrace/scratch/`) and tracked by nothing, so it exists in the maintainer's tree and in no clone. Two runs at the same commit, `bun test --timeout=0` with the exit read directly (`&gt; log 2&gt;&amp;1; echo EXIT=$?`): in a fresh `git clone` of this branch plus `bun install --frozen-lockfile`, **2009 pass, 3 fail, 3 skip** (EXIT=1), all three failures in that describe, each carrying `error: ENOENT: no such file or directory, open '&lt;clone&gt;/.ngrace/scratch/staged-findings.md'` at `flushRoot (scripts/validate-record-retirement.test.ts:6232:55)`; in this working tree, **2012 pass, 0 fail, 3 skip** (EXIT=0). The delta is exactly the three tests the buffer read feeds. The archived Constraint that pointed the fixture at that path is `.ngrace/changes/archive/C-RECORD-FLUSH-VERB-2-6BB9DF5A/spec.xml:323` (&quot;`.ngrace/scratch/staged-findings.md` is **read, never written**&quot;) with `:341` staging new findings there.
-
-**The population, measured.** Across **64** `*.test.ts` files (the whole set: `find . -name '*.test.ts' -not -path './node_modules/*'`), exactly **one** read names a `.gitignore`d or untracked repository path — that line (`grep -rn &quot;\.ngrace/scratch&quot; --include='*.test.ts'` returns one hit; `grep -rn &quot;node_modules\|\.claude\|DS_Store&quot; --include='*.test.ts'` returns none). Non-test code under `src/` and `scripts/`: **none** reads an ignored or untracked path; the six hits on `node_modules` are `src/project-utils.ts:102` (`DEFAULT_IGNORED_DIRS`, a skip list), `src/review/core.ts:396` and `:461` (skip filters on a user's tree) and `:432` (a comment), `scripts/validate-marketplace.ts:161` (a skip filter) and `scripts/packed-cli-smoke.ts:155` (a temp consumer's own `node_modules`, created by the script). A shipped guard that would have caught the test: **none exists** — `git check-ignore`, `git ls-files`, `git worktree`, `git archive` and `git clone` appear in no `src/`, `scripts/` or workflow file, and `.gitignore` is named in none (searched every form; the only `git status --untracked-files=all` use is the review engine deriving changed files, `src/review/core.ts:2009`, and `scripts/skill-contracts.test.ts:207` asserts a skill string). CI's fresh `actions/checkout` in `.github/workflows/validate.yml:16,41,68` is the state the working tree diverges from, and nothing in the repository compares the two.
-
-**The class.** A shipped test whose fixture is sourced from a path git does not track is green only where that path exists — the maintainer's tree. `bun run validate:ci` run there therefore does not predict CI: the bundle's own `CloseEvidence` (`bun test scripts/validate-record-retirement.test.ts`, the archived spec's `AC-FLUSH-MODE`) was green locally for a reason the runner cannot reproduce, and the close signed off on evidence CI disproves. The dependency is on session state as well as a missing file: the buffer's header rule prunes entries after their PR merges, so the fixture's content changes under the test even where the file exists.
-
-**Remedy.** The fixture becomes self-contained in the test file (a literal buffer, independent of the record's state and the buffer's contents), and a shipped guard in the shape of `C-TEST-TIMEOUT-CEILING-2-7AD2A006`'s suite-hygiene test fails when any `.ts` file passes a path git does not track to a filesystem read — keyed on read call sites, so `src/review/core.ts`'s mention of `node_modules` is not a false positive. Owner: `C-CLONE-FAITHFUL-TESTS-1-D68520A2`.
 </Body>
   </Finding>
 </Findings>

@@ -398,4 +398,10 @@
     <Pays>F228 F277 F278</Pays>
     <StatusText>Step (2) of D40; the flush/mint verb, successor dogfood flush.</StatusText>
   </Row>
+  <Row name="C-CLONE-FAITHFUL-TESTS-1-D68520A2" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug CLONE-FAITHFUL-TESTS. Searched before minting over the archive and both registry layers for CLONE-FAITHFUL-TESTS; none.</Charter>
+    <Pays>F279</Pays>
+    <StatusText>Clone-faithful fixtures and the read-audit guard; one finding paid</StatusText>
+  </Row>
 </Registry>

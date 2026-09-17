@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-CLONE-FAITHFUL-TESTS-1-D68520A2>
     <IntentSummary>
       This T0 plan converts the approved `C-CLONE-FAITHFUL-TESTS-1-D68520A2` spec into two
