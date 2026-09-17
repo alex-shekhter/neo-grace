@@ -1,0 +1,254 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-TEST-TIME-BUDGET-2-3EC1F016>
+    <IntentSummary>
+      Plan for `C-TEST-TIME-BUDGET-2-3EC1F016` (tier T3, roadmap `RM-GOVERNED-PATH`): eight tasks in
+      two waves, each task carrying the narrowest instrument for its own subject, with the single
+      full CI-equivalent verification left to `TargetAssertions` / `--assertions final`. Wave 1:
+      T-001 (narrow the `validate:ci` duplicate-pass removal and guard it), T-002 (memoize the
+      predecessor map with revision-token invalidation), T-003 (the selective, non-gating
+      developer-loop runner), T-004 (per-test metrics with the freshness relation), T-005 (in-process
+      validator calls, spawns kept where the process boundary is the contract), T-006 (teach the
+      `close-time only` rule in `ngrace-plan`, `ngrace-spec` and `ngrace-execute`, both trees, with
+      the `TAUGHT_RULES` tokens). Wave 2: T-007 (re-measure the footprint the rule forces and move
+      the pins and the `README.md` cell), T-008 (the coverage-integrity guard).
+      **Narrowed this successor**: `validate:release` keeps its `validate:cli` and is untouched; the
+      two release guards that assert it (`scripts/validate-marketplace.ts:336`–`338`,
+      `scripts/release-checklist.ts:250`) stay green by non-edit and are **not** in scope.
+      **Full-suite runs: three** — one `bun run validate:ci` in `TargetAssertions` under
+      `--assertions final --run-commands`, and the two genuinely whole-suite `CloseEvidence` criteria
+      (`AC-FEWER-PASSES`, `AC-COVERAGE-INTACT`). No task `Verification` runs the whole suite, and
+      `--assertions target` is evaluated without `--run-commands`, so the full run is final-only.
+      Every `AC-*` is close-bound, so no task carries a `Satisfies`; absence of `Satisfies` is not an
+      error and there is no unmapped ordinary criterion to warn.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustPassCommand><Command>bun run typecheck</Command></MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustExist><Value>test-metrics.json</Value></MustExist>
+      <MustExist><Value>scripts/test-affected.ts</Value></MustExist>
+      <MustExist><Value>scripts/test-metrics.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GATES />
+        <M-SKILLS />
+      </GraphAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>package.json</File>
+      <File>.github/workflows/validate.yml</File>
+      <File>.github/workflows/publish.yml</File>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>scripts/validate-record-retirement.ts</File>
+      <File>scripts/publish-workflow.test.ts</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>scripts/test-affected.ts</File>
+      <File>scripts/test-affected.test.ts</File>
+      <File>scripts/test-metrics.ts</File>
+      <File>scripts/test-metrics.test.ts</File>
+      <File>test-metrics.json</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/gates/ledger.ts</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Narrow `validate:ci` to one suite run and guard it</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `package.json`'s `validate:ci` drops `bun run validate:cli` (its 211 tests already run by
+            `bun run test` in the same script) and `validate:determinism` drops its
+            `bun test --timeout=0 src/review/core.test.ts src/review/scorer.test.ts` prefix while
+            keeping `bun run ./scripts/validate-determinism.ts`. `validate:release` keeps its
+            `validate:cli` and is **not** touched. `.github/workflows/validate.yml`'s duplicate
+            `Run determinism and corpus ratchet gate (D4)` step and `publish.yml`'s duplicate
+            `CLI validation` step are removed. A narrowed guard in `scripts/audit-regressions.test.ts`
+            asserts the aggregate script `validate:ci` contains the full suite (`bun run test`) and no
+            other resolved-test command, resolves `bun run validate:cli` to its tests, does **not**
+            assert that of `validate:release`, and asserts `validate:release` still contains
+            `validate:cli`. `scripts/publish-workflow.test.ts` asserts the deduped publish composition
+            (no `bun run validate:cli`) with its other positive gates intact. The guard is driven red
+            on a re-introduced subset in `validate:ci` before it greens. `bun run
+            ./scripts/validate-marketplace.ts` and the `validate:release` composition check in
+            `bun run ./scripts/release-checklist.ts` both stay green.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+          <Command>bun test --timeout=0 scripts/publish-workflow.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Memoize the predecessor map with revision-token invalidation</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `buildPredecessorMap` (`src/gates/ledger.ts`) is computed at most once per resolved project
+            root per process, validated by a revision token recomputed on each call — the sorted
+            `(bundle name, spec/plan byte size, mtimeMs)` over the active and archive bundle
+            directories. The cached value is handed back as a frozen, read-only view, so a caller
+            mutating a returned view cannot corrupt it. A guard in `src/gates/core.test.ts` drives
+            both directions: an unchanged tree does not rebuild the map; a bundle **added**,
+            **removed**, **renamed**, and **edited in place** each invalidates and yields what a cold
+            process yields. The guard is driven red at HEAD (no memo seam) before it greens.
+            `collectProjectStatus` and `runReview` return identical results for the same tree.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/gates/core.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Add the selective developer-loop runner and its non-gating guard</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            New `scripts/test-affected.ts`, run as `bun run test:affected`, takes a base ref, reads the
+            changed files from git, maps each to the test files that exercise it (path convention plus
+            an explicit dependency table), prints the selection and its reasons, and runs only those.
+            It is fail-safe: an unmapped changed source under `src/` or `scripts/`, an empty or
+            unavailable diff, or a merge-base failure selects the full suite. `scripts/test-affected.test.ts`
+            proves the selection and the fallback and proves the non-gating rule — `validate:ci` and
+            `validate:release` contain `bun run test` and never `test:affected`, and no active or
+            archived `CloseEvidence` invokes the runner. The guard is driven red at HEAD (the runner
+            does not exist) before it greens.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/test-affected.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Emit per-test metrics with a freshness relation</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            New `scripts/test-metrics.ts`, run as `bun run test:metrics`, executes the suite once with
+            `--reporter=junit` and writes a committed `test-metrics.json` holding per test file the
+            test count and total ms, every individual test's ms and file, a `schemaVersion` and the
+            generation date, and **no hostname or machine identifier**. It writes a provisional,
+            tree-derived artifact before the metered run so the freshness guard passes inside that
+            run. `scripts/test-metrics.test.ts` asserts the freshness relation — every `*.test.ts` in
+            the tree appears exactly once, the per-file counts sum to the recorded testcase count, the
+            artifact has exactly the four declared keys — and that a planted slower test moves the
+            ranking. The guard is driven red on a stale artifact (a test file added without
+            regenerating) and green after regeneration.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Move the validator's bulk calls in-process and bound the spawns</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The bulk of `scripts/validate-record-retirement.test.ts`'s `runValidator` calls the
+            validator's exported `main(argv, cwd)` in-process (`scripts/validate-record-retirement.ts`),
+            capturing stdout/stderr through a writer seam, so no process is created; the real spawn is
+            kept — and said so — where the contract under test is the process exit code or the CWD
+            boundary. The file's test count does not fall and every assertion keeps its subject. A
+            guard states the bounded spawn count so a later re-spawn is visible. The in-process path is
+            discriminated (a planted violation returns non-zero) and at least one exit-code/CWD
+            contract still runs through a real spawn. The capture is proven **isolated**: the seam is
+            restored after every call and a second in-process call observes only its own output, so no
+            buffer leaks between tests — driven, because a stale buffer satisfying a "stderr contains"
+            assertion is a false green, and the seam is shared mutable state by construction.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Teach the `close-time only` verification rule in both skill trees</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `skills/ngrace/ngrace-plan/SKILL.md` gains a `must_do` row carrying `narrowest instrument`
+            (a task's `Verification` names the narrowest instrument for its subject; the whole suite is
+            not a per-task command; a `TargetAssertions` `MustPassCommand` does not duplicate `final`).
+            `skills/ngrace/ngrace-spec/SKILL.md`'s `acceptance_criteria_anchors` and
+            `skills/ngrace/ngrace-execute/SKILL.md`'s `execution_rules` carry `close-time only` (the
+            full CI-equivalent verification runs at `--assertions final --run-commands`, and a
+            whole-suite `CloseEvidence` belongs only on a criterion genuinely about the whole suite).
+            The `TAUGHT_RULES` entries live in `scripts/check-teaching-surface.ts` and the fixture
+            copies in `scripts/check-teaching-surface.test.ts`, so a later softening reddens; the
+            canonical and packaged skill bodies stay byte-identical.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:teaching-surface</Command>
+          <Command>bun test --timeout=0 scripts/skill-contracts.test.ts</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Re-measure the forced footprint and move the pins and README cell</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+          <Task>T-004</Task>
+          <Task>T-006</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            After T-006 lands the skill text, the footprint is re-measured with `skillTextLines()`;
+            `src/test-support/token-accounting.test.ts`'s `total` and `totalBytes` assertions and the
+            `README.md` `:304` cell are set to the measured values — the **relation** (the pins equal
+            the footprint measured at HEAD after the rewrite), never a projected figure.
+            `README.md`'s Development block gains `bun run test:affected` and `bun run test:metrics`.
+            The canonical skills are mirrored byte-identically into `plugins/ngrace/skills/ngrace/*`,
+            and both mirror drift checks (`scripts/validate-marketplace.ts:261`–`277`,
+            `scripts/skill-contracts.test.ts`'s `published skill mirrors`) stay green.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/test-support/token-accounting.test.ts</Command>
+        </Verification>
+      </T-007>
+      <T-008>
+        <Title>Add the coverage-integrity guard</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            A guard in `scripts/audit-regressions.test.ts` reads every `*.test.ts` at HEAD and at base
+            `2434fd467458e15c12414a74e37b09f9d71bdfd2` (`git show &lt;base&gt;:&lt;path&gt;`) and asserts no test
+            file has fewer `it(`/`test(` occurrences than at base, so no removed duplicate was removed
+            by editing its test body; it reddens on a dropped test, driven both ways. The only removed
+            work is the three proven duplicates named in the spec (the `validate:ci` `validate:cli`
+            invocation, the `validate:determinism` test prefix, the `validate.yml` D4 step).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+        </Verification>
+      </T-008>
+    </ImplementationPlan>
+  </C-TEST-TIME-BUDGET-2-3EC1F016>
+</NgraceChangePlan>
