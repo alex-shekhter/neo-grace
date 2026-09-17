@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-TEST-TIME-BUDGET-3-7950A760>
+    <Summary>Summary of C-TEST-TIME-BUDGET-3-7950A760.</Summary>
+    <Goals>
+      <Goal>Goal for C-TEST-TIME-BUDGET-3-7950A760.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-TEST-TIME-BUDGET-3-7950A760.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-TEST-TIME-BUDGET-3-7950A760; replace this placeholder by deciding README.md and examples/. Owner: the author.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-TEST-TIME-BUDGET-3-7950A760.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-TEST-TIME-BUDGET-3-7950A760.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-TEST-TIME-BUDGET-3-7950A760>
+</NgraceChangeSpec>

@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-TEST-TIME-BUDGET-2-3EC1F016>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-TEST-TIME-BUDGET-2-3EC1F016><Replacement>C-TEST-TIME-BUDGET-3-7950A760</Replacement>
     <IntentSummary>
       Plan for `C-TEST-TIME-BUDGET-2-3EC1F016` (tier T3, roadmap `RM-GOVERNED-PATH`): eight tasks in
       two waves, each task carrying the narrowest instrument for its own subject, with the single
