@@ -1,0 +1,592 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-EPOCH-OPEN-DEFAULT-1-CE010A4C>
+    <Summary>
+      One `src/` bundle that pays the one staged finding `F308`: an unbounded
+      `ngrace cursor advance --open-epoch` allocates the constant
+      `w0:1-99` on every bundle, so on any bundle with a folded history the
+      next `ngrace cursor fold` refuses `range hole at 1 for w0` and
+      `ngrace cursor recover --fix` declines because the effective covering
+      allocation is `present`. The default lives at
+      `const from = options.from ?? 1;` (`src/grace-cursor.ts:976`,
+      `to = from + 98` at `:977`); the fold's contiguity walk begins at
+      `allocation.from` and reports the first missing id
+      (`src/grace-cursor.ts:2838`–`2843`); `recover --fix` returns
+      `fixApplied: false` whenever the covering allocation is `present`
+      (`src/grace-cursor.ts:678`), and a leading-holed allocation is
+      `present`. `ngrace-execute` rule 12 and the `opened` kind tell every
+      agent to open **without** bounds, so the ordinary instruction produces
+      an unfoldable epoch on every bundle that has already folded once — the
+      finding was met by the executor on this branch's first correction after
+      two folded epochs, and re-measured by the authority on a copy of the
+      same bundle with four folded epochs and an empty `run/`. (The final
+      `--run-commands` writes loose `command-run` events with no allocation
+      — `appendCommandRunEvent`, `src/lint/core.ts:510` — and the fold
+      synthesizes a hole-free covering allocation from the first loose id;
+      it is the *next* `cursor advance --open-epoch` that reaches the
+      `from = 1` default.) The remedy
+      has two parts, both confined to `src/grace-cursor.ts`: the unbounded
+      open derives its `from` from the next event id after the folded
+      history (`nextEventId(bundlePath)`) instead of the constant `1`, so the
+      allocation begins at the `opened` event's own id and the fold's walk
+      begins at a used id; and `recover --fix` treats a present covering
+      allocation whose reported hole lies below every loose event id as a
+      leading hole and re-homes it, while a hole inside the loose range (a
+      genuinely lost event) still declines. The `ngrace-execute` text stands
+      unchanged: the unbounded open becomes correct, and the bounded reopen
+      the finding offered as interim teaching is no longer needed.
+    </Summary>
+    <Goals>
+      <Goal>
+        **`F308` (a) — the unbounded open starts where the events start.**
+        In `advanceCursor` (`src/grace-cursor.ts:972`), the `openEpoch`
+        default becomes
+        `const from = options.from ?? nextEventId(bundlePath);`, never
+        `?? 1`. `nextEventId` already computes
+        `max(floor, looseMax + 1, ledgerMax + 1)`, so it is the id the
+        `opened` event itself receives; the allocation therefore begins at a
+        used id and `allocationsFor(id)` still clamps
+        `from: Math.min(from, id)`. Explicit `--from`/`--to` are unchanged,
+        and `writeEventFile`'s existing renumber-on-collision keeps
+        `allocation.from` at or below the written id. On a fresh bundle
+        `nextEventId` is `1`, so the first unbounded open is byte-identical
+        to today; only a post-fold open moves.
+      </Goal>
+      <Goal>
+        **`F308` (b) — `recover --fix` re-homes a leading hole.** In
+        `recoverCursor` (`src/grace-cursor.ts:678`), `--fix` stops skipping
+        every `present` covering allocation. It skips when the covering is
+        present **and** the fold's reported hole does not lie below every
+        loose event id. When the first reported hole is below the lowest
+        loose id — ids that folded, not lost — `--fix` writes a superseding
+        opened via the shipped `writeCoveringOpened` (append-only, D9;
+        last-writer-wins per worker, D9.1; never a terminal, A29.2 / F12),
+        starting at the first loose id. The post-fix diagnosis reads
+        `Fix applied: yes`, `Fold: ok`, and `Covering opened:
+        run/&lt;id&gt;-&lt;task&gt;-opened.xml`. A hole inside the loose range
+        is a genuinely lost event no verb may fabricate: `--fix` returns
+        `Fix applied: no` and leaves the stream byte-unchanged. Multi-worker
+        still refuses before write (D8.2). No test asserts that a
+        `present` covering is a no-op except where the fold is not holed.
+      </Goal>
+      <Goal>
+        **`F308` (c) — a deterministic red on `main`, and a green after.**
+        Add guards to `src/grace-cursor.test.ts` (no new test file) that red
+        on the base commit and green here, on this platform with no Windows
+        dependency: (i) seed a bundle, open unbounded, progress, terminal,
+        `foldEpoch` applies; open unbounded again, progress, terminal,
+        `foldEpoch` must apply and not throw — on the base commit it throws
+        `invalid-project` naming `range hole at 1 for w0`; (ii) a legacy/
+        explicit-low leading-holed stream — open explicitly `from: 1`,
+        progress, terminal, fold (green), then open explicitly `from: 1`
+        again, progress, terminal — `recoverCursor({ fix: true })` returns
+        `fixApplied: true` and a following `foldEpoch` applies, where on the
+        base commit it returns `false` and the fold throws; (iii) a mid-range
+        hole — a hand-written allocation with a gap inside the loose range —
+        `recoverCursor({ fix: true })` returns `fixApplied: false` and the
+        fold still throws, in both trees. Keep every existing
+        `AC-UNIQUE-CONCURRENT` / `AC-NO-SILENT-OVERWRITE` /
+        `AC-FORCED-COLLISION` guard green.
+      </Goal>
+      <Goal>
+        **The row and the payment.** At the close the authority's `--flush`
+        lands `F308` and mints this bundle's chartered row into
+        `registry.xml`: `&lt;Row name="C-EPOCH-OPEN-DEFAULT-1-CE010A4C"
+        status="live" kind="chartered"&gt;` with an empty `&lt;Number&gt;`, a
+        `&lt;Charter&gt;` carrying the searched-before-minting statement over
+        the archive and both registry layers, no `F` token and no bundle
+        token other than this one, `&lt;Pays&gt;` naming exactly `F308`, and
+        a `&lt;StatusText&gt;` naming no `F` token and containing no
+        `Closed with` sentence. The plan extends the shipped
+        payer-derivation baseline `bundleMinted`
+        (`scripts/validate-record-retirement.test.ts`) with `F308` mapped to
+        `C-EPOCH-OPEN-DEFAULT-1-CE010A4C`. The move retires `F308` and the
+        row.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T1** (module change: one module-ownable file plus its
+        test, the payer-map fixture, and the governed record the close
+        writes). Roadmap: `RM-GOVERNED-PATH`. Binding: **`F308`** — this
+        bundle is the cursor-allocation increment it names as owner, and the
+        two-part remedy is the deliverable, not a follow-up; `D11` — nothing
+        is deferred without a dependency or a conflict; `D30` — no hard
+        `Constraint` below transcribes a scalar count of a file this bundle
+        writes; counts live in `Assumptions` and expire; `D5.5` —
+        `CHANGELOG.md` is generated and is not edited; `F136.1` — every file
+        this spec forces into scope has its owner confirmed against every
+        module list this spec carries, and the write scope is enumerated
+        exactly once, in the write-scope Constraint; `F227` — the forced-file
+        set is derived from the Goals, and every byte-invariance criterion
+        excludes every file the Goals make inevitable; `F285`/`F293` — the
+        close's write set is enumerated from the verb, charged to the plan's
+        `ObservedWriteScope`, and permitted by every byte-invariance
+        pathspec; `D9`/`D9.1`/`A29.2`/`F12`/`D8.2` — the `--fix` write stays
+        append-only, last-writer-wins, terminal-free, and single-worker;
+        `F43` — markup is escaped as character data in every artifact this
+        bundle writes, never paraphrased away.
+      </Constraint>
+      <Constraint>
+        **The allocation contract, and the shape chosen.** The default `from`
+        is the next event id after the folded history
+        (`nextEventId(bundlePath)`), never the constant `1`; `to` remains
+        `from + 98` when unbounded; explicit bounds are unchanged. **Shape
+        (A), chosen:** the allocation starts where the `opened` event itself
+        starts, so `allocation.from` is a used id and the fold's contiguity
+        walk (`src/grace-cursor.ts:2838`–`2843`), which begins at
+        `allocation.from`, never reports a folded id as a hole. **Shape (B),
+        rejected:** starting the walk at the first *loose* id inside the
+        allocation changes fold semantics — a genuinely lost low event (an id
+        absent from both `run/` and `run-ledger.xml`) would no longer be
+        reported, trading a user-visible defect for a silent one, and the
+        fold is the guard F288 names for event loss. Shape (A)'s breakage is
+        nameable and measured: the allocation bytes of a post-fold unbounded
+        open move from `w0:1-99` to `w0:&lt;N&gt;-&lt;N+98&gt;` where `N` is
+        the opened event's id. The pin census is in `Assumptions`; the full
+        suite is green on the shape-(A) prototype, because every test that
+        asserts allocation bytes passes explicit bounds or opens on a fresh
+        bundle where `nextEventId === 1`.
+      </Constraint>
+      <Constraint>
+        **The `recover --fix` contract, and the ruling it amends.** The
+        shipped skip is `if (pre.coveringAllocation === "present") return
+        { ...pre, fixApplied: false };` (`src/grace-cursor.ts:676`–`679`),
+        introduced by `C-RECOVER-FOLDABLE` / `F13` so a *healthy* open epoch
+        is not re-homed. This bundle keeps that ruling for a healthy or
+        mid-range-holed covering and amends it only for a leading hole, which
+        `F308` itself prescribes ("a covering allocation whose `from`
+        precedes every loose event is the hole it is"). `--fix` re-homes
+        exactly when `coveringAllocation === "present"`, the fold is blocked
+        by a `range hole at &lt;id&gt; for &lt;worker&gt;`, and `&lt;id&gt;`
+        is below the lowest loose event id. The re-home appends a superseding
+        opened with `from` at the first loose id through the existing
+        `writeCoveringOpened`; it never rewrites a recorded event, never
+        emits a terminal, and refuses when more than one worker appears.
+      </Constraint>
+      <Constraint>
+        **The skill-text decision, stated.** `ngrace-execute` rule 12
+        (`skills/ngrace/ngrace-execute/SKILL.md:47`) and the `opened` kind's
+        `When:` line (`:53`, "Do not pass `--from`/`--to` unless you have a
+        measured allocation need; never pass a task id as a bound") are
+        **correct** under shape (A): the unbounded open is now safe on a
+        bundle with a folded history, and a measured allocation need
+        (multi-worker ranges, an epoch larger than the default headroom)
+        still justifies explicit bounds. No sentence teaches the bounded
+        reopen as the recovery for `F308`, because `recover --fix` is now
+        that recovery. Therefore **no skill edit is forced**: the canonical
+        `skills/ngrace/*` tree, the `plugins/ngrace/skills/ngrace/*` mirror,
+        the teaching-surface pin and the footprint pin are untouched, and
+        `AC-SURFACES-UNMOVED` holds them byte-identical. The finding's
+        "Teaching: the bounded reopen as the interim recovery" clause is
+        knowingly not adopted; teaching it would misdescribe the fixed
+        unbounded open as unsafe.
+      </Constraint>
+      <Constraint>
+        **The caller and pin census, measured at the base commit.** The one
+        default is `src/grace-cursor.ts:976`; the one fold walk is
+        `:2838`–`2843`; the one skip is `:678`; the one CLI flag is
+        `:3665`. `grep -rn 'openEpoch: true' src scripts` finds every
+        explicit call: those passing `from`, plus the unbounded ones, all of
+        which open on a fresh bundle or a distinct change. Tests that pass
+        `from: 1, to: 199` explicitly are unaffected; tests that hand-write
+        allocations (`src/grace-cursor.test.ts:238`, `:274`, `:293`, `:1366`,
+        recover fixtures) are unaffected; golden-ledger assertions read a
+        ledger built from explicit bounds or a fresh bundle. The
+        `AC-FORCED-COLLISION` guard (`:4106`) opens no epoch, and the
+        concurrency guards pass explicit `from: 1, to: 199`. No test exists
+        that folds, then opens unbounded, then folds — which is why the
+        defect survived: the new guards are that missing test. The full
+        `bun test --timeout=0` run on the shape-(A)+`--fix` prototype is
+        green, which is the strongest available evidence that no pin moves.
+      </Constraint>
+      <Constraint>
+        Write scope, anchors, and enumeration — stated once (`F136.1`'s
+        rule). Files the Goals force into write scope:
+        `src/grace-cursor.ts` (the `openEpoch` default, the `recoverCursor`
+        leading-hole branch, and the module-private `firstRangeHoleId` /
+        `hasLeadingHole` helpers; module-ownable, `LINKS: M-CURSOR`);
+        `src/grace-cursor.test.ts` (the three new guards; a `.test.ts` under
+        `src/` that `isModuleOwnableWritePath` does not own, so it carries no
+        `LINKS:` anchor); `scripts/validate-record-retirement.test.ts` (the
+        `bundleMinted` extension; not module-ownable); and the record files
+        the close writes — `docs/plans/active/RM-GOVERNED-PATH/findings.xml`,
+        `findings-retired.xml`, `rulings.xml`, `rulings-retired.xml`,
+        `registry.xml`, `registry-retired.xml`, `decisions.xml` — listed as
+        the authority's close acts so the close is coverable, plus the
+        archive arrival
+        `.ngrace/changes/archive/C-EPOCH-OPEN-DEFAULT-1-CE010A4C/`. The only
+        module-ownable path written is `src/grace-cursor.ts`, owned by
+        `M-CURSOR`; the module list this spec carries is `AffectedAreas`
+        below and the `M-CURSOR` anchor here, and they agree. No new export
+        is added, so `MODULE_MAP` does not move. Do **not** add this bundle's
+        own `spec.xml`, `plan.xml` or `design-context.xml` to
+        `ObservedWriteScope`; the review skips them by identity. Do not mint
+        a synthetic module. Do not add a lint issue code.
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, the rules this branch teaches, applied to this
+        bundle's own criteria. Every byte-invariance baseline is this spec's
+        base commit `bf826694243707d679aae670fc2bc86da2dc71d7` — the
+        base-less form cannot fail; the window is this bundle's own diff; the
+        diff sees tracked paths only. The record files the close writes, the
+        payer-map fixture `scripts/validate-record-retirement.test.ts`, and
+        this bundle's own archive arrival are excluded from every
+        byte-invariance criterion, each with its reason, and covered by the
+        parse-based and verb-based criteria instead. The archive criterion
+        excludes this bundle's own later arrival with its reason (the close
+        renames this bundle's directory into the archive). Every probe is run
+        in both directions on a throwaway copy before the spec is written;
+        probes mutate copies, never the production record. Structural claims
+        come from the shipped parser or `xmllint --xpath` after reading the
+        element's shape, never `grep -c`, and exit codes are read directly,
+        never through a pipe. No criterion pins a named finding
+        `status="live"`, pins a ceiling to a number, or asserts an artifact
+        the shipped engine will not produce; no criterion requires a change
+        another criterion forbids, and no criterion forbids the write the
+        close's `Pays` requires. The `CloseEvidence` criteria are evaluated
+        in the applied-archive state, after the close's own move has run, and
+        each names the narrow instrument for its subject; the full
+        CI-equivalent verification is close-time only.
+      </Constraint>
+      <Constraint>
+        Criterion mapping, stated on its face. Every `AC-*` below is
+        close-bound by its own `CloseEvidence` child, so a task `Satisfies`
+        naming any of them is the shipped error. There is no
+        `Satisfies`-mapped criterion in this spec, because every criterion is
+        evaluated against the post-close state; the production row mint, the
+        `bundleMinted` extension and the close's two verbs are named in
+        `VerificationIntent` as the authority's close act and a task write
+        respectively.
+      </Constraint>
+      <Constraint>
+        Stop and re-spec rather than touching: the write lock
+        (`withEventWriteLock`, `EVENT_WRITE_LOCK*`) and the id-collision
+        renumber (`nextEventId`'s probe, `writeEventFile`'s allocation loop,
+        `setEventIdAllocationProbeForTests`) — this bundle changes only the
+        `openEpoch` default that *feeds* them and must not alter the lock or
+        the renumber; `src/artifact/**`, `src/gates/**`, `src/review/**`
+        production, `src/grace-*.ts` other than `src/grace-cursor.ts`,
+        `scripts/` other than the named payer-map fixture, the published
+        skills and their mirrors, `examples/**`, `README.md`, the
+        `docs/plans/**` tree outside the seven record files this bundle's
+        close writes, `docs/plans/archive/`, tracked paths under
+        `.ngrace/changes/archive/` except this bundle's own later arrival,
+        `CHANGELOG.md`, any version surface, `package.json`, `bun.lock`,
+        `.ngrace-lint.json`, `.claude-plugin/**`,
+        `plugins/ngrace/.claude-plugin/**`, `openpackage.yml`,
+        `docs/schema-reference.md`, `test-metrics.json` (no new test file),
+        and the staged buffer `.ngrace/scratch/staged-findings.md` (read,
+        never written, and nothing in this bundle prunes it).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` unchanged; no user-visible surface. The change is engine
+        behaviour on an internal verb, no CLI token, flag or message changes,
+        and no README measurement cell moves. Owner: unchanged; no
+        user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        `examples/` unchanged; no user-visible surface there and no polyglot
+        evidence rebalance. The nested `examples/polyglot` project lints under
+        `validate:examples`, not here. Owner: unchanged; no user-visible
+        surface.
+      </NonGoal>
+      <NonGoal>
+        Any new CLI verb, lint issue code, grammar section, record schema
+        change, version bump, or `docs/schema-reference.md` regeneration; and
+        any change to the published skills or their mirrors. The new surface
+        is two internal branches of an existing function. Owner: unchanged;
+        no user-visible CLI token change.
+      </NonGoal>
+      <NonGoal>
+        Teaching the bounded reopen as the `F308` recovery, in
+        `ngrace-execute`'s `opened` kind or rule 12, or anywhere else.
+        `recover --fix` is the recovery; teaching a bounded reopen would
+        misdescribe the fixed default. Owner: unchanged; no user-visible
+        surface.
+      </NonGoal>
+      <NonGoal>
+        Flushing the buffer, pruning `staged-findings.md`, or rendering any
+        other staged entry into the record; and running any `ngrace review`,
+        gate or cursor verb from this spec-authoring step. Owner: the close
+        (flush) and the authority (gates); this step writes only `spec.xml`.
+      </NonGoal>
+      <NonGoal>
+        Regenerating `test-metrics.json`; no test file is added, so its
+        internal sums stay consistent and `scripts/test-metrics.test.ts`
+        stays green without a regeneration that would run the whole suite.
+        Owner: unchanged; no user-visible surface.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-UNBOUNDED-OPEN-AFTER-FOLD>
+        An unbounded `--open-epoch` on a bundle with a folded history
+        allocates from the next event id after the folded history, not the
+        constant `1`, so the following fold applies. Red direction, on the
+        base commit: seed a bundle, open unbounded, progress, terminal, fold
+        (applies); open unbounded again, progress, terminal — `foldEpoch`
+        throws `invalid-project` naming `range hole at 1 for w0` and the real
+        CLI `cursor fold` exits 1. Green direction: the same sequence's
+        `foldEpoch` returns `applied: true` and writes a ledger, and the
+        allocation is `w0:&lt;N&gt;-&lt;N+98&gt;` where `N` is the opened
+        event's id. On a fresh bundle the first unbounded open is still
+        `w0:1-99`, so no first-open byte moves. Instrument: `bun test
+        --timeout=0 src/grace-cursor.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </CloseEvidence>
+      </AC-UNBOUNDED-OPEN-AFTER-FOLD>
+      <AC-RECOVER-FIX-REHOMES-LEADING-HOLE>
+        `recover --fix` re-homes a present-but-leading-holed allocation and
+        declines a mid-range hole. Red direction, on the base commit: a
+        legacy/explicit-low stream (fold, then open explicitly `from: 1`,
+        progress, terminal) reports `Valid covering allocation: present`,
+        `Fold: blocked (range hole at 1 for w0)`, `--fix` returns
+        `fixApplied: false`, and the fold throws. Green direction: `--fix`
+        returns `fixApplied: true`, the post-fix diagnosis reads `Fold: ok`,
+        a superseding `opened` is appended, and the following `foldEpoch`
+        applies. A hole *inside* the loose range (a hand-written allocation
+        with a gap) returns `fixApplied: false` and the fold still throws in
+        both trees; the stream is byte-unchanged by that refusal. Instrument:
+        `bun test --timeout=0 src/grace-cursor.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECOVER-FIX-REHOMES-LEADING-HOLE>
+      <AC-NO-SRC-OTHER>
+        No file under `src/` or `scripts/` changes relative to this spec's
+        base commit except the files the Goals force, named here and in the
+        command's excludes: `src/grace-cursor.ts` (the `openEpoch` default
+        and the leading-hole branch), `src/grace-cursor.test.ts` (the three
+        guards), and `scripts/validate-record-retirement.test.ts` (the
+        `bundleMinted` extension, the payment fixture the close's `Pays F308`
+        requires). Prose and command name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code bf826694243707d679aae670fc2bc86da2dc71d7 -- src/ scripts/ ':(exclude)src/grace-cursor.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-SRC-OTHER>
+      <AC-RECORD-SIBLINGS-UNMOVED>
+        The files under the record directory the close provably does not
+        change are byte-identical to this spec's base commit:
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.md` (the stub),
+        `record-inventory.json`, `plan.md`, `review.md`,
+        `brownfield-findings.md`, `brownfield-run4-findings.md`,
+        `p0-calibration-derivation.md`, `p0-cursor-derivation.md`,
+        `p0-derivation.md`, `p0-report-honesty-derivation.md`, and the
+        `sources/` subtree. The seven record files the close writes —
+        `findings.xml`, `findings-retired.xml`, `rulings.xml`,
+        `rulings-retired.xml`, `registry.xml`, `registry-retired.xml`,
+        `decisions.xml` — are deliberately absent from this criterion and are
+        covered by the close's own verdict. The window is this bundle's own
+        diff, over tracked paths only.
+        <CloseEvidence>
+          <Command>git diff --exit-code bf826694243707d679aae670fc2bc86da2dc71d7 -- docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </CloseEvidence>
+      </AC-RECORD-SIBLINGS-UNMOVED>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and
+        `.ngrace/changes/archive/` are not modified; this bundle's own later
+        arrival under
+        `.ngrace/changes/archive/C-EPOCH-OPEN-DEFAULT-1-CE010A4C/` is not a
+        modification — the close itself renames this bundle's directory into
+        the archive, and the pathspec excludes that arrival so the close's
+        own rename cannot redden the criterion. The prose claims tracked
+        paths only. Probed in the post-close state.
+        <CloseEvidence>
+          <Command>git diff --exit-code bf826694243707d679aae670fc2bc86da2dc71d7 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-EPOCH-OPEN-DEFAULT-1-CE010A4C'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-SURFACES-UNMOVED>
+        Every surface this bundle does not write is byte-identical to this
+        spec's base commit: `examples/`, `CLAUDE.md`, `CONTRIBUTING.md`,
+        `docs/plans/README.md`, `docs/schema-reference.md`, `package.json`,
+        `bun.lock`, `CHANGELOG.md`, `.ngrace-lint.json`, `openpackage.yml`,
+        `test-metrics.json`, `.claude-plugin/`,
+        `plugins/ngrace/.claude-plugin/`, `skills/ngrace/`,
+        `plugins/ngrace/skills/ngrace/`, and `README.md`. No skill text
+        moves, so no footprint pin or `README.md` cell moves. Prose and
+        command name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code bf826694243707d679aae670fc2bc86da2dc71d7 -- examples/ CLAUDE.md CONTRIBUTING.md docs/plans/README.md docs/schema-reference.md package.json bun.lock CHANGELOG.md .ngrace-lint.json openpackage.yml test-metrics.json .claude-plugin/ plugins/ngrace/.claude-plugin/ skills/ngrace/ plugins/ngrace/skills/ngrace/ README.md</Command>
+        </CloseEvidence>
+      </AC-SURFACES-UNMOVED>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of
+        this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CURSOR />
+      `M-CURSOR` owns `src/grace-cursor.ts`, the module-ownable file this
+      bundle rewrites; the two test files it also writes
+      (`src/grace-cursor.test.ts` and
+      `scripts/validate-record-retirement.test.ts`) are not module-ownable
+      (`isModuleOwnableWritePath` is false for every `*.test.ts` under `src/`
+      and for `scripts/`), so they link to no module. `M-CURSOR` is the
+      module enumeration; the write-scope Constraint names no other. Do not
+      mint a synthetic module.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 src/grace-cursor.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T1): an unbounded `--open-epoch` on a folded bundle
+        allocates from the next event id and the following fold applies;
+        `recover --fix` re-homes a leading-holed allocation and declines a
+        mid-range hole; `AC-UNIQUE-CONCURRENT`, `AC-NO-SILENT-OVERWRITE` and
+        `AC-FORCED-COLLISION` stay green; every `CloseEvidence` command and
+        the full `validate:ci` run green inside a faithful copy of the
+        post-close state — a copy carrying untracked files, a stand-in plan
+        at `applied` beside the archived spec, the bundle archived, and the
+        close's `--flush` and `--retire` run — with both directions driven on
+        a throwaway copy and every exit code read directly. **The authority's
+        close acts, named here and deliberately not written as criteria:**
+        the `--flush --change C-EPOCH-OPEN-DEFAULT-1-CE010A4C --finding F308
+        --pays F308 --mint-search "0 active, 0 archive"` that lands `F308`
+        and mints the row, and the `--retire` whose move reports `F308` and
+        the row; and the plan's `bundleMinted[F308]` extension, a task write
+        that keeps the post-close payer walk green. **Expected evidence this
+        bundle cannot close-bound:** none — every subject here has a
+        deterministic on-platform instrument. The reds are ledger-recorded
+        fail/pass pairs, not claims.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      `F308`: a correction after an end-state sequence cannot fold. Measured
+      2026-09-18 first by the executor on the production bundle
+      `C-EVENT-LOCK-ATOMIC-1-9711E83D` (a T-001 correction after two folded
+      epochs), then by the authority on a throwaway copy of the same bundle
+      with four folded epochs and an empty `run/`:
+      `ngrace cursor advance --change C-… --task T-003 --open-epoch` exits 0
+      and writes `23-T-003-opened.xml` with allocation `w0:1-99`; after a
+      terminal, `ngrace cursor fold` exits **1** with
+      `range hole at 1 for w0`; `ngrace cursor recover` reports
+      `Valid covering allocation: present (w0:1-99)` and
+      `Fold: blocked (range hole at 1 for w0)`; `ngrace cursor recover --fix`
+      prints `Fix applied: no`. The only shipped remedy is a second
+      `--open-epoch` with measured bounds (`--from 21 --to 200` on the copy;
+      `--from 13 --to 200` on production), which supersedes the effective
+      allocation last-writer-wins and lets the fold apply. Why it matters:
+      `ngrace-execute` rule 12 and the `opened` kind both say to open without
+      `--from`/`--to` unless the agent has a measured allocation need, so the
+      ordinary instruction produces an unfoldable epoch on every bundle that
+      has folded before. The final `--run-commands` writes loose
+      `command-run` events with no allocation (`appendCommandRunEvent`,
+      `src/lint/core.ts:510`) and the fold synthesizes a hole-free covering
+      allocation from the first loose id, so the defect is reached by the
+      *next* `cursor advance --open-epoch`, not by the run-commands itself.
+      `D41` forbids the hand repair, so an agent that
+      does not know the bounded-reopen trick is stuck at the fold. The
+      default `const from = options.from ?? 1;`
+      (`src/grace-cursor.ts:976`) lies about the epoch's ownership: the
+      `opened` event's id is already allocated by `nextEventId` at `23`, but
+      the allocation claims the range `1-99`. The fold's walk
+      (`:2838`–`2843`) begins at `allocation.from` and reports the first
+      missing id, so it reports `1`, which folded long ago. `recover --fix`
+      (`:678`) sees a `present` covering allocation and returns
+      `fixApplied: false`, because a leading-holed allocation does cover
+      every loose id. This bundle makes the unbounded open allocate from the
+      next event id and makes `--fix` treat the leading hole as the hole it
+      is.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        **Authoring commit
+        `bf826694243707d679aae670fc2bc86da2dc71d7`, branch
+        `c-epoch-open-default`, 2026-09-18.** Re-measured at authoring:
+        `bun run ngrace lint --path .` 0 errors / 0 warnings over 493 XML
+        artifacts; `bun ./scripts/validate-record-retirement.ts` exit 0;
+        archive 128 directories; `.ngrace/changes/active` holds only
+        `.gitkeep` before this bundle; `grep -n 'LINKS:'
+        src/grace-cursor.ts` → `M-CURSOR`. The base commit is the full hash
+        above for every byte-invariance criterion. Every count expires; the
+        implementation re-measures and pins nothing (`D30`).
+      </Assumption>
+      <Assumption>
+        **The default, walk, skip and flag lines, measured at the base
+        commit.** `const from = options.from ?? 1;`
+        (`src/grace-cursor.ts:976`); `const to = options.to ?? from + 98;`
+        (`:977`); the fold walk `for (let id = allocation.from; id &lt;=
+        maxUsed; id += 1)` and its `range hole at ${id} for
+        ${allocation.worker}` (`:2838`–`2843`); `if
+        (pre.coveringAllocation === "present")` (`:678`); the CLI
+        `openEpoch` flag (`:3665`). All inside the file this bundle
+        rewrites. `ngrace-execute` rule 12 is
+        `skills/ngrace/ngrace-execute/SKILL.md:47` and the `opened` kind's
+        `When:` line is `:53`.
+      </Assumption>
+      <Assumption>
+        **The pin census, measured at the base commit.**
+        `grep -rn 'openEpoch: true' src scripts` → 99 call lines; of those,
+        21 omit `from` on the same line, and every such call opens on a fresh
+        bundle or a distinct change id (checked: `src/gates/core.test.ts`,
+        `src/lint/core.test.ts`, `src/grace-lint.test.ts`,
+        `src/grace-supersede.test.ts`, `src/calibration/report.test.ts`, and
+        `src/grace-cursor.test.ts`'s `openClaimAndTerminal`, which is called
+        once per fresh project). `grep -rn 'from: 1' src scripts` → 107
+        lines, all explicit and unaffected. Six lines carry the literal
+        `from="1" to="99"`; four hand-write an opened with that allocation.
+        `AC-FORCED-COLLISION` (`src/grace-cursor.test.ts:4106`) opens no
+        epoch; `AC-UNIQUE-CONCURRENT` / `AC-NO-SILENT-OVERWRITE` pass
+        `from: 1, to: 199` explicitly; recover fixtures hand-write their
+        allocations. No test folds, then opens unbounded, then folds. The
+        only existing post-fold open in the suite
+        (`src/grace-cursor.test.ts:3090`) already passes explicit bounds and
+        carries the comment "default from=1 would hole" — the workaround this
+        bundle removes the need for.
+      </Assumption>
+      <Assumption>
+        **The red and green directions, driven on throwaway copies
+        2026-09-18.** Red (base binary, `/tmp/f308probe`): seed a bundle,
+        open unbounded (`exit 0`), progress, terminal, fold (`Fold applied`,
+        `exit 0`); open unbounded again — `1-99` allocation with the opened
+        at id 4; progress, terminal; `cursor fold` → `range hole at 1 for
+        w0`, `exit 1`; `cursor recover` → `Fix applied: no`, `present
+        (w0:1-99)`, `Fold: blocked (range hole at 1 for w0)`; `cursor
+        recover --fix` → `Fix applied: no`, `exit 0`. Green (shape-(A)+
+        `--fix` prototype, `/tmp/f308worktree`): the same sequence's second
+        fold → `Fold applied`, `Epoch: 2`, `Events: 3`, `exit 0`, allocation
+        `w0:4-102`; and on a copy carrying the base binary's holed stream,
+        `cursor recover --fix` → `Fix applied: yes`, `Fold: ok`, `exit 0`,
+        then `cursor fold` → `Fold applied`, `exit 0`. Mid-range hole
+        (`/tmp/f308mid`, hand-written opened `1-10` with loose ids `1,2,4`):
+        `--fix` → `Fix applied: no`, fold → `range hole at 3 for w0`,
+        `exit 1` in both trees. The full shape-(A)+`--fix` suite run:
+        `bun test --timeout=0` → 2077 pass / 3 skip / 0 fail across 68
+        files.
+      </Assumption>
+      <Assumption>
+        **The close's write set, read from the verb at the base commit.**
+        `--flush` writes `findings.xml`, `rulings.xml`, `decisions.xml`,
+        `registry.xml` (`flushRecord`, unconditional `writeRecordXml` over the
+        four next-documents). `--retire` writes all seven record files
+        unconditionally, including `rulings-retired.xml` with zero moved
+        decisions. `ngrace apply` renames the bundle directory into
+        `.ngrace/changes/archive/`. The seven files, the `bundleMinted`
+        extension and the archive arrival are named in the write-scope
+        Constraint, and `AC-NO-SRC-OTHER` excludes the fixture with its
+        reason.
+      </Assumption>
+      <Assumption>
+        **Mint search, measured at mint.** Zero prior bundles share the slug
+        `EPOCH-OPEN-DEFAULT` in either the active directory or the archive:
+        `mint-search: 0 active, 0 archive prior bundle(s) share slug
+        EPOCH-OPEN-DEFAULT`. The close's flush carries `--mint-search
+        "0 active, 0 archive"`.
+      </Assumption>
+      <Assumption>
+        **F43 escape, applied.** Every artifact this bundle writes names an
+        angle-bracketed token as character data with entities; the plan's
+        tests assert emitted bytes, never artifact prose.
+      </Assumption>
+    </Assumptions>
+  </C-EPOCH-OPEN-DEFAULT-1-CE010A4C>
+</NgraceChangeSpec>
