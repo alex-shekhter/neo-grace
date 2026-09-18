@@ -1472,32 +1472,86 @@ function genreLayerEntries(recordDir: string, file: string, tag: string): Array<
     .map((n) => ({ id: n.attributes.id ?? n.attributes.name ?? "", layer }));
 }
 
+type GenreLayerHoldings = Map<string, { layer: "live" | "retired"; genre: "finding" | "decision" }>;
+
+interface GenreHoldingDoc {
+  xml: string;
+  tag: "Finding" | "Decision";
+  genre: "finding" | "decision";
+  layer: "live" | "retired";
+}
+
+/** The holding set for the presence relation: every genre element keyed by id
+ * across both layers of both pairs. Shared by the at-rest check and the flush's
+ * pre-write check, so the relation has one implementation. */
+function holdingFromDocs(docs: GenreHoldingDoc[]): GenreLayerHoldings {
+  const holding: GenreLayerHoldings = new Map();
+  for (const doc of docs) {
+    const parsed = parseGraceXmlArtifact(`${doc.tag}.xml`, doc.xml);
+    if (!parsed.root) continue;
+    for (const node of walkNodes(parsed.root)) {
+      if (node.tag !== doc.tag) continue;
+      holding.set(node.attributes.id ?? "", { layer: doc.layer, genre: doc.genre });
+    }
+  }
+  return holding;
+}
+
+/** The index-versus-genre presence relation: every index `Entry` has a holding
+ * genre element of its own genre in one of its pair's two layers. The code the
+ * caller passes names the evaluation point (`record-index-orphan` at rest,
+ * `flush-index-orphan` over the flush's next-documents). */
+function indexOrphanFindings(
+  indexXml: string,
+  holding: GenreLayerHoldings,
+  code: "record-index-orphan" | "flush-index-orphan",
+): RetirementFinding[] {
+  const out: RetirementFinding[] = [];
+  const parsed = parseGraceXmlArtifact("decisions.xml", indexXml);
+  if (!parsed.root) return out;
+  for (const node of walkNodes(parsed.root)) {
+    if (node.tag !== "Entry") continue;
+    const id = node.attributes.id ?? "";
+    const expected = holding.get(id);
+    if (!expected) {
+      out.push({ code, message: `decisions.xml: Entry id="${id}" token="${node.attributes.token ?? ""}" has no holding Finding/Decision in either layer of its pair` });
+      continue;
+    }
+    if (expected.genre !== node.attributes.genre) {
+      out.push({ code, message: `decisions.xml: Entry id="${id}" genre="${node.attributes.genre}" has no holding element of its genre (the holding is a ${expected.genre})` });
+    }
+  }
+  return out;
+}
+
 export function structuralCheck(recordDir: string): RetirementFinding[] {
   const out: RetirementFinding[] = [];
   const pairs: Array<[string, string, string]> = [
     ["findings", "findings.xml", "findings-retired.xml"],
     ["rulings", "rulings.xml", "rulings-retired.xml"],
   ];
-  const holding = new Map<string, "live" | "retired">();
+  const holding = new Map<string, { layer: "live" | "retired"; genre: "finding" | "decision" }>();
   for (const [label, live, retired] of pairs) {
+    const genre: "finding" | "decision" = label === "findings" ? "finding" : "decision";
     const seen = new Set<string>();
-    for (const item of [...genreLayerEntries(recordDir, live, label === "findings" ? "Finding" : "Decision"), ...genreLayerEntries(recordDir, retired, label === "findings" ? "Finding" : "Decision")]) {
+    for (const item of [...genreLayerEntries(recordDir, live, genre === "finding" ? "Finding" : "Decision"), ...genreLayerEntries(recordDir, retired, genre === "finding" ? "Finding" : "Decision")]) {
       if (seen.has(item.id)) {
         out.push({ code: "record-duplicate-id", message: `record: duplicate id "${item.id}" across the ${label} pair` });
       }
       seen.add(item.id);
-      holding.set(item.id, item.layer);
+      holding.set(item.id, { layer: item.layer, genre });
     }
   }
   const indexXml = readFileSync(path.join(recordDir, "decisions.xml"), "utf8");
+  out.push(...indexOrphanFindings(indexXml, holding, "record-index-orphan"));
   const indexParsed = parseGraceXmlArtifact("decisions.xml", indexXml);
   if (indexParsed.root) {
     for (const node of walkNodes(indexParsed.root)) {
       if (node.tag !== "Entry") continue;
       const id = node.attributes.id ?? "";
       const expected = holding.get(id);
-      if (expected && expected !== node.attributes.layer) {
-        out.push({ code: "record-index-layer-mismatch", message: `decisions.xml: Entry id="${id}" layer="${node.attributes.layer}" disagrees with the holding file (${expected})` });
+      if (expected && expected.genre === node.attributes.genre && expected.layer !== node.attributes.layer) {
+        out.push({ code: "record-index-layer-mismatch", message: `decisions.xml: Entry id="${id}" layer="${node.attributes.layer}" disagrees with the holding file (${expected.layer})` });
       }
     }
   }
@@ -1527,8 +1581,19 @@ function flushRecord(opts: {
   refuseStructural(opts.recordDir);
   const buffer = readFileSync(path.join(opts.repoRoot, ".ngrace", "scratch", "staged-findings.md"), "utf8");
   const parsed = parseFrozenMarkdown(buffer);
-  for (const id of [...opts.findings, ...opts.decisions]) {
-    if (!parsed.entries.some((e) => e.token === id)) throw new Error(`flush-id-absent: ${id} is not in the buffer`);
+  for (const id of opts.findings) {
+    const entry = parsed.entries.find((e) => e.token === id);
+    if (!entry) throw new Error(`flush-id-absent: ${id} is not in the buffer`);
+    if (entry.genre !== "finding") {
+      throw new Error(`flush-selection-genre-mismatch: --finding ${id} names a buffer ${entry.genre}`);
+    }
+  }
+  for (const id of opts.decisions) {
+    const entry = parsed.entries.find((e) => e.token === id);
+    if (!entry) throw new Error(`flush-id-absent: ${id} is not in the buffer`);
+    if (entry.genre !== "decision") {
+      throw new Error(`flush-selection-genre-mismatch: --decision ${id} names a buffer ${entry.genre}`);
+    }
   }
   if (!existsSync(path.join(opts.repoRoot, ".ngrace", "changes", "active", opts.change))) {
     throw new Error(`flush-row-not-active: ${opts.change} is not an active bundle`);
@@ -1592,10 +1657,10 @@ function flushRecord(opts: {
   const charter = `mint-search: ${opts.mintSearch ?? ""} prior bundle(s) share slug ${slug}. ${opts.charter ?? ""}`;
   const row = [`  <Row name="${xmlEscape(opts.change)}" status="live" kind="chartered">`, "    <Number></Number>", `    <Charter>${xmlEscape(charter)}</Charter>`, `    <Pays>${xmlEscape(pays)}</Pays>`, `    <StatusText>${xmlEscape(opts.statusText ?? "")}</StatusText>`, "  </Row>"].join("\n");
   const nextRegistry = rowExists ? registryXml : registryXml.replace("</Registry>", row + "\n</Registry>");
-  let nextRulings = rulingsXml;
+  let nextRulings = rulingsXml.replace("</Rulings>", selD.map((e) => `${renderDecision(e, "live")}\n`).join("") + "</Rulings>");
   if (opts.codify) {
     const [did, kind, val] = opts.codify.split(":");
-    const target = [...walkNodes(parseGraceXmlArtifact("rulings.xml", rulingsXml).root!)].find((n) => n.tag === "Decision" && (n.attributes.id === did || n.attributes.token === did));
+    const target = [...walkNodes(parseGraceXmlArtifact("rulings.xml", nextRulings).root!)].find((n) => n.tag === "Decision" && (n.attributes.id === did || n.attributes.token === did));
     if (!target) {
       throw new Error(`flush-codify-absent: ${did} is not a decision`);
     }
@@ -1603,7 +1668,7 @@ function flushRecord(opts: {
       throw new Error(`flush-codify-exists: ${did} already carries a CodifiedIn`);
     }
     const rid = target.attributes.id ?? did;
-    nextRulings = rulingsXml.replace(new RegExp(`(<Decision id="${rid}"[^>]*>)([\\s\\S]*?)(\n  </Decision>)`), `$1$2\n    <CodifiedIn kind="${kind}">${val}</CodifiedIn>$3`);
+    nextRulings = nextRulings.replace(new RegExp(`(<Decision id="${rid}"[^>]*>)([\\s\\S]*?)(\n  </Decision>)`), `$1$2\n    <CodifiedIn kind="${kind}">${val}</CodifiedIn>$3`);
   }
   const nextDocs: Array<[string, LiveRootGenre, string]> = [
     ["findings.xml", LIVE_ROOT_GENRES.findings, nextFindings],
@@ -1615,6 +1680,21 @@ function flushRecord(opts: {
   // computes before the write loop, so a refused run writes nothing.
   for (const [file, , xml] of nextDocs) {
     assertRecordSchema(file, xml);
+  }
+  // The pre-write presence relation: over the flush's own next-documents, plus
+  // the two retired siblings read from disk (a live-only holding set flags a
+  // live index Entry for a retired element), every index Entry has a holding
+  // element of its own genre. A flush that would mint an orphan refuses here,
+  // before the write loop, with all four record files byte-identical.
+  {
+    const holding = holdingFromDocs([
+      { xml: nextFindings, tag: "Finding", genre: "finding", layer: "live" },
+      { xml: nextRulings, tag: "Decision", genre: "decision", layer: "live" },
+      { xml: readFileSync(path.join(opts.recordDir, "findings-retired.xml"), "utf8"), tag: "Finding", genre: "finding", layer: "retired" },
+      { xml: readFileSync(path.join(opts.recordDir, "rulings-retired.xml"), "utf8"), tag: "Decision", genre: "decision", layer: "retired" },
+    ]);
+    const orphan = indexOrphanFindings(nextIndex, holding, "flush-index-orphan");
+    if (orphan.length > 0) throw new Error(`${orphan[0]!.code}: ${orphan[0]!.message}`);
   }
   // Serialize to the canonical bytes the file will hold, then re-derive each
   // live root from that metric and hold its persisted ceiling byte-for-byte —

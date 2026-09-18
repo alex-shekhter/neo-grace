@@ -1,4 +1,4 @@
-<Rulings base="1670" headroom="213" ceiling="1883">
+<Rulings base="1686" headroom="197" ceiling="1883">
   <Decision id="d1" token="D1" status="live">
     <Title>## D1 — The tool is the only sanctioned writer of `approved → applied`</Title>
     <Body>
@@ -1666,5 +1666,21 @@ by every entry a session adds. Four arrived in the session that ratified this.
 `C-CI-CLAIM-PIN` at 8, `C-APPROVE-TARGET-DISCOVERY` at 9, `C-EFFORT-DEPTH` at 10 and
 `C-FUNCTION-CONTRACT-SURFACE` at 11. Each is one later from here. [D34](#d34)'s enumerated order is
 superseded by this one and stands as the dated record of what was true before.</Body>
+  </Decision>
+  <Decision id="d41" token="D41" status="live">
+    <Title>## D41 — Hand-editing a bundle's run stream is **ungoverned and forbidden**. The single instance in `C-TEST-TIME-BUDGET-4-F173437E` was permitted by explicit maintainer ruling, is **not a precedent**, and the prohibition stands until the PILOT decision is reached.</Title>
+    <Body>
+**Ruled by the maintainer 2026-09-17**, on the authority's report that the executor had renumbered three colliding `progress` events (ids 5, 8, 11 → 21, 22, 23) in `.ngrace/changes/active/C-TEST-TIME-BUDGET-4-F173437E/run/`.
+
+**The rule.** The run stream is engine-written. No agent — executor or authority — edits, renumbers, deletes or reorders a `run/` event or `run-ledger.xml` by hand, for any reason, including to make a refused `fold` succeed. A stream that no shipped verb accepts is a **product defect to report**, not an artifact to correct. Where the prohibition and a deadlock collide, the deadlock is reported to the maintainer and the repository waits.
+
+**Why this instance was permitted, and why it generalises to nothing.** The maintainer first ruled the repair be reverted — methodology is the law. The authority then measured that reverting is mechanically impossible: `ngrace supersede` folds the open epoch as its first act, so a stream `fold` refuses is a stream `supersede` refuses (`Fold verify failed: event 5 payload mismatch`, exit 1, driven on a throwaway clone). With only one active bundle permitted, an unfoldable bundle can be neither archived nor superseded, and blocks every future bundle — including any bundle that would repair the verb. The remaining exits were a hand-move of the bundle directory or an ungoverned edit to the verifier, both larger violations than the one they would avoid. The permission is therefore a one-time escape from a deadlock the product created, granted with the reasoning recorded, and it licenses nothing else.
+
+**What was and was not touched, for the record.** Three `progress` events changed id and filename; content otherwise byte-identical. No `attempt` event was renumbered, no outcome altered, no red fabricated, nothing under `archive/` touched. The cost the executor did not name and the authority measured: moving the events to the end makes id order fiction for three of them — `T-003`'s progress now sorts after `T-003`'s attempt — so the stream's ordering is no longer a faithful record of sequence, only its content is.
+
+**Standing until PILOT.** This decision is deliberately absolute while [RM-PILOT-APPROVAL](docs/plans/README.md) is undecided. A relaxation, if one is warranted, is the PILOT decision's to make with the cost evidence in front of it — including this bundle's four supersedes, none of which was caused by the delivered code. Until then an agent that meets an unfoldable stream stops and reports.
+
+**Owner.** The prohibition is taught by a later teaching increment (it belongs in `ngrace-execute`, which today says nothing about the stream's inviolability); the product gap — concurrent `cursor advance` minting duplicate ids with no lock, reservation, refusal or repair path — is [F288](docs/plans/active/RM-GOVERNED-PATH/decisions.md)'s, owned by a cursor-integrity bundle. Neither is this bundle's.
+</Body>
   </Decision>
 </Rulings>

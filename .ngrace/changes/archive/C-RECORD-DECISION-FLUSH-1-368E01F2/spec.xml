@@ -1,0 +1,528 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-RECORD-DECISION-FLUSH-1-368E01F2>
+    <Summary>
+      Repair the `--flush` mode's `--decision` path in `scripts/validate-record-retirement.ts`. A
+      selected decision currently mints its index `Entry` and never its `Decision` element, so
+      `bun ./scripts/validate-record-retirement.ts --flush … --decision D41 …` exits **0**, prints
+      `record-flush: flushed D41`, leaves `rulings.xml` byte-unchanged and writes an orphan index row
+      (`&lt;Entry id="d41" token="D41" genre="decision" layer="live" /&gt;`); the record's three
+      validators — `validate-record-retirement.ts`, `validate-citation-anchors.ts` and
+      `prove-record-preservation.ts` — all report green on that state. This bundle makes a `--decision`
+      selection land as a `Decision` element and its index `Entry` together, makes the verb refuse any
+      selection it would not write (`flush-selection-genre-mismatch`) so the success line never names a
+      token the record does not carry, and adds the general index-versus-genre presence invariant: the
+      at-rest relation `record-index-orphan` through the shared structural check (validator, `--retire`,
+      `--flush`) and the pre-write relation `flush-index-orphan` over the flush's own next-documents —
+      the class guard that would have caught this instance and would not be reached by the adjacent
+      `F277` layer check. It pays `F289`; at the close the authority flushes `F289` and the held
+      decision `D41` (the ruling that hand-editing a run stream is ungoverned and forbidden) through the
+      repaired verb, then archives and retires in one wave. Minted 2026-09-18 as
+      `C-RECORD-DECISION-FLUSH-1-368E01F2` from slug `RECORD-DECISION-FLUSH` on branch
+      `c-record-decision-flush` at base commit `a104166b2034bb06e028598b6533c9becaeccdfb`; `ngrace spec
+      new RECORD-DECISION-FLUSH --timestamp 2026-09-18T00:06:40Z` printed
+      `mint: C-RECORD-DECISION-FLUSH-1-368E01F2 slug=RECORD-DECISION-FLUSH lineage=1 hash=368E01F2
+      branch=c-record-decision-flush timestamp=2026-09-18T00:06:40.000Z` and
+      `mint-search: 0 active, 0 archive prior bundle(s) share slug RECORD-DECISION-FLUSH` — whose value
+      half, `0 active, 0 archive`, is this bundle's dogfood `--mint-search` input, carried verbatim
+      because a recomputed count is not the mint-time fact. Searched before minting, 2026-09-18 at
+      `a104166b2034bb06e028598b6533c9becaeccdfb`, over `.ngrace/changes/archive/` (121 directories) and
+      both registry layers for any prior bundle carrying `RECORD-DECISION-FLUSH`: no directory and no
+      row carries the name. The predecessor `C-RECORD-FLUSH-VERB-2-6BB9DF5A` (archived, merged in
+      `2434fd4`) built the `--flush` mode this bundle repairs; its plan named a decision selection and
+      its delivered suite drove only a finding (see `Problem`).
+    </Summary>
+    <Problem>
+      **`F289` is the defect, re-measured rather than inherited.** Driven 2026-09-18 on a whole-repository
+      copy at `a104166b2034bb06e028598b6533c9becaeccdfb` with a fixture active bundle, the shipped verb
+      `bun ./scripts/validate-record-retirement.ts --flush docs/plans/active/RM-GOVERNED-PATH --change
+      &lt;fixture&gt; --decision D41 --mint-search "0 active, 0 archive"` exits **0** and prints
+      `record-flush: flushed D41 (row &lt;fixture&gt;, pays )`. The record disagrees: `grep -c d41` over
+      `rulings.xml` returns **0**, `rulings.xml`'s live root is byte-unchanged at
+      `&lt;Rulings base="1670" headroom="213" ceiling="1883"&gt;`, `findings.xml` is byte-unchanged, and
+      `decisions.xml:421` carries `&lt;Entry id="d41" token="D41" genre="decision" layer="live" /&gt;`
+      — an index line asserting a live decision that exists in no genre file. The same index-plus-no-
+      element state is produced by `--decision F289` (a finding token) and `--finding D41` (a decision
+      token): each prints `record-flush: flushed F289` / `flushed D41`, exits 0, writes the row and no
+      entry at all.
+
+      **The cause, read from the engine and corrected against the brief's paraphrase.** In `flushRecord`
+      (`scripts/validate-record-retirement.ts:1523`), `selF` filters buffer entries of genre `finding`
+      by `--finding` tokens (`:1536`), `selD` filters genre `decision` by `--decision` tokens (`:1537`),
+      `nextFindings` appends the rendered `selF` elements (`:1588`), `nextIndex` appends index entries
+      for **both** `selF` and `selD` (`:1589`), and `nextRulings` is initialised to the unchanged
+      `rulingsXml` (`:1595`) and rewritten only inside `if (opts.codify)`. No path appends a selected
+      decision's element. **A `Decision` renderer does exist**: `renderDecision(entry, status)`
+      (`:437`), the same shape as `renderLiveFinding` (`:1514`) — `id`, `token`, `status` attributes with
+      `Title` and `Body` children, plus optional `CodifiedIn`/`TaughtIn` (declared in
+      `scripts/record-serialize.ts:64`–`77`) — and the flush never calls it. The brief's hypothesis "no
+      equivalent renderer exists for a `Decision`" is **wrong**; the asymmetry is in `flushRecord`'s
+      composition, not in the renderer inventory. That correction matters because the fix is to route
+      `selD` through the existing `renderDecision(e, "live")` and append it to `nextRulings`, not to mint
+      a parallel writer.
+
+      **The second report-without-doing path is in the same selection contract, and it is measured.**
+      The pre-write presence check is `for (const id of [...opts.findings, ...opts.decisions]) if
+      (!parsed.entries.some((e) =&gt; e.token === id)) throw flush-id-absent` (`:1529`–`1531`), which
+      checks only that the token is in the buffer, never that the flag's genre matches the entry's. So a
+      token under the wrong flag survives to the success line (`:1633`, which prints
+      `[...opts.findings, ...opts.decisions]`) with `selF`/`selD` empty. This is a distinct instance of
+      `Summary`'s second property ("cannot report what it did not do") and is repaired by one
+      genre-agreement refusal.
+
+      **Why no shipped guard caught the orphan.** `assertRecordSchema` validates each next-document in
+      isolation, so an index with a row and a rulings file without the element are each well-formed on
+      their own. `structuralCheck` (`:1475`) builds its `holding` map from the findings and rulings pairs
+      and skips every index `Entry` whose id is not in it — the guard is
+      `if (expected &amp;&amp; expected !== node.attributes.layer)` (`:1498`–`:1500`), so a missing holding
+      is silently green. `validate-citation-anchors.ts` checks the inventory-to-index direction only
+      (`:153`–`:168`) and `prove-record-preservation.ts` checks inventory-to-index too (`:66`–`:84`); no
+      shipped check consumes the index-to-genre direction. Driven on the F289-produced copy, all three
+      shipped validators exit 0 (`record-retirement: ok`, `citation-anchors: ok`,
+      `record-preservation: ok`), and `validate:ci` is green over a record that points at nothing.
+
+      **Why the predecessor's suite was green without driving a decision.** The approved predecessor
+      spec's `AC-FLUSH-MODE` (`C-RECORD-FLUSH-VERB-2-6BB9DF5A`) words the criterion "the selected finding
+      **and decision** each exist exactly once across their genre pair", and its plan's T-002 pass
+      criterion repeats "flushes the selected finding and decision". The delivered suite
+      (`scripts/validate-record-retirement.test.ts:6262`–`6355`) drives `--finding F999` only; no test
+      anywhere passes `--decision` to `--flush` (the fixture decision exists solely as the
+      `--codify` target). A criterion naming a decision was green without any decision being selected —
+      the plan asserted a mechanism it did not exercise, and `bun test` could not see the gap. This is
+      recorded as the shape of the miss, not as a second defect to pay here; the repair is that this
+      bundle's suite drives `--decision` in both directions.
+
+      **Why the two held entries cannot move until this lands.** `D41` — the maintainer's ruling that
+      hand-editing a run stream is ungoverned and forbidden, not a precedent until the PILOT decision —
+      is staged in the gitignored buffer `.ngrace/scratch/staged-findings.md` and can reach `rulings.xml`
+      only through the `--decision` path that mints an orphan today. `F289` is staged beside it. The
+      authority caught the orphan by parsing the record rather than trusting the printed confirmation and
+      reverted the uncommitted flush; had it committed, the only repair would have been a hand edit of
+      the record, which `D41` itself forbids. Recovery was available only before the commit.
+
+      **What is deliberately unchanged.** Every record write stays behind the module-private
+      `writeRecordXml` and the all-or-nothing validate-then-write transaction. The engine stays under
+      `scripts/`; no `src/` production file changes (`D40`'s boundary). No ceiling is raised (`D39`); no
+      root attribute is hand-written. The buffer is read, never written, by the verb and by this bundle.
+      `README.md` and `examples/` are unchanged. Escaping of markup in XML artifacts is mandatory
+      character-data form (`&lt;`, `&gt;`, `&amp;`), never paraphrased brackets.
+    </Problem>
+    <Goals>
+      <Goal>
+        **Symmetry: a `--decision` selection writes its element and its index `Entry` together.** In
+        `flushRecord`, route every `selD` entry through the existing `renderDecision(e, "live")` and
+        append those elements to `nextRulings`, so the shipped `--flush` writes the `Decision` into
+        `rulings.xml` exactly once and its index `Entry` into `decisions.xml` exactly once, with
+        `status="live"`, `genre="decision"` and `layer="live"` agreeing — the same transaction, the same
+        `writeRecordXml` path, the same root re-derivation the finding path already uses. A
+        `--codify` in the same run applies its `CodifiedIn` to the already-appended `nextRulings`, never
+        to the original bytes, so a flush that selects decisions and codifies cannot drop either write.
+        This is the instance fix for `F289`.
+      </Goal>
+      <Goal>
+        **Report honesty: the verb cannot report what it did not do.** A `--finding` token whose buffer
+        entry is of genre `decision`, or a `--decision` token whose buffer entry is of genre `finding`,
+        refuses with the named code `flush-selection-genre-mismatch`, exit non-zero, **before any
+        write** (all four record files byte-unchanged). The success line continues to print the flushed
+        tokens, and every token it names is carried by the record. The existing refusals —
+        `flush-id-absent`, `flush-id-duplicate`, `flush-row-not-active`, `flush-row-exists`,
+        `flush-pays-unknown`, `flush-charter-f-token`, `flush-status-text-f-token`,
+        `flush-status-closed-with`, `flush-codify-absent`, `flush-codify-exists`,
+        `flush-mint-search-malformed`, and the serializer's `record-schema-*` — are unchanged.
+      </Goal>
+      <Goal>
+        **The class guard: the index-versus-genre presence invariant, in both directions of evaluation.**
+        One relation — *every index `Entry` has a holding genre element of its own genre in one of its
+        pair's two layers* — evaluated (a) **at rest** by the shared `structuralCheck`, as a new code
+        `record-index-orphan`, consumed by the validator (`validateRecordRetirement`), by `--retire`
+        (through `refuseStructural`) and by `--flush` (through the same `refuseStructural` at the top of
+        its transaction); and (b) **before the flush's write loop**, over the in-memory
+        `nextFindings`/`nextRulings`/`nextIndex` documents the flush is about to persist, as the named
+        code `flush-index-orphan`, so a flush that would mint an orphan refuses before any write. This is
+        the general invariant the brief asks this bundle to decide: it catches the whole class, not this
+        instance, and it is the presence half that complements `F277`'s layer half (the layer agrees in
+        the F289 state, so `F277`'s check cannot fire). The production record satisfies the relation and
+        stays green.
+      </Goal>
+      <Goal>
+        **Pay `F289`, and land `F289` and `D41` through the repaired verb at the close.** The bundle's
+        charter row (`--change C-RECORD-DECISION-FLUSH-1-368E01F2`) carries `Pays` naming `F289`. At the
+        close, with the bundle still under `.ngrace/changes/active/`, the authority drives one
+        `--flush --change C-RECORD-DECISION-FLUSH-1-368E01F2 --finding F289 --decision D41 --pays F289
+        --mint-search "0 active, 0 archive"` through the repaired verb, then the gate apply and
+        `--retire` run in one wave. `--retire` moves `F289` (its `PaidBy` names this now-archived bundle)
+        and the row to the retired siblings and flips their index `Entry` layers in place; `D41` lands
+        `status="live"` with no `CodifiedIn` and stays live (a live decision is eligible only with a
+        resolving `CodifiedIn`). This bundle is the first `--decision` user, which is why the flush is a
+        close act rather than left to a later bundle.
+      </Goal>
+      <Goal>
+        **No regression in the existing contract.** The finding path, the codify-only invocation, the
+        all-or-nothing property (a refused run leaves findings, rulings, index and registry
+        byte-identical), the held ceilings, the canonical-at-rest property, and the buffer's
+        read-only treatment are unchanged and re-driven by the suite. The one measured fixture
+        consequence of Goal 3 is repaired inside this bundle: the `C-ROOT-WINDOW` fixture
+        (`scripts/validate-record-retirement.test.ts:956`) reassigns `parts.findingsRetired` to a
+        finding `f9` while `parts.index` keeps `happyParts`' `&lt;Entry id="f2" … /&gt;`, leaving `f2`
+        unheld; with the new relation in place that fixture would red, so its index and retired-finding
+        bytes are made consistent.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T1 (module change)**. The deliverable is one existing engine file and its suite:
+        no new subsystem (the `--flush` mode and its transaction shipped in
+        `C-RECORD-FLUSH-VERB-2-6BB9DF5A`), no new graph module, no version surface, no `src/` production
+        file. T1's full `strict_contract` sections are met and no design-freeze note is owed. Roadmap
+        `RM-GOVERNED-PATH`.
+      </Constraint>
+      <Constraint>
+        Binding rulings carried, not re-derived. **`D27`** — approved artifacts are immutable and
+        repaired only by `ngrace supersede`; drafts are revised in place, and this spec is a draft.
+        **`D30`** — the record freezes for the lifetime of a bundle that measures it, and no hard
+        `Constraint` here transcribes a scalar count of a file it changes; every occupancy and root
+        figure lives in `Assumptions` and expires. **`D31`** — the retired sibling is a layer; the index
+        has no retired sibling, so eligible `Entry` layers flip in place. **`D39`** — no ceiling is
+        raised; every root write is the held splice. **`D40`** — the record is written by the verb under
+        `scripts/`; no `src/` production write. **`D41`** — hand-editing a run stream is forbidden; this
+        bundle does not touch a run stream and does not relax the prohibition, and its own record writes
+        are the verb's.
+      </Constraint>
+      <Constraint>
+        The vehicle and the boundary. The whole fix lives in `scripts/validate-record-retirement.ts`, a
+        mode/check of the record engine beside `--retire`, `--stamp-paid-by`, `--rewrite-roots`,
+        `--split` and `--flush`. Every record write stays behind the module-private `writeRecordXml`
+        and the module-private renderers; the fix reuses `renderDecision`, adds no exported writer and
+        no second renderer. The new validator code `record-index-orphan` and the two flush codes
+        `flush-selection-genre-mismatch` and `flush-index-orphan` are record-engine codes, **not**
+        `src/lint/catalog.ts` issue codes — no lint issue code is added and `src/` is untouched. The verb
+        is invoked as `bun …`, never `ngrace …`. `package.json` is unchanged: `record:flush` already
+        exists and `validate:ci`/`validate:record-retirement` still contain no mutating mode.
+      </Constraint>
+      <Constraint>
+        The selection contract. `--finding &lt;token&gt;` and `--decision &lt;token&gt;` are matched by
+        anchor token against the buffer entries; **the flag's genre must equal the entry's genre**, or
+        `flush-selection-genre-mismatch` refuses before any write. The default `Pays` remains the flushed
+        `F` tokens in buffer order; `--pays` overrides and may name a flushed token or a live finding's
+        token. The row's name is the `--change` bundle id checked against `.ngrace/changes/active/`; its
+        `kind` is `chartered`; `Number` is empty. The buffer is read whole, never written. The output
+        line prints the flushed tokens, the row name and `Pays` (and, for the codify-only invocation,
+        the codified decision), and every token it names is present in the record after the run.
+      </Constraint>
+      <Constraint>
+        The invariant, as one relation with two evaluation points, and its measured cost. The relation is
+        *an index `Entry` has a holding `Finding`/`Decision` of its genre in one of the pair's two
+        layers*. At rest it is part of `structuralCheck`, so `validateRecordRetirement` reports
+        `record-index-orphan` and exits non-zero, and `--retire`/`--flush` refuse through the existing
+        `refuseStructural` before any write, with no second implementation. Before the write loop the
+        flush evaluates the same relation over its in-memory next-documents and refuses
+        `flush-index-orphan`. The relation is driven in both directions on throwaway copies; the
+        production record satisfies it (measured 2026-09-18: 419 index `Entry` elements, 263 live, 0
+        orphans). The measured fixture cost is the `C-ROOT-WINDOW` fixture's orphan `f2`, repaired in
+        this bundle. The reverse direction — a genre element with no index `Entry` — is not this
+        relation and stays the province of `validate-citation-anchors.ts` and
+        `prove-record-preservation.ts`; this bundle does not widen it.
+      </Constraint>
+      <Constraint>
+        The transaction and the dogfood, and what the authority writes. One transaction: all four
+        next-documents are built in memory, each checked by `assertRecordSchema`, the index-versus-genre
+        presence relation checked over them, every live root's base re-derived from the shipped metric
+        read back, each persisted ceiling held byte-for-byte via the `--rewrite-roots` splice, and only
+        then written through `writeRecordXml`; a refused run writes nothing. This bundle's full-suite-run
+        count is **zero**: no `CloseEvidence` names the whole suite, and the whole-suite
+        `bun run validate:ci` is a close drive in `VerificationIntent` only. **Acts assigned to the
+        authority, with their write targets declared:** at the close the authority drives the single
+        `--flush --finding F289 --decision D41` invocation, which writes
+        `docs/plans/active/RM-GOVERNED-PATH/findings.xml`, `rulings.xml`, `decisions.xml` and
+        `registry.xml`; then the gate apply (which renames the bundle into
+        `.ngrace/changes/archive/C-RECORD-DECISION-FLUSH-1-368E01F2/`); then `--retire`, which writes
+        `findings.xml`, `findings-retired.xml`, `rulings.xml`, `rulings-retired.xml`, `registry.xml`,
+        `registry-retired.xml` and `decisions.xml`. The authority composes the `--charter` and
+        `--status-text` halves (neither names an `F` token; the `StatusText` carries no `Closed with`
+        sentence). The authority prunes the buffer only after the flush PR merges.
+      </Constraint>
+      <Constraint>
+        Write scope, anchors and modules — enumerated once (`F136.1`'s rule; no second module list
+        anywhere in this artifact). The set is every write a Goal makes inevitable:
+        `scripts/validate-record-retirement.ts` (the `renderDecision` routing into `nextRulings`, the
+        `flush-selection-genre-mismatch` refusal, the `record-index-orphan` relation and the
+        `flush-index-orphan` pre-write check); `scripts/validate-record-retirement.test.ts` (the
+        decision-path walks both ways, the genre-mismatch refusal both ways, the orphan relation's
+        validator/`--retire`/`--flush` directions, the `C-ROOT-WINDOW` fixture repair, this bundle's row
+        and flush relations); the record files
+        `docs/plans/active/RM-GOVERNED-PATH/{findings.xml,findings-retired.xml,rulings.xml,
+        rulings-retired.xml,registry.xml,registry-retired.xml,decisions.xml}` (the close flush writes the
+        first, third, seventh and fifth; the close `--retire` writes the rest); and the bundle's own
+        artifacts under `.ngrace/changes/active/C-RECORD-DECISION-FLUSH-1-368E01F2/` with their close
+        arrival under `.ngrace/changes/archive/C-RECORD-DECISION-FLUSH-1-368E01F2/`.
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.md` is the stub and is not written;
+        `record-inventory.json` is `--split`'s artifact and is not written by the flush or by `--retire`.
+        **No graph module is written or minted.** `isModuleOwnableWritePath` was run and returned
+        `false` for `scripts/validate-record-retirement.ts` and
+        `scripts/validate-record-retirement.test.ts` and `true` for `src/grace-cursor.ts` and
+        `src/artifact/xml.ts`; neither scoped file carries a `LINKS:` header, so no module is forced into
+        `AffectedAreas` and the later plan's `DurableScope` will be `&lt;None /&gt;`. The record files
+        under `docs/plans/active/RM-GOVERNED-PATH/` are owned by no module in `.ngrace/graph/main.xml`;
+        `M-RELEASE-AUTOMATION` owns the six contract-bearing release scripts, not this engine. Do not add
+        a `LINKS:` header to a record-engine script. `.ngrace/scratch/staged-findings.md` is read, never
+        written. `README.md`, `examples/`, `package.json`, `CLAUDE.md`, `docs/plans/README.md`, `src/`
+        and `skills/` are not touched.
+      </Constraint>
+      <Constraint>
+        Evidence hygiene. The byte-invariance baseline is the full base commit
+        `a104166b2034bb06e028598b6533c9becaeccdfb` (`F210`'s rule: the base-less diff form cannot fail).
+        `git diff` sees tracked paths only (`F174`). Every `CloseEvidence` command is evaluated in the
+        applied-archive state (`F196`) and additionally driven inside a faithful whole-repository copy
+        before and after these criteria were written; exits are read directly, never through a pipe. Every
+        criterion states a relation and pins no projected figure; any occupancy or root number lives in
+        `Assumptions`. Structural counts come from the shipped parser, never `grep -c`. Any test this
+        bundle adds that walks the real repository or the real archive runs under `bun run test`
+        (`bun test --timeout=0`); **no per-test timeout number is pinned** (`C-TEST-TIMEOUT-CEILING-2`),
+        and the CI job's `timeout-minutes` is the only ceiling. The full `bun run validate:ci` is a
+        close drive, never a `CloseEvidence`.
+      </Constraint>
+      <Constraint>
+        The rule this repository has now paid for four times (`F136`, `F282`, `F285`, `F286`), applied.
+        (a) For every value the deliverable moves or renames, the tree is grepped for its assertions and
+        the grep's findings are scoped. This deliverable moves no token, id or path out of the record;
+        it adds codes and reuses `renderDecision`. The one existing assertion the new relation would
+        break is the `C-ROOT-WINDOW` fixture's orphan `f2`, measured by running the patched relation over
+        the file (`163 pass, 1 fail`), and it is scoped and repaired here. No test asserts the flush's
+        success-line bytes or the closed set of `structuralCheck` codes (grepped:
+        `grep -rn "record-flush: flushed" scripts/*.test.ts` and
+        `grep -oE '"record-[a-z-]+"' scripts/validate-record-retirement.test.ts`), so no other assertion
+        pins a value this bundle changes. (b) Every act the spec assigns to the authority is read back
+        against the declared write scope above: the close flush's four targets and the retire's seven are
+        the record files named in the write-scope `Constraint`.
+      </Constraint>
+      <Constraint>
+        Known boundary, stated rather than hidden. (1) The presence relation covers the index-to-genre
+        direction only; the genre-to-index direction stays `validate-citation-anchors.ts`'s and
+        `prove-record-preservation.ts`'s. (2) `--decision` continues to require a buffer entry whose
+        anchor token matches; the verb never invents an element from a flag alone. (3) The `flush-index-
+        orphan` check is a tripwire over the flush's own output; with the symmetry fix it cannot fire on
+        a correct run, which is the point. (4) `D41`'s prohibition and the PILOT decision are untouched;
+        landing `D41` live is the decision's own arrival, not a relaxation. (5) `F288` (concurrent
+        `cursor advance` minting duplicate ids) is not this bundle and is not paid here.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` and `examples/` are byte-identical to this spec's base commit
+        `a104166b2034bb06e028598b6533c9becaeccdfb`. Owner: unchanged; no user-visible surface — the verb
+        is a `scripts/` meta-artifact of this repository's governance and never a shipped `ngrace`
+        command, so the marketplace-facing overview and the walkthrough project have nothing to learn.
+      </NonGoal>
+      <NonGoal>
+        No `src/` production file changes (`D40`'s boundary and `C-RECORD-TEST-ISOLATION-2`): the product
+        CLI gains no record verb, no verdict surface, and no new lint issue code; `record-index-orphan`,
+        `flush-selection-genre-mismatch` and `flush-index-orphan` are `scripts/` record-engine codes.
+        Owner: `src/` and the `src/`-steps of `D40`, when the maintainer sequences them.
+      </NonGoal>
+      <NonGoal>
+        The buffer `.ngrace/scratch/staged-findings.md` is neither written by the verb nor pruned by this
+        bundle; entries are pruned only after the flush PR merges, and the pruning is the authority's
+        post-merge act. Owner: the authority, post-merge.
+      </NonGoal>
+      <NonGoal>
+        No ceiling is raised and no root attribute is hand-written; every root write is the held splice.
+        `D41`'s run-stream prohibition is not relaxed and no `run/` event or `run-ledger.xml` is touched.
+        Owner: the shipped engine; `D39` and `D41` unchanged.
+      </NonGoal>
+      <NonGoal>
+        `D41` is not codified by this bundle and gains no `CodifiedIn`: it is a ruling about the record's
+        inviolability whose teaching owner is a later `ngrace-execute` increment, and codifying it here
+        would make it eligible and move a live decision for no built mechanism. Owner: a later teaching
+        increment.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-DECISION-LANDS>
+        On an isolated fixture root with a fixture buffer and a fixture active bundle,
+        `--flush --change &lt;fixture&gt; --decision &lt;D&gt; --mint-search "0 active, 0 archive"` writes
+        a `&lt;Decision&gt;` element into `rulings.xml` exactly once and its `&lt;Entry&gt;` into
+        `decisions.xml` exactly once, `status="live"`, `genre="decision"` and `layer="live"` agreeing;
+        the `--finding` path is unchanged; findings, rulings, index and registry each satisfy
+        `base + headroom = ceiling` with `base` equal to the shipped metric read back; each written file
+        is canonical at rest (`serialize(parse(file))` byte-equal to `file`); the buffer's sha256 is
+        unchanged; and the run's success line names the decision token. Failure: `rulings.xml`
+        byte-unchanged while the index gains the `Entry`; the printed token absent from the record; a
+        non-canonical byte; a written root that does not hold its ceiling. The instrument is the shipped
+        suite.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-DECISION-LANDS>
+      <AC-REPORT-HONEST>
+        A selection whose flag disagrees with the buffer entry's genre refuses before any write:
+        `--decision &lt;a finding token&gt;` and `--finding &lt;a decision token&gt;` each exit non-zero
+        with `flush-selection-genre-mismatch`, and findings, rulings, index and registry are
+        byte-identical (sha256 before equals after). No run exits 0 with a success line naming a token
+        the record does not carry. Both directions are driven on a throwaway copy: the clean selection
+        passes, the mismatched selection reddens with the code in the message. Failure: exit 0 with the
+        row written and the named token absent (the measured F289-adjacent path); a refusal that writes
+        before refusing; a code that fires on the clean fixture. The instrument is the shipped suite.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-REPORT-HONEST>
+      <AC-INDEX-PRESENCE>
+        The index-versus-genre presence relation is enforced in both evaluation directions and both
+        probe directions. **At rest:** a planted index `&lt;Entry&gt;` whose id has no `Finding`/`Decision`
+        in either layer makes `validateRecordRetirement` report `record-index-orphan` and exit non-zero,
+        and makes `--retire` and `--flush` refuse through `refuseStructural` before any write. **Before
+        the write:** a flush that would mint an orphan index `Entry` refuses `flush-index-orphan` before
+        the write loop, leaving all four record files byte-identical. **Both ways:** the clean fixture and
+        the production record satisfy the relation (`validate-record-retirement: ok`); the F289-produced
+        state driven on a whole-repository copy — an index `Entry id="d41"` with no decision element —
+        now reddens `record-index-orphan` where `validate-record-retirement.ts`,
+        `validate-citation-anchors.ts` and `prove-record-preservation.ts` all exited 0 before. The
+        `C-ROOT-WINDOW` fixture's orphan `f2` is repaired so the suite is green with the relation in
+        place. Failure: a planted orphan left green; a refusal that writes first; the relation red on the
+        production record. The instrument is the shipped suite.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-INDEX-PRESENCE>
+      <AC-ROW-F289-D41>
+        In the applied-archive state: the `C-RECORD-DECISION-FLUSH-1-368E01F2` row exists exactly once
+        across `registry.xml` and `registry-retired.xml` (no fixed expectation of which file holds it),
+        `kind="chartered"`, its `Pays` containing `F289` and no token outside {`F289`}; `F289` exists
+        exactly once across the two findings layers with `status="retired"`,
+        `&lt;PaidBy&gt;C-RECORD-DECISION-FLUSH-1-368E01F2&lt;/PaidBy&gt;` and its index `Entry` layer
+        `retired` in place; `D41` exists exactly once across the two rulings layers, `status="live"`,
+        carrying no `CodifiedIn`, its index `Entry` layer `live`; the record validates green. Nothing
+        pins a ceiling value or a pre-close state. Failure: a duplicate row, a `Pays` outside the allowed
+        set, a paid finding left live, a `D41` moved or codified. The instrument is the shipped suite over
+        the real record.
+        <CloseEvidence>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-ROW-F289-D41>
+      <AC-NO-SRC>
+        No file under `src/` changes relative to this spec's base commit
+        `a104166b2034bb06e028598b6533c9becaeccdfb`; the whole engine is under `scripts/`. Prose and
+        command name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code a104166b2034bb06e028598b6533c9becaeccdfb -- src/</Command>
+        </CloseEvidence>
+      </AC-NO-SRC>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and `.ngrace/changes/archive/` are not modified; the
+        only arrival is this bundle's own close arrival under
+        `.ngrace/changes/archive/C-RECORD-DECISION-FLUSH-1-368E01F2/`, which the close itself renames
+        into place and which is excluded with its reason (`F188`'s law; the close's own rename would
+        otherwise redden the criterion it wrote). The prose claims tracked paths only (`F174`) and is
+        probed in the post-close state (`F196`). Failure: any tracked archive byte outside that arrival
+        differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code a104166b2034bb06e028598b6533c9becaeccdfb -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-RECORD-DECISION-FLUSH-1-368E01F2'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-DOCS-EXAMPLES>
+        `README.md` and `examples/` are byte-identical to this spec's base commit
+        `a104166b2034bb06e028598b6533c9becaeccdfb`, and `skills/ngrace/` and
+        `plugins/ngrace/skills/ngrace/` are byte-identical to it too (this bundle is not a product
+        teaching change and adds no lint issue code). Prose and command name the same pathset; the
+        command sees tracked edits and deletions only (`F174`).
+        <CloseEvidence>
+          <Command>git diff --exit-code a104166b2034bb06e028598b6533c9becaeccdfb -- README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/</Command>
+        </CloseEvidence>
+      </AC-DOCS-EXAMPLES>
+      <AC-NO-CURRENT-MODE>
+        The later plan's task `Verification` commands and `TargetAssertions` contain no current-mode lint
+        of this project root, checked by hand (the shipped detector misses the `grace.ts` form). Failure:
+        a `Command` whose text contains `--assertions current`, or that invokes lint of this root and
+        omits `--assertions`. This criterion carries no `CloseEvidence` and must be mapped by exactly one
+        task `Satisfies` in the later plan.
+      </AC-NO-CURRENT-MODE>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No graph module is written or minted. `scripts/` **is linted** (`.ngrace-lint.json` `ignoredDirs`
+      is `["examples"]`) and a `LINKS:`-less script there raises nothing; the two scoped files carry no
+      `LINKS:` header, and `isModuleOwnableWritePath` returned `false` for both
+      (`scripts/validate-record-retirement.ts`, `scripts/validate-record-retirement.test.ts`) and `true`
+      for `src/grace-cursor.ts` and `src/artifact/xml.ts`. The record files under
+      `docs/plans/active/RM-GOVERNED-PATH/` are owned by no module in `.ngrace/graph/main.xml`, and
+      `M-RELEASE-AUTOMATION` owns the six contract-bearing release scripts, not this engine. The module
+      enumeration is empty and the later plan's `DurableScope` will be `&lt;None /&gt;`; do not mint a
+      synthetic module and do not add a `LINKS:` header to a record-engine script. The write scope is
+      enumerated once, in the write-scope `Constraint` (`F136.1`'s rule — no second module list
+      anywhere). `M-SKILLS` and `src/` are not touched.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-citation-anchors.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/prove-record-preservation.ts docs/plans/active/RM-GOVERNED-PATH</ExpectedCommand>
+      <ExpectedEvidence>
+        Discriminating probes against the delivered verb, not a green suite; all fixture work on
+        isolated temporary roots, never the working tree and never the production record. (1) The
+        decision path both ways per `AC-DECISION-LANDS` — a fixture `--decision` writes the element and
+        its index `Entry`, the roots are held, the files are canonical at rest, and the printed token is
+        carried. (2) The genre-mismatch refusal both ways per `AC-REPORT-HONEST` — `--decision` of a
+        finding token and `--finding` of a decision token each refuse with
+        `flush-selection-genre-mismatch` and leave the four files byte-identical. (3) The presence
+        relation per `AC-INDEX-PRESENCE` — the clean fixture and the production record green, a planted
+        orphan red in the validator and refused by `--retire`/`--flush` before any write, the
+        `flush-index-orphan` pre-write check driven by planting an orphan the write loop would mint, and
+        the F289-produced copy re-validated to show it now reddens where all three shipped validators
+        were green. (4) The `C-ROOT-WINDOW` fixture repair — the suite green with the relation in place.
+        (5) The close on a throwaway whole-repository copy: the single `--flush --finding F289 --decision
+        D41 --pays F289 --mint-search "0 active, 0 archive"` lands both and the row; the gate apply
+        archives the bundle; `--retire` moves `F289` and the row with their index `Entry` layers flipped
+        and leaves `D41` live; the copy's `validate-record-retirement.ts`,
+        `validate-citation-anchors.ts` and `prove-record-preservation.ts` all return 0. (6) Byte-
+        invariance per `AC-NO-SRC`, `AC-NO-ARCHIVE-EDIT` and `AC-DOCS-EXAMPLES` — `git diff --exit-code`
+        against `a104166b2034bb06e028598b6533c9becaeccdfb`, probed in the post-close state, each
+        command's can-fail demonstrated on a scratch clone before recording (`F188`, `F196`, `F174`).
+        The full `bun run validate:ci` is a drive here, never a `CloseEvidence` (it matches no default
+        discriminating shape, and it is the whole suite).
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        All measurements 2026-09-18 at `a104166b2034bb06e028598b6533c9becaeccdfb` (`git rev-parse HEAD`),
+        branch `c-record-decision-flush`, tracked tree clean, `.ngrace/changes/active/` holding the
+        bundle `C-RECORD-DECISION-FLUSH-1-368E01F2` only, 121 archive directories, and the gitignored
+        buffer `.ngrace/scratch/staged-findings.md` holding nine entries — `F270 F280 F283 F284 F285
+        F287 F288 D41 F289`. These are occupied states and expire; they are not criteria.
+      </Assumption>
+      <Assumption>
+        The record's live-root readings at the base commit, before any flush:
+        findings `base="7329" headroom="250" ceiling="7579"`, rulings `base="1670" headroom="213"
+        ceiling="1883"`, registry `base="12" headroom="14" ceiling="26"`, index `base="263"
+        headroom="33" ceiling="296"`; the index holds 419 `Entry` elements, 263 of them live, with 0
+        orphans; `findings.xml` holds 202 live findings and `rulings.xml` 61 live decisions. The close's
+        flush and `--retire` re-derive and hold every root; no criterion pins a projected value.
+      </Assumption>
+      <Assumption>
+        The predecessor's contract holds unchanged: all four next-documents are schema-checked in memory
+        before the write loop, the writers stay module-private, `record:flush` exists and mutating modes
+        stay out of `validate:ci` and `validate:record-retirement`, and no shipped test pins the `test`
+        script text or a per-test timeout. The `renderDecision(entry, status)` renderer is the shipped
+        writer this bundle routes `selD` through; it is module-private and is not exported.
+      </Assumption>
+      <Assumption>
+        The `AC-FLUSH-MODE`/plan gap recorded in `Problem` is history, not a second defect this bundle
+        owes: the predecessor bundle is approved and archived (`D27`), and its criterion's decision half
+        was never exercised. This bundle's suite drives `--decision` in both directions, which is the
+        remedy available inside a new bundle. No new finding is staged by this authoring run; the
+        report-without-doing path it measured is folded into this bundle's `AC-REPORT-HONEST` rather than
+        staged as a separate entry.
+      </Assumption>
+      <Assumption>
+        `D41` is flushed at this bundle's close as a stated Goal rather than left as an unstated close
+        act, because the record's row, its `Pays` and the post-close shape of `AC-ROW-F289-D41` all
+        depend on the decision path having been driven through the repaired verb. `D41` lands live with
+        no `CodifiedIn` and is not retired by the close's `--retire` (a live decision moves only on a
+        resolving `CodifiedIn`); this is a reading, not a criterion.
+      </Assumption>
+    </Assumptions>
+  </C-RECORD-DECISION-FLUSH-1-368E01F2>
+</NgraceChangeSpec>

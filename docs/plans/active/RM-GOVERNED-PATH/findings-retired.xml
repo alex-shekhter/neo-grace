@@ -5091,4 +5091,19 @@ Owner: paid by the successor of `C-TEST-TIME-BUDGET-1-98736D59`, whose bounded d
 Owner: the successor of `C-TEST-TIME-BUDGET-3-7950A760`, which scopes the audit change alongside the landed test-time work.
 </Body>
   </Finding>
+  <Finding id="f289" token="F289" status="retired">
+    <PaidBy>C-RECORD-DECISION-FLUSH-1-368E01F2</PaidBy>
+    <Title>### F289 — the flush verb's `--decision` path writes an index `Entry` but never the `Decision` element, so a flushed decision leaves the record pointing at nothing. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `82aa877`,** by the authority, driving the shipped verb against the production record during the close of `C-TEST-TIME-BUDGET-4-F173437E`. The invocation `bun ./scripts/validate-record-retirement.ts --flush … --finding F281 --finding F282 --finding F286 --decision D41 --pays &quot;F281 F282 F286&quot; …` exited **0** and printed `record-flush: flushed F281 F282 F286 D41 (row …, pays F281 F282 F286)` — naming `D41` as flushed. The record disagreed: `grep -c d41` over `rulings.xml` and `rulings-retired.xml` returned **0** each, `rulings.xml`'s live root was byte-unchanged at `base=&quot;1670&quot; headroom=&quot;213&quot; ceiling=&quot;1883&quot;`, and `git diff --stat` over the record showed three files touched — `decisions.xml`, `findings.xml`, `registry.xml` — with `rulings.xml` absent. Meanwhile `decisions.xml` carried `&amp;lt;Entry id=&quot;d41&quot; token=&quot;D41&quot; genre=&quot;decision&quot; layer=&quot;live&quot; /&amp;gt;`: an index line asserting a live decision that exists in no genre file.
+
+**The cause, read from the engine.** In `flushRecord` (`scripts/validate-record-retirement.ts`), `nextFindings` appends `selF` to `findings.xml` and `nextIndex` appends index entries for **both** `selF` and `selD`, but `nextRulings` is initialised to the unchanged `rulingsXml` and is rewritten **only** inside `if (opts.codify)`. There is no path that appends a selected decision's element. `--decision` therefore mints an orphan index row on every invocation that uses it, and the printed confirmation names the token as flushed.
+
+**Why the schema did not catch it.** The refusals that run before the write check duplicate ids across the genre pair, an existing row, `--pays` tokens, charter and status-text prose, and `mint-search` shape; none asserts that a selected decision appears in the next `rulings.xml`. `assertRecordSchema` validates each next-document in isolation, so an index with a row and a rulings file without the element are each well-formed on their own. This is the index-versus-genre disagreement `F277` names, reached through the shipped write path rather than a hand edit — and the layer agrees, so `F277`'s own check would not fire either.
+
+**Recovery, and the shape it should have.** The authority reverted the record through git (the flush was uncommitted), then re-ran the same flush without `--decision`; the three findings and the row landed correctly and `d41` appears nowhere. `D41` stays staged in the buffer until the verb can carry it. Note the asymmetry the recovery depended on: had the flush been committed, the only repair would have been a hand edit of the record, which `D41` itself forbids.
+
+Owner: a record-engine bundle — `--decision` either appends the element and the index entry together, or refuses with a named code. Stays staged, together with `D41`, which cannot be flushed until then.
+</Body>
+  </Finding>
 </Findings>
