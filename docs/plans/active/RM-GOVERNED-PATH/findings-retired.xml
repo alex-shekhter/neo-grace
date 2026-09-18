@@ -5159,4 +5159,154 @@ Owner: a `src/` bundle (a verdict-inspection surface); stays staged here.
 Owner: an inspection-surface bundle, sequenced **after** [F288](docs/plans/active/RM-GOVERNED-PATH/decisions.md) — cursor integrity can still deadlock the repository, and a convenience does not outrank it. Carries `F270` and this entry together. Stays staged.
 </Body>
   </Finding>
+  <Finding id="f283" token="F283" status="retired">
+    <PaidBy>C-TEACHING-INCREMENT-2-4E28E16C</PaidBy>
+    <Title>### F283 — a cursor `fail` attempt recorded *after* the fix that greens it is uncorroborated: `review.attempt-pair-identical-tree` reddens because both snapshots share the fixed tree, so a correction whose red already passed must be a **pass-only** attempt (or the fail written before the edit). **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 while executing `C-TEST-TIME-BUDGET-2-3EC1F016` at `0b0eba5`.** Two corrections to already-passed tasks (T-002 and T-003) — `MODULE_MAP` entries for three new `src/gates/ledger.ts` exports (`__predecessorMapView`, `__predecessorMemoStats`, `__resetPredecessorCache`) and two new `scripts/test-affected.ts` exports (`AFFECTED_EDGES`, `allTestFiles`), surfaced by `ngrace lint --path . --assertions current --change C-TEST-TIME-BUDGET-2-3EC1F016` (2 errors, `markup.module-map-mismatch`) — were recorded as `fail` (signature kind `fix`) then `pass` **after** the `MODULE_MAP` header edit had already landed. `ngrace review --path . --change C-TEST-TIME-BUDGET-2-3EC1F016` then emitted `review.attempt-pair-identical-tree` for both pairs (events 34→36 and 35→37): &quot;no authored path outside `.ngrace/` differs across the pair … Red-first is not corroborated by any non-ledger content change (F9.10)&quot;. The audit is correct; the record is not — the `fail` snapshot was taken with the fix already in the tree.
+
+**The honest forms.** (a) Record the `fail` in its own tool round trip *before* the edit, as the primary pairs did. (b) When the red has already passed — here the red was `lint`'s exit 1, captured in a round trip *before* the edit — record a single `ngrace cursor attempt --outcome pass` and disclose the pass-only correction in the report (`ngrace-execute` rule 13). A `fail` written after the fix cannot corroborate red-first and must not be recorded; `WriteEvidence` digests `ObservedWriteScope` at attempt-command time, so the ordering is the evidence.
+
+Owner: a teaching increment (the cursor/attempt ordering for corrections). The two uncorroborated pairs are permanent in this bundle's run stream and cannot be removed; the authority's close sees them as two `review.attempt-pair-identical-tree` warnings.
+</Body>
+  </Finding>
+  <Finding id="f285" token="F285" status="retired">
+    <PaidBy>C-TEACHING-INCREMENT-2-4E28E16C</PaidBy>
+    <Title>### F285 — a plan's `ObservedWriteScope` must declare every file the **close** writes, not only the files its tasks write: when a spec assigns an act to the authority, the scope audit still charges that act to the plan. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `68ec888`,** driving the close of `C-TEST-TIME-BUDGET-2-3EC1F016`. The approved spec assigns the payment to the authority — &quot;the approval write, the gates, the applied close and the flush are the authority's&quot; — and excludes `docs/plans/active/RM-GOVERNED-PATH` from `AC-NO-OTHER-SRC`, so the record writes are authorised. The approved plan's `ObservedWriteScope` names 25 files and **no record file**, because this bundle, unlike its predecessor `C-CLONE-FAITHFUL-TESTS-1-D68520A2`, has no payment task. The authority's `--flush` then wrote `findings.xml`, `decisions.xml` and `registry.xml`, and `ngrace review` returned three `review.scope-outside-write-scope` **errors**, one per record file, each reading &quot;Changed file … is outside the declared write scope&quot;.
+
+**No ordering avoids it.** The flush refuses once the bundle is archived (`flush-row-not-active` checks `.ngrace/changes/active/&lt;change&gt;`), and `--retire` requires the row to exist before it can move it, so the flush must run while the bundle is active — which is exactly the window the scope audit watches. `--retire`'s own post-archive record writes do *not* trip the audit, which is why the predecessor's close was clean and this one is not. Only a declaration in the plan would have prevented it.
+
+**The generalisable rule.** Both prior scope findings — [F136](docs/plans/active/RM-GOVERNED-PATH/decisions.md) and [F282](docs/plans/active/RM-GOVERNED-PATH/decisions.md) — are about a *spec* omitting a file its deliverable forces. This is the same failure one layer down and one actor over: the *plan* omitting a file the *authority* is told to write. The check that catches it is to read the spec for every act it assigns to the authority, and confirm each such act's write targets appear in the plan's `ObservedWriteScope` before the plan is approved. The authority's approval of this plan applied neither that check nor `F282`'s.
+
+**Cost, recorded because it is the argument for the check.** The maintainer ruled the remedy as a bundle supersede. `ngrace supersede` is bundle-level — there is no artifact-level plan repair — so the governance of a bundle whose execution was complete is discarded: 41 cursor events across two epochs, every red-first pair and `WriteEvidence` digest, stay in the superseded bundle's ledger, and the successor must re-record its cycles as pass-only against a tree where the work already stands ([ngrace-execute](skills/ngrace/ngrace-execute/SKILL.md) rule 13). A missing line in a scope list cost a whole bundle's governance.
+
+Owner: a teaching increment (the approval-time check), and the successor of `C-TEST-TIME-BUDGET-2-3EC1F016`, whose plan declares the record files.
+</Body>
+  </Finding>
+  <Finding id="f290" token="F290" status="retired">
+    <PaidBy>C-TEACHING-INCREMENT-2-4E28E16C</PaidBy>
+    <Title>### F290 — structural claims about an XML artifact were verified with regex, and regex read the structure wrong twice in one session; the parser and XPath were available throughout. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `0545433`,** by the authority, against its own verification of `C-RECORD-DECISION-FLUSH-1-368E01F2`. A hand-written pattern `&amp;lt;MustExist&amp;gt;&amp;lt;Value&amp;gt;([^&amp;lt;]+)&amp;lt;/Value&amp;gt;&amp;lt;/MustExist&amp;gt;` returned **0** baseline needles; `xmllint --xpath 'count(//BaselineAssertions/MustExist)'` on the same file returned **13**. The artifact writes each element across three lines, and the pattern assumed one. The consequence was not cosmetic: the authority briefly held that a plan declared no baseline needles at all, moments before approving it.
+
+**The same disease in source, the same session.** A search for a decision renderer used `grep -n &quot;renderLiveFinding\|renderLiveDecision\|function renderLive&quot;`, found nothing, and the resulting brief asserted that no such renderer existed. `renderDecision` sits at `scripts/validate-record-retirement.ts:437`. The pattern demanded the token `renderLive`, which the target never carried — [F138](docs/plans/active/RM-GOVERNED-PATH/decisions.md)'s rule (&quot;the pattern must be wider than the claim&quot;) applied to a function name rather than to a constant.
+
+**Why the tools were already there.** `xmllint` is installed (`which xmllint` exits 0) and answers structure exactly: `count(//ObservedWriteScope/File)` → 9, `count(//ImplementationPlan/*)` → 5, `//BaselineAssertions/MustPassCommand/Command/text()` → the five commands. The repository ships its own parser, `parseGraceXmlArtifact`, which the authority already uses for every record claim — genre, layer, `PaidBy`, root arithmetic. The inconsistency is the finding: the parser for the record, regex for bundle artifacts, and both misses landed on the regex side.
+
+**The rule, and it is not new.** `ngrace-spec`'s `acceptance_criteria_anchors` already says structural counts come from the shipped parser and never `grep -c`, and to prefer parsing the artifact when the claim is about structure. That passage binds the *executor authoring a spec*. Nothing binds the *authority verifying one*, and the authority is the party whose whole function is to distrust reports — so it is the party for whom a wrong structural reading is most expensive.
+
+**Remedy.** State the rule where the verifying party reads it: a structural claim about an XML artifact — a count, a presence, an attribute value, which section holds a node — is answered by `xmllint --xpath` or by the shipped parser. `grep` locates; it does not testify.
+
+**Amended 2026-09-18: the rule is not &quot;use XPath&quot;, because XPath alone did not save it.** Four misses now share one cause, and the tool was different each time: `grep &quot;renderLive&quot;` for a function named `renderDecision`; a single-line regex for elements written across three lines; `grep … | head -5` reporting 4 call sites where there were 8; and `xmllint --xpath '//DurableScope/M-CURSOR'` returning 0 for an anchor nested at `DurableScope/GraphAnchors/M-CURSOR`. The last used the right tool and still failed. The common act is writing a pattern from an **assumed** shape. The rule that covers all four: **read the shape first — print the element, list the call sites, look at the nesting — and only then write the query.** A count is trustworthy only when the thing counted has been seen once.
+
+Owner: a teaching increment (the reviewer/authority surface). Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f293" token="F293" status="retired">
+    <PaidBy>C-TEACHING-INCREMENT-2-4E28E16C</PaidBy>
+    <Title>### F293 — a spec declared `Pays F288` while its own byte-invariance criterion forbade the write that pays it, and the payer-map repair sat outside the declared scope; the approval check reads the files a spec *names* and never asks what the *close* must write. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 at `baeadc2`,** by the authority, after approving `C-CURSOR-EVENT-ID-INTEGRITY-1-A0E753F3`. The spec states `Pays` **`F288`** and, in the same artifact, *&quot;No record file is written by this bundle: `F288`'s retirement is a **later** flush between dispatches … and `docs/plans/active/RM-GOVERNED-PATH` is deliberately left **out** of the `AC-NO-OTHER-SRC` excludes so an unexpected record write reddens.&quot;* `AC-NO-OTHER-SRC` is `git diff --exit-code b6d7aba -- . ':(exclude)src/grace-cursor.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)README.md' ':(exclude).ngrace/changes'`, evaluated in the applied-archive state.
+
+**The two branches, both measured, neither available.** Flushing at the close — while the bundle is active, as every bundle this session has done — leaves the record differing from the base when the criterion runs, and the record is deliberately unexcluded, so the criterion reddens. Flushing later is refused by construction: `--flush --change C-ARCHIVED-PROBE-1-00000000` returns `flush-row-not-active: … is not an active bundle` at exit 1, while the identical command against an active bundle exits 0 and mints the row — a discriminating probe, driven both directions on a throwaway. Once archived, a bundle can never mint its own row, so `F288` can never be paid by it.
+
+**The compounding half.** `derivePayerMap` mints a token for every registry row whose name is an archive directory, and the walk asserts `derived.get(token) === baseline[token] ?? bundleMinted[token]` for **every** minted token (`scripts/validate-record-retirement.test.ts:2222`). `F288` is in neither map. The file holding `bundleMinted` is in neither the spec's write scope nor `AC-NO-OTHER-SRC`'s excludes, so the repair is unreachable from the approved boundary — the same shape as the payment itself.
+
+**The fifth instance of one class, and the second after its own finding was written.** [F136](docs/plans/active/RM-GOVERNED-PATH/decisions.md) — a spec forcing a file whose module was missing from a list. [F282](docs/plans/active/RM-GOVERNED-PATH/decisions.md) — a spec removing a value whose guards it never scoped. [F285](docs/plans/active/RM-GOVERNED-PATH/decisions.md) — a plan omitting files the **authority** writes at the close. [F286](docs/plans/active/RM-GOVERNED-PATH/decisions.md) — an audit not conditioned on abandoned governance. Now this: a **criterion that forbids the write the spec's own `Pays` line requires**. `F285` was written by the authority and the authority then approved this spec without applying it.
+
+**What the existing check misses, stated as the remedy.** The standing approval check reads each file the spec's `Constraints` *name* and confirms its module anchor — it is a check on the **enumerated set**. Nothing asks the prior question: **what must the close write, and does every criterion permit it?** The close writes the flush's four record documents, `--retire`'s three retired siblings, and the bundle's archive arrival; each must appear in the write scope **and** survive every byte-invariance pathspec. That is mechanical — the write set is derivable from `Pays` being non-empty — and it is the check whose absence has now cost five bundles.
+
+Owner: the successor of `C-CURSOR-EVENT-ID-INTEGRITY-1-A0E753F3`, which excludes the record and scopes the payer-map file; and a teaching increment for the approval-time check, which belongs beside [F285](docs/plans/active/RM-GOVERNED-PATH/decisions.md)'s.
+</Body>
+  </Finding>
+  <Finding id="f296" token="F296" status="retired">
+    <PaidBy>C-TEACHING-INCREMENT-2-4E28E16C</PaidBy>
+    <Title>### F296 — `ngrace-execute`'s &quot;batch the fix, not the guards&quot; has no rule for an indivisible mechanism whose guards can only green together, so the only red-first path is the retrospective red [F283](docs/plans/active/RM-GOVERNED-PATH/findings.xml) forbids. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18, from `C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92`** (merged in PR #108, `c83dfae`).
+Two of that bundle's tasks landed their mechanism before their guards, so five verification cycles have
+no recordable red and `ngrace review` reports five `attempt-pair-unpaired-pass` infos. The executor
+refused to stage a retrospective red — correctly, because manufacturing one is precisely the act `F283`
+exists to name — and proved the guards non-vacuous by planted mutation instead. The skill passage that
+should have governed the choice says only &quot;batch the fix, not the guards&quot;, which assumes the guards can
+be authored and driven red independently of one another. For a single lock-plus-renumber mechanism
+satisfying several `AC-*`, they cannot: every guard greens the moment the mechanism lands, and the only
+way to see red is to revert something already recorded.
+
+**The maintainer's proposed remedy, quoted as given:** &quot;Atomic Mechanism Exception: When a single
+indivisible mechanism satisfies multiple facets, authoring the minimal cluster of guards against the
+baseline to witness simultaneous red is permitted over sequential revert cycles.&quot;
+
+**Three things it needs before it can ship as skill text.** (1) *Facets* is not a house term — the
+artifacts say acceptance criteria (`AC-*`), tasks and verification cycles. (2) It does not say **how the
+attempt pair is recorded**, which is the whole reason the gap exists: one `cursor attempt --outcome fail`
+for the cluster then one `--outcome pass` yields **one** pair for N guards, and whether the attempt-pair
+audit stays quiet for the other N−1 is a measurable question against `src/review/core.ts` that must be
+answered before the rule is written. (3) It must name the forbidden move explicitly — reverting a landed
+mechanism to manufacture a red — and say what happens when guards *were* authored late: the cycle is
+recorded pass-only, disclosed, and proven non-vacuous by planted mutation.
+
+Owner: a teaching increment on `ngrace-execute`, gated on measuring the attempt-pair audit's behaviour
+for a one-pair/N-guard cluster. Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f298" token="F298" status="retired">
+    <PaidBy>C-TEACHING-INCREMENT-2-4E28E16C</PaidBy>
+    <Title>### F298 — measured: one `fail`/`pass` attempt pair covers an N-guard atomic cluster, and `ngrace review`'s attempt-pair audit reports **one** pair without raising `attempt-pair-unpaired-pass` for the other N−1. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 executing `C-INSPECTION-SURFACE-1-2628AA2B` at `16538cd`,** answering the question
+[F296](docs/plans/active/RM-GOVERNED-PATH/decisions.md) is gated on — &quot;whether the attempt-pair audit
+stays quiet for the other N−1&quot;.
+
+T-001's mechanism (`parseVerdictNode` in `src/gates/ledger.ts` populating the `closeEvidence` field) is
+one indivisible change; its guard cluster is four cases in `src/gates/core.test.ts`, **three of which
+redded together** before the mechanism landed (the fourth is a vacuous-safe negative that guards against
+an over-eager fix, and greened pre-fix). One `ngrace cursor attempt --task T-001 --outcome fail` was
+recorded in its own tool round trip before the mechanism edit; one `--outcome pass` after. The whole
+bundle ran **six** such pairs (T-001…T-006).
+
+`bun run ngrace review --path . --change C-INSPECTION-SURFACE-1-2628AA2B`, with the epoch open at
+execute, printed `Attempt-pair audit: ran over 6 fail→pass pair(s) … (0 finding(s))` — 6 pairs for 6
+tasks and **0** findings: no `attempt-pair-unpaired-pass` and no `attempt-pair-identical-tree`. The
+audit is per-attempt, not per-test: it pairs a task's cursor `attempt` events and has no knowledge of
+test cases, so it stays quiet for the N−1 guards that have no pair of their own.
+
+**Why this is the answer F296 needed.** The audit does not punish the atomic-cluster recording shape, so
+the Atomic Mechanism Exception can ship with its recording shape named: author the cluster against the
+baseline, witness simultaneous red in one round trip, record **one** `fail`, land the mechanism once,
+record **one** `pass`. The failure mode F296 feared — N fails against one pass leaving N−1 unpaired —
+does not occur if the cluster is recorded as one cycle, and it does occur if a `pass` is recorded
+without its `fail` (which is the audit's ordinary job).
+
+Owner: [F296](docs/plans/active/RM-GOVERNED-PATH/decisions.md)'s teaching increment, now unblocked.
+</Body>
+  </Finding>
+  <Finding id="f302" token="F302" status="retired">
+    <PaidBy>C-TEACHING-INCREMENT-2-4E28E16C</PaidBy>
+    <Title>### F302 — `TaughtIn` has a reader, a validator and a schema slot but no writer: `--flush --codify` stamps only `CodifiedIn`, so under the CLI-only-writes direction a decision taught in a skill cannot be annotated without a hand edit. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 at `220a061`,** by the authority, walking the close of the teaching increment before briefing it. The element is fully specified on the read side: `scripts/record-query.ts:162` reads it (`taughtIn: childTextOrNull(node, &quot;TaughtIn&quot;)`), `taughtResolvesCheck` (`scripts/validate-record-retirement.ts:2000`–`2024`) refuses a missing `path`, an absent file and an absent `section`, and `scripts/record-serialize.ts:66`–`77` admits it in `childOrder` `^TitleBody(CodifiedIn|TaughtIn)*$` with attributes `path`, `section` (`:123`). On the write side: `flushRecord`'s only annotation branch is `opts.codify` (`:1661`–`1672`), which appends a `CodifiedIn kind=… ` child and nothing else; the `--flush` argv filter (`:2051`) knows `--codify` and no `--taught`; `grep -rn TaughtIn scripts src --include='*.ts' | grep -v test` returns the reader, the validator, the serializer and two comments — no write. The record holds **zero** `&amp;lt;TaughtIn` elements across all seven files (`grep -o '&amp;lt;TaughtIn'` returns nothing; the 7 `grep -c` hits are prose).
+
+**The ruling it collides with, and the one it does not.** `C-TAUGHT-RULES`'s spec (Assumptions) records that &quot;a resolving `TaughtIn` annotates and does not retire, teaching a rule in skill prose is not enforcement, and no shipped rule makes a `TaughtIn` owed by teaching&quot; — so no bundle is *obliged* to stamp it, and this finding blocks nothing. But [D41](docs/plans/active/RM-GOVERNED-PATH/decisions.md)'s own body names &quot;a later teaching increment&quot; in `ngrace-execute` as its teacher, and [D40](docs/plans/active/RM-GOVERNED-PATH/decisions.md) routes every governed XML change through the CLI; the annotation D41 anticipates is therefore unreachable by any permitted act. An element that can be validated and queried but never produced is the same shape as [F270](docs/plans/active/RM-GOVERNED-PATH/decisions.md) (a tally recorded but never printed), one layer over.
+
+**Remedy.** A `--taught D&amp;lt;n&amp;gt;:&amp;lt;path&amp;gt;:&amp;lt;section&amp;gt;` option on `--flush`, mirroring `--codify` (`flush-taught-absent` for a non-decision, and the existing `taughtResolvesCheck` run against the next-document before the write loop so an absent path or section refuses with all four files byte-identical). Multiplicity is already permitted by the schema (`*`), so no exists-refusal; a byte-identical duplicate is refused. Small enough to ride with the teaching increment, whose close is the first act that needs it — D41 taught in `ngrace-execute`.
+
+Owner: the teaching increment (`F296 F298 F283 F285 F290 F293`), as a second deliverable under `scripts/`. Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f303" token="F303" status="retired">
+    <PaidBy>C-TEACHING-INCREMENT-2-4E28E16C</PaidBy>
+    <Title>### F303 — `flushRecord` assembles buffer bodies into `String.replace` replacement strings, so an entry whose body contains a replacement-pattern sequence corrupts the next findings document and the flush refuses with a message that blames an unrelated index entry. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 at `03af506`,** first by the executor's plan-time close drive for `C-TEACHING-INCREMENT-1-B9D139EA`, then reproduced by the authority on a throwaway copy of the shipped tree, both directions. `--flush --change C-TEACHING-INCREMENT-1-B9D139EA` selecting the seven findings `F296 F298 F283 F285 F290 F293 F302` exits **1** with `flush-index-orphan: decisions.xml: Entry id=&quot;f1&quot; token=&quot;F1&quot; has no holding Finding/Decision in either layer of its pair`, and all four flush-written record files stay byte-identical; the identical invocation selecting the six without `F302` exits **0**, lands six `Finding` elements, and the validator exits 0.
+
+**Cause.** [F302](docs/plans/active/RM-GOVERNED-PATH/decisions.md)'s staged body quotes the serializer's `childOrder` regex, whose closing `$` is immediately followed by a backtick — the `$&amp;#96;` sequence that `String.prototype.replace` reads as &quot;the portion of the string before the match&quot;. `flushRecord` (`scripts/validate-record-retirement.ts`) builds `nextFindings` (`:1653`), `nextIndex` (`:1654`), `nextRegistry` (`:1659`) and `nextRulings` (`:1660`) with `String.replace(closingTag, renderedEntries + closingTag)`, where the replacement string is assembled from buffer bodies; the `--codify` insertion (`:1671`) interpolates `kind` and `val` into a replacement string beside its `$1$2` capture references. Any body carrying `$&amp;#96;`, `$&amp;amp;`, `$'`, `$$` or `$&amp;lt;digit&amp;gt;` is rewritten by the engine before it is written. The pre-write presence relation caught the corrupted next-document — a refusal, not a corrupted write — but its diagnosis names `F1`, the first entry displaced by the duplicated prefix, not the cause.
+
+**Remedy.** A function replacement at all five sites (`replace(search, () =&gt; replacement)`, and at the insertion site a function taking the capture groups as arguments), with a test that flushes a body carrying the sequence beside a second finding and asserts both land once, the sequence written literally.
+
+Owner: the successor of `C-TEACHING-INCREMENT-1-B9D139EA`, whose plan's close cannot land `F302` without it. Stays staged.
+</Body>
+  </Finding>
 </Findings>

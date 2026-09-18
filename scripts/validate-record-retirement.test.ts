@@ -188,6 +188,18 @@ const bundleMinted: Record<string, string> = {
   // (the close's mint). `D41` needs no entry: the derivation matches `F` tokens
   // only.
   F289: "C-RECORD-DECISION-FLUSH-1-368E01F2",
+  // C-TEACHING-INCREMENT-2-4E28E16C T-005: the chartered row's eight minted
+  // tokens. Consulted only for tokens the derivation actually mints, so the
+  // walk is green with the row live (nothing minted while the bundle is active)
+  // and green in the applied-archive state (the close's mint).
+  F296: "C-TEACHING-INCREMENT-2-4E28E16C",
+  F298: "C-TEACHING-INCREMENT-2-4E28E16C",
+  F283: "C-TEACHING-INCREMENT-2-4E28E16C",
+  F285: "C-TEACHING-INCREMENT-2-4E28E16C",
+  F290: "C-TEACHING-INCREMENT-2-4E28E16C",
+  F293: "C-TEACHING-INCREMENT-2-4E28E16C",
+  F302: "C-TEACHING-INCREMENT-2-4E28E16C",
+  F303: "C-TEACHING-INCREMENT-2-4E28E16C",
 };
 
 
@@ -6430,6 +6442,137 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
     expect(malformed.status).not.toBe(0);
     expect(malformed.stderr).toContain("flush-mint-search-malformed");
     expect(allText(root).length).toBeGreaterThan(before);
+  });
+});
+
+// C-TEACHING-INCREMENT-2-4E28E16C T-001: the `--taught` annotation writer on
+// `--flush` and its guard cluster, driven on isolated fixture roots (never the
+// production record). The plan's Atomic Mechanism Exception applies: one
+// mechanism, one guard cluster, one recorded fail.
+describe("C-TEACHING-INCREMENT-2-4E28E16C T-001 --taught writer", () => {
+  const CHANGE = "C-FIXTURE-1-00000000";
+  const SKILL_REL = "skills/ngrace/ngrace-execute/SKILL.md";
+  function taughtRoot(): string {
+    const root = isolatedRoot();
+    cpSync(path.join(REPO_ROOT, RECORD_REL), path.join(root, RECORD_REL), { recursive: true });
+    const rulingsPath = path.join(root, RECORD_REL, "rulings.xml");
+    const fixtureDecision = '  <Decision id="d-fixture" token="D-FIXTURE" status="live">\n    <Title>## D-FIXTURE — fixture</Title>\n    <Body>fixture decision</Body>\n  </Decision>\n';
+    writeFileSync(rulingsPath, readFileSync(rulingsPath, "utf8").replace("</Rulings>", fixtureDecision + "</Rulings>"));
+    const indexFixture = path.join(root, RECORD_REL, "decisions.xml");
+    writeFileSync(indexFixture, readFileSync(indexFixture, "utf8").replace("</RecordIndex>", '  <Entry id="d-fixture" token="D-FIXTURE" genre="decision" layer="live" />\n</RecordIndex>'));
+    plant(root, ".ngrace/scratch/staged-findings.md", '<a id="f999" name="f999"></a>\n### F999 — fixture **[verified]**\n\nFixture body written literally; sources no repository path.\n\n---\n');
+    plant(root, SKILL_REL, '# ngrace-execute (fixture)\n\n<execution_rules>\nrule body carrying the execution_rules home.\n</execution_rules>\n\n<cursor_kinds>\n<kind id="attempt">attempt body carrying cursor_kinds.</kind>\n</cursor_kinds>\n');
+    mkdirSync(path.join(root, ".ngrace/changes/active", CHANGE), { recursive: true });
+    return root;
+  }
+  const FILES = ["findings.xml", "rulings.xml", "decisions.xml", "registry.xml"] as const;
+  const snapshot = (root: string) => FILES.map((f) => readFileSync(path.join(root, RECORD_REL, f), "utf8"));
+  const mint = (root: string) =>
+    runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", CHANGE, "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive", "--status-text", "fixture"]);
+  const taughtOn = (root: string) => {
+    const rootNode = parseGraceXmlArtifact("rulings.xml", readFileSync(path.join(root, RECORD_REL, "rulings.xml"), "utf8")).root!;
+    const target = [...walkNodes(rootNode)].find((n) => n.tag === "Decision" && n.attributes.id === "d-fixture")!;
+    return childNodes(target, "TaughtIn");
+  };
+
+  it("(a) --flush --taught writes exactly one TaughtIn on the named decision, exit 0", () => {
+    const root = taughtRoot();
+    expect(mint(root).status).toBe(0);
+    const r = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", CHANGE, "--taught", `d-fixture:${SKILL_REL}:execution_rules`, "--mint-search", "1 active, 0 archive"]);
+    expect(r.status, r.stderr).toBe(0);
+    const taught = taughtOn(root);
+    expect(taught.length, "exactly one TaughtIn").toBe(1);
+    expect(taught[0]!.attributes.path).toBe(SKILL_REL);
+    expect(taught[0]!.attributes.section).toBe("execution_rules");
+    expect(taught[0]!.text, "element text is the section").toBe("execution_rules");
+  });
+
+  it("(b) a non-decision target refuses flush-taught-absent with the four files byte-identical", () => {
+    const root = taughtRoot();
+    expect(mint(root).status).toBe(0);
+    const before = snapshot(root);
+    const r = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", CHANGE, "--taught", `F999:${SKILL_REL}:execution_rules`, "--mint-search", "1 active, 0 archive"]);
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain("flush-taught-absent");
+    expect(snapshot(root), "four files byte-identical").toEqual(before);
+  });
+
+  it("(c) an absent skill path refuses and names it, four files byte-identical", () => {
+    const root = taughtRoot();
+    expect(mint(root).status).toBe(0);
+    const before = snapshot(root);
+    const missing = "skills/ngrace/ngrace-execute/NOPE.md";
+    const r = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", CHANGE, "--taught", `d-fixture:${missing}:execution_rules`, "--mint-search", "1 active, 0 archive"]);
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain(missing);
+    expect(snapshot(root)).toEqual(before);
+  });
+
+  it("(d) an absent section refuses and names it, four files byte-identical", () => {
+    const root = taughtRoot();
+    expect(mint(root).status).toBe(0);
+    const before = snapshot(root);
+    const r = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", CHANGE, "--taught", `d-fixture:${SKILL_REL}:nope_section`, "--mint-search", "1 active, 0 archive"]);
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain("nope_section");
+    expect(snapshot(root)).toEqual(before);
+  });
+
+  it("(e) a byte-identical duplicate refuses, four files byte-identical", () => {
+    const root = taughtRoot();
+    expect(mint(root).status).toBe(0);
+    const args = ["--flush", RECORD_REL, "--change", CHANGE, "--taught", `d-fixture:${SKILL_REL}:execution_rules`, "--mint-search", "1 active, 0 archive"];
+    expect(runValidatorInProcess(root, args).status).toBe(0);
+    const before = snapshot(root);
+    const dup = runValidatorInProcess(root, args);
+    expect(dup.status).not.toBe(0);
+    expect(snapshot(root)).toEqual(before);
+  });
+
+  it("(f) a second, different path/section on the same decision is admitted", () => {
+    const root = taughtRoot();
+    expect(mint(root).status).toBe(0);
+    expect(runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", CHANGE, "--taught", `d-fixture:${SKILL_REL}:execution_rules`, "--mint-search", "1 active, 0 archive"]).status).toBe(0);
+    const second = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", CHANGE, "--taught", `d-fixture:${SKILL_REL}:cursor_kinds`, "--mint-search", "1 active, 0 archive"]);
+    expect(second.status, second.stderr).toBe(0);
+    expect(taughtOn(root).length, "two TaughtIn children (schema multiplicity)").toBe(2);
+  });
+
+  it("(g) the --taught value is not read as a positional", () => {
+    const root = taughtRoot();
+    expect(mint(root).status).toBe(0);
+    const r = runValidatorInProcess(root, ["--flush", "--taught", `d-fixture:${SKILL_REL}:execution_rules`, "--change", CHANGE, "--mint-search", "1 active, 0 archive", RECORD_REL]);
+    expect(r.status, r.stderr).toBe(0);
+    expect(taughtOn(root).length, "the record dir resolved from the single positional").toBe(1);
+  });
+});
+
+// C-TEACHING-INCREMENT-2-4E28E16C T-002: flushRecord must write data-derived
+// replacements literally, never as String.replace replacement patterns. The
+// regression subject names the failure ("replacement pattern") and is driven on
+// an isolated fixture root.
+describe("C-TEACHING-INCREMENT-2-4E28E16C T-002 replacement pattern", () => {
+  const CHANGE = "C-FIXTURE-1-00000000";
+  const seq = "$" + "`";
+  function patternRoot(): string {
+    const root = isolatedRoot();
+    cpSync(path.join(REPO_ROOT, RECORD_REL), path.join(root, RECORD_REL), { recursive: true });
+    plant(root, ".ngrace/scratch/staged-findings.md", `<a id="f998" name="f998"></a>\n### F998 — replacement pattern fixture **[verified]**\n\nBody carrying a replacement sequence ${seq} literally. Sources no repository path.\n\n---\n\n<a id="f997" name="f997"></a>\n### F997 — second fixture **[verified]**\n\nSecond fixture body, carrying no sequence.\n\n---\n`);
+    mkdirSync(path.join(root, ".ngrace/changes/active", CHANGE), { recursive: true });
+    return root;
+  }
+
+  it("a finding body carrying the replacement sequence round-trips literally beside a second finding", () => {
+    const root = patternRoot();
+    const r = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", CHANGE, "--finding", "F998", "--finding", "F997", "--pays", "F998 F997", "--mint-search", "1 active, 0 archive", "--status-text", "fixture"]);
+    expect(r.status, r.stderr).toBe(0);
+    const findingsText = readFileSync(path.join(root, RECORD_REL, "findings.xml"), "utf8");
+    const rootNode = parseGraceXmlArtifact("findings.xml", findingsText).root!;
+    for (const token of ["F998", "F997"]) {
+      const hits = [...walkNodes(rootNode)].filter((n) => n.tag === "Finding" && n.attributes.token === token);
+      expect(hits.length, `${token} lands exactly once`).toBe(1);
+    }
+    expect(findingsText, "the sequence is written literally").toContain(seq);
   });
 });
 

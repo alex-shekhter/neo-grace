@@ -46,6 +46,7 @@ Form the judgment from what you read and drove, not from what was reported to yo
 - Every criterion is probed in both directions on a throwaway copy before approval: a guard that cannot redden is decoration, and a green direction that was never driven is not evidence of a pass.
 - The full CI runs in a faithful copy of the post-close state — the plan at `applied`, the bundle archived, the close's own move run — never only the CloseEvidence commands: the copy without the plan reds on a missing applied plan, which is the state the close actually leaves.
 - Check an assertion, probe, or red-direction fixture against the state any later lawful move of the record produces next, never only the state at approval: a relation true at approval and false after the next lawful move was never true.
+- A structural claim about an XML artifact — a count, a presence, an attribute value, which section holds a node — is answered by one rule: **read the shape first** — print the element, list the call sites, look at the nesting — and only then write the query, whether `xmllint --xpath` or the shipped parser. `grep` locates; it does not testify. The four generic shapes of the one mistake: a search for a token the target never carried; a single-line pattern against an element written across lines; a truncated listing read as the whole population; and a path query that assumed the nesting. A count is trustworthy only when the thing counted has been seen once.
 </review_judgment>
 
 <review_checklist>

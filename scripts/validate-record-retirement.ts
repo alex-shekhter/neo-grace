@@ -1576,7 +1576,7 @@ function renderLiveFinding(id: string, token: string, headingLine: string, bodyR
 
 function flushRecord(opts: {
   repoRoot: string; recordDir: string; change: string; findings: string[]; decisions: string[];
-  pays?: string; mintSearch?: string; charter?: string; statusText?: string; codify?: string;
+  pays?: string; mintSearch?: string; charter?: string; statusText?: string; codify?: string; taught?: string;
 }): void {
   refuseStructural(opts.recordDir);
   const buffer = readFileSync(path.join(opts.repoRoot, ".ngrace", "scratch", "staged-findings.md"), "utf8");
@@ -1650,14 +1650,14 @@ function flushRecord(opts: {
   const rulingsXml = readFileSync(path.join(opts.recordDir, "rulings.xml"), "utf8");
   const registryXml = readFileSync(path.join(opts.recordDir, "registry.xml"), "utf8");
   const indexXml = readFileSync(path.join(opts.recordDir, "decisions.xml"), "utf8");
-  const nextFindings = findingsXml.replace("</Findings>", selF.map((e) => `${renderLiveFinding(e.id, e.token, e.headingLine, e.bodyRaw)}\n`).join("") + "</Findings>");
-  const nextIndex = indexXml.replace("</RecordIndex>", [...selF.map((e) => `  <Entry id="${xmlEscape(e.id)}" token="${xmlEscape(e.token)}" genre="finding" layer="live" />`), ...selD.map((e) => `  <Entry id="${xmlEscape(e.id)}" token="${xmlEscape(e.token)}" genre="decision" layer="live" />`)].join("\n") + "</RecordIndex>");
+  const nextFindings = findingsXml.replace("</Findings>", () => selF.map((e) => `${renderLiveFinding(e.id, e.token, e.headingLine, e.bodyRaw)}\n`).join("") + "</Findings>");
+  const nextIndex = indexXml.replace("</RecordIndex>", () => [...selF.map((e) => `  <Entry id="${xmlEscape(e.id)}" token="${xmlEscape(e.token)}" genre="finding" layer="live" />`), ...selD.map((e) => `  <Entry id="${xmlEscape(e.id)}" token="${xmlEscape(e.token)}" genre="decision" layer="live" />`)].join("\n") + "</RecordIndex>");
   const pays = opts.pays ?? selF.map((e) => e.token).join(" ");
   const slug = opts.change.replace(/^C-/, "").replace(/-\d+-[0-9A-F]+$/, "");
   const charter = `mint-search: ${opts.mintSearch ?? ""} prior bundle(s) share slug ${slug}. ${opts.charter ?? ""}`;
   const row = [`  <Row name="${xmlEscape(opts.change)}" status="live" kind="chartered">`, "    <Number></Number>", `    <Charter>${xmlEscape(charter)}</Charter>`, `    <Pays>${xmlEscape(pays)}</Pays>`, `    <StatusText>${xmlEscape(opts.statusText ?? "")}</StatusText>`, "  </Row>"].join("\n");
-  const nextRegistry = rowExists ? registryXml : registryXml.replace("</Registry>", row + "\n</Registry>");
-  let nextRulings = rulingsXml.replace("</Rulings>", selD.map((e) => `${renderDecision(e, "live")}\n`).join("") + "</Rulings>");
+  const nextRegistry = rowExists ? registryXml : registryXml.replace("</Registry>", () => row + "\n</Registry>");
+  let nextRulings = rulingsXml.replace("</Rulings>", () => selD.map((e) => `${renderDecision(e, "live")}\n`).join("") + "</Rulings>");
   if (opts.codify) {
     const [did, kind, val] = opts.codify.split(":");
     const target = [...walkNodes(parseGraceXmlArtifact("rulings.xml", nextRulings).root!)].find((n) => n.tag === "Decision" && (n.attributes.id === did || n.attributes.token === did));
@@ -1668,7 +1668,23 @@ function flushRecord(opts: {
       throw new Error(`flush-codify-exists: ${did} already carries a CodifiedIn`);
     }
     const rid = target.attributes.id ?? did;
-    nextRulings = nextRulings.replace(new RegExp(`(<Decision id="${rid}"[^>]*>)([\\s\\S]*?)(\n  </Decision>)`), `$1$2\n    <CodifiedIn kind="${kind}">${val}</CodifiedIn>$3`);
+    nextRulings = nextRulings.replace(new RegExp(`(<Decision id="${rid}"[^>]*>)([\\s\\S]*?)(\n  </Decision>)`), (_m, g1, g2, g3) => `${g1}${g2}\n    <CodifiedIn kind="${kind}">${val}</CodifiedIn>${g3}`);
+  }
+  if (opts.taught) {
+    const [did, tpath, tsection] = opts.taught.split(":");
+    const target = [...walkNodes(parseGraceXmlArtifact("rulings.xml", nextRulings).root!)].find((n) => n.tag === "Decision" && (n.attributes.id === did || n.attributes.token === did));
+    if (!target) {
+      throw new Error(`flush-taught-absent: ${did} is not a decision`);
+    }
+    const resolved = taughtResolvesCheck({ attrs: { path: tpath ?? "", section: tsection ?? "" }, text: tsection ?? "" }, opts.repoRoot);
+    if (!resolved.ok) {
+      throw new Error(`flush-taught-unresolved: ${resolved.message}`);
+    }
+    if ([...walkNodes(target)].some((n) => n.tag === "TaughtIn" && n.attributes.path === tpath && n.attributes.section === tsection)) {
+      throw new Error(`flush-taught-exists: ${did} already carries this TaughtIn`);
+    }
+    const rid = target.attributes.id ?? did;
+    nextRulings = nextRulings.replace(new RegExp(`(<Decision id="${rid}"[^>]*>)([\\s\\S]*?)(\n  </Decision>)`), (_m, g1, g2, g3) => `${g1}${g2}\n    <TaughtIn path="${xmlEscape(tpath ?? "")}" section="${xmlEscape(tsection ?? "")}">${xmlEscape(tsection ?? "")}</TaughtIn>${g3}`);
   }
   const nextDocs: Array<[string, LiveRootGenre, string]> = [
     ["findings.xml", LIVE_ROOT_GENRES.findings, nextFindings],
@@ -2048,7 +2064,7 @@ export function main(argv = process.argv.slice(2), cwd = process.cwd()): number 
   const mode = argv.find(
     (a) => a === "--split" || a === "--retire" || a === "--stamp-paid-by" || a === "--rewrite-roots" || a === "--flush",
   );
-  const positional = argv.filter((a, i) => !a.startsWith("--") && !(i > 0 && ["--change","--pays","--mint-search","--charter","--status-text","--codify","--finding","--decision"].includes(argv[i-1]!)));
+  const positional = argv.filter((a, i) => !a.startsWith("--") && !(i > 0 && ["--change","--pays","--mint-search","--charter","--status-text","--codify","--taught","--finding","--decision"].includes(argv[i-1]!)));
   if (mode === "--split") {
     try {
       splitFrozenRecord(cwd);
@@ -2103,6 +2119,7 @@ export function main(argv = process.argv.slice(2), cwd = process.cwd()): number 
         charter: opt("--charter"),
         statusText: opt("--status-text"),
         codify: opt("--codify"),
+        taught: opt("--taught"),
       });
       return 0;
     } catch (error) {

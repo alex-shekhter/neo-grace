@@ -36,7 +36,7 @@ describe("token-accounting (D15)", () => {
     // C-TAUGHT-RULES T-003: the twenty-seven taught rules landed in the four
     // skills, both trees (measured): 832 → 861 lines and 64155 → 71505 bytes.
     const measured = skillTextLines();
-    expect(measured.total).toBe(871);
+    expect(measured.total).toBe(873);
     expect(measured.perSkill["ngrace-fix"]).toBe(32);
     expect(Object.keys(measured.perSkill).length).toBe(16);
     // Sanity: known skills present
@@ -97,9 +97,13 @@ describe("token-accounting (D15)", () => {
     // C-TEST-TIMEOUT-CEILING-2-7AD2A006 T-001: the per-test-timeout rule became the
     // --timeout=0 + job-ceiling rule in ngrace-spec, both trees (line-neutral,
     // byte-moving): 866 → 866 lines and 78384 → 78456 bytes.
+    // C-TEACHING-INCREMENT-2-4E28E16C T-005: the six taught rules and the D41
+    // run-stream rule landed in ngrace-execute, ngrace-plan, ngrace-spec and
+    // ngrace-reviewer, both trees (measured): 871 → 873 lines and
+    // 81285 → 85595 bytes.
     const measured = skillTextLines();
-    expect(measured.total).toBe(871);
-    expect(measured.totalBytes).toBe(81285);
+    expect(measured.total).toBe(873);
+    expect(measured.totalBytes).toBe(85595);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);
