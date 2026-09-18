@@ -1,0 +1,429 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-RECORD-DECISION-FLUSH-1-368E01F2>
+    <IntentSummary>
+      **What this plan executes.** The approved spec `C-RECORD-DECISION-FLUSH-1-368E01F2`
+      (`status="approved"`, committed at `567ecf6`, immutable under `D27`) repairs the `--flush`
+      mode's `--decision` path in `scripts/validate-record-retirement.ts` and adds the
+      index-versus-genre presence relation. Ceremony tier **T1**: one engine file and its suite,
+      no new subsystem, no graph module, no version surface. `DurableScope` is `&lt;None /&gt;` —
+      `isModuleOwnableWritePath` returns false for both scoped files and no `LINKS:` header is
+      added to a record-engine script.
+
+      **The defect, measured.** `flushRecord` (`scripts/validate-record-retirement.ts:1523`)
+      appends `selF` to `nextFindings` (`:1588`) and appends index `Entry` elements for both
+      `selF` and `selD` to `nextIndex` (`:1589`), but `nextRulings` is initialised to the
+      unchanged `rulingsXml` (`:1595`) and rewritten only inside `if (opts.codify)`. A
+      `Decision` renderer exists — `renderDecision(entry, status)` (`:437`), the same shape as
+      `renderLiveFinding` (`:1514`) — and the flush never calls it. Driven on a whole-repository
+      copy at the spec's base `a104166b2034bb06e028598b6533c9becaeccdfb`:
+      `--decision D41` exits 0, prints `record-flush: flushed D41`, leaves `rulings.xml`
+      byte-unchanged and writes `&lt;Entry id="d41" … /&gt;` into `decisions.xml`, and all three
+      shipped validators (`validate-record-retirement.ts`, `validate-citation-anchors.ts`,
+      `prove-record-preservation.ts`) report green. A second path is worse: the pre-write check
+      (`:1529`–`:1531`) tests only buffer membership, never flag-versus-genre agreement, so
+      `--decision &lt;a finding token&gt;` and `--finding &lt;a decision token&gt;` each exit 0,
+      print `flushed &lt;token&gt;`, write only the row and no entry.
+
+      **The tasks, each landing its guard red-first in its own tool round trip.** `T-001` lands
+      the at-rest presence relation `record-index-orphan` in the shared `structuralCheck`
+      (`:1475`) — consumed by `validateRecordRetirement`, by `--retire` through
+      `refuseStructural` (`:1070`) and by `--flush` through the same `refuseStructural` (`:1527`)
+      — and repairs the one pre-existing fixture the relation reddens, the `C-ROOT-WINDOW`
+      `normalising pass` fixture (`scripts/validate-record-retirement.test.ts:956`) whose
+      `parts.index` keeps `happyParts`' `&lt;Entry id="f2" … /&gt;` after `parts.findingsRetired`
+      is reassigned to `f9` (measured on a prototype: `163 pass, 1 fail` before the repair,
+      `164 pass, 0 fail` after). `T-002` routes `selD` through the existing `renderDecision`
+      into `nextRulings` in the same transaction, chains `--codify` off the already-appended
+      `nextRulings` rather than the original bytes, and evaluates the presence relation
+      `flush-index-orphan` over the next documents plus the retired siblings before the write
+      loop; its red-first is reachable through the codify interaction — a naive
+      `--decision D99 --codify d1:test-suite:…` run drops the decision when the codify branch
+      rewrites `nextRulings` from `rulingsXml`, and the guard refuses `flush-index-orphan`
+      (driven: naive exit 1, chained exit 0 writing both the `Decision` and the `CodifiedIn`).
+      `T-003` adds the genre-agreement refusal `flush-selection-genre-mismatch` before any write
+      (driven both directions: `--finding D99` refuses with the code; `--decision D99` lands).
+      `T-004` extends the suite's `bundleMinted` payer map with
+      `F289: "C-RECORD-DECISION-FLUSH-1-368E01F2"` — the trap that cost the last bundle, and live
+      here (`grep -c F289 scripts/validate-record-retirement.test.ts` = 0 at plan time), because
+      `derivePayerMap` (`:370`) mints `F289` only once this bundle's row is an archive directory
+      and the walk (`test:2210`) then expects `baseline[F289] ?? bundleMinted[F289]`, so an
+      absent or stale entry reddens the post-archive verdict. `D41` needs no entry — `F_TOKEN_RE`
+      mints only `F` tokens (driven: `derived.get("D41")` is `undefined`). `T-005` adds the
+      applied-archive relation walk for `AC-ROW-F289-D41`: it is vacuously green while the
+      bundle's row is absent (pre-close) and, once the row is present, asserts `F289` retired
+      with `&lt;PaidBy&gt;C-RECORD-DECISION-FLUSH-1-368E01F2&lt;/PaidBy&gt;` and its index layer
+      `retired`, `D41` live with no `CodifiedIn` and its index layer `live`, and the row exactly
+      once across the registry layers with `Pays` containing `F289`.
+
+      **The assertions.** `BaselineAssertions` pin the standing world with existence pins and
+      the instruments green at the baseline — the record suite, the preservation suite, the
+      shipped validator, the preservation validator and the citation-anchor validator. They do
+      **not** pin the validator's silence on an orphan index `Entry` or the pre-write success
+      line, which are the reds the tasks flip; a needle the bundle flips by design belongs in a
+      test or a probe, not a baseline assertion. `TargetAssertions` restore every one of those
+      instruments and add the full `bun run validate:ci`, plus `MustContain` needles for the
+      delivered surfaces: the three new codes in
+      `scripts/validate-record-retirement.ts` (`record-index-orphan`,
+      `flush-selection-genre-mismatch`, `flush-index-orphan`) and the payer-map entry
+      `F289: "C-RECORD-DECISION-FLUSH-1-368E01F2"` in the suite. The full CI-equivalent
+      verification is **close-time only**: it is the `bun run validate:ci` `MustPassCommand` in
+      `TargetAssertions`, evaluated at `--assertions final --run-commands`; no task `Verification`
+      duplicates it, and no task names a current-mode lint of this root.
+
+      **The full-suite-run count is one.** Exactly one command in this plan runs the whole suite:
+      the `bun run validate:ci` `MustPassCommand` in `TargetAssertions`, at `--assertions final`.
+      Every task `Verification` names the narrowest instrument, and the spec's close-bound
+      `CloseEvidence` commands are the narrow `bun test
+      scripts/validate-record-retirement.test.ts` (the `AC-CLOSE-LINT` criterion names the root
+      lint).
+
+      **What the authority writes, declared.** The approved spec assigns the close flush and the
+      retire to the authority. At the close, with the bundle still under `.ngrace/changes/active/`,
+      the authority drives one `--flush --change C-RECORD-DECISION-FLUSH-1-368E01F2 --finding F289
+      --decision D41 --pays F289 --mint-search "0 active, 0 archive"` through the repaired verb,
+      writing `findings.xml`, `rulings.xml`, `decisions.xml` and `registry.xml`; then the gate
+      apply renames the bundle into `.ngrace/changes/archive/C-RECORD-DECISION-FLUSH-1-368E01F2/`;
+      then `--retire` writes `findings.xml`, `findings-retired.xml`, `rulings.xml`,
+      `rulings-retired.xml`, `registry.xml`, `registry-retired.xml` and `decisions.xml`. Those
+      seven record files are in `ObservedWriteScope` (`F285`). `decisions.md` is the stub and is
+      not written; `record-inventory.json` is `--split`'s artifact and is not written by the flush
+      or by `--retire` (`decisions.md` is also deliberately absent from `ObservedWriteScope` per
+      the plan-stage rule). The buffer `.ngrace/scratch/staged-findings.md` is read, never
+      written; the authority prunes it post-merge.
+
+      **The four-times rule, applied to this plan.** For every value a task deletes, moves or
+      renames, the tree was grepped for its assertions and each lands in a scoped file: no token,
+      id or path moves, the deliverable only reuses `renderDecision` and adds codes; the one
+      existing assertion the new relation breaks is the `C-ROOT-WINDOW` fixture's orphan `f2`,
+      scoped and repaired by `T-001`; and `grep -rn "record-flush: flushed" scripts/*.test.ts`
+      returns no hit, so no test pins the success line. Every act the spec assigns to the authority
+      is read back against the declared `ObservedWriteScope` above — the close flush's four targets
+      and the retire's seven are the seven enumerated record files. Both are recorded in the plan
+      report.
+
+      **The byte-invariance baseline** for every diff command is the spec's base commit
+      `a104166b2034bb06e028598b6533c9becaeccdfb`; every diff sees tracked paths only (`F174`), and
+      every archive diff excludes this bundle's own close arrival. Any new test that walks the real
+      record runs under `bun run test` (`bun test --timeout=0`); **no per-test timeout number is
+      pinned**. When this plan names a tag or attribute form it writes character data with entities
+      (`&lt;`, `&gt;`, `&amp;`) and never paraphrases the brackets away.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-RECORD-DECISION-FLUSH-1-368E01F2/spec.xml</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/prove-record-preservation.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-citation-anchors.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/active/C-RECORD-DECISION-FLUSH-1-368E01F2/spec.xml</Value>
+      </MustExist>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>record-index-orphan</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>flush-selection-genre-mismatch</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>flush-index-orphan</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F289: "C-RECORD-DECISION-FLUSH-1-368E01F2"</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test scripts/prove-record-preservation.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/prove-record-preservation.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun ./scripts/validate-citation-anchors.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>scripts/validate-record-retirement.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>
+          Land the index-versus-genre presence relation `record-index-orphan` in the shared
+          structural check, consumed by the validator, `--retire` and `--flush`, and repair the
+          `C-ROOT-WINDOW` fixture it reddens
+        </Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: on an isolated fixture root carrying a planted index `Entry` whose id has no
+            `Finding`/`Decision` in either layer of its pair (for example
+            `&lt;Entry id="d-orphan" token="D-ORPHAN" genre="decision" layer="live" /&gt;` with no
+            such `Decision` in `rulings.xml` or `rulings-retired.xml`),
+            `bun ./scripts/validate-record-retirement.ts &lt;record&gt;` currently exits 0; after
+            the change it exits non-zero naming `record-index-orphan`, and `--retire` and `--flush`
+            on the same fixture exit non-zero with the same code **before any write** (the four
+            record files byte-identical, sha256 before equals after).
+          </Criterion>
+          <Criterion>
+            The clean direction: the unmodified fixture and the production record
+            `docs/plans/active/RM-GOVERNED-PATH` both stay green (`record-retirement: ok`), and the
+            relation is one implementation inside `structuralCheck` consumed through the existing
+            `refuseStructural` — no second orphan check, no new exported writer.
+          </Criterion>
+          <Criterion>
+            The one existing assertion the relation breaks is repaired in the same task: the
+            `C-ROOT-WINDOW normalising pass` fixture
+            (`scripts/validate-record-retirement.test.ts:956`) keeps `happyParts`'
+            `&lt;Entry id="f2" … /&gt;` in `parts.index` after `parts.findingsRetired` is reassigned
+            to `f9`, so the relation reddens it (measured on a prototype: `163 pass, 1 fail`); the
+            index bytes are made consistent with the retired `f9` element (`164 pass, 0 fail`).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun ./scripts/validate-record-retirement.ts docs/plans/active/RM-GOVERNED-PATH</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NO-CURRENT-MODE />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>
+          Route a selected decision through `renderDecision` into `nextRulings` in the same
+          transaction, chain `--codify` off the appended document, and assert the presence relation
+          `flush-index-orphan` over the next documents before the write loop
+        </Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: `--flush --change &lt;fixture&gt; --decision &lt;D&gt;` on an isolated fixture
+            currently leaves `rulings.xml` byte-unchanged while `decisions.xml` gains the index
+            `Entry`; after the change the `&lt;Decision&gt;` element exists exactly once in
+            `rulings.xml` **and** its `&lt;Entry&gt;` exactly once in `decisions.xml`, with
+            `status="live"`, `genre="decision"` and `layer="live"` agreeing, the four live roots
+            held (`base + headroom = ceiling`, base equal to the shipped metric read back), every
+            written file canonical at rest (`serialize(parse(file))` byte-equal to `file`), and the
+            success line naming a token the record carries.
+          </Criterion>
+          <Criterion>
+            The pre-write relation `flush-index-orphan` is evaluated over the in-memory next
+            `findings`/`rulings`/`index` documents **plus** the two retired siblings read from disk
+            (a live-layer-only holding set flags a live index `Entry` for a retired element — the
+            production record's `d5.1` was flagged on a prototype), and a flush that would mint an
+            orphan index `Entry` refuses `flush-index-orphan` before the write loop with all four
+            files byte-identical. The relation is one helper, not a second implementation of the
+            at-rest check.
+          </Criterion>
+          <Criterion>
+            The red-first for the pre-write guard is reachable through the codify interaction:
+            `--decision D99 --codify &lt;live decision&gt;:test-suite:&lt;existing path&gt;` where the
+            codify branch rewrites `nextRulings` from the original `rulingsXml` drops the selected
+            decision and the guard refuses `flush-index-orphan` (driven on a prototype: naive exit
+            1); with `--codify` chained off the already-appended `nextRulings`, the same run exits 0
+            and writes both the `Decision` element and the `CodifiedIn` (driven: element 1, codify
+            1, index entry 1).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>
+          Refuse a selection whose flag disagrees with the buffer entry's genre with the named code
+          `flush-selection-genre-mismatch`, before any write
+        </Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: `--finding &lt;a decision token&gt;` and `--decision &lt;a finding token&gt;`
+            currently exit 0, print `record-flush: flushed &lt;token&gt;`, write the charter row and
+            no entry; after the change each exits non-zero with
+            `flush-selection-genre-mismatch`, and findings, rulings, index and registry are
+            byte-identical (sha256 before equals after).
+          </Criterion>
+          <Criterion>
+            The matching directions still land: `--finding &lt;a finding token&gt;` and
+            `--decision &lt;a decision token&gt;` each write their element and index `Entry`. The
+            existing refusals (`flush-id-absent`, `flush-id-duplicate`, `flush-row-not-active`,
+            `flush-row-exists`, `flush-pays-unknown`, `flush-charter-f-token`,
+            `flush-status-text-f-token`, `flush-status-closed-with`, `flush-codify-absent`,
+            `flush-codify-exists`, `flush-mint-search-malformed`, the serializer's
+            `record-schema-*`) are unchanged.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>
+          Extend the suite's `bundleMinted` payer map with
+          `F289: "C-RECORD-DECISION-FLUSH-1-368E01F2"` so the post-archive payer walk stays green
+        </Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first: once this bundle's row is an archive directory carrying `Pays F289`,
+            `derivePayerMap` (`scripts/validate-record-retirement.ts:370`, `F_TOKEN_RE`) mints
+            `F289`, and the walk (`scripts/validate-record-retirement.test.ts:2210`) expects
+            `baseline[F289] ?? bundleMinted[F289]`; with the entry absent the expectation is
+            `undefined` and the walk reds. Driven on a prototype against a synthetic archive:
+            `derived F289 = C-RECORD-DECISION-FLUSH-1-368E01F2`; `baseline F289 = undefined`;
+            absent `bundleMinted` → walk red; correct entry → walk green; stale id
+            (`F289: "C-SOMEWHERE-1-AAAAAAAA"`) → walk red.
+          </Criterion>
+          <Criterion>
+            `D41` needs no payer-map entry, verified rather than trusted: `derivePayerMap` matches
+            only `F` tokens, so a row whose `Pays` names `D41` mints nothing (driven:
+            `derived.get("D41")` is `undefined`). The extension is the deliberate ratchet and is
+            consulted only for tokens the derivation actually mints.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>
+          Add the applied-archive relation walk for `AC-ROW-F289-D41`: once the charter row is
+          present, `F289` is retired with `PaidBy`, `D41` is live with no `CodifiedIn`, and every
+          index `Entry` layer agrees
+        </Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The walk keys on the row's presence so it is green in the execution tree and
+            discriminating in the applied-archive state: while no `Row` named
+            `C-RECORD-DECISION-FLUSH-1-368E01F2` exists the walk is vacuously green; once the row
+            exists, it asserts the row exactly once across `registry.xml` and
+            `registry-retired.xml` with `kind="chartered"` and `Pays` containing `F289`; `F289`
+            exactly once across the findings pair with `status="retired"` and
+            `&lt;PaidBy&gt;C-RECORD-DECISION-FLUSH-1-368E01F2&lt;/PaidBy&gt;` and its index `Entry`
+            layer `retired` in place; `D41` exactly once across the rulings pair with
+            `status="live"`, no `CodifiedIn` and its index `Entry` layer `live`. No ceiling value
+            and no pre-close state is pinned.
+          </Criterion>
+          <Criterion>
+            Red-first, driven on a throwaway whole-repository copy: with the close flush applied
+            (the row and `F289` live) the walk reds on the retired assertions; after the gate apply
+            archives the bundle and `--retire` moves `F289` and the row to the retired siblings
+            with their index layers flipped in place, the walk is green and the copy's three
+            validators return 0.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-RECORD-DECISION-FLUSH-1-368E01F2>
+</NgraceChangePlan>
