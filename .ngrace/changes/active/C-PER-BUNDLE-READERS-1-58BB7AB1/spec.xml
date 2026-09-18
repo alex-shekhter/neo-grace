@@ -1,0 +1,652 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-PER-BUNDLE-READERS-1-58BB7AB1>
+    <Summary>
+      One `src/` bundle that pays the two staged findings `F300` and `F301`,
+      which the record itself names as one owner. `F300`: no shipped reader
+      carries an applied archive bundle's `DurableScope`, so
+      `ngrace change show &lt;archived&gt;` prints the honest third state
+      `not carried for an archived bundle` even when the archived `plan.xml`
+      declares anchors — because `AppliedChangeScope`
+      (`src/artifact/scope.ts:82`) has no `durable` field, its doc comment
+      says `No durable`, and `extractDurableScope`
+      (`src/artifact/scope.ts:368`) is module-private. `F301`: there is no
+      shipped per-bundle derived-state reader, so `ngrace change show` answers
+      one bundle's question with a whole-project status walk —
+      `locateDerivedStates` (`src/query/change.ts:213`) is
+      `collectProjectStatus(projectRoot).changes.find(…)` at `:214` — and
+      costs **1.89-1.92 s** against a peer `ngrace module show`'s
+      **0.52-0.55 s** (three warm runs each, measured on this base commit).
+      This bundle gives the scope layer one applied durable-scope shape and the
+      status layer one per-bundle state reader
+      (`derivedStatesForChange(projectRoot, changeId)`), then makes
+      `change show` use both. The three modules the Goals force are
+      `M-GRAMMAR`, `M-QUERY` and `M-STATUS`; the record flush, the payer-map
+      fixture and the close's move pay and retire `F300`/`F301`.
+    </Summary>
+    <Goals>
+      <Goal>
+        **`F300` (a) — the applied scope carries its durable anchors.**
+        Export `extractDurableScope` (`src/artifact/scope.ts:368`) and add
+        `durable: DurableScope` to `AppliedChangeScope`
+        (`src/artifact/scope.ts:82`), populated by `readAppliedChangeScope`
+        (`:322`) exactly as `readActiveChangeScope` (`:344`) already populates
+        the active shape. The archived reader keeps its existing
+        `specStatus === "applied" &amp;&amp; planStatus === "applied"`
+        guard and its `observedWrites` bytes; the added field is additive.
+        The scope file's `MODULE_CONTRACT` doc line `No durable field` and the
+        `collectAppliedChangeScopes` doc line `No durable` are corrected in the
+        same edit, and `extractDurableScope` joins the `START_MODULE_MAP`
+        block (`markup.module-map-mismatch`).
+      </Goal>
+      <Goal>
+        **`F300` (b) — `change show` prints the archived plan's anchors.**
+        In `collectChangeView` (`src/query/change.ts`), an archived bundle
+        found by `collectAppliedChangeScopes` maps its `durable` through the
+        same carried-vs-`&lt;None /&gt;` logic the active branch already uses,
+        so `ngrace change show &lt;archived&gt;` prints
+        `graph anchors: &lt;the plan's anchors&gt;` and never the third-state
+        label. The `ChangeDurableScope` union (`src/query/change.ts`) drops
+        the `not-carried-archived` member, and `formatDurableScope`
+        (`src/query/render.ts:224`) drops its case. A non-applied archive (a
+        `rejected`/`cancelled`/`superseded` bundle, where the applied-scope
+        reader returns nothing) is still `absent`, unchanged.
+      </Goal>
+      <Goal>
+        **`F301` (a) — a per-bundle derived-state reader in the status layer.**
+        Export
+        `derivedStatesForChange(projectRoot: string, changeId: string): string[]`
+        from `src/grace-status.ts`, beside `deriveChangeStates` (`:285`) and
+        `collectChangeBundleStatuses` (`:165`). Factor the per-bundle body of
+        `collectChangeBundleStatuses` into one shared helper so the whole-project
+        snapshot and the per-bundle reader route through the **same**
+        derivation; the reader returns `[]` for an unknown id. It computes the
+        bundle's facts from the same shipped readers the snapshot uses —
+        `lintGraceProject(root, { profile: "standard" })` filtered to the
+        bundle directory, `readRootStatus` on `spec.xml`/`plan.xml`, the
+        per-bundle `readPermittingDecision` for an archived applied bundle, and
+        the same `collectApprovedContractDrift` post-processing — never a
+        second reader of any governed byte. Delete `locateDerivedStates`
+        (`src/query/change.ts:213`) and call the exported reader from
+        `collectChangeView`.
+      </Goal>
+      <Goal>
+        **`F301` (b) — the guard is a relation, not a number.** The automated
+        guard is the equivalence test over the real archive: for **every**
+        bundle, `derivedStatesForChange(root, id)` equals
+        `collectProjectStatus(root).changes.find(…).derivedStates`, with a
+        planted malformed bundle as the red direction (a bundle whose
+        `integrity-issues` state a lint-skipping reader would miss). The
+        `change show` cost guard is **structural**: `src/query/change.ts`
+        holds exactly one `collectProjectStatus(` call, the proportionate one in
+        `findChangeBundles` (`:109`), and the `change show` path holds none.
+        The wall-time relation — `change show` at or below twice a peer
+        `module show` — is measured at the close and recorded in the close
+        report, never pinned as a test threshold; the projected figure lives in
+        `Assumptions` and expires.
+      </Goal>
+      <Goal>
+        **The row and the payment.** At the close the authority's flush
+        (`--change C-PER-BUNDLE-READERS-1-58BB7AB1 --finding F300 --finding
+        F301 --pays "F300 F301" --mint-search "0 active, 0 archive"`) lands both
+        findings and mints this bundle's chartered row into `registry.xml`:
+        `&lt;Row name="C-PER-BUNDLE-READERS-1-58BB7AB1" status="live"
+        kind="chartered"&gt;` with an empty `&lt;Number&gt;`, a `&lt;Charter&gt;`
+        carrying the searched-before-minting statement over the archive and both
+        registry layers, no `F` token, `&lt;Pays&gt;` naming exactly `F300`
+        and `F301`, and a `&lt;StatusText&gt;` naming no `F` token and
+        containing no `Closed with` sentence. The plan extends the shipped
+        payer-derivation baseline `bundleMinted`
+        (`scripts/validate-record-retirement.test.ts`) with `F300` and `F301`
+        each mapped to this bundle id — two entries. The close's move retires
+        both findings and the row.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T2** (cross-cutting: three modules in three layers plus
+        their tests, the payer-map fixture, and the governed record the close
+        writes). Roadmap: `RM-GOVERNED-PATH`. Binding: **`F300`/`F301`** — this
+        bundle is the one owner both name, and both remedies are the
+        deliverable, not follow-ups; `D11` — nothing is deferred without a
+        dependency or a conflict; `D30` — no hard `Constraint` below
+        transcribes a scalar count of a file this bundle writes; counts live in
+        `Assumptions` and expire; `D5.5` — `CHANGELOG.md` is generated and is
+        not edited; `F136.1` — every file this spec forces into scope has its
+        owner confirmed against every module list this spec carries, and the
+        write scope is enumerated exactly once, in the write-scope Constraint;
+        `F227` — the forced-file set is derived from the Goals, and every
+        byte-invariance criterion excludes every file the Goals make
+        inevitable; `F285`/`F293` — the close's write set is enumerated from
+        the verb, charged to the plan's `ObservedWriteScope`, and permitted by
+        every byte-invariance pathspec; `F43` — markup is escaped as character
+        data in every artifact this bundle writes, never paraphrased away;
+        `F304` — the later `plan.xml` carries no `Assumptions` section.
+      </Constraint>
+      <Constraint>
+        **The durable-scope shape, and the shape chosen.** **Shape (A),
+        chosen:** `extractDurableScope` is exported, `AppliedChangeScope` gains
+        `durable: DurableScope`, and `readAppliedChangeScope` populates it, so
+        one applied-scope shape serves both locations and `collectChangeView`
+        uses the same carried-vs-`&lt;None /&gt;` mapping for active and
+        archived. What it moves, stated: every consumer of
+        `AppliedChangeScope` — `collectObservedDrift`
+        (`src/grace-status.ts:546`) and `appliedArchiveAliasExplains` (`:581`),
+        the drift-credit reader, which read `observedWrites` and `changeId`
+        only and are unchanged in behaviour — plus the `change show` goldens
+        `src/artifact/scope.test.ts:86` (whose
+        `expect(applied[0]).not.toHaveProperty("durable")` flips) and
+        `src/query/change.test.ts:207`-`:222` (whose
+        `not-carried-archived` assertions flip to the declared anchors). The
+        added extraction is one node walk over a plan `readAppliedChangeScope`
+        already parses; `collectAppliedChangeScopes` is already a whole-archive
+        walk. **Shape (B), rejected:** return an optional durable scope only to
+        callers that ask. It keeps the drift-credit input narrow but leaves
+        `AppliedChangeScope` documented `No durable` — the documented
+        asymmetry that *is* `F300` — and forces the active and archived paths
+        to call different readers, the divergence `F301`'s equivalence
+        criterion forbids for states, applied here to scope.
+      </Constraint>
+      <Constraint>
+        **The per-bundle reader contract, and what it must not do.** The whole
+        project must derive a bundle's states exactly once, in one function.
+        `collectChangeBundleStatuses` (`src/grace-status.ts:165`) is refactored
+        so its per-bundle body is a shared helper
+        (`collectChangeBundleStatus(root, location, bundlePath, lintIssues)`)
+        called both by the snapshot's `listBundleDirs(...).map(...)` and by
+        `derivedStatesForChange`; the `approvedContractDrift`/`absence`
+        post-processing in `collectProjectStatus` becomes a shared function used
+        by both. `derivedStatesForChange` therefore computes the same facts the
+        snapshot computes for that bundle: identical `lintGraceProject`
+        invocation and bundle-directory filter, identical `readRootStatus`,
+        identical `readPermittingDecision` for archived applied bundles, and
+        identical `collectApprovedContractDrift(root, collectActiveChangeScopes(paths))`.
+        It must **not** introduce a second parser or a second state derivation,
+        and it must **not** be a facade over `collectProjectStatus`. It returns
+        `[]` for an unknown id and for a non-`grace4` project. `src/artifact/scope.ts`
+        is `M-GRAMMAR`'s and `src/grace-status.ts` is `M-STATUS`'s; the module
+        boundary between grammar and status is a design line, and
+        `deriveChangeStates` does not move across it. No `lint/core.ts` entry
+        point is added: the per-bundle reader reuses `lintGraceProject`, so the
+        touch set is `M-GRAMMAR`, `M-QUERY`, `M-STATUS` and no fourth module.
+      </Constraint>
+      <Constraint>
+        **The measurement, stated as a relation.** At the close,
+        `ngrace change show &lt;an archived applied bundle&gt;` is timed
+        against a peer `ngrace module show &lt;a module&gt;` — three warm runs
+        each, exits read directly — and the relation asserted is
+        `change show` ≤ **2×** `module show`. The projected ratio, from a
+        harness driving the post-fix readers at this base, is ~0.65-0.71 s
+        against ~0.52 s (~1.4×); it is recorded in `Assumptions` and expires.
+        No test pins a millisecond threshold; a timing threshold is the shape
+        that rots. The structural half — no `collectProjectStatus` call on the
+        `change show` path — is the automated guard.
+      </Constraint>
+      <Constraint>
+        **The equivalence guard, and its red direction.** `src/grace-status.test.ts`
+        gains the archive-wide equivalence test — for every bundle in
+        `collectProjectStatus(REPO_ROOT).changes`, `derivedStatesForChange(REPO_ROOT, id)`
+        equals that bundle's snapshot `derivedStates` — driven under
+        `bun run test` / `bun test --timeout=0`, with no per-test number
+        pinned and no bundle count asserted. Its red direction is a planted
+        bundle in a throwaway project: a malformed active `plan.xml` makes
+        `collectProjectStatus` report `integrity-issues` for that bundle
+        (measured at this base), so a reader that skipped lint diverges, while
+        the shipped reader equals the snapshot. Both directions are driven on a
+        copy before this spec is ratified.
+      </Constraint>
+      <Constraint>
+        **Module enumeration and write scope, stated once (`F136.1`).** The
+        modules this spec enumerates are exactly `M-GRAMMAR`, `M-QUERY` and
+        `M-STATUS`, here and in `AffectedAreas` below; no other module list
+        appears. Files the Goals force into write scope, each with its owner:
+        `src/artifact/scope.ts` (export `extractDurableScope`, the `durable`
+        field and its population, the doc lines and the `MODULE_MAP` entry;
+        module-ownable, `LINKS: M-GRAMMAR`), `src/artifact/scope.test.ts` (the
+        `durable` assertions; a `.test.ts` under `src/` that
+        `isModuleOwnableWritePath` does not own, so it carries no `LINKS:`
+        anchor), `src/query/change.ts` (the archived carried branch, the union
+        member removal, `locateDerivedStates` deletion and the
+        `derivedStatesForChange` call; module-ownable, `LINKS: M-QUERY`),
+        `src/query/render.ts` (the `not-carried-archived` case removal;
+        module-ownable, `LINKS: M-QUERY`), `src/query/change.test.ts` (the
+        archived-carried assertions and the structural no-whole-walk
+        assertion; not module-ownable), `src/grace-status.ts` (the exported
+        `derivedStatesForChange`, the shared per-bundle helper and the
+        `MODULE_MAP` entry; module-ownable, `LINKS: M-STATUS`),
+        `src/grace-status.test.ts` (the equivalence test and its red direction;
+        not module-ownable), and `scripts/validate-record-retirement.test.ts`
+        (the `bundleMinted` extension, the payment fixture the close's
+        `Pays F300 F301` requires; not module-ownable). The record files the
+        close writes — `docs/plans/active/RM-GOVERNED-PATH/findings.xml`,
+        `findings-retired.xml`, `rulings.xml`, `rulings-retired.xml`,
+        `registry.xml`, `registry-retired.xml`, `decisions.xml` — are listed as
+        the authority's close acts so the close is coverable, plus the archive
+        arrival
+        `.ngrace/changes/archive/C-PER-BUNDLE-READERS-1-58BB7AB1/`. Do **not**
+        add this bundle's own `spec.xml`, `plan.xml` or `design-context.xml` to
+        `ObservedWriteScope`; the review skips them by identity. Do not mint a
+        synthetic module. Do not add a lint issue code.
+      </Constraint>
+      <Constraint>
+        **The files that must not be touched.** Stop and re-spec rather than
+        touching `src/lint/**` (the per-bundle reader reuses `lintGraceProject`;
+        no scoped lint entry point is added), `src/artifact/grammar.ts`,
+        `src/gates/**`, `src/review/**`, `src/grace-*.ts` other than
+        `src/grace-status.ts`, `src/query/**` other than `src/query/change.ts`
+        and `src/query/render.ts`, `scripts/` other than the named payer-map
+        fixture, the published skills and their mirrors, `examples/**`,
+        `README.md`, the `docs/plans/**` tree outside the seven record files
+        this bundle's close writes, `docs/plans/archive/`, tracked paths under
+        `.ngrace/changes/archive/` except this bundle's own later arrival,
+        `CHANGELOG.md`, any version surface, `package.json`, `bun.lock`,
+        `.ngrace-lint.json`, `.claude-plugin/**`,
+        `plugins/ngrace/.claude-plugin/**`, `openpackage.yml`,
+        `docs/schema-reference.md`, `test-metrics.json` (no new test file), and
+        the staged buffer `.ngrace/scratch/staged-findings.md` (read, never
+        written, and nothing in this bundle prunes it).
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, the rules this branch teaches, applied to this
+        bundle's own criteria. Every byte-invariance baseline is this spec's
+        base commit `5bf5eb0c965dd46fe97f5cd34d07b8561dc94073` — the base-less
+        form cannot fail; the window is this bundle's own diff; the diff sees
+        tracked paths only. The record files the close writes, the payer-map
+        fixture `scripts/validate-record-retirement.test.ts`, and this bundle's
+        own archive arrival are excluded from every byte-invariance criterion,
+        each with its reason, and covered by the close's own verdict instead.
+        The archive criterion excludes this bundle's own later arrival with its
+        reason (the close renames this bundle's directory into the archive).
+        Every probe is run in both directions on a throwaway copy before the
+        spec is ratified; probes mutate copies, never the production record.
+        Structural claims come from the shipped parser or the source under
+        test, never `grep -c`; exit codes are read directly, never through a
+        pipe. No criterion pins a named finding `status="live"`, pins a ceiling
+        to a number, or asserts an artifact the shipped engine will not
+        produce; no criterion requires a change another criterion forbids, and
+        no criterion forbids the write the close's `Pays` requires. The
+        `CloseEvidence` criteria are evaluated in the applied-archive state,
+        after the close's own move has run, and each names the narrow
+        instrument for its subject; the full CI-equivalent verification is
+        close-time only.
+      </Constraint>
+      <Constraint>
+        Criterion mapping, stated on its face. Every `AC-*` below is close-bound
+        by its own `CloseEvidence` child, so a task `Satisfies` naming any of
+        them is the shipped error. There is no `Satisfies`-mapped criterion in
+        this spec, because every criterion is evaluated against the post-close
+        state; the production row mint, the `bundleMinted` extension and the
+        close's verbs are named in `VerificationIntent` as the authority's
+        close act and a task write respectively.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` unchanged. The verb inventory line
+        (`ngrace change show C-ID --path &lt;root&gt;`) already promises
+        `ObservedWriteScope`/`DurableScope` and does not name the third-state
+        sentence, so no README cell moves; the change is the verb's output for
+        an archived bundle, which the inventory already covers. Owner:
+        unchanged; no user-visible surface beyond the verb the inventory
+        already documents.
+      </NonGoal>
+      <NonGoal>
+        `examples/` unchanged. `examples/polyglot/.ngrace/changes/archive/C-ADD-POSTING-CONTRACT`
+        is applied and declares `GraphAnchors`, so the fixed verb now prints
+        those anchors there; no file under `examples/` pins
+        `change show`'s output or the third-state sentence, and
+        `validate:examples` is untouched. Owner: unchanged; no example file
+        pins the old sentence.
+      </NonGoal>
+      <NonGoal>
+        Any new CLI verb, flag, issue code, grammar section, record schema
+        change, version bump, or `docs/schema-reference.md` regeneration; and
+        any change to the published skills or their mirrors. The new surface
+        is one exported scope reader, one exported status reader, and a
+        removed union member. Owner: unchanged; no user-visible CLI token
+        change.
+      </NonGoal>
+      <NonGoal>
+        A scoped lint entry point in `src/lint/**` (a fourth module), or a
+        second parser of `.ngrace` bytes behind `derivedStatesForChange`. The
+        reader reuses `lintGraceProject` and the snapshot's own per-bundle
+        derivation. Owner: the reader Goal's Constraint; this step writes only
+        `spec.xml`.
+      </NonGoal>
+      <NonGoal>
+        Flushing the buffer, pruning `staged-findings.md`, or rendering any
+        other staged entry into the record; and running any `ngrace review`,
+        gate or cursor verb from this spec-authoring step. Owner: the close
+        (flush) and the authority (gates); this step writes only `spec.xml`.
+      </NonGoal>
+      <NonGoal>
+        Regenerating `test-metrics.json`; no test file is added, so its internal
+        sums stay consistent and `scripts/test-metrics.test.ts` stays green
+        without a regeneration that would run the whole suite. Owner:
+        unchanged; no user-visible surface.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-DURABLE-ARCHIVED>
+        An archived applied bundle's `DurableScope` is carried, not labelled.
+        Red direction, on the base commit: `ngrace change show
+        C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92` (archived `applied`, its
+        `plan.xml` declares
+        `&lt;DurableScope&gt;&lt;GraphAnchors&gt;&lt;M-CURSOR /&gt;&lt;/GraphAnchors&gt;&lt;/DurableScope&gt;`)
+        prints `not carried for an archived bundle (the applied-scope reader
+        carries no durable scope; the archived plan declares its own anchors)`,
+        and `collectAppliedChangeScopes` items have no `durable` property
+        (`src/artifact/scope.test.ts:86`). Green direction: the same verb
+        prints `graph anchors: M-CURSOR` and the JSON `durableScope.state` is
+        `carried` with `graphAnchors: ["M-CURSOR"]`; `collectAppliedChangeScopes`
+        returns `durable`; an archived `&lt;None /&gt;` is still
+        `declared-none`; a `rejected`/`cancelled`/`superseded` archive is still
+        `absent`; and `collectObservedDrift`/`appliedArchiveAliasExplains`
+        behave as before (drift credit reads `observedWrites` only).
+        Instrument: `bun test --timeout=0 src/artifact/scope.test.ts` and
+        `bun test --timeout=0 src/query/change.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/artifact/scope.test.ts</Command>
+          <Command>bun test --timeout=0 src/query/change.test.ts</Command>
+        </CloseEvidence>
+      </AC-DURABLE-ARCHIVED>
+      <AC-NO-WHOLE-PROJECT-WALK>
+        `change show` no longer answers a per-bundle question with a
+        whole-project status walk, and its cost is bounded by a peer `show`.
+        Red direction, on the base commit: `src/query/change.ts:214` is
+        `collectProjectStatus(projectRoot).changes.find(…)`; three warm runs
+        measure `ngrace change show C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92`
+        at 1.90 / 1.89 / 1.92 s against `ngrace module show M-QUERY` at
+        0.52 / 0.55 / 0.53 s. Green direction: the source of
+        `src/query/change.ts` holds exactly one `collectProjectStatus(` call,
+        the proportionate one in `findChangeBundles`, and the `change show`
+        path holds none; at the close `change show` is at or below 2× a peer
+        `module show` over three warm runs, each exit read directly, and the
+        measured figures are recorded in the close report — never a test
+        threshold. Instrument: `bun test --timeout=0 src/query/change.test.ts`
+        for the structural half; the timing relation is close-time evidence.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/query/change.test.ts</Command>
+        </CloseEvidence>
+      </AC-NO-WHOLE-PROJECT-WALK>
+      <AC-STATES-EQUIVALENT>
+        For every bundle, the per-bundle reader equals the whole-project
+        snapshot. Red direction: on the base commit
+        `derivedStatesForChange` does not exist; and a planted malformed active
+        `plan.xml` in a throwaway project yields `integrity-issues` from
+        `collectProjectStatus` for that bundle, so a reader that skipped lint
+        diverges. Green direction: `derivedStatesForChange(ROOT, id)` equals
+        `collectProjectStatus(ROOT).changes.find((c) =&gt; c.changeId ===
+        id).derivedStates` for every bundle in the real archive, including the
+        three `apply-gate-record-absent` bundles, and equals the snapshot for
+        the planted malformed bundle; `derivedStatesForChange` returns `[]` for
+        an unknown id. Instrument: `bun test --timeout=0 src/grace-status.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-status.test.ts</Command>
+        </CloseEvidence>
+      </AC-STATES-EQUIVALENT>
+      <AC-NO-SRC-OTHER>
+        No file under `src/` or `scripts/` changes relative to this spec's base
+        commit except the files the Goals force, named here and in the
+        command's excludes: `src/artifact/scope.ts`, `src/artifact/scope.test.ts`,
+        `src/query/change.ts`, `src/query/change.test.ts`,
+        `src/query/render.ts`, `src/grace-status.ts`,
+        `src/grace-status.test.ts` and
+        `scripts/validate-record-retirement.test.ts` (the `bundleMinted`
+        extension, the payment fixture the close's `Pays F300 F301` requires).
+        Prose and command name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code 5bf5eb0c965dd46fe97f5cd34d07b8561dc94073 -- src/ scripts/ ':(exclude)src/artifact/scope.ts' ':(exclude)src/artifact/scope.test.ts' ':(exclude)src/query/change.ts' ':(exclude)src/query/change.test.ts' ':(exclude)src/query/render.ts' ':(exclude)src/grace-status.ts' ':(exclude)src/grace-status.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-SRC-OTHER>
+      <AC-RECORD-SIBLINGS-UNMOVED>
+        The files under the record directory the close provably does not change
+        are byte-identical to this spec's base commit:
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.md` (the stub),
+        `record-inventory.json`, `plan.md`, `review.md`,
+        `brownfield-findings.md`, `brownfield-run4-findings.md`,
+        `p0-calibration-derivation.md`, `p0-cursor-derivation.md`,
+        `p0-derivation.md`, `p0-report-honesty-derivation.md`, and the
+        `sources/` subtree. The seven record files the close writes —
+        `findings.xml`, `findings-retired.xml`, `rulings.xml`,
+        `rulings-retired.xml`, `registry.xml`, `registry-retired.xml`,
+        `decisions.xml` — are deliberately absent from this criterion and are
+        covered by the close's own verdict. The window is this bundle's own
+        diff, over tracked paths only.
+        <CloseEvidence>
+          <Command>git diff --exit-code 5bf5eb0c965dd46fe97f5cd34d07b8561dc94073 -- docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </CloseEvidence>
+      </AC-RECORD-SIBLINGS-UNMOVED>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and
+        `.ngrace/changes/archive/` are not modified; this bundle's own later
+        arrival under
+        `.ngrace/changes/archive/C-PER-BUNDLE-READERS-1-58BB7AB1/` is not a
+        modification — the close itself renames this bundle's directory into
+        the archive, and the pathspec excludes that arrival so the close's own
+        rename cannot redden the criterion. The prose claims tracked paths
+        only. Probed in the post-close state.
+        <CloseEvidence>
+          <Command>git diff --exit-code 5bf5eb0c965dd46fe97f5cd34d07b8561dc94073 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-PER-BUNDLE-READERS-1-58BB7AB1'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-SURFACES-UNMOVED>
+        Every surface this bundle does not write is byte-identical to this
+        spec's base commit: `examples/`, `README.md`, `CLAUDE.md`,
+        `CONTRIBUTING.md`, `docs/plans/README.md`, `docs/schema-reference.md`,
+        `package.json`, `bun.lock`, `CHANGELOG.md`, `.ngrace-lint.json`,
+        `openpackage.yml`, `test-metrics.json`, `.claude-plugin/`,
+        `plugins/ngrace/.claude-plugin/`, `skills/ngrace/`, and
+        `plugins/ngrace/skills/ngrace/`. No skill text moves, so no footprint
+        pin or `README.md` cell moves. Prose and command name the same
+        pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code 5bf5eb0c965dd46fe97f5cd34d07b8561dc94073 -- examples/ README.md CLAUDE.md CONTRIBUTING.md docs/plans/README.md docs/schema-reference.md package.json bun.lock CHANGELOG.md .ngrace-lint.json openpackage.yml test-metrics.json .claude-plugin/ plugins/ngrace/.claude-plugin/ skills/ngrace/ plugins/ngrace/skills/ngrace/</Command>
+        </CloseEvidence>
+      </AC-SURFACES-UNMOVED>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of this
+        root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GRAMMAR />
+      <M-QUERY />
+      <M-STATUS />
+      `M-GRAMMAR` owns `src/artifact/scope.ts`, the applied/active scope
+      reader and grammar seam this bundle extends; `M-QUERY` owns
+      `src/query/change.ts` and `src/query/render.ts`, the change-bundle view
+      and its text renderer; `M-STATUS` owns `src/grace-status.ts`, the status
+      layer that will export `derivedStatesForChange`. The three test files
+      (`src/artifact/scope.test.ts`, `src/query/change.test.ts`,
+      `src/grace-status.test.ts`) and `scripts/validate-record-retirement.test.ts`
+      are not module-ownable (`isModuleOwnableWritePath` is false for every
+      `*.test.ts` under `src/` and for `scripts/`), so they link to no module.
+      These three modules are the module enumeration; the write-scope
+      Constraint names no other. Do not mint a synthetic module.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 src/artifact/scope.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 src/query/change.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 src/grace-status.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run typecheck</ExpectedCommand>
+      <ExpectedCommand>bun run validate:cli</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path .</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): an archived applied bundle's `change show` prints the
+        anchors its `plan.xml` declares and never the third-state label; the
+        per-bundle `derivedStatesForChange` equals the whole-project snapshot's
+        states for every bundle in the real archive and for a planted malformed
+        bundle; `change show` holds no `collectProjectStatus` call and stays at
+        or below 2× a peer `module show`; `collectObservedDrift`'s drift credit
+        and `appliedArchiveAliasExplains` are byte-behaviourally unchanged; the
+        whole-project status JSON stays byte-identical. Every `CloseEvidence`
+        command and the full `validate:ci` run green inside a faithful copy of
+        the post-close state — a copy carrying untracked files, a stand-in plan
+        at `applied` beside the archived spec, the bundle archived, and the
+        close's `--flush` and `--retire` run — with both directions driven on a
+        throwaway copy and every exit code read directly. **The authority's
+        close acts, named here and deliberately not written as criteria:** the
+        `--flush --change C-PER-BUNDLE-READERS-1-58BB7AB1 --finding F300
+        --finding F301 --pays "F300 F301" --mint-search "0 active, 0 archive"`
+        that lands both findings and mints the row, and the `--retire` whose
+        move reports `F300`, `F301` and the row; and the plan's
+        `bundleMinted[F300]`/`bundleMinted[F301]` extension, a task write that
+        keeps the post-close payer walk green. **Expected evidence this bundle
+        cannot close-bound:** the timing relation of
+        `AC-NO-WHOLE-PROJECT-WALK`, whose number expires and lives in the close
+        report and `Assumptions`, not in a pinned threshold. The reds are
+        ledger-recorded fail/pass pairs, not claims.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      `F300`/`F301`, re-measured 2026-09-18 at
+      `5bf5eb0c965dd46fe97f5cd34d07b8561dc94073` on branch
+      `c-per-bundle-readers`. **`F300` — the archived durable scope is not
+      carried.** `collectAppliedChangeScopes` (`src/artifact/scope.ts:253`)
+      delegates to `readAppliedChangeScope` (`:322`), which extracts only
+      `extractObservedWriteScope` and returns an `AppliedChangeScope` (`:82`)
+      — a type whose doc comment reads `No durable field`. The active reader
+      `readActiveChangeScope` (`:344`) does call `extractDurableScope`, which
+      is module-private at `:368`. So for an archived applied bundle the verb
+      can only label the gap:
+      `ngrace change show C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92`
+      prints `DurableScope: not carried for an archived bundle (the
+      applied-scope reader carries no durable scope; the archived plan declares
+      its own anchors)` at `src/query/render.ts:233`, while the archived
+      `plan.xml` declares
+      `&lt;DurableScope&gt;&lt;GraphAnchors&gt;&lt;M-CURSOR /&gt;&lt;/GraphAnchors&gt;&lt;/DurableScope&gt;`.
+      A reader who needs those anchors must open the archived plan by hand —
+      the exact `bun -e` the inspection surface exists to replace. **`F301` —
+      the missing per-bundle state reader.** `locateDerivedStates`
+      (`src/query/change.ts:213`) is `collectProjectStatus(projectRoot).changes.find(…)?.derivedStates ?? []`
+      at `:214`; `collectProjectStatus` is the only shipped producer of
+      `derivedStates` and is a repository-wide walk — lint, graph and
+      verification projections, module health, observed drift and git status.
+      `change find` calls it once for the listing, which is proportionate;
+      `change show` calls it to answer **one** bundle's question. Measured warm
+      on this base: `ngrace module show M-QUERY` 0.52 / 0.55 / 0.53 s;
+      `ngrace change show C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92`
+      1.90 / 1.89 / 1.92 s. A harness over the shipped readers attributes
+      ~1.70 s to `collectProjectStatus`, ~0.16 s to
+      `collectAppliedChangeScopes` and ~0.00 s to `collectActiveChangeScopes`,
+      so the fix is the missing reader, not the caller. Why the two belong in
+      one bundle: the record names one owner — a `src/` bundle that gives the
+      status and scope layers a per-bundle entry point paying `F300` and
+      `F301` together — and both are the same missing narrow reader applied to
+      one bundle's bytes. This bundle adds the applied durable scope, adds
+      `derivedStatesForChange`, and routes `change show` through both.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        **Authoring commit
+        `5bf5eb0c965dd46fe97f5cd34d07b8561dc94073`, branch
+        `c-per-bundle-readers`, 2026-09-18.** Re-measured at authoring:
+        `bun run ngrace lint --path .` 0 errors / 0 warnings over 497 XML
+        artifacts; `bun ./scripts/validate-record-retirement.ts` exit 0;
+        archive 129 directories; `.ngrace/changes/active` held only
+        `.gitkeep` before this bundle; `grep -n 'function extractDurableScope'
+        src/artifact/scope.ts` → `:368`; `grep -n 'LINKS:'
+        src/query/change.ts src/artifact/scope.ts src/grace-status.ts` →
+        `M-QUERY`, `M-GRAMMAR`, `M-STATUS`. The base commit is the full hash
+        above for every byte-invariance criterion. Every count expires; the
+        implementation re-measures and pins nothing (`D30`).
+      </Assumption>
+      <Assumption>
+        **The defect lines, measured at the base commit.**
+        `AppliedChangeScope = {` (`src/artifact/scope.ts:82`); the doc line
+        `No durable field` (`:81`); `collectAppliedChangeScopes` (`:253`);
+        `readAppliedChangeScope` (`:322`); `extractDurableScope` (`:368`),
+        unexported; `formatDurableScope` (`src/query/render.ts:224`) with
+        `case "not-carried-archived"` (`:233`); `locateDerivedStates`
+        (`src/query/change.ts:213`) and its `collectProjectStatus` call
+        (`:214`); `findChangeBundles`'s `collectProjectStatus` call (`:109`);
+        `collectChangeBundleStatuses` (`src/grace-status.ts:165`),
+        `deriveChangeStates` (`:285`), and the `deriveChangeStates({` call
+        (`:178`). `AppliedChangeScope` consumers, read whole:
+        `collectObservedDrift` (`src/grace-status.ts:546`) and
+        `appliedArchiveAliasExplains` (`:581`) read `observedWrites`/`changeId`
+        only; `collectAppliedChangeScopes` has two call sites
+        (`src/query/change.ts:175`, `src/grace-status.ts:387`). `grep -rn
+        'AppliedChangeScope' src scripts` finds no other consumer.
+      </Assumption>
+      <Assumption>
+        **The timing relation, measured and projected at the base commit.**
+        Warm three runs each: `ngrace module show M-QUERY` 0.52 / 0.55 / 0.53 s
+        (mean ~0.53 s); `ngrace change show
+        C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92` 1.90 / 1.89 / 1.92 s
+        (mean ~1.90 s). A harness importing the shipped readers measures
+        `collectProjectStatus` ~1.70 s, `collectAppliedChangeScopes` ~0.16 s,
+        `collectActiveChangeScopes` ~0.00 s, `lintGraceProject(root, { profile:
+        "standard" })` ~0.56 s, `validateNgraceProject` ~0.26 s,
+        `loadGraceArtifactIndex` ~0.41 s, `collectModuleHealth` ~0.39 s. The
+        projected post-fix `change show` — lint + applied scope + spec/plan
+        parse + verdict read — measures ~0.66-0.71 s, a ratio of ~1.4× a peer
+        `module show`; the criterion names 2×, and the close re-measures. No
+        millisecond threshold is pinned.
+      </Assumption>
+      <Assumption>
+        **The equivalence test's cost and shape, measured at the base commit.**
+        The archive holds 129 bundles and only three carry a non-empty state
+        (`C-ABSENCE-VALUE`, `C-ATTEMPT-LOG`, `C-RUN-LEDGER`, each
+        `apply-gate-record-absent`); every other bundle is state-empty at this
+        base, so the equivalence test's per-bundle lint is the cost that makes
+        its red direction reachable — a reader that skipped lint would pass the
+        current archive vacuously. The test iterates every bundle and asserts no
+        count, driven under `bun run test` / `bun test --timeout=0`; at ~0.56 s
+        of lint per bundle the file is expected to be the suite's slowest, under
+        the CI job's `timeout-minutes: 30` ceiling, which is the only ceiling.
+      </Assumption>
+      <Assumption>
+        **The red direction for the equivalence guard, driven on a throwaway
+        copy 2026-09-18.** A throwaway project with a malformed active
+        `plan.xml` (missing `BaselineAssertions`/`TargetAssertions` beside a
+        `draft` spec) makes `collectProjectStatus` report
+        `derivedStates: ["integrity-issues"]` for that bundle, with lint issues
+        `change.plan-requires-approved-spec` and
+        `change.plan-missing-section` located in the bundle. The shipped reader
+        must reproduce that state; a lint-skipping reader produces `[]`. The
+        clean direction is the real archive's 129 bundles.
+      </Assumption>
+      <Assumption>
+        **The close's write set, read from the verb at the base commit.**
+        `--flush` writes `findings.xml`, `rulings.xml`, `decisions.xml`,
+        `registry.xml`; `--retire` writes all seven record files unconditionally,
+        including `rulings-retired.xml` with zero moved decisions;
+        `ngrace apply` renames the bundle directory into
+        `.ngrace/changes/archive/`. `--pays` is one space-separated string
+        (`opts.pays ?? selF.map((e) =&gt; e.token).join(" ")`), so the two
+        tokens ride one `--pays "F300 F301"`. The seven files, the
+        `bundleMinted` extension and the archive arrival are named in the
+        write-scope Constraint, and `AC-NO-SRC-OTHER` excludes the fixture with
+        its reason.
+      </Assumption>
+      <Assumption>
+        **Mint search, measured at mint.** Zero prior bundles share the slug
+        `PER-BUNDLE-READERS` in either the active directory or the archive:
+        `mint-search: 0 active, 0 archive prior bundle(s) share slug
+        PER-BUNDLE-READERS`. The close's flush carries `--mint-search "0
+        active, 0 archive"`.
+      </Assumption>
+      <Assumption>
+        **`src/query/render.ts` is forced, and `README.md`/`examples/` are
+        not.** Removing the `not-carried-archived` member from
+        `ChangeDurableScope` makes `render.ts`'s `case "not-carried-archived"`
+        a type error, so the renderer is forced to change. No file under
+        `examples/` and no README cell pins the third-state sentence, so
+        neither is forced; both are decided in `NonGoals` and held by
+        `AC-SURFACES-UNMOVED`.
+      </Assumption>
+      <Assumption>
+        **`F43` escape, applied.** Every artifact this bundle writes names an
+        angle-bracketed token as character data with entities; the plan's tests
+        assert emitted bytes, never artifact prose.
+      </Assumption>
+    </Assumptions>
+  </C-PER-BUNDLE-READERS-1-58BB7AB1>
+</NgraceChangeSpec>
