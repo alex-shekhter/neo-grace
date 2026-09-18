@@ -1,0 +1,254 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-EVENT-LOCK-ATOMIC-1-9711E83D>
+    <IntentSummary>
+      Convert the approved spec into the executable plan: make an empty
+      observation of the event write lock harmless by classifying a
+      non-positive or non-integer holder pid as `unknown` (never `stale`),
+      bounding the wait by the TTL with the lock file's `mtimeMs` as the age
+      fallback when the stamp is unparsable, and wrapping the stale-branch
+      unlink so `ENOENT`/`EPERM`/`EBUSY` is a lost race; the exclusive create
+      stays `writeFileSync(..., { flag: "wx" })`. `runConcurrentAdvances`
+      gains per-process `stderr` capture and prints each task's id, exit code
+      and stderr before its `every` assertion. The test-visible TTL override
+      `setEventWriteLockTtlForTests(ms | null)` is a new export and its
+      `START_MODULE_MAP` entry is added in the same round trip (or
+      `markup.module-map-mismatch` fires). `bundleMinted` gains
+      `F307: "C-EVENT-LOCK-ATOMIC-1-9711E83D"`. **One mechanism, one pair:**
+      the classification change and the guarded unlink are one edit to one
+      function and its guards green together the moment it lands, so T-001
+      authors the cluster against the base, witnesses simultaneous red in one
+      round trip, records **one** `fail`, lands the mechanism once and records
+      **one** `pass` — never a `fail` per guard, never a reverted landed
+      guard. **The diagnosable helper is a red-first pair:** T-002 adds a
+      guard that plants a non-zero exit (a bogus `--change`) and asserts the
+      task id, code and stderr appear, which reds on the base helper that
+      discards stderr. **T-003 is pass-only** (a map entry has no red
+      direction) and its last act is the terminal event
+      `ngrace cursor advance --change C-EVENT-LOCK-ATOMIC-1-9711E83D --task
+      T-003 --kind terminal`. **Baseline needles:** the two
+      `unlinkSync(lockPath);` lines in `src/grace-cursor.ts` stay — a
+      `MustContain` baseline needle — and the guard wraps the call in a
+      `try` without changing the call's line text, so the call-site pin at
+      `src/grace-cursor.test.ts:551`–`592` stays green (two
+      `unlinkSync\(lockPath\);$` lines, seven call sites in all) and no new
+      `unlinkSync`/`rmSync` site is added under `src/`. Every `AC-*` in the
+      approved spec is close-bound, so no task carries `Satisfies`. **The
+      authority's close acts are named, never tasked:** the `--flush
+      --change C-EVENT-LOCK-ATOMIC-1-9711E83D --finding F307 --pays F307
+      --mint-search "0 active, 0 archive"` that lands `F307` and mints the
+      row, `ngrace apply`, and the `--retire` whose move reports `F307` and
+      the row. The seven record files the close writes and the bundle's own
+      archive arrival are declared in `ObservedWriteScope` (the spec's
+      `F285`/`F293` rule). **Plan-time post-close copy drive:** this branch's
+      flush writes bodies as data, so the whole close was driven on a
+      faithful copy carrying `.git` (needed by the `git diff` criteria) —
+      `--flush`, `gate apply`, `gate archive`, `ngrace apply`, `--retire`,
+      the post-archive verdict and `ngrace change show` — with exits recorded
+      in the report's `PROBES`, both directions. **The Windows job is not a
+      criterion and not a task verification:** the `windows-compatibility`
+      failure is the evidence the maintainer reads after the push, and the
+      deterministic on-platform guards are its proxy. Each task's
+      `Verification` names the narrowest instrument; the whole suite runs only
+      at this plan's `TargetAssertions` `MustPassCommand` (`bun run
+      validate:ci`) under `--assertions final --run-commands`. This bundle's
+      executor does not approve, runs no review, gate, supersede or apply
+      verb, and does not commit.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>unlinkSync(lockPath);</Text>
+      </MustContain>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>setEventWriteLockTtlForTests</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>mtimeMs</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>C-EVENT-LOCK-ATOMIC-1-9711E83D</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <Glob>.ngrace/changes/archive/C-EVENT-LOCK-ATOMIC-1-9711E83D/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Classify the lock holder and guard the stale unlink</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test,
+            signature-key grace-cursor): author the guard cluster in
+            `src/grace-cursor.test.ts` against the shipped lock, on isolated
+            bundle roots (never the production record). Reach the TTL
+            override through a namespace import with an optional call
+            (`cursor.setEventWriteLockTtlForTests?.(50)`) so the test file
+            still loads on the base tree and the guards red on **behaviour**
+            — the base lock steals a planted empty lock in 0 ms — not on a
+            missing import. The cluster plants a lock and asserts: (a) a 0-byte lock is **not**
+            stolen on the pid-death path — the contender waits, bounded by
+            the shortened TTL, and only then acquires; (b) a lock holding a
+            non-numeric pid (`"x"`, and a bare `0`) is likewise not stolen;
+            (c) a known dead pid with a fresh stamp **is** stolen (the
+            classification did not blunt the real stale path); (d) a
+            stale-unlink that loses the race (an `ENOENT`/`EPERM`/`EBUSY`
+            from the unlink) is caught, not thrown, and the acquisition
+            retries. On the base tree (a), (b) and (d) red and (c) greens;
+            paste the tail. **Atomic Mechanism Exception:** the
+            classification change and the guarded unlink are one indivisible
+            edit to one function and these guards green together — author the
+            cluster against the baseline, witness their simultaneous red in
+            one round trip, record exactly **one** `cursor attempt --outcome
+            fail` for the cluster, then land the mechanism once. Do not record
+            a `fail` per guard; never revert a landed guard to manufacture a
+            red; do not land production in this round trip.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): in
+            `src/grace-cursor.ts`, add a module-level
+            `eventWriteLockTtlOverride` and `export function
+            setEventWriteLockTtlForTests(ms: number | null)` that sets it (and
+            `null` restores the default), consulted as
+            `eventWriteLockTtlOverride ?? EVENT_WRITE_LOCK_TTL_MS`; add its
+            `START_MODULE_MAP` entry beside `setEventIdAllocationProbeForTests`
+            (around `:60`); in `withEventWriteLock`, compute the holder's age
+            as `Date.now() - stamp` when the parsed stamp is finite and
+            `Date.now() - statSync(lockPath).mtimeMs` otherwise, classify a
+            pid that is not a positive integer as `unknown` (never `stale`;
+            `processAlive` is not consulted), mark `stale` only for a known
+            dead pid or an age past the TTL, and wrap the stale-branch call so
+            the line still reads `unlinkSync(lockPath);` **inside** the `try`
+            and `ENOENT`/`EPERM`/`EBUSY` are swallowed as a lost race. Keep
+            the exclusive create `writeFileSync(lockPath, …, { flag: "wx" })`
+            and the `finally` release unchanged. Record exactly **one**
+            `cursor attempt --outcome pass` for the cluster. Failure
+            conditions: a `fail` per guard; a reverted landed guard; a new
+            `unlinkSync`/`rmSync` site under `src/`; the line text changed or
+            the call left outside a `try`; `setEventWriteLockTtlForTests`
+            exported without its `MODULE_MAP` entry; `null` not restoring the
+            default.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-EVENT-LOCK-ATOMIC-1-9711E83D --assertions baseline</Command>
+          <Command>git diff --exit-code eb2ad7834fd76eeb2eaf7b43f8439576b0a19e96 -- src/ scripts/ ':(exclude)src/grace-cursor.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Print each failing process's code and stderr in the concurrency guard</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test,
+            signature-key grace-cursor): add a guard that drives
+            `runConcurrentAdvances` with a change id that does not exist (so
+            each spawned `cursor advance` exits non-zero) and asserts the
+            captured output names each task's task id, exit code and stderr.
+            On the base helper the codes are resolved but stderr is discarded,
+            so nothing is printed and the guard reds; paste the tail. Record
+            exactly **one** `cursor attempt --outcome fail`; do not land the
+            helper in this round trip.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): in
+            `runConcurrentAdvances` (`src/grace-cursor.test.ts`), read each
+            spawned process's `stderr` to text and, when any exit code is
+            non-zero, print every task's id, code and captured stderr before
+            returning the codes to the existing `codes.every(...)`
+            assertion; update both call sites (`AC-UNIQUE-CONCURRENT`,
+            `AC-NO-SILENT-OVERWRITE`) in the same edit, leaving their
+            assertions and rounds unchanged. Record exactly **one** `cursor
+            attempt --outcome pass`. Failure conditions: stderr still
+            discarded; the printed block placed after the assertion; a `fail`
+            per process.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+          <Command>git diff --exit-code eb2ad7834fd76eeb2eaf7b43f8439576b0a19e96 -- src/ scripts/ ':(exclude)src/grace-cursor.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Extend the payer map and terminate the epoch</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Pass-only cycle (a map entry has no red direction the shipped
+            checks see). Add `F307: "C-EVENT-LOCK-ATOMIC-1-9711E83D"` to
+            `bundleMinted` in `scripts/validate-record-retirement.test.ts`
+            after the existing `F303` entry (the map is inert while the row is
+            live and greens the post-close derivation walk). Before editing,
+            grep `src/grace-cursor.test.ts:551`–`592`'s pin subjects
+            (`unlinkSync(lockPath);` twice, seven call sites) against the tree
+            T-001 and T-002 left and paste the result; the pin must already
+            be green by construction, and a red here is a T-001 defect to fix
+            in T-001 with its own recorded red, never a pin repair. Record
+            exactly **one** `cursor attempt --outcome pass` and state in the
+            report that this cycle is pass-only.
+            **Terminal event:** the executing agent's last act in this task is
+            `ngrace cursor advance --change C-EVENT-LOCK-ATOMIC-1-9711E83D
+            --task T-003 --kind terminal` — the close's `fold` refuses an
+            unterminated range. Emit terminal for this declared task only;
+            never terminal an undeclared event task and never terminal another
+            task's range.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>git diff --exit-code eb2ad7834fd76eeb2eaf7b43f8439576b0a19e96 -- src/ scripts/ ':(exclude)src/grace-cursor.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-EVENT-LOCK-ATOMIC-1-9711E83D>
+</NgraceChangePlan>

@@ -1,0 +1,580 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-EVENT-LOCK-ATOMIC-1-9711E83D>
+    <Summary>
+      One `src/` bundle that pays the one staged finding `F307`: the event
+      write lock's empty observation is made harmless, an unparsable holder
+      is treated as unknown rather than stale, the stale-unlink is guarded,
+      and the concurrent-advance guard is made diagnosable. `withEventWriteLock`
+      (`src/grace-cursor.ts`) takes the lock with
+      `writeFileSync(lockPath, "&lt;pid&gt;\n&lt;stamp&gt;\n", { flag: "wx" })`
+      — create, then write, two steps — so a contender that hits `EEXIST`
+      and reads the empty file computes `Number("") === 0`,
+      `processAlive(0) === false`, marks the live holder stale, and runs an
+      unguarded `unlinkSync` of the holder's lock. On POSIX the unlink
+      succeeds and a renumber masks the double hold; on Windows unlinking a
+      file another process holds open throws `EPERM`/`EBUSY`, uncaught, and
+      that one process of twelve exits non-zero — the required
+      `windows-compatibility` job's measured failure (`F307`, run
+      `35379364216`). This bundle rides `c-teaching-increment` and the same
+      PR by the maintainer's ruling. The remedy is not atomic creation but a
+      safe reading: the exclusive create stays
+      `writeFileSync(..., { flag: "wx" })`, and an empty observation is
+      harmless because an empty or non-numeric pid is **unknown**, not
+      stale, and only the TTL may steal it — the `mtimeMs` fallback bounds a
+      holder that died between create and write; the stale-unlink catches
+      `ENOENT`/`EPERM`/`EBUSY` as a lost race. `runConcurrentAdvances` prints
+      each task's exit code and captured stderr before it asserts, so the
+      next failure names its process. Deterministic on-platform guards
+      (a planted empty lock must be waited on, an unlink race must be
+      retried) red on `main` and green here; the Windows job is expected
+      evidence, never a criterion.
+    </Summary>
+    <Goals>
+      <Goal>
+        **`F307` (a) — an empty observation is harmless.** Keep
+        `writeFileSync(lockPath, "&lt;pid&gt;\n&lt;stamp&gt;\n", { flag:
+        "wx" })` as the exclusive create; a hard-link temp-and-move has no
+        portable fallback (exFAT/FAT32, many network shares and some synced
+        folders refuse hard links), and a lock that cannot be taken would fail
+        every `cursor` verb on such a volume. The lock name may
+        therefore be observed before its content lands; a contender that
+        observes it empty classifies the holder `unknown` (Goal b) and waits,
+        re-reading after the 2 ms sleep. Only a holder that died between
+        create and write leaves the file empty, and the `mtimeMs` TTL of Goal
+        (b) bounds that. No other function changes: the sole caller is
+        `writeEventFile` (`src/grace-cursor.ts:3373`).
+      </Goal>
+      <Goal>
+        **`F307` (b) — an unparsable holder is unknown, never stale.** In the
+        contended branch, a pid that is not a positive integer
+        (`Number("") === 0`, `Number("x") === NaN`) is **unknown**: the
+        contender waits and re-reads, and only the TTL backstop may declare
+        it stealable. The TTL age is the parsed stamp when it is finite, and
+        the lock file's `mtimeMs` otherwise, so an unparsable holder is still
+        bounded and can never deadlock the bundle. `processAlive` is consulted
+        only for a known, positive pid; the pid-death path is never taken for
+        an unknown holder.
+      </Goal>
+      <Goal>
+        **`F307` (c) — the stale-unlink cannot throw the contender out.** Wrap
+        the stale-branch `unlinkSync` (`src/grace-cursor.ts:3338`) so
+        `ENOENT` (the holder released between read and unlink), `EPERM` and
+        `EBUSY` (another process holds the file open on Windows) are a lost
+        race: swallow and retry, never exit. Any other error propagates
+        unchanged.
+      </Goal>
+      <Goal>
+        **`F307` (d) — the guard becomes diagnosable.** `runConcurrentAdvances`
+        (`src/grace-cursor.test.ts:4044`–`4065`) must capture each spawned
+        process's `stderr`, and on any non-zero exit code print every task's
+        task id, exit code and captured stderr before the existing
+        `codes.every(...)` assertion runs. The change is confined to the
+        helper; the two tests that use it (`AC-UNIQUE-CONCURRENT`,
+        `AC-NO-SILENT-OVERWRITE`) keep their assertions and their rounds.
+      </Goal>
+      <Goal>
+        **`F307` (e) — a red direction that does not need Windows.** Add
+        guards to `src/grace-cursor.test.ts` that red deterministically on
+        `main`'s lock on this platform and green here, with no Windows
+        dependency: (i) a planted empty lock is never stolen on the
+        pid-death path — the contender waits, bounded by a test-visible TTL;
+        (ii) a stale-unlink that loses the race is caught and retried, never
+        thrown. Keep
+        `AC-UNIQUE-CONCURRENT` green: three rounds of twelve concurrent
+        advances with unique ids and no silent overwrite. No new test file —
+        the tests live in `src/grace-cursor.test.ts` (`test-metrics.json`
+        pins the test-file set; a new file would force a regeneration that
+        runs the whole suite).
+      </Goal>
+      <Goal>
+        **The row and the payment.** At the close the authority's `--flush`
+        lands `F307` and mints this bundle's chartered row into
+        `registry.xml`: `&lt;Row name="C-EVENT-LOCK-ATOMIC-1-9711E83D"
+        status="live" kind="chartered"&gt;` with an empty `&lt;Number&gt;`, a
+        `&lt;Charter&gt;` carrying the searched-before-minting statement over
+        the archive and both registry layers, no `F` token and no bundle
+        token other than this one, `&lt;Pays&gt;` naming exactly `F307`, and
+        a `&lt;StatusText&gt;` naming no `F` token and containing no
+        `Closed with` sentence. The plan extends the shipped
+        payer-derivation baseline `bundleMinted`
+        (`scripts/validate-record-retirement.test.ts`) with `F307` mapped to
+        `C-EVENT-LOCK-ATOMIC-1-9711E83D`. The move retires `F307` and the row.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T1** (module change: one module-ownable file plus its
+        test, the payer-map fixture, and the governed record the close
+        writes). Roadmap: `RM-GOVERNED-PATH`. Binding: **`F307`** — this
+        bundle is the cursor-lock increment it names as owner, and the
+        remedy is the deliverable, not a follow-up; `D11` — nothing is
+        deferred without a dependency or a conflict; `D30` — no hard
+        `Constraint` below transcribes a scalar count of a file this bundle
+        writes; every occupancy, pin value and census lives in `Assumptions`
+        and expires; `D5.5` — `CHANGELOG.md` is generated and is not edited;
+        `F136.1` — every file this spec forces into scope has its owner
+        confirmed against every module list this spec carries, and the write
+        scope is enumerated exactly once, in the write-scope Constraint;
+        `F227` — the forced-file set is derived from the Goals, and every
+        byte-invariance criterion excludes every file the Goals make
+        inevitable; `F285`/`F293` — the close's write set is enumerated from
+        the verb, charged to the plan's `ObservedWriteScope`, and permitted
+        by every byte-invariance pathspec; `F43` — markup is escaped as
+        character data in every artifact this bundle writes, never
+        paraphrased away.
+      </Constraint>
+      <Constraint>
+        **The exclusive create, kept, and why an empty observation is
+        harmless.** `withEventWriteLock` keeps
+        `writeFileSync(lockPath, "&lt;pid&gt;\n&lt;stamp&gt;\n", { flag:
+        "wx" })` as the exclusive create: `O_CREAT|O_EXCL` is the exclusivity
+        primitive and it is portable. It is a two-step create — the name may
+        be observed before its content lands — and that is accepted by
+        ruling: the empty observation is harmless because an empty or
+        non-numeric pid is `unknown`, not stale (the next Constraint), so the
+        contender waits 2 ms and re-reads the now-written content. The only
+        lock that stays empty is one whose holder died between create and
+        write, and the `mtimeMs` TTL bounds it. No temp path and no hard-link
+        move (hard links have no fallback on exFAT/FAT32, many network shares
+        and some synced folders, where the lock would be untakeable and every
+        `cursor` verb would fail). The release path unlinks `lockPath` in `finally`,
+        unchanged. No other function changes: the sole caller is
+        `writeEventFile`.
+      </Constraint>
+      <Constraint>
+        **The unknown-holder contract.** The stale verdict is computed
+        against three states, not a boolean: a known live pid with a fresh
+        age is `live`; a known dead pid, or any holder whose age exceeds
+        `EVENT_WRITE_LOCK_TTL_MS`, is `stale`; a pid that is not a positive
+        integer is `unknown`. Only `live` waits without stealing and only
+        `stale` unlinks; `unknown` waits exactly as `live` does. Age is
+        `Date.now() - stamp` when the parsed stamp is finite, else
+        `Date.now() - statSync(lockPath).mtimeMs`, so an empty or corrupt
+        holder is still bounded by the TTL and cannot deadlock the bundle.
+        `processAlive` is never called with a non-positive or non-integer
+        pid.
+      </Constraint>
+      <Constraint>
+        **The test-visible TTL export, and its `MODULE_MAP` entry.** Export
+        `setEventWriteLockTtlForTests(ms: number | null)` from
+        `src/grace-cursor.ts`, beside the existing
+        `setEventIdAllocationProbeForTests`: it sets a module-level override
+        consulted as `eventWriteLockTtlOverride ??
+        EVENT_WRITE_LOCK_TTL_MS` in place of the constant, and `null`
+        restores the default. A new export of `src/grace-cursor.ts` must be
+        added to that file's `START_MODULE_MAP` header or lint raises
+        `markup.module-map-mismatch` (the `F283` measurement, on the same
+        shape); the header edit is a forced write inside
+        `src/grace-cursor.ts`, already in the write scope, and the plan
+        declares it. The existing `setEventIdAllocationProbeForTests` entry
+        stays.
+      </Constraint>
+      <Constraint>
+        **The unlink-guard contract.** The stale-branch `unlinkSync` is
+        wrapped: an error whose `code` is `ENOENT`, `EPERM` or `EBUSY` is a
+        lost race and the loop retries; any other error propagates unchanged.
+        The `finally` release unlink already has its own catch and is
+        unchanged.
+      </Constraint>
+      <Constraint>
+        **The diagnosable-guard contract.** `runConcurrentAdvances` reads
+        each spawned process's `stderr` to text and, when any exit code is
+        non-zero, prints every task's id, code and stderr before returning
+        the codes to the assertion. The helper's return shape may change from
+        `Promise&lt;number[]&gt;` to include the per-task records, but both
+        call sites are updated in the same edit and their assertions are
+        unchanged. The failure output is report evidence, not a new
+        criterion subject.
+      </Constraint>
+      <Constraint>
+        **The caller and pin census, measured at the base commit.** `grep -rn
+        withEventWriteLock src scripts` finds exactly one definition
+        (`src/grace-cursor.ts:3317`) and exactly one call site
+        (`writeEventFile`, `src/grace-cursor.ts:3373`); both are in the write
+        scope. `grep -rn "run-write\|EVENT_WRITE_LOCK" src scripts` finds the
+        name at `:3304`, the TTL at `:3305`, the lock path at `:3318`, and
+        the TTL comparison at `:3332` — all inside the one function this
+        bundle rewrites. A second pin is on what the lock does, not its name:
+        `src/grace-cursor.test.ts:551`–`592` greps
+        `unlinkSync|rmSync|rmdirSync` under `src/` and requires exactly two
+        lines matching `unlinkSync\(lockPath\);$` in `src/grace-cursor.ts`
+        and seven call sites in total (the `F290` rule: a census keyed on a
+        name misses a pin keyed on behavior). The unlink-guard keeps the line
+        `unlinkSync(lockPath);` inside its `try`, so no site is added or
+        removed and the pin stays green by construction; the plan greps the
+        two sites before and after. No test pins the lock's file name,
+        content shape or TTL. `processAlive` (`:3307`) is used only by the
+        lock.
+      </Constraint>
+      <Constraint>
+        Write scope, anchors, and enumeration — stated once (`F136.1`'s
+        rule). Files the Goals force into write scope:
+        `src/grace-cursor.ts` (the lock mechanism, the TTL export and its
+        `MODULE_MAP` entry; module-ownable, `LINKS: M-CURSOR`); `src/grace-cursor.test.ts` (the new guards, the
+        diagnosable helper, and the retained concurrency tests; a `.test.ts`
+        under `src/` that `isModuleOwnableWritePath` does not own, so it
+        carries no `LINKS:` anchor);
+        `scripts/validate-record-retirement.test.ts` (the `bundleMinted`
+        extension; not module-ownable); and the record files the close writes
+        — `docs/plans/active/RM-GOVERNED-PATH/findings.xml`,
+        `findings-retired.xml`, `rulings.xml`, `rulings-retired.xml`,
+        `registry.xml`, `registry-retired.xml`, `decisions.xml` — listed as
+        the authority's close acts so the close is coverable, plus the
+        archive arrival
+        `.ngrace/changes/archive/C-EVENT-LOCK-ATOMIC-1-9711E83D/`. The only
+        module-ownable path written is `src/grace-cursor.ts`, owned by
+        `M-CURSOR`; the module list this spec carries is `AffectedAreas`
+        below and the `M-CURSOR` anchor here, and they agree. Do **not** add
+        this bundle's own `spec.xml`, `plan.xml` or `design-context.xml` to
+        `ObservedWriteScope`; the review skips them by identity. Do not mint
+        a synthetic module. Do not add a lint issue code.
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, the rules this branch teaches, applied to this
+        bundle's own criteria. Every byte-invariance baseline is this spec's
+        base commit `55bae41ec43a2802bfcfbc846d38357d781e5ac6` — the
+        base-less form cannot fail; the window is this bundle's own diff; the
+        diff sees tracked paths only. The record files the close writes, the
+        payer-map fixture `scripts/validate-record-retirement.test.ts`, and
+        this bundle's own archive arrival are excluded from every
+        byte-invariance criterion, each with its reason, and covered by the
+        parse-based and verb-based criteria instead. The archive criterion
+        excludes this bundle's own later arrival with its reason (the close
+        renames this bundle's directory into the archive). Every probe is run
+        in both directions on a throwaway copy before the spec is written;
+        probes mutate copies, never the production record. Structural claims
+        come from the shipped parser or `xmllint --xpath` after reading the
+        element's shape, never `grep -c`, and exit codes are read directly,
+        never through a pipe. No criterion pins a named finding
+        `status="live"`, pins a ceiling to a number, or asserts an artifact
+        the shipped engine will not produce; no criterion requires a change
+        another criterion forbids, and no criterion forbids the write the
+        close's `Pays` requires. The `CloseEvidence` criteria are evaluated
+        in the applied-archive state, after the close's own move has run, and
+        each names the narrow instrument for its subject; the full
+        CI-equivalent verification is close-time only.
+      </Constraint>
+      <Constraint>
+        Criterion mapping, stated on its face. Every `AC-*` below is
+        close-bound by its own `CloseEvidence` child, so a task `Satisfies`
+        naming any of them is the shipped error. There is no
+        `Satisfies`-mapped criterion in this spec, because every criterion is
+        evaluated against the post-close state; the production row mint and
+        the `bundleMinted` extension are named in `VerificationIntent` as the
+        authority's close act and a task write respectively.
+      </Constraint>
+      <Constraint>
+        Stop and re-spec rather than touching: the id-allocation and
+        renumber code beside the lock (`nextEventId`, `writeEventFile`'s
+        allocation loop, `setEventIdAllocationProbeForTests`) — this bundle
+        is the lock alone; `src/artifact/**`, `src/gates/**`, `src/review/**`
+        production, `src/grace-*.ts` other than `src/grace-cursor.ts`,
+        `scripts/` other than the named payer-map fixture, the four published
+        skills and their mirrors, `examples/**`, `README.md` beyond any
+        measurement cell (none moves here), `docs/plans/**` outside the seven
+        record files this bundle's close writes, `docs/plans/archive/`,
+        tracked paths under `.ngrace/changes/archive/` except this bundle's
+        own later arrival, `CHANGELOG.md`, any version surface,
+        `package.json`, `bun.lock`, `.ngrace-lint.json`, `.claude-plugin/**`,
+        `plugins/ngrace/.claude-plugin/**`, `openpackage.yml`,
+        `docs/schema-reference.md`, `test-metrics.json` (no new test file),
+        and the staged buffer `.ngrace/scratch/staged-findings.md` (read,
+        never written, and nothing in this bundle prunes it).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` unchanged; no user-visible surface. The event write lock
+        is internal engine behaviour, and no README measurement cell moves
+        (no skill text changes and `src/test-support/token-accounting.test.ts`
+        is untouched). Owner: unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        `examples/` unchanged; no user-visible surface there and no polyglot
+        evidence rebalance. Owner: unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        Any new CLI verb, lint issue code, grammar section, record schema
+        change, version bump, or `docs/schema-reference.md` regeneration; and
+        any change to the four published skills or their mirrors. The new
+        surface is internal to an existing function. Owner: unchanged;
+        no user-visible CLI token change.
+      </NonGoal>
+      <NonGoal>
+        Making the Windows CI job a criterion. The `windows-compatibility`
+        job is the instrument that failed and no close-bound criterion can
+        run it; it is named in `VerificationIntent` as expected evidence.
+        Owner: the CI job, named not tasked.
+      </NonGoal>
+      <NonGoal>
+        Flushing the buffer, pruning `staged-findings.md`, or rendering any
+        other staged entry into the record; and running any `ngrace review`,
+        gate or cursor verb from this spec-authoring step. Owner: the close
+        (flush) and the authority (gates); this step writes only `spec.xml`.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-EMPTY-HOLDER-UNKNOWN>
+        An empty observation of the lock is harmless — the exclusive create
+        is kept and the empty window is handled by classification, not by
+        atomic creation — and an empty or non-numeric pid is `unknown`, never
+        `stale`: the
+        contender waits and re-reads, and only the TTL may steal it, with the
+        age taken from the parsed stamp when finite and the lock file's
+        `mtimeMs` otherwise. Red direction, on the base commit: planted
+        `""` and `"x"` locks are each classified `stale=true` and unlinked
+        (probes A and B). Green direction: both are `unknown` and waited on,
+        completing only after the test-visible TTL. The pid-death path is
+        never taken for an unknown holder. Instrument: `bun test --timeout=0
+        src/grace-cursor.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </CloseEvidence>
+      </AC-EMPTY-HOLDER-UNKNOWN>
+      <AC-STALE-UNLINK-GUARDED>
+        A stale-unlink that loses the race is retried, never thrown: an
+        `ENOENT`, `EPERM` or `EBUSY` from the stale-branch `unlinkSync` is
+        caught and the loop continues; any other error propagates. The
+        guarded line still reads `unlinkSync(lockPath);` inside its `try`, so
+        the call-site pin stays green. Red
+        direction, on the base commit: with the holder releasing between
+        read and unlink, the unguarded `unlinkSync` throws `ENOENT` out of
+        `withEventWriteLock` (probe C). Green direction: the throw is caught
+        and the acquisition retries and completes. Instrument: `bun test
+        --timeout=0 src/grace-cursor.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </CloseEvidence>
+      </AC-STALE-UNLINK-GUARDED>
+      <AC-CONCURRENCY-DIAGNOSABLE>
+        `runConcurrentAdvances` captures each spawned process's `stderr` and,
+        on any non-zero exit code, prints every task's id, exit code and
+        captured stderr before the `codes.every(...)` assertion. Red
+        direction, on the base commit: the helper resolves `proc.exited`
+        only and discards stderr, so a failing process's code and message are
+        unrecoverable (`F307`). Green direction: a planted non-zero exit
+        prints the task id, code and stderr to the test output before the
+        assertion. Instrument: `bun test --timeout=0 src/grace-cursor.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </CloseEvidence>
+      </AC-CONCURRENCY-DIAGNOSABLE>
+      <AC-UNIQUE-CONCURRENT-STABLE>
+        `AC-UNIQUE-CONCURRENT` and `AC-NO-SILENT-OVERWRITE` stay green under
+        the new lock: three rounds of twelve concurrent advances each with
+        unique event ids and no silent overwrite, and no process exiting
+        non-zero. Red direction: the base-commit lock is what produced the
+        two failed attempts of run `35379364216`; the deterministic guards
+        above red on it on this platform. Instrument: `bun test --timeout=0
+        src/grace-cursor.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </CloseEvidence>
+      </AC-UNIQUE-CONCURRENT-STABLE>
+      <AC-NO-SRC-OTHER>
+        No file under `src/` or `scripts/` changes relative to this spec's
+        base commit except the files the Goals force, named here and in the
+        command's excludes: `src/grace-cursor.ts` (the lock mechanism),
+        `src/grace-cursor.test.ts` (the guards and the diagnosable helper),
+        and `scripts/validate-record-retirement.test.ts` (the `bundleMinted`
+        extension, the payment fixture the close's `Pays F307` requires).
+        Prose and command name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code 55bae41ec43a2802bfcfbc846d38357d781e5ac6 -- src/ scripts/ ':(exclude)src/grace-cursor.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-SRC-OTHER>
+      <AC-RECORD-SIBLINGS-UNMOVED>
+        The files under the record directory the close provably does not
+        change are byte-identical to this spec's base commit:
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.md` (the stub),
+        `record-inventory.json`, `plan.md`, `review.md`,
+        `brownfield-findings.md`, `brownfield-run4-findings.md`,
+        `p0-calibration-derivation.md`, `p0-cursor-derivation.md`,
+        `p0-derivation.md`, `p0-report-honesty-derivation.md`, and the
+        `sources/` subtree. The seven record files the close writes —
+        `findings.xml`, `findings-retired.xml`, `rulings.xml`,
+        `rulings-retired.xml`, `registry.xml`, `registry-retired.xml`,
+        `decisions.xml` — are deliberately absent from this criterion and are
+        covered by the close's own verdict. The window is this bundle's own
+        diff, over tracked paths only.
+        <CloseEvidence>
+          <Command>git diff --exit-code 55bae41ec43a2802bfcfbc846d38357d781e5ac6 -- docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </CloseEvidence>
+      </AC-RECORD-SIBLINGS-UNMOVED>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and
+        `.ngrace/changes/archive/` are not modified; this bundle's own later
+        arrival under
+        `.ngrace/changes/archive/C-EVENT-LOCK-ATOMIC-1-9711E83D/` is not a
+        modification — the close itself renames this bundle's directory into
+        the archive, and the pathspec excludes that arrival so the close's
+        own rename cannot redden the criterion. The prose claims tracked
+        paths only. Probed in the post-close state.
+        <CloseEvidence>
+          <Command>git diff --exit-code 55bae41ec43a2802bfcfbc846d38357d781e5ac6 -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-EVENT-LOCK-ATOMIC-1-9711E83D'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-SURFACES-UNMOVED>
+        Every surface this bundle does not write is byte-identical to this
+        spec's base commit: `examples/`, `CLAUDE.md`, `CONTRIBUTING.md`,
+        `docs/plans/README.md`, `docs/schema-reference.md`, `package.json`,
+        `bun.lock`, `CHANGELOG.md`, `.ngrace-lint.json`, `openpackage.yml`,
+        `.claude-plugin/`, `plugins/ngrace/.claude-plugin/`, `skills/ngrace/`,
+        `plugins/ngrace/skills/ngrace/`, and `README.md`. No skill text moves,
+        so no footprint pin or `README.md` cell moves. Prose and command name
+        the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code 55bae41ec43a2802bfcfbc846d38357d781e5ac6 -- examples/ CLAUDE.md CONTRIBUTING.md docs/plans/README.md docs/schema-reference.md package.json bun.lock CHANGELOG.md .ngrace-lint.json openpackage.yml .claude-plugin/ plugins/ngrace/.claude-plugin/ skills/ngrace/ plugins/ngrace/skills/ngrace/ README.md</Command>
+        </CloseEvidence>
+      </AC-SURFACES-UNMOVED>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of
+        this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CURSOR />
+      `M-CURSOR` owns `src/grace-cursor.ts`, the module-ownable file this
+      bundle rewrites; the two test files it also writes
+      (`src/grace-cursor.test.ts` and
+      `scripts/validate-record-retirement.test.ts`) are not module-ownable
+      (`isModuleOwnableWritePath` is false for every `*.test.ts` under `src/`
+      and for `scripts/`), so they link to no module. `M-CURSOR` is the
+      module enumeration; the write-scope Constraint names no other. Do not
+      mint a synthetic module.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 src/grace-cursor.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T1): an empty observation of the lock is harmless, an
+        empty or non-numeric holder is `unknown` and waited on within the TTL,
+        the stale-unlink catches `ENOENT`/`EPERM`/`EBUSY`, and
+        `runConcurrentAdvances` prints each failing task's code and stderr;
+        `AC-UNIQUE-CONCURRENT` and `AC-NO-SILENT-OVERWRITE` stay green over
+        their three rounds on this platform; every `CloseEvidence` command and
+        the full `validate:ci` run green inside a faithful copy of the
+        post-close state — a copy carrying untracked files, a stand-in plan at
+        `applied` beside the archived spec, the bundle archived, and the
+        close's `--flush` and `--retire` run — with both directions driven on
+        a throwaway copy and every exit code read directly. **The
+        authority's close acts, named here and deliberately not written as
+        criteria:** the `--flush --change
+        C-EVENT-LOCK-ATOMIC-1-9711E83D --finding F307 --pays F307
+        --mint-search "0 active, 0 archive"` that lands `F307` and mints the
+        row, and the `--retire` whose move reports `F307` and the row.
+        **Expected evidence this bundle cannot close-bound:** the
+        `windows-compatibility` CI job — the instrument that failed — is
+        named here and never asserted by a criterion; the deterministic
+        on-platform guards are its proxy. The reds are ledger-recorded
+        fail/pass pairs, not claims.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      The required `windows-compatibility` job blocks PR #110:
+      `AC-UNIQUE-CONCURRENT` failed on **both** attempts of workflow run
+      `35379364216` — round 0 of the first attempt, then round 2 of the
+      re-run — with identical Bun and runner-image versions on the two
+      failing attempts and on the green `main` run `35319134197`; the
+      instrumented copy recorded **two** empty-lock verdicts in **720**
+      contending processes. The PR touches none of the code involved — its diff
+      over `src/grace-cursor.ts`, `src/grace-cursor.test.ts` and
+      `src/gates/ledger.ts` is empty — so the fault is in `main`'s event
+      write lock. `F307` measured it: `withEventWriteLock`
+      (`src/grace-cursor.ts:3317`–`3352`) creates the lock with
+      `writeFileSync(lockPath, "&lt;pid&gt;\n&lt;stamp&gt;\n", { flag: "wx" })`,
+      two steps, so a contender that hits `EEXIST` and reads the lock can
+      read it empty; `Number("")` is `0`, `processAlive(0)` is `false`, the
+      live holder is declared stale and its lock is `unlinkSync`ed with no
+      try. On POSIX the unlink succeeds and the id renumber masks the double
+      hold — twenty instrumented runs recorded two such empty-lock verdicts
+      in 720 contending processes and still exited 0 everywhere. On Windows,
+      unlinking a file another process holds open throws `EPERM`/`EBUSY`,
+      uncaught; that process of twelve exits non-zero and the job fails. The
+      failure told us nothing because `runConcurrentAdvances`
+      (`src/grace-cursor.test.ts:4044`–`4065`) discards stderr and asserts a
+      boolean over the codes, so the failing process, its code and its
+      message are all gone. This bundle makes an empty observation
+      harmless, makes an unparsable holder unknown, guards the unlink, and
+      makes the guard name its failing process.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        **Authoring commit
+        `55bae41ec43a2802bfcfbc846d38357d781e5ac6`, branch
+        `c-teaching-increment`, 2026-09-18.** Re-measured at authoring:
+        `bun run ngrace lint --path .` 0 errors / 0 warnings over 489 XML
+        artifacts; `bun ./scripts/validate-record-retirement.ts` exit 0;
+        archive 127 directories; `.ngrace/changes/active` holds only
+        `.gitkeep` before this bundle; `grep -n 'LINKS:'
+        src/grace-cursor.ts` → `M-CURSOR`. The base commit is the full hash
+        above for every byte-invariance criterion. Every count expires; the
+        implementation re-measures and pins nothing (`D30`).
+      </Assumption>
+      <Assumption>
+        **The lock's callers and pins, measured at the base commit.** The
+        only caller of `withEventWriteLock` is `writeEventFile`
+        (`src/grace-cursor.ts:3373`); the lock name `EVENT_WRITE_LOCK` is at
+        `:3304`, the TTL `EVENT_WRITE_LOCK_TTL_MS` at `:3305`, the lock path
+        at `:3318`, and the TTL comparison at `:3332`, all inside the one
+        function. `src/grace-cursor.test.ts:551`–`592` pins the
+        `unlinkSync|rmSync|rmdirSync` call sites under `src/`: two lines
+        matching `unlinkSync\(lockPath\);$` in `src/grace-cursor.ts`, seven
+        sites total; the guard keeps the line and adds no site. No test pins
+        the lock's file name, content shape or TTL. `test-metrics.json` pins
+        the test-file set, so the new guards live in
+        `src/grace-cursor.test.ts`.
+      </Assumption>
+      <Assumption>
+        **The red and green directions, driven on throwaway copies
+        2026-09-18.** Red (base copy `/tmp/lockmain` with the lock function
+        exported and instrumented): a planted empty lock gave
+        `LOCK-VERDICT pidRaw="" stampRaw=undefined stale=true` and
+        `PROBE-A-COMPLETED`; a planted `"x"` pid gave `stale=true` and
+        `PROBE-B-COMPLETED`; with the holder releasing between read and
+        unlink, the unguarded `unlinkSync` threw `ENOENT` out of
+        `withEventWriteLock` (`PROBE-C: THREW ENOENT`). Green (prototype
+        copy `/tmp/lockfix2`, `wx` kept, the `unknown` classification, the
+        guarded unlink and `setEventWriteLockTtlForTests(50)`): the empty and
+        `"x"` planted locks each gave `stale=false unknown=true` and
+        completed only after the TTL (`PROBE-A-empty: completed in 52ms`,
+        `PROBE-B-unparsable: completed in 52ms`), while a known dead pid gave
+        `stale=true unknown=false` and was stolen immediately
+        (`PROBE-D-deadpid: completed in 0ms`); with the race injected, the
+        guarded unlink swallowed the `ENOENT` and the acquisition completed
+        (`PROBE-C: no throw (guarded)`).
+      </Assumption>
+      <Assumption>
+        **The close's write set, read from the verb at the base commit.**
+        `--flush` writes `findings.xml`, `rulings.xml`, `decisions.xml`,
+        `registry.xml` (`flushRecord`, unconditional `writeRecordXml` over the
+        four next-documents). `--retire` writes all seven record files
+        unconditionally, including `rulings-retired.xml` with zero moved
+        decisions. `ngrace apply` renames the bundle directory into
+        `.ngrace/changes/archive/`. The seven files and the archive arrival
+        are named in the write-scope Constraint, the row Goal names the
+        `bundleMinted` extension, and `AC-NO-SRC-OTHER` excludes the fixture
+        with its reason.
+      </Assumption>
+      <Assumption>
+        **Mint search, measured at mint.** Zero prior bundles share the slug
+        `EVENT-LOCK-ATOMIC` in either the active directory or the archive:
+        `mint-search: 0 active, 0 archive prior bundle(s) share slug
+        EVENT-LOCK-ATOMIC`. The close's flush carries `--mint-search
+        "0 active, 0 archive"`.
+      </Assumption>
+      <Assumption>
+        **F43 escape, applied.** Every artifact this bundle writes names an
+        angle-bracketed token as character data with entities; the plan's
+        tests assert emitted bytes, never artifact prose.
+      </Assumption>
+    </Assumptions>
+  </C-EVENT-LOCK-ATOMIC-1-9711E83D>
+</NgraceChangeSpec>

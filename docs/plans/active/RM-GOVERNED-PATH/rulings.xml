@@ -1,4 +1,4 @@
-<Rulings base="1686" headroom="197" ceiling="1883">
+<Rulings base="1687" headroom="196" ceiling="1883">
   <Decision id="d1" token="D1" status="live">
     <Title>## D1 — The tool is the only sanctioned writer of `approved → applied`</Title>
     <Body>
@@ -1682,5 +1682,6 @@ superseded by this one and stands as the dated record of what was true before.</
 
 **Owner.** The prohibition is taught by a later teaching increment (it belongs in `ngrace-execute`, which today says nothing about the stream's inviolability); the product gap — concurrent `cursor advance` minting duplicate ids with no lock, reservation, refusal or repair path — is [F288](docs/plans/active/RM-GOVERNED-PATH/decisions.md)'s, owned by a cursor-integrity bundle. Neither is this bundle's.
 </Body>
+    <TaughtIn path="skills/ngrace/ngrace-execute/SKILL.md" section="execution_rules">execution_rules</TaughtIn>
   </Decision>
 </Rulings>
