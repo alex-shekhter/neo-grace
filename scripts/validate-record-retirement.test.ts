@@ -204,6 +204,10 @@ const bundleMinted: Record<string, string> = {
   // Consulted only for tokens the derivation actually mints, so the walk is green
   // with the row live and green in the applied-archive state (the close's mint).
   F307: "C-EVENT-LOCK-ATOMIC-1-9711E83D",
+  // C-EPOCH-OPEN-DEFAULT-1-CE010A4C T-003: the chartered row's one minted token.
+  // Consulted only for tokens the derivation actually mints, so the walk is green
+  // with the row live and green in the applied-archive state (the close's mint).
+  F308: "C-EPOCH-OPEN-DEFAULT-1-CE010A4C",
 };
 
 

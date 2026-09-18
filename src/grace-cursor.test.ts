@@ -4319,3 +4319,82 @@ describe("C-EVENT-LOCK-ATOMIC-1-9711E83D event write lock", () => {
     expect(code, `the guarded stale unlink retried after the EPERM: ${stderr}`).toBe(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// C-EPOCH-OPEN-DEFAULT-1-CE010A4C T-001: the unbounded-open default (F308).
+// ---------------------------------------------------------------------------
+
+describe("C-EPOCH-OPEN-DEFAULT-1-CE010A4C T-001: unbounded open after a fold", () => {
+  it("AC-UNBOUNDED-OPEN-AFTER-FOLD: an unbounded open after a fold allocates from the next id and folds", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-EPOCH");
+    advanceCursor(root, "C-EPOCH", { task: "T-001", openEpoch: true });
+    advanceCursor(root, "C-EPOCH", { task: "T-001", kind: "progress" });
+    advanceCursor(root, "C-EPOCH", { task: "T-001", kind: "terminal" });
+    expect(foldEpoch(root, "C-EPOCH").applied).toBe(true);
+
+    advanceCursor(root, "C-EPOCH", { task: "T-001", openEpoch: true });
+    const opened = listLooseEvents(bundle).find((event) => event.kind === "opened");
+    expect(opened).toBeDefined();
+    const allocation = (opened!.allocations ?? [])[0];
+    expect(allocation).toBeDefined();
+    expect(allocation!.from).toBe(opened!.id);
+    expect(allocation!.to).toBe(opened!.id + 98);
+    advanceCursor(root, "C-EPOCH", { task: "T-001", kind: "progress" });
+    advanceCursor(root, "C-EPOCH", { task: "T-001", kind: "terminal" });
+    expect(foldEpoch(root, "C-EPOCH").applied).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-EPOCH-OPEN-DEFAULT-1-CE010A4C T-002: recover --fix leading-hole re-home.
+// ---------------------------------------------------------------------------
+
+describe("C-EPOCH-OPEN-DEFAULT-1-CE010A4C T-002: recover --fix leading hole", () => {
+  it("AC-RECOVER-FIX-REHOMES-LEADING-HOLE: a leading hole is re-homed and folds", () => {
+    const root = createProject();
+    seedBundle(root, "C-FIXLEAD");
+    advanceCursor(root, "C-FIXLEAD", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    advanceCursor(root, "C-FIXLEAD", { task: "T-001", kind: "progress" });
+    advanceCursor(root, "C-FIXLEAD", { task: "T-001", kind: "terminal" });
+    expect(foldEpoch(root, "C-FIXLEAD").applied).toBe(true);
+
+    advanceCursor(root, "C-FIXLEAD", { task: "T-001", openEpoch: true, from: 1, to: 99 });
+    advanceCursor(root, "C-FIXLEAD", { task: "T-001", kind: "progress" });
+    advanceCursor(root, "C-FIXLEAD", { task: "T-001", kind: "terminal" });
+    const pre = recoverCursor(root, "C-FIXLEAD");
+    expect(pre.coveringAllocation).toBe("present");
+    expect(pre.foldBlocked).toBe(true);
+    expect(() => foldEpoch(root, "C-FIXLEAD")).toThrow(/range hole at 1/i);
+
+    const fixed = recoverCursor(root, "C-FIXLEAD", { fix: true });
+    expect(fixed.fixApplied).toBe(true);
+    expect(fixed.foldBlocked).toBe(false);
+    expect(fixed.coveringOpenedFile).toBeDefined();
+    expect(foldEpoch(root, "C-FIXLEAD").applied).toBe(true);
+  });
+
+  it("AC-RECOVER-FIX-REHOMES-LEADING-HOLE control: a mid-range hole still declines", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-FIXMID");
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, "1-T-001-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="10"/></NgraceRunEvent>`,
+    );
+    writeFileSync(
+      path.join(runDir, "2-T-001-progress.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="progress"/>`,
+    );
+    writeFileSync(
+      path.join(runDir, "4-T-001-terminal.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="4" task="T-001" kind="terminal"/>`,
+    );
+    const before = listLooseEvents(bundle).map((event) => event.file).sort();
+    const fixed = recoverCursor(root, "C-FIXMID", { fix: true });
+    expect(fixed.fixApplied).toBe(false);
+    expect(listLooseEvents(bundle).map((event) => event.file).sort()).toEqual(before);
+    expect(() => foldEpoch(root, "C-FIXMID")).toThrow(/range hole at 3/i);
+  });
+});

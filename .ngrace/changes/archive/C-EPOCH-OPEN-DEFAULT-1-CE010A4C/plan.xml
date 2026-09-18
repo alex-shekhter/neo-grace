@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-EPOCH-OPEN-DEFAULT-1-CE010A4C>
     <IntentSummary>
       Convert the approved spec into the executable plan. Two mechanisms,
