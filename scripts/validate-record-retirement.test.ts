@@ -29,6 +29,157 @@ const REPO_ROOT = path.resolve(import.meta.dir, "..");
 const SCRIPT = path.join(import.meta.dir, "validate-record-retirement.ts");
 const RECORD_REL = "docs/plans/active/RM-GOVERNED-PATH";
 
+// C-FLUSH-AND-PAY minted the C-INDEX-METRIC-2 row post-archive, so the production
+// derivation mints F205; the baseline map was captured before that row existed.
+// C-ROOT-WINDOW's row mints its six tokens to this bundle only once the
+// bundle is archived (eligibility requires the payer's name to be an archive
+// directory); the extension is consulted only for tokens the derivation
+// actually mints, so the test stays green with the row live and in the
+// applied-archive state.
+// C-FLUSH-AND-UNPIN minted this row live by its own plan, so the close's
+// move derives F232 from the row's Pays cell once the bundle's directory
+// is in the archive. The derivation is first-row-wins, so a paid token's
+// payer never changes — a paid state is durable, a live one is not — and
+// the extension is consulted only for tokens the derivation actually
+// mints, so the walk is inert (green) with the row live and green in the
+// applied-archive state.
+const bundleMinted: Record<string, string> = {
+  F205: "C-INDEX-METRIC-2",
+  F216: "C-ROOT-WINDOW",
+  F182: "C-ROOT-WINDOW",
+  F193: "C-ROOT-WINDOW",
+  F190: "C-ROOT-WINDOW",
+  F225: "C-ROOT-WINDOW",
+  F226: "C-ROOT-WINDOW",
+  F232: "C-FLUSH-AND-UNPIN",
+  // C-TAUGHT-RULES T-005: the chartered row's six minted tokens. The
+  // extension is consulted only for tokens the derivation actually mints,
+  // so the walk is green with the row live (nothing minted — the row's
+  // name is not an archive directory while the bundle is active) and
+  // green in the applied-archive state (the close's mint).
+  F210: "C-TAUGHT-RULES",
+  F196: "C-TAUGHT-RULES",
+  F199: "C-TAUGHT-RULES",
+  F188: "C-TAUGHT-RULES",
+  F233: "C-TAUGHT-RULES",
+  F234: "C-TAUGHT-RULES",
+  // C-APPLY-VERB T-006: the chartered row's one minted token. The
+  // extension is consulted only for tokens the derivation actually
+  // mints, so the walk is green with the row live (the row's name is
+  // not an archive directory while the bundle is active) and green in
+  // the applied-archive state (the close's mint).
+  F224: "C-APPLY-VERB",
+  // C-FLUSH-AND-TEACH T-004: the chartered row five minted tokens.
+  F236: "C-FLUSH-AND-TEACH",
+  F237: "C-FLUSH-AND-TEACH",
+  F238: "C-FLUSH-AND-TEACH",
+  F239: "C-FLUSH-AND-TEACH",
+  F241: "C-FLUSH-AND-TEACH",
+  F185: "C-RETIRE-AND-CODIFY",
+  F198: "C-PAYMENT-RECORD-2",
+  F197: "C-PAYMENT-INTEGRITY",
+  // C-GUARD-RATCHET T-001: F244's payment is recorded on the already
+  // archived C-PAYMENT-INTEGRITY row (retired-row append), and the
+  // bundle's own row pays F222 and F223 once its name is an archive
+  // directory. The extension is consulted only for tokens the derivation
+  // actually mints.
+  F244: "C-PAYMENT-INTEGRITY",
+  F222: "C-GUARD-RATCHET",
+  F223: "C-GUARD-RATCHET",
+  // C-REVIEW-SELF-SCOPE-2 T-002: the chartered row's two minted tokens. The
+  // extension is consulted only for tokens the derivation actually mints,
+  // so the walk is green with the row live and green in the applied-archive
+  // state (the close's mint).
+  F240: "C-REVIEW-SELF-SCOPE-2",
+  F245: "C-REVIEW-SELF-SCOPE-2",
+  // C-TEACH-DRIVE-BEFORE-APPROVE-2 T-001: the chartered row's five minted
+  // tokens. The extension is consulted only for tokens the derivation
+  // actually mints, so the walk is green with the row live and green in
+  // the applied-archive state (the close's mint).
+  F243: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+  F246: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+  F247: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+  F248: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+  F249: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
+  // C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 T-004: the chartered row's two minted
+  // tokens. The extension is consulted only for tokens the derivation
+  // actually mints, so the walk is green with the row live and green in the
+  // applied-archive state (the close's mint).
+  F250: "C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22",
+  F251: "C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22",
+  // C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA T-001: the chartered row's two
+  // minted tokens. The extension is consulted only for tokens the derivation
+  // actually mints, so the walk is green with the row live and green in the
+  // applied-archive state (the close's mint).
+  F253: "C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA",
+  F254: "C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA",
+  // C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA T-001: the chartered row's three
+  // minted tokens. The extension is consulted only for tokens the derivation
+  // actually mints, so the walk is green with the row live and green in the
+  // applied-archive state (the close's mint).
+  F255: "C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA",
+  F256: "C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA",
+  F257: "C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA",
+  // C-STATUS-TEST-TIMEOUT-1-E7DA46E8 T-001: the chartered row's one minted token.
+  F263: "C-STATUS-TEST-TIMEOUT-1-E7DA46E8",
+  // C-SCRIPTS-ADOPTION-2-36DEB1BD T-003: the chartered row's two minted tokens. The
+  // extension is consulted only for tokens the derivation actually mints, so the walk is
+  // green with the row live and green in the applied-archive state (the close's mint).
+  F242: "C-SCRIPTS-ADOPTION-2-36DEB1BD",
+  F264: "C-SCRIPTS-ADOPTION-2-36DEB1BD",
+  // C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F T-001: the chartered row's five
+  // minted tokens. The extension is consulted only for tokens the derivation
+  // actually mints, so the walk is green with the row live and green in the
+  // applied-archive state (the close's mint).
+  F258: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
+  F259: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
+  F260: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
+  F261: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
+  F262: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
+  // C-RECORD-SCHEMA-2-0785BD5E T-004: the chartered row's five minted tokens. The
+  // extension is consulted only for tokens the derivation actually mints, so the walk
+  // is green with the row live and green in the applied-archive state (the close's mint).
+  F207: "C-RECORD-SCHEMA-2-0785BD5E",
+  F221: "C-RECORD-SCHEMA-2-0785BD5E",
+  F235: "C-RECORD-SCHEMA-2-0785BD5E",
+  F252: "C-RECORD-SCHEMA-2-0785BD5E",
+  F265: "C-RECORD-SCHEMA-2-0785BD5E",
+  // C-TEST-TIMEOUT-CEILING-2-7AD2A006 T-002: the chartered row's two minted tokens.
+  // Consulted only for tokens the derivation actually mints; green with the row live
+  // and green in the applied-archive state (the close's mint).
+  F266: "C-TEST-TIMEOUT-CEILING-2-7AD2A006",
+  F267: "C-TEST-TIMEOUT-CEILING-2-7AD2A006",
+  // C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD T-001: the chartered row's eight minted
+  // tokens. Consulted only for tokens the derivation actually mints; green with the
+  // row live and green in the applied-archive state (the close's mint).
+  F268: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
+  F269: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
+  F271: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
+  F272: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
+  F273: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
+  F274: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
+  F275: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
+  F276: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
+  F228: "C-RECORD-FLUSH-VERB-2-6BB9DF5A",
+  F277: "C-RECORD-FLUSH-VERB-2-6BB9DF5A",
+  F278: "C-RECORD-FLUSH-VERB-2-6BB9DF5A",
+  F279: "C-CLONE-FAITHFUL-TESTS-1-D68520A2",
+  // C-TEST-TIME-BUDGET-4-F173437E T-009: the chartered row's three minted tokens
+  // (F281, F282 and F286). Consulted only for tokens the derivation actually
+  // mints; green with the row live and green in the applied-archive state (the
+  // close's mint).
+  F281: "C-TEST-TIME-BUDGET-4-F173437E",
+  F282: "C-TEST-TIME-BUDGET-4-F173437E",
+  F286: "C-TEST-TIME-BUDGET-4-F173437E",
+  // C-RECORD-DECISION-FLUSH-1-368E01F2 T-004: the chartered row's one minted
+  // token (F289). Consulted only for tokens the derivation actually mints, so
+  // the walk is green with the row live and green in the applied-archive state
+  // (the close's mint). `D41` needs no entry: the derivation matches `F` tokens
+  // only.
+  F289: "C-RECORD-DECISION-FLUSH-1-368E01F2",
+};
+
+
 const tempRoots: string[] = [];
 
 function isolatedRoot(): string {
@@ -966,6 +1117,10 @@ ${inner}
 </Registry>
 `;
     parts.findingsRetired = `<Findings>\n  <Finding id="f9" token="F9" status="retired">\n    <PaidBy>C-OLD</PaidBy>\n    <Title>### F9 — retired</Title>\n    <Body>body nine</Body>\n  </Finding>\n</Findings>\n`;
+    // C-RECORD-DECISION-FLUSH-1-368E01F2 T-001: the index Entry must hold the
+    // reassigned retired element (f9), not happyParts' f2, or the presence
+    // relation `record-index-orphan` reddens the fixture.
+    parts.index = `<RecordIndex base="10" headroom="40" ceiling="1000">\n  <Entry id="f1" token="F1" genre="finding" layer="live" />\n  <Entry id="f9" token="F9" genre="finding" layer="retired" />\n  <Entry id="d1" token="D1" genre="decision" layer="live" />\n</RecordIndex>\n`;
     const f = (id: string, token: string, body: string) =>
       `  <Finding id="${id}" token="${token}" status="live">\n    <Title>### ${token} — live</Title>\n    <Body>${body}</Body>\n  </Finding>`;
     // pre-existing drift: a blank line and a 4-space indent before f2 (F190's
@@ -2063,149 +2218,6 @@ ${names
         }
         expect(derived.get(token), token).toBe(payer);
       }
-      // C-FLUSH-AND-PAY minted the C-INDEX-METRIC-2 row post-archive, so the production
-      // derivation mints F205; the baseline map was captured before that row existed.
-      // C-ROOT-WINDOW's row mints its six tokens to this bundle only once the
-      // bundle is archived (eligibility requires the payer's name to be an archive
-      // directory); the extension is consulted only for tokens the derivation
-      // actually mints, so the test stays green with the row live and in the
-      // applied-archive state.
-      // C-FLUSH-AND-UNPIN minted this row live by its own plan, so the close's
-      // move derives F232 from the row's Pays cell once the bundle's directory
-      // is in the archive. The derivation is first-row-wins, so a paid token's
-      // payer never changes — a paid state is durable, a live one is not — and
-      // the extension is consulted only for tokens the derivation actually
-      // mints, so the walk is inert (green) with the row live and green in the
-      // applied-archive state.
-      const bundleMinted: Record<string, string> = {
-        F205: "C-INDEX-METRIC-2",
-        F216: "C-ROOT-WINDOW",
-        F182: "C-ROOT-WINDOW",
-        F193: "C-ROOT-WINDOW",
-        F190: "C-ROOT-WINDOW",
-        F225: "C-ROOT-WINDOW",
-        F226: "C-ROOT-WINDOW",
-        F232: "C-FLUSH-AND-UNPIN",
-        // C-TAUGHT-RULES T-005: the chartered row's six minted tokens. The
-        // extension is consulted only for tokens the derivation actually mints,
-        // so the walk is green with the row live (nothing minted — the row's
-        // name is not an archive directory while the bundle is active) and
-        // green in the applied-archive state (the close's mint).
-        F210: "C-TAUGHT-RULES",
-        F196: "C-TAUGHT-RULES",
-        F199: "C-TAUGHT-RULES",
-        F188: "C-TAUGHT-RULES",
-        F233: "C-TAUGHT-RULES",
-        F234: "C-TAUGHT-RULES",
-        // C-APPLY-VERB T-006: the chartered row's one minted token. The
-        // extension is consulted only for tokens the derivation actually
-        // mints, so the walk is green with the row live (the row's name is
-        // not an archive directory while the bundle is active) and green in
-        // the applied-archive state (the close's mint).
-        F224: "C-APPLY-VERB",
-        // C-FLUSH-AND-TEACH T-004: the chartered row five minted tokens.
-        F236: "C-FLUSH-AND-TEACH",
-        F237: "C-FLUSH-AND-TEACH",
-        F238: "C-FLUSH-AND-TEACH",
-        F239: "C-FLUSH-AND-TEACH",
-        F241: "C-FLUSH-AND-TEACH",
-        F185: "C-RETIRE-AND-CODIFY",
-        F198: "C-PAYMENT-RECORD-2",
-        F197: "C-PAYMENT-INTEGRITY",
-        // C-GUARD-RATCHET T-001: F244's payment is recorded on the already
-        // archived C-PAYMENT-INTEGRITY row (retired-row append), and the
-        // bundle's own row pays F222 and F223 once its name is an archive
-        // directory. The extension is consulted only for tokens the derivation
-        // actually mints.
-        F244: "C-PAYMENT-INTEGRITY",
-        F222: "C-GUARD-RATCHET",
-        F223: "C-GUARD-RATCHET",
-        // C-REVIEW-SELF-SCOPE-2 T-002: the chartered row's two minted tokens. The
-        // extension is consulted only for tokens the derivation actually mints,
-        // so the walk is green with the row live and green in the applied-archive
-        // state (the close's mint).
-        F240: "C-REVIEW-SELF-SCOPE-2",
-        F245: "C-REVIEW-SELF-SCOPE-2",
-        // C-TEACH-DRIVE-BEFORE-APPROVE-2 T-001: the chartered row's five minted
-        // tokens. The extension is consulted only for tokens the derivation
-        // actually mints, so the walk is green with the row live and green in
-        // the applied-archive state (the close's mint).
-        F243: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
-        F246: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
-        F247: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
-        F248: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
-        F249: "C-TEACH-DRIVE-BEFORE-APPROVE-2",
-        // C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22 T-004: the chartered row's two minted
-        // tokens. The extension is consulted only for tokens the derivation
-        // actually mints, so the walk is green with the row live and green in the
-        // applied-archive state (the close's mint).
-        F250: "C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22",
-        F251: "C-PAIR-AUDIT-MINT-CWD-1-ED6B7D22",
-        // C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA T-001: the chartered row's two
-        // minted tokens. The extension is consulted only for tokens the derivation
-        // actually mints, so the walk is green with the row live and green in the
-        // applied-archive state (the close's mint).
-        F253: "C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA",
-        F254: "C-TEACH-PLAN-DRIVES-CORRECTIONS-2-1E59AEAA",
-        // C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA T-001: the chartered row's three
-        // minted tokens. The extension is consulted only for tokens the derivation
-        // actually mints, so the walk is green with the row live and green in the
-        // applied-archive state (the close's mint).
-        F255: "C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA",
-        F256: "C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA",
-        F257: "C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA",
-        // C-STATUS-TEST-TIMEOUT-1-E7DA46E8 T-001: the chartered row's one minted token.
-        F263: "C-STATUS-TEST-TIMEOUT-1-E7DA46E8",
-        // C-SCRIPTS-ADOPTION-2-36DEB1BD T-003: the chartered row's two minted tokens. The
-        // extension is consulted only for tokens the derivation actually mints, so the walk is
-        // green with the row live and green in the applied-archive state (the close's mint).
-        F242: "C-SCRIPTS-ADOPTION-2-36DEB1BD",
-        F264: "C-SCRIPTS-ADOPTION-2-36DEB1BD",
-        // C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F T-001: the chartered row's five
-        // minted tokens. The extension is consulted only for tokens the derivation
-        // actually mints, so the walk is green with the row live and green in the
-        // applied-archive state (the close's mint).
-        F258: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
-        F259: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
-        F260: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
-        F261: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
-        F262: "C-TEACH-COPY-DRIVES-LINEAGE-1-B695D12F",
-        // C-RECORD-SCHEMA-2-0785BD5E T-004: the chartered row's five minted tokens. The
-        // extension is consulted only for tokens the derivation actually mints, so the walk
-        // is green with the row live and green in the applied-archive state (the close's mint).
-        F207: "C-RECORD-SCHEMA-2-0785BD5E",
-        F221: "C-RECORD-SCHEMA-2-0785BD5E",
-        F235: "C-RECORD-SCHEMA-2-0785BD5E",
-        F252: "C-RECORD-SCHEMA-2-0785BD5E",
-        F265: "C-RECORD-SCHEMA-2-0785BD5E",
-        // C-TEST-TIMEOUT-CEILING-2-7AD2A006 T-002: the chartered row's two minted tokens.
-        // Consulted only for tokens the derivation actually mints; green with the row live
-        // and green in the applied-archive state (the close's mint).
-        F266: "C-TEST-TIMEOUT-CEILING-2-7AD2A006",
-        F267: "C-TEST-TIMEOUT-CEILING-2-7AD2A006",
-        // C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD T-001: the chartered row's eight minted
-        // tokens. Consulted only for tokens the derivation actually mints; green with the
-        // row live and green in the applied-archive state (the close's mint).
-        F268: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
-        F269: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
-        F271: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
-        F272: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
-        F273: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
-        F274: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
-        F275: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
-        F276: "C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD",
-        F228: "C-RECORD-FLUSH-VERB-2-6BB9DF5A",
-        F277: "C-RECORD-FLUSH-VERB-2-6BB9DF5A",
-        F278: "C-RECORD-FLUSH-VERB-2-6BB9DF5A",
-        F279: "C-CLONE-FAITHFUL-TESTS-1-D68520A2",
-        // C-TEST-TIME-BUDGET-4-F173437E T-009: the chartered row's three minted tokens
-        // (F281, F282 and F286). Consulted only for tokens the derivation actually
-        // mints; green with the row live and green in the applied-archive state (the
-        // close's mint).
-        F281: "C-TEST-TIME-BUDGET-4-F173437E",
-        F282: "C-TEST-TIME-BUDGET-4-F173437E",
-        F286: "C-TEST-TIME-BUDGET-4-F173437E",
-      };
       for (const [token] of derived) {
         expect(derived.get(token), token).toBe(baseline[token] ?? bundleMinted[token]);
       }
@@ -6270,7 +6282,7 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
     writeFileSync(rulingsPath, readFileSync(rulingsPath, "utf8").replace("</Rulings>", fixtureDecision + "</Rulings>"));
     const indexFixture = path.join(root, RECORD_REL, "decisions.xml");
     writeFileSync(indexFixture, readFileSync(indexFixture, "utf8").replace("</RecordIndex>", '  <Entry id="d-fixture" token="D-FIXTURE" genre="decision" layer="live" />\n</RecordIndex>'));
-    plant(root, ".ngrace/scratch/staged-findings.md", '<a id="f999" name="f999"></a>\n### F999 — clone-faithful fixture **[verified]**\n\nInline fixture body; the fixture sources no repository path, so it is independent of the record and of the staged buffer.\n\n---\n');
+    plant(root, ".ngrace/scratch/staged-findings.md", '<a id="f999" name="f999"></a>\n### F999 — clone-faithful fixture **[verified]**\n\nInline fixture body; the fixture sources no repository path, so it is independent of the record and of the staged buffer.\n\n---\n\n<a id="d99" name="d99"></a>\n## D99 — decision-path fixture **[verified]**\n\nFixture decision body; the fixture sources no repository path, so it is independent of the record and of the staged buffer.\n\n---\n');
     mkdirSync(path.join(root, ".ngrace/changes/active/C-FIXTURE-1-00000000"), { recursive: true });
     return root;
   }
@@ -6297,6 +6309,56 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
     expect(rowsOf(root).length, "the row is not re-minted").toBe(1);
     const tgt = [...walkNodes(parse(root, "rulings.xml"))].find((n) => n.tag === "Decision" && n.attributes.token === "D-FIXTURE")!;
     expect(childNodes(tgt, "CodifiedIn").length, "exactly one CodifiedIn").toBe(1);
+  });
+
+  it("C-RECORD-DECISION-FLUSH-1-368E01F2 --decision writes the decision element and its index Entry together", () => {
+    const root = flushRoot();
+    const flush = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--decision", "D99", "--mint-search", "1 active, 0 archive", "--status-text", "fixture"]);
+    expect(flush.status, flush.stderr).toBe(0);
+    expect(flush.stdout, "the success line names the decision token").toContain("D99");
+    const decisions = [...walkNodes(parse(root, "rulings.xml"))].filter((n) => n.tag === "Decision" && n.attributes.token === "D99");
+    expect(decisions.length, "D99 exactly once in rulings.xml").toBe(1);
+    expect(decisions[0]!.attributes.id).toBe("d99");
+    expect(decisions[0]!.attributes.status).toBe("live");
+    const entries = [...walkNodes(parse(root, "decisions.xml"))].filter((n) => n.tag === "Entry" && n.attributes.id === "d99");
+    expect(entries.length, "one index Entry").toBe(1);
+    expect(entries[0]!.attributes.genre).toBe("decision");
+    expect(entries[0]!.attributes.layer).toBe("live");
+    for (const file of ["findings.xml", "rulings.xml", "registry.xml", "decisions.xml"]) {
+      const text = readFileSync(path.join(root, RECORD_REL, file), "utf8");
+      expect(serializeRecordDocument(file, text), `${file} canonical at rest`).toBe(text);
+      const m = /base="(\d+)" headroom="(\d+)" ceiling="(\d+)"/.exec(text.split("\n")[0]!);
+      expect(Number(m![1]) + Number(m![2]), `${file} base + headroom = ceiling`).toBe(Number(m![3]));
+    }
+  });
+
+  it("C-RECORD-DECISION-FLUSH-1-368E01F2 --decision with --codify chains the codify off the appended decision, writing both", () => {
+    const root = flushRoot();
+    const flush = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--decision", "D99", "--codify", "d-fixture:test-suite:scripts/validate-record-retirement.test.ts", "--mint-search", "1 active, 0 archive", "--status-text", "fixture"]);
+    expect(flush.status, flush.stderr).toBe(0);
+    expect(flush.stdout, "the success line names the decision token").toContain("D99");
+    const decisions = [...walkNodes(parse(root, "rulings.xml"))].filter((n) => n.tag === "Decision" && n.attributes.token === "D99");
+    expect(decisions.length, "D99 present; the codify did not drop the appended decision").toBe(1);
+    const tgt = [...walkNodes(parse(root, "rulings.xml"))].find((n) => n.tag === "Decision" && n.attributes.token === "D-FIXTURE")!;
+    expect(childNodes(tgt, "CodifiedIn").length, "exactly one CodifiedIn on the codify target").toBe(1);
+    const entries = [...walkNodes(parse(root, "decisions.xml"))].filter((n) => n.tag === "Entry" && n.attributes.id === "d99");
+    expect(entries.length, "one index Entry for d99").toBe(1);
+    expect(entries[0]!.attributes.genre).toBe("decision");
+    expect(entries[0]!.attributes.layer).toBe("live");
+  });
+
+  it("C-RECORD-DECISION-FLUSH-1-368E01F2 refuses a genre-mismatched selection before any write, both directions", () => {
+    const root = flushRoot();
+    const files = ["findings.xml", "findings-retired.xml", "rulings.xml", "rulings-retired.xml", "registry.xml", "registry-retired.xml", "decisions.xml"];
+    const snap = () => files.map((f) => readFileSync(path.join(root, RECORD_REL, f), "utf8"));
+    const before = snap();
+    const findingFlag = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "D99", "--mint-search", "1 active, 0 archive"]);
+    expect(findingFlag.status, findingFlag.stderr).not.toBe(0);
+    expect(findingFlag.stderr).toContain("flush-selection-genre-mismatch");
+    const decisionFlag = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--decision", "F999", "--mint-search", "1 active, 0 archive"]);
+    expect(decisionFlag.status, decisionFlag.stderr).not.toBe(0);
+    expect(decisionFlag.stderr).toContain("flush-selection-genre-mismatch");
+    expect(snap(), "all four record files byte-identical across both refusals").toEqual(before);
   });
 
   it("--flush re-derives every live root itself, with no --rewrite-roots, after the entries flush and the codify-only invocation", () => {
@@ -6357,6 +6419,73 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
     expect(malformed.status).not.toBe(0);
     expect(malformed.stderr).toContain("flush-mint-search-malformed");
     expect(allText(root).length).toBeGreaterThan(before);
+  });
+});
+
+// C-RECORD-DECISION-FLUSH-1-368E01F2 T-001: the index-versus-genre presence
+// relation `record-index-orphan` at rest, consumed by the validator, --retire and
+// --flush through the one `refuseStructural`; the clean fixture and the
+// production record satisfy it.
+describe("C-RECORD-DECISION-FLUSH-1-368E01F2 T-001 index presence", () => {
+  const ORPHAN_ENTRY =
+    '  <Entry id="d-orphan" token="D-ORPHAN" genre="decision" layer="live" />\n';
+  const RECORD_FILES = [
+    "findings.xml",
+    "findings-retired.xml",
+    "rulings.xml",
+    "rulings-retired.xml",
+    "registry.xml",
+    "registry-retired.xml",
+    "decisions.xml",
+  ];
+  function withOrphan(): string {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const index = readFileSync(path.join(root, RECORD_REL, "decisions.xml"), "utf8");
+    plant(root, `${RECORD_REL}/decisions.xml`, index.replace("</RecordIndex>", ORPHAN_ENTRY + "</RecordIndex>"));
+    return root;
+  }
+  const snapshot = (root: string) => RECORD_FILES.map((f) => readFileSync(path.join(root, RECORD_REL, f), "utf8"));
+
+  it("a planted index Entry with no holding element reddens record-index-orphan, and --retire refuses before any write", () => {
+    const root = withOrphan();
+    const before = snapshot(root);
+    const v = runValidatorInProcess(root, [RECORD_REL]);
+    expect(v.status).not.toBe(0);
+    expect(v.stderr).toContain("record-index-orphan");
+    const r = runValidatorInProcess(root, ["--retire", RECORD_REL]);
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain("record-index-orphan");
+    expect(snapshot(root), "no record file changed").toEqual(before);
+  });
+
+  it("--flush refuses record-index-orphan before any write", () => {
+    const root = withOrphan();
+    const before = snapshot(root);
+    const fl = runValidatorInProcess(root, [
+      "--flush",
+      RECORD_REL,
+      "--change",
+      "C-FIXTURE-1-00000000",
+      "--finding",
+      "F1",
+      "--mint-search",
+      "0 active, 0 archive",
+    ]);
+    expect(fl.status).not.toBe(0);
+    expect(fl.stderr).toContain("record-index-orphan");
+    expect(snapshot(root)).toEqual(before);
+  });
+
+  it("the clean fixture and the production record both stay green under the relation", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    const ok = runValidatorInProcess(root, [RECORD_REL]);
+    expect(ok.status, ok.stderr).toBe(0);
+    expect(ok.stdout).toContain("record-retirement: ok");
+    const prod = runValidatorInProcess(REPO_ROOT, [RECORD_REL]);
+    expect(prod.status, prod.stderr).toBe(0);
+    expect(prod.stdout).toContain("record-retirement: ok");
   });
 });
 
@@ -6454,5 +6583,74 @@ describe("C-TEST-TIME-BUDGET-2-3EC1F016 in-process validator", () => {
     // bounded spawns: one spawn site remains, for the exit-code/CWD contract
     const source = readFileSync(SELF_TEST_PATH, "utf8");
     expect((source.match(/spawnSync\("bun", \[SCRIPT/g) ?? []).length).toBe(1);
+  });
+});
+
+// C-RECORD-DECISION-FLUSH-1-368E01F2 T-004: the payer-map ratchet. Once this
+// bundle's row is an archive directory carrying `Pays F289`, `derivePayerMap`
+// mints F289 and the production walk expects `baseline[F289] ??
+// bundleMinted[F289]`; the entry is the deliberate ratchet, and `D41` is not
+// minted because the derivation matches `F` tokens only.
+describe("C-RECORD-DECISION-FLUSH-1-368E01F2 T-004 payer ratchet", () => {
+  it("F289 derives to this bundle from an archived row, and the map carries it so the production walk stays green", () => {
+    const root = isolatedRoot();
+    mkdirSync(path.join(root, ".ngrace", "changes", "archive", "C-RECORD-DECISION-FLUSH-1-368E01F2"), { recursive: true });
+    const row = { name: "C-RECORD-DECISION-FLUSH-1-368E01F2", pays: "F289", statusText: "" };
+    const derived = derivePayerMap(root, [row]);
+    expect(derived.get("F289"), "the derivation mints F289 from the archived row").toBe("C-RECORD-DECISION-FLUSH-1-368E01F2");
+    const baseline: Record<string, string> = JSON.parse(readFileSync(path.join(import.meta.dir, "fixtures", "record-parse", "baseline-probes.json"), "utf8")).payerMapBaseline.map;
+    expect(derived.get("F289"), "the walk's expectation baseline[F289] ?? bundleMinted[F289]").toBe(baseline["F289"] ?? bundleMinted["F289"]);
+    expect(bundleMinted["F289"], "a stale id would red the same walk, so the entry is pinned to this bundle").toBe("C-RECORD-DECISION-FLUSH-1-368E01F2");
+    expect(derivePayerMap(root, [{ ...row, pays: "D41" }]).has("D41"), "a D token is not minted").toBe(false);
+  });
+});
+
+// C-RECORD-DECISION-FLUSH-1-368E01F2 T-005: the applied-archive relation walk
+// for `AC-ROW-F289-D41`. It keys on the charter row's presence so it is green in
+// the execution tree (the row is minted by the close, not by the tasks) and
+// discriminating in the applied-archive state: once the row exists, F289 must be
+// retired with its PaidBy, D41 live with no CodifiedIn, and every index Entry
+// layer must agree with its holding file.
+describe("C-RECORD-DECISION-FLUSH-1-368E01F2 T-005 applied-archive relations", () => {
+  const rowName = "C-RECORD-DECISION-FLUSH-1-368E01F2";
+  const root = (file: string) =>
+    parseGraceXmlArtifact(file, readFileSync(path.join(REPO_ROOT, RECORD_REL, file), "utf8")).root!;
+  const nodes = (file: string, tag: string, match: (n: GraceXmlNode) => boolean) =>
+    [...walkNodes(root(file))].filter((n) => n.tag === tag && match(n));
+
+  it("once the charter row exists, F289 is retired with PaidBy, D41 is live without CodifiedIn, the row is chartered and pays F289, and the index layers agree", () => {
+    const rows = ["registry.xml", "registry-retired.xml"].flatMap((file) =>
+      nodes(file, "Row", (n) => n.attributes.name === rowName).map((n) => ({ file, node: n })),
+    );
+    if (rows.length === 0) {
+      // pre-close: the close mints the row, so the walk is vacuously green here
+      return;
+    }
+    expect(rows.length, "the row exactly once across the registry layers").toBe(1);
+    const { file, node } = rows[0]!;
+    expect(node.attributes.status, "the row's status agrees with its layer").toBe(file === "registry.xml" ? "live" : "retired");
+    expect(node.attributes.kind).toBe("chartered");
+    expect(childText(node, "Pays"), "Pays contains F289").toContain("F289");
+    const f289 = ["findings.xml", "findings-retired.xml"].flatMap((f) =>
+      nodes(f, "Finding", (n) => n.attributes.id === "f289").map((n) => ({ file: f, node: n })),
+    );
+    expect(f289.length, "F289 exactly once across the findings pair").toBe(1);
+    expect(f289[0]!.node.attributes.status, "F289 is retired").toBe("retired");
+    expect(childText(f289[0]!.node, "PaidBy"), "F289's PaidBy names this bundle").toBe(rowName);
+    const d41 = ["rulings.xml", "rulings-retired.xml"].flatMap((f) =>
+      nodes(f, "Decision", (n) => n.attributes.id === "d41").map((n) => ({ file: f, node: n })),
+    );
+    expect(d41.length, "D41 exactly once across the rulings pair").toBe(1);
+    expect(d41[0]!.node.attributes.status, "D41 stays live (no resolving CodifiedIn)").toBe("live");
+    expect(childNodes(d41[0]!.node, "CodifiedIn").length, "D41 carries no CodifiedIn").toBe(0);
+    const holders: Array<[string, "live" | "retired"]> = [
+      ["f289", f289[0]!.file === "findings.xml" ? "live" : "retired"],
+      ["d41", d41[0]!.file === "rulings.xml" ? "live" : "retired"],
+    ];
+    for (const [id, layer] of holders) {
+      const entries = nodes("decisions.xml", "Entry", (n) => n.attributes.id === id);
+      expect(entries.length, `one index Entry for ${id}`).toBe(1);
+      expect(entries[0]!.attributes.layer, `${id} index layer agrees with the holding file`).toBe(layer);
+    }
   });
 });
