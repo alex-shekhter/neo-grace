@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-CURSOR-EVENT-ID-INTEGRITY-1-A0E753F3>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-CURSOR-EVENT-ID-INTEGRITY-1-A0E753F3><Replacement>C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92</Replacement>
     <Summary>
       T1 change on `RM-GOVERNED-PATH`: **cursor event-id integrity.** It pays **`F288`** (staged in
       `.ngrace/scratch/staged-findings.md`): two concurrent `ngrace cursor advance` invocations mint

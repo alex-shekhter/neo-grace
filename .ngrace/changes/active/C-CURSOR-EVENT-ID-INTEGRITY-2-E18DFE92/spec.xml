@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92>
+    <Summary>Summary of C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92.</Summary>
+    <Goals>
+      <Goal>Goal for C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92; replace this placeholder by deciding README.md and examples/. Owner: the author.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92>
+</NgraceChangeSpec>
