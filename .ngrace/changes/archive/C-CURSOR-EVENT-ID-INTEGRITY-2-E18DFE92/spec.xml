@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92>
     <Summary>
       T1 change on `RM-GOVERNED-PATH`: **cursor event-id integrity.** It pays **`F288`** (staged in
