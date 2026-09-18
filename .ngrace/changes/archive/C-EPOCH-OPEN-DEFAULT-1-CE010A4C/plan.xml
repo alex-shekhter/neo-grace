@@ -1,0 +1,290 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-EPOCH-OPEN-DEFAULT-1-CE010A4C>
+    <IntentSummary>
+      Convert the approved spec into the executable plan. Two mechanisms,
+      **two pairs, not one cluster**: the unbounded-open default
+      (`const from = options.from ?? nextEventId(bundlePath);` at
+      `src/grace-cursor.ts:976`) and the `recover --fix` leading-hole re-home
+      (`src/grace-cursor.ts:678`) are edits in two functions whose guards red
+      **separately** — guard (i) reds on the default alone and passes once
+      T-001 lands, guard (ii) reds on the `--fix` skip alone and passes once
+      T-002 lands — so the Atomic Mechanism Exception (one pair for one
+      cluster) does **not** apply: each task authors its own guard against
+      the tree it inherits, records exactly **one** `cursor attempt --outcome
+      fail`, lands its mechanism once, and records exactly **one** `cursor
+      attempt --outcome pass`. Guard (iii) (a mid-range hole still declines)
+      is green on both trees: it is a non-vacuity control, not a red, and
+      travels with T-002's pair. **No new export and no `MODULE_MAP` edit:**
+      the leading-hole helpers (`firstRangeHoleId`, `hasLeadingHole`) are
+      module-private beside `recoverCursor`, and the guards call only the
+      already-exported `advanceCursor`, `foldEpoch` and `recoverCursor`, so
+      `markup.module-map-mismatch` has nothing to move. **The unlink pin
+      stays:** `src/grace-cursor.test.ts:551`–`592` pins every
+      `unlinkSync`/`rmSync`/`rmdirSync` call site under `src/` (seven, two of
+      them `unlinkSync(lockPath);`); no task adds one. **This bundle's own
+      epoch is the defect's habitat:** the executing agent opens an epoch,
+      folds at each end-state, and a correction reopens — and before T-001's
+      production edit lands, that unbounded reopen allocates `w0:1-99` and
+      blocks the fold. If a reopen is needed before T-001 lands, the
+      executing agent uses the shipped-verb recovery — a bounded
+      `ngrace cursor advance --change C-EPOCH-OPEN-DEFAULT-1-CE010A4C --task
+      T-NNN --open-epoch --from &lt;measured-first-loose-id&gt; --to
+      &lt;ceiling&gt;`, with the bounds read from `cursor recover`'s `Loose
+      integer events: &lt;from&gt;..&lt;to&gt;` — never an unbounded open and
+      never a hand edit of `run/` or `run-ledger.xml` (`D41`). **After T-001
+      lands, an unbounded `--open-epoch` on a folded bundle is correct**, so
+      the executing agent's own stream is the first field test: T-002 and
+      T-003 reopen unbounded and the fold must apply. **Baseline needles
+      assert only what stays:** the fold's `range hole at` message,
+      `writeCoveringOpened`'s append-only shape and `withEventWriteLock` stay;
+      `options.from ?? 1` is the needle the bundle flips and belongs in
+      `TargetAssertions` as a `MustNotContain`, never in a baseline. **The
+      authority's close acts are named, never tasked:** the `--flush --change
+      C-EPOCH-OPEN-DEFAULT-1-CE010A4C --finding F308 --pays F308
+      --mint-search "0 active, 0 archive"` that lands `F308` and mints the
+      row, `ngrace apply`, and the `--retire` whose move reports `F308` and
+      the row. The seven record files the close writes and the bundle's own
+      archive arrival are declared in `ObservedWriteScope` (the spec's
+      `F285`/`F293` rule), and the bundle's own `spec.xml`/`plan.xml` and the
+      staged buffer are not. **Plan-time drives (evidence, not assumptions):**
+      every baseline needle was driven with `--assertions baseline`, each
+      task's `Verification` in its task's tree state, and the whole close was
+      driven on a faithful copy carrying `.git` (needed by the `git diff`
+      criteria) with `node_modules` in the copy's `.git/info/exclude` (`F280`),
+      in the product's order — review, verdict, gate apply, gate archive,
+      `--flush`, `ngrace apply`, `--retire`, post-archive review, acked
+      verdict, `change show` — with every exit read directly and pasted in the
+      report's `PROBES`. **The whole suite runs only at this plan's
+      `TargetAssertions` `MustPassCommand` (`bun run validate:ci`) under
+      `--assertions final --run-commands`**; each task's `Verification` names
+      the narrowest instrument. **T-003 is pass-only** (a map entry has no red
+      direction) and its last act is the terminal event `ngrace cursor advance
+      --change C-EPOCH-OPEN-DEFAULT-1-CE010A4C --task T-003 --kind terminal`
+      — the close's `fold` refuses an unterminated range. Every `AC-*` in the
+      approved spec is close-bound, so no task carries `Satisfies`. This
+      bundle's executor does not approve, runs no review, gate, supersede or
+      apply verb, and does not commit.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>range hole at</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>writeCoveringOpened</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>withEventWriteLock</Text>
+      </MustContain>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustNotContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>options.from ?? 1</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>options.from ?? nextEventId(bundlePath)</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>hasLeadingHole</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>C-EPOCH-OPEN-DEFAULT-1-CE010A4C</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <Glob>.ngrace/changes/archive/C-EPOCH-OPEN-DEFAULT-1-CE010A4C/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Default the unbounded open to the next event id</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test,
+            signature-key grace-cursor): author guard (i) in
+            `src/grace-cursor.test.ts` against the shipped default, on an
+            isolated bundle root (never the production record). The guard:
+            seed a bundle; `advanceCursor(root, id, { task: "T-001",
+            openEpoch: true })`; one `progress`; one `terminal`;
+            `foldEpoch` applies; open unbounded again; one `progress`; one
+            `terminal`; assert `foldEpoch` does not throw and returns
+            `applied: true`, and assert the second `opened` event's
+            `Allocation` has `from` equal to that event's own `id` (the
+            spec's `w0:&lt;N&gt;-&lt;N+98&gt;`). On the base tree the second
+            `foldEpoch` throws `invalid-project` naming
+            `range hole at 1 for w0`; paste the tail. Record exactly **one**
+            `cursor attempt --outcome fail` for the guard; do not land
+            production in this round trip.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): in
+            `advanceCursor` (`src/grace-cursor.ts:976`) change
+            `const from = options.from ?? 1;` to
+            `const from = options.from ?? nextEventId(bundlePath);`. Keep
+            explicit `--from`/`--to` unchanged and the unbounded `to =
+            from + 98` default. Do **not** touch `nextEventId`'s body,
+            `writeEventFile`'s allocation loop or renumber, or
+            `withEventWriteLock`. Record exactly **one** `cursor attempt
+            --outcome pass` for the guard. Failure conditions: `?? 1` still
+            at `:976`; explicit bounds altered; `nextEventId`'s body
+            changed; a new `unlinkSync`/`rmSync` site under `src/`; the
+            fold's `range hole at` message text changed.
+          </Criterion>
+          <Criterion>
+            **Own-stream habitat.** Before this task's production edit
+            lands, if a correction needs to reopen an epoch after a fold,
+            use the shipped-verb recovery: `ngrace cursor recover --change
+            C-EPOCH-OPEN-DEFAULT-1-CE010A4C` prints `Loose integer events:
+            &lt;from&gt;..&lt;to&gt;`, then `ngrace cursor advance --change
+            C-EPOCH-OPEN-DEFAULT-1-CE010A4C --task &lt;T-NNN&gt;
+            --open-epoch --from &lt;that from&gt; --to &lt;the task's
+            ceiling&gt;` supersedes the allocation last-writer-wins and lets
+            the fold apply. Never an unbounded open in that window and never
+            a hand edit of `run/` or `run-ledger.xml` (`D41`). After the
+            production edit lands, an unbounded `--open-epoch` on a folded
+            bundle is correct and is the intended field test.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-EPOCH-OPEN-DEFAULT-1-CE010A4C --assertions baseline</Command>
+          <Command>git diff --exit-code bf826694243707d679aae670fc2bc86da2dc71d7 -- src/ scripts/ ':(exclude)src/grace-cursor.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Re-home a leading-holed covering allocation in recover --fix</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test,
+            signature-key grace-cursor): author guard (ii) and control (iii)
+            in `src/grace-cursor.test.ts`, on isolated bundle roots against
+            the tree T-001 left. Guard (ii), a legacy/explicit-low
+            leading-holed stream: open explicitly `from: 1`, progress,
+            terminal, `foldEpoch` (applies); open explicitly `from: 1` again,
+            progress, terminal — assert `recoverCursor(root, id, { fix: true
+            })` returns `fixApplied: true`, that the post-fix diagnosis is
+            not `foldBlocked`, and that the following `foldEpoch` applies.
+            On the T-001 tree `fixApplied` is `false` and `foldEpoch` throws
+            `range hole at 1 for w0`; paste the tail. Control (iii), green on
+            both trees: hand-write an `opened` with an allocation `1-10` and
+            loose ids `1,2,4` (a gap inside the loose range) — assert
+            `recoverCursor({ fix: true })` returns `fixApplied: false` and
+            `foldEpoch` still throws, and that the loose stream is
+            byte-unchanged. Record exactly **one** `cursor attempt --outcome
+            fail` for the pair; do not land production in this round trip.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): in
+            `recoverCursor` (`src/grace-cursor.ts:678`) replace the
+            unconditional skip `if (pre.coveringAllocation === "present") {
+            return { ...pre, fixApplied: false }; }` with a skip only when
+            the covering allocation is present **and** the fold's first
+            reported `range hole at &lt;id&gt; for &lt;worker&gt;` does not
+            lie below the lowest loose event id. Add the module-private
+            helpers `firstRangeHoleId` (parse the first hole id from the
+            diagnosis reasons) and `hasLeadingHole` (the predicate) beside
+            `recoverCursor`; do **not** export them. The re-home reuses the
+            shipped `writeCoveringOpened` with `from` at the first loose id —
+            append-only (D9), last-writer-wins per worker (D9.1), never a
+            terminal (A29.2 / F12), and the existing multi-worker refusal
+            stays before any write (D8.2). The post-fix diagnosis must read
+            `Fix applied: yes` and `Covering opened:
+            run/&lt;id&gt;-&lt;task&gt;-opened.xml`. Record exactly **one**
+            `cursor attempt --outcome pass` for the pair. Failure conditions:
+            a mid-range hole is re-homed (control (iii) reds); a healthy
+            present covering is re-homed (the `F13` ruling broken rather than
+            amended); a new export or `MODULE_MAP` entry; a hand-written
+            allocation or a terminal written; the multi-worker refusal
+            removed.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-EPOCH-OPEN-DEFAULT-1-CE010A4C --assertions baseline</Command>
+          <Command>git diff --exit-code bf826694243707d679aae670fc2bc86da2dc71d7 -- src/ scripts/ ':(exclude)src/grace-cursor.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Extend the payer map and terminate the epoch</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Pass-only cycle (a map entry has no red direction the shipped
+            checks see). Add `F308: "C-EPOCH-OPEN-DEFAULT-1-CE010A4C"` to
+            `bundleMinted` in `scripts/validate-record-retirement.test.ts`
+            after the existing entries (the map is inert while the row is
+            live and greens the post-close derivation walk). Before editing,
+            grep the unlink pin subjects (`src/grace-cursor.test.ts:551`–`592`:
+            two `unlinkSync(lockPath);` lines in `src/grace-cursor.ts`, seven
+            call sites under `src/` in all) against the tree T-001 and T-002
+            left and paste the result; the pin must already be green by
+            construction, and a red here is a T-001/T-002 defect to fix in
+            its own task with its own recorded red, never a pin repair.
+            Record exactly **one** `cursor attempt --outcome pass` and state
+            in the report that this cycle is pass-only.
+            **Terminal event:** the executing agent's last act in this task is
+            `ngrace cursor advance --change C-EPOCH-OPEN-DEFAULT-1-CE010A4C
+            --task T-003 --kind terminal` — the close's `fold` refuses an
+            unterminated range. Emit terminal for this declared task only;
+            never terminal an undeclared event task and never terminal another
+            task's range.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+          <Command>git diff --exit-code bf826694243707d679aae670fc2bc86da2dc71d7 -- src/ scripts/ ':(exclude)src/grace-cursor.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-EPOCH-OPEN-DEFAULT-1-CE010A4C>
+</NgraceChangePlan>

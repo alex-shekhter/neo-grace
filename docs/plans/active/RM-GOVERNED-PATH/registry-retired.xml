@@ -440,4 +440,10 @@
     <Pays>F307</Pays>
     <StatusText>One finding paid: the cursor event write lock no longer steals a live holder it read before the holder's content landed.</StatusText>
   </Row>
+  <Row name="C-EPOCH-OPEN-DEFAULT-1-CE010A4C" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug EPOCH-OPEN-DEFAULT. Author half: an unbounded epoch open allocates from the next event id after the folded history, and recover --fix re-homes a leading hole while declining a mid-range one.</Charter>
+    <Pays>F308</Pays>
+    <StatusText>One finding paid: a bundle with a folded history can open an epoch without bounds and fold it.</StatusText>
+  </Row>
 </Registry>

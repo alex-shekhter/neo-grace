@@ -593,6 +593,27 @@ export type RecoverDiagnosis = {
   coveringOpenedFile?: string;
 };
 
+/** First `range hole at <id>` id in diagnosis reasons, or undefined. */
+function firstRangeHoleId(reasons: string[]): number | undefined {
+  for (const reason of reasons) {
+    const match = /^range hole at (\d+) for /.exec(reason);
+    if (match) return Number(match[1]);
+  }
+  return undefined;
+}
+
+/**
+ * True when the effective covering allocation is present but its only reported
+ * hole lies *below* every loose event id — ids that folded, not lost (F308).
+ * A hole inside the loose range is a genuinely lost event and is not re-homed.
+ */
+function hasLeadingHole(diagnosis: RecoverDiagnosis): boolean {
+  const holeId = firstRangeHoleId(diagnosis.foldBlockReasons);
+  return holeId !== undefined
+    && diagnosis.looseEventRange !== null
+    && holeId < diagnosis.looseEventRange.from;
+}
+
 /**
  * Diagnose (default) or repair (fix) a change's open epoch inventory.
  *
@@ -673,9 +694,14 @@ export function recoverCursor(
         + "multi-worker ranges must not be fabricated (D8.2). Open an explicit epoch with --worker bounds.",
     );
   }
-  // Only skip when the *effective* covering already includes every loose id.
-  // A dead prior allocation that leaves events outside is still fixable (F13).
-  if (pre.coveringAllocation === "present") {
+  // A present covering allocation normally needs no fix. The exception is a
+  // *leading* hole: the allocation's `from` predates every loose id because the
+  // ids below it were folded, not lost (F308). Re-homing the allocation to the
+  // first loose id supersedes it last-writer-wins (collectEffectiveAllocations)
+  // and makes the fold's contiguity walk start at a used id. A hole *inside* the
+  // loose range is a genuinely lost event; no verb may fabricate it, so --fix
+  // declines and leaves the stream unchanged.
+  if (pre.coveringAllocation === "present" && !hasLeadingHole(pre)) {
     return { ...pre, fixApplied: false };
   }
 
@@ -973,7 +999,7 @@ export function advanceCursor(
     // P0.4: refuse invalid bounds before mkdir/write so no run/* is created on failure.
     assertValidEpochBounds(options.from, options.to);
     mkdirSync(runDir, { recursive: true });
-    const from = options.from ?? 1;
+    const from = options.from ?? nextEventId(bundlePath);
     const to = options.to ?? from + 98;
     // Re-check after defaults (to may be derived only when from is valid).
     assertValidEpochBounds(from, to);

@@ -5322,4 +5322,17 @@ Owner: the successor of `C-TEACHING-INCREMENT-1-B9D139EA`, whose plan's close ca
 Owner: a cursor-lock bundle, `src/` only, **immediately** — it blocks PR #110 through a required job. Stays staged.
 </Body>
   </Finding>
+  <Finding id="f308" token="F308" status="retired">
+    <PaidBy>C-EPOCH-OPEN-DEFAULT-1-CE010A4C</PaidBy>
+    <Title>### F308 — `cursor advance --open-epoch` without bounds allocates `w0:1-99` regardless of how many events earlier folded epochs already hold, so on any bundle with a folded history the next fold refuses `range hole at 1 for w0`, and `recover --fix` declines because the covering allocation is &quot;present&quot;. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18** first by the executor on the production bundle `C-EVENT-LOCK-ATOMIC-1-9711E83D` (a T-001 correction after two folded epochs), then by the authority on a throwaway copy of the same bundle with four folded epochs and an empty `run/`: `ngrace cursor advance --change C-… --task T-003 --open-epoch` exits 0 and writes `23-T-003-opened.xml` with allocation `w0:1-99`; after a terminal, `ngrace cursor fold` exits **1** with `range hole at 1 for w0`; `ngrace cursor recover` reports `Valid covering allocation: present (w0:1-99)` and `Fold: blocked (range hole at 1 for w0)`; `ngrace cursor recover --fix` prints `Fix applied: no`. The only shipped remedy is a second `--open-epoch` with measured bounds (`--from 21 --to 200` on the copy; `--from 13 --to 200` on production), which supersedes the effective allocation last-writer-wins and lets the fold apply (`Events: 6`, exit 0). No hand edit of `run/` or `run-ledger.xml` was made in either case.
+
+**Why it matters.** `ngrace-execute` rule 12 and the `opened` kind both say to open without `--from`/`--to` &quot;unless you have a measured allocation need&quot; — the ordinary instruction produces an unfoldable epoch on every bundle that has folded before, which is every bundle after its first end-state sequence (the final `--run-commands` opens a fresh epoch; a correction after that does too). The executor met it on the first correction this branch made. `D41` forbids the hand repair, so an agent that does not know the bounded-reopen trick is stuck at the fold.
+
+**Remedy.** The unbounded open derives `from` from the next event id after the folded history (the ledger knows it), never a constant `1`; and `recover --fix` treats a covering allocation whose `from` precedes every loose event as the hole it is. Teaching: the bounded reopen as the interim recovery, in `ngrace-execute`'s `opened` kind.
+
+Owner: a cursor-allocation `src/` bundle. Stays staged.
+</Body>
+  </Finding>
 </Findings>
