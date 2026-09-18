@@ -52,6 +52,10 @@ const bundleMinted: Record<string, string> = {
   F225: "C-ROOT-WINDOW",
   F226: "C-ROOT-WINDOW",
   F232: "C-FLUSH-AND-UNPIN",
+  // C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92 T-004: the chartered row's one minted
+  // token. The id moved once at the supersede of `-1-A0E753F3`; the entry pins the
+  // successor, so the post-close walk is green and a stale `-1` reds it.
+  F288: "C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92",
   // C-TAUGHT-RULES T-005: the chartered row's six minted tokens. The
   // extension is consulted only for tokens the derivation actually mints,
   // so the walk is green with the row live (nothing minted — the row's
@@ -6652,5 +6656,35 @@ describe("C-RECORD-DECISION-FLUSH-1-368E01F2 T-005 applied-archive relations", (
       expect(entries.length, `one index Entry for ${id}`).toBe(1);
       expect(entries[0]!.attributes.layer, `${id} index layer agrees with the holding file`).toBe(layer);
     }
+  });
+});
+
+// C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92 T-004: the payer-map ratchet for F288.
+// Once this bundle's row is an archive directory carrying `Pays F288`,
+// `derivePayerMap` mints F288 and the production walk at :2222 expects
+// `baseline[F288] ?? bundleMinted[F288]`; the entry is the deliberate ratchet, and
+// a stale `-1` id reds the same walk.
+describe("C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92 T-004 payer ratchet", () => {
+  it("F288 derives to this successor from an archived row, and the map carries it; absent and stale entries red the walk", () => {
+    const root = isolatedRoot();
+    mkdirSync(path.join(root, ".ngrace", "changes", "archive", "C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92"), { recursive: true });
+    const row = { name: "C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92", pays: "F288", statusText: "" };
+    const derived = derivePayerMap(root, [row]);
+    expect(derived.get("F288"), "the derivation mints F288 from the archived row").toBe("C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92");
+
+    const baseline: Record<string, string> = JSON.parse(readFileSync(path.join(import.meta.dir, "fixtures", "record-parse", "baseline-probes.json"), "utf8")).payerMapBaseline.map;
+    expect(baseline["F288"], "baseline carries no F288 route").toBeUndefined();
+    const expectation = (minted: string | undefined): string | undefined => baseline["F288"] ?? minted;
+    expect(derived.get("F288") === expectation(undefined), "an absent entry reds the walk").toBe(false);
+    expect(
+      derived.get("F288") === expectation("C-CURSOR-EVENT-ID-INTEGRITY-1-A0E753F3"),
+      "a stale predecessor id reds the walk",
+    ).toBe(false);
+    expect(
+      derived.get("F288") === expectation("C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92"),
+      "the correct successor entry greens the walk",
+    ).toBe(true);
+    expect(bundleMinted["F288"], "the map carries this successor, not the superseded predecessor").toBe("C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92");
+    expect(derivePayerMap(root, [{ ...row, pays: "D41" }]).has("D41"), "a D token is not minted").toBe(false);
   });
 });
