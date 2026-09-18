@@ -1,0 +1,380 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-INSPECTION-SURFACE-1-2628AA2B>
+    <IntentSummary>
+      T2 plan for the read-only inspection surface (`C-INSPECTION-SURFACE-1-2628AA2B`), authored
+      from the approved spec. Two query surfaces, each placed in the layer that owns its artifact:
+      a shipped `ngrace change find|show` root (`src/grace-change.ts`, `src/query/change.ts`,
+      renderers in `src/query/render.ts`, registered in `src/grace.ts`) and a repo-tooling
+      `bun run record:query` (`scripts/record-query.ts`) reading through the engine's own
+      `parseGraceXmlArtifact`, the already-exported `structuralCheck` and `derivePayerMap`. The
+      Verdict reader (`src/gates/ledger.ts`) is extended to carry the close-evidence tally it
+      already parses past, via the shipped `collectCloseEvidenceEvaluations`.
+
+      **What forces order, and what only looks sequential.** T-001 (the ledger reader) is a
+      genuine prerequisite of T-002 (the verb), because `src/query/change.ts` calls
+      `readLatestReviewVerdict` and consumes the new optional `closeEvidence` field in typed code.
+      T-002 is a genuine prerequisite of T-004 (the selective-runner edge test reads the live
+      `allTestFiles`, which must include `src/query/change.test.ts`). T-002 and T-003 are genuine
+      prerequisites of T-005 (README rows and `package.json#files` name the new verb and the new
+      `record:query` script; `test-metrics.json` must list `src/query/change.test.ts` and
+      `scripts/record-query.test.ts`), and T-004 is a genuine prerequisite of T-005 because the
+      regeneration must see T-004's new case in `scripts/test-affected.test.ts`. T-003 (the record
+      query) and T-006 (the payer map) depend on nothing this bundle writes and are parallel-safe
+      with T-001. Derived waves: `{T-001, T-003, T-006}` → `{T-002}` → `{T-004}` → `{T-005}`.
+
+      **The close's writes are in the observed scope** (`F285`, `F293`): the seven record documents
+      the flush and `--retire` write under `docs/plans/active/RM-GOVERNED-PATH/`,
+      `scripts/validate-record-retirement.test.ts` (the payer-map ratchet), and this bundle's own
+      archive arrival as a glob — alongside the 17 paths the approved spec's write-scope Constraint
+      names. `ObservedWriteScope` therefore holds 25 entries and the close-write-set check is pasted
+      in the stage report.
+
+      **Close-time only.** Each task's `Verification` names the narrowest test file (or a `-t`
+      slice of it). The full CI-equivalent verification runs exactly **once**, at this plan's
+      `TargetAssertions` `MustPassCommand` (`bun run validate:ci`) under `--assertions final
+      --run-commands`; no task `Verification` and no `CloseEvidence` command in the bundle names
+      `bun run test` or `bun run validate:ci`. `bun test --timeout=0` is on every invocation; no
+      per-test timeout is introduced.
+
+      Every `AC-*` in the approved spec is close-bound, so no task carries `&lt;Satisfies&gt;` — a
+      `Satisfies` of a close-bound criterion is an error, and a close-bound criterion is not a
+      forgotten mapping. No `Clarifications` are open.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-CLI</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-GATES</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-QUERY</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/gates/ledger.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/query/render.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/query/command.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/grammar.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/scope.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/xml.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/lint/core.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/record-serialize.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/release-check.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/test-affected.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>package.json</Value>
+      </MustExist>
+      <MustExist>
+        <Value>README.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value>
+      </MustExist>
+      <MustVerify>
+        <Module>M-CLI</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-GATES</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-QUERY</Module>
+      </MustVerify>
+      <MustPassCommand>
+        <Command>bun run typecheck</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>src/grace-change.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/query/change.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/query/change.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/record-query.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/record-query.test.ts</Value>
+      </MustExist>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-GATES />
+        <M-QUERY />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-GATES />
+        <V-M-QUERY />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-change.ts</File>
+      <File>src/query/change.ts</File>
+      <File>src/query/change.test.ts</File>
+      <File>src/query/render.ts</File>
+      <File>src/query/command.test.ts</File>
+      <File>src/gates/ledger.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/grace.ts</File>
+      <File>scripts/record-query.ts</File>
+      <File>scripts/record-query.test.ts</File>
+      <File>scripts/test-affected.ts</File>
+      <File>scripts/test-affected.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>scripts/release-check.ts</File>
+      <File>package.json</File>
+      <File>README.md</File>
+      <File>test-metrics.json</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <Glob>.ngrace/changes/archive/C-INSPECTION-SURFACE-1-2628AA2B/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Carry the close-evidence tally on the Verdict reader</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/gates/ledger.ts`: `ReviewVerdictRecord` gains an optional
+            `closeEvidence: Array&lt;{ criterionId: string; exit: string; result: string }&gt;`, and
+            `parseVerdictNode` populates it by calling the shipped
+            `collectCloseEvidenceEvaluations` (`src/artifact/grammar.ts:2174`) — never a fresh walk
+            of the bytes. `readLatestReviewVerdict` and `readLedgerVerdictsSurface` then surface the
+            tally for every close-bound `AC-*` child carrying both `Exit` and `Result`.
+          </Criterion>
+          <Criterion>
+            Discriminating negatives, driven in `src/gates/core.test.ts`: a `Verdict` with no
+            `AC-*` children yields no `closeEvidence` (absent, not an empty array dressed as
+            present); an `AC-*` child missing `Exit` or `Result` is not reported as a recorded pass;
+            `Finding` and `Ack` parsing is unchanged. Red direction: the new case reddens on the
+            pre-extension reader, which returns no tally at all.
+          </Criterion>
+          <Criterion>
+            No change to `validateRunLedgerArtifact` or the on-disk `Verdict` shape: the extension is
+            a read-side field only, and the ledger writer (`recordReviewVerdict`) is untouched.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/gates/core.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Add the ngrace change find|show root verb</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            New `src/grace-change.ts` (`LINKS: M-QUERY`, `ROLE: RUNTIME`, `MAP_MODE: EXPORTS`) and
+            `src/query/change.ts` (`LINKS: M-QUERY`); the text renderers live in
+            `src/query/render.ts`; the root is registered on `main` in `src/grace.ts`. The house
+            shape holds: `ngrace change find [query]` lists bundles with id, location, spec status,
+            plan status and derived states; `ngrace change show &lt;C-ID&gt;` answers for a bundle
+            in `active/` or `archive/`.
+          </Criterion>
+          <Criterion>
+            The four change-bundle answers come from the shipped readers, not a second walk: the
+            close-bound criterion set from `collectCloseBoundCriterionIds`
+            (`src/artifact/grammar.ts:2161`); the plan scope from `collectActiveChangeScopes`
+            (`src/artifact/scope.ts:241`) for an active bundle and `collectAppliedChangeScopes`
+            (`:253`) for an archived one; the per-criterion `Exit`/`Result` from the T-001-extended
+            `readLatestReviewVerdict` plus `collectCloseEvidenceEvaluations`; the bundle location
+            from `resolveChangeBundle` (`src/grace-cursor.ts:558`). A test asserts the printed
+            criterion set and per-criterion tally **equal** the shipped readers' output.
+          </Criterion>
+          <Criterion>
+            Exit-code contract, driven both ways in `src/query/change.test.ts` with each exit read
+            directly: `find` empty prints a non-empty line and exits 0; `find` matched exits 0;
+            `show` of an absent `C-ID` exits non-zero with one actionable line and no stack trace;
+            an unreadable bundle exits non-zero, never 0. Discriminating negatives: a bundle with no
+            close-bound criterion prints an explicit empty state; a bundle with no `plan.xml`
+            reports scope absent; a bundle with no `Verdicts` section reports the tally absent.
+          </Criterion>
+          <Criterion>
+            Read-only: a content hash of every file under a throwaway project root is identical
+            before and after `find` and `show`, and no path is created, deleted or renamed.
+          </Criterion>
+          <Criterion>
+            `src/query/change.test.ts` is the path-neighbour test of `src/query/change.ts`, so the
+            selective runner maps that file conventionally. No lint code, grammar, anchor pattern,
+            `.ngrace-lint.json` key, graph or verification anchor changes.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/query/change.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Add the repo-tooling record:query surface</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            New `scripts/record-query.ts` (no module header, like its ungoverned siblings) with the
+            house subcommands `find`, `show`, `check`; the record directory resolves through the
+            engine's `resolveRecordDirWithinBoundary`
+            (`scripts/validate-record-retirement.ts:2031`) from `DEFAULT_RECORD_DIR` (`:32`) or
+            `--record-dir`; a `record:query` package script is added in T-005, not here.
+          </Criterion>
+          <Criterion>
+            Reading goes through the engine's own surface: XML through the shared
+            `parseGraceXmlArtifact` (`src/artifact/xml.ts`); the `check` relation through the
+            already-exported `structuralCheck` (`scripts/validate-record-retirement.ts:1527`), which
+            composes `genreLayerEntries`/`holdingFromDocs`/`indexOrphanFindings`; a bundle's `Pays`
+            through the exported `derivePayerMap` (`:370`). `scripts/validate-record-retirement.ts`
+            is **not edited**; a test asserts `check`'s finding set equals `structuralCheck`'s.
+          </Criterion>
+          <Criterion>
+            Driven both ways on throwaway record copies, never the production record: a planted
+            index orphan reddens `check`; a planted layer mismatch reddens it; the same record with
+            both removed is clean. `show --token` reports a retired entry **with** its `PaidBy` and a
+            live entry with none; `show --bundle` reports the registry row's `Pays` and mints
+            nothing while the row's name is not an archive directory. Exit contract: `find` empty 0;
+            `show` absent non-zero; malformed record non-zero with a named reason.
+          </Criterion>
+          <Criterion>
+            Read-only: a content hash of every file in a throwaway record directory is identical
+            before and after each subcommand, and no path is created, deleted or renamed.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/record-query.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Map the selective runner for this bundle's src/ write set</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `scripts/test-affected.ts`'s `AFFECTED_EDGES` (`:32`) gains `src/grace-change.ts` →
+            `["src/query/change.test.ts"]`, `src/query/render.ts` → `["src/grace-query.test.ts"]`
+            and `src/grace.ts` → `["src/query/command.test.ts"]`; `src/query/change.ts` maps through
+            its own path-neighbour test.
+          </Criterion>
+          <Criterion>
+            Driven in `scripts/test-affected.test.ts` against the live `allTestFiles(repoRoot)`:
+            with `src/grace-change.ts` as the only changed file the runner selects
+            `src/query/change.test.ts` and `fallbackToFullSuite` is false; with this bundle's whole
+            `src/` write set changed it selects the mapped and conventional tests and does not fall
+            back. Red direction, measured at the base: before the edges the same call falls back,
+            because `src/grace-change.ts` has no path-neighbour test and the fail-safe at
+            `scripts/test-affected.ts:48` sends an unmapped source to the whole suite.
+          </Criterion>
+          <Criterion>
+            The existing guard that no aggregate script or `CloseEvidence` invokes the selective
+            runner stays green and its literal stays out of `plan.xml` and of every new artifact.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/test-affected.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Release surface: README, package metadata, CLI inventory, test metrics</Title>
+        <DependsOn>T-002 T-003 T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `README.md` gains an `ngrace change find` and an `ngrace change show` row in the CLI
+            Overview plus the matching Output-modes entries; `src/query/command.test.ts`'s
+            `liveCommandRoots` (`:837`) includes `change` and the boolean-site pin
+            (`:772`, `:998`, `:1011`) is set to the **re-measured** count (expected 30, one `--json`
+            per new subcommand; the value written is the measurement, never a projection). The
+            `listLiveInvocations` test passes with the two new rows, and a planted removal of either
+            row reddens it.
+          </Criterion>
+          <Criterion>
+            `package.json#files` gains `src/grace-change.ts` and a `record:query` script; the same
+            exact path is added to `scripts/release-check.ts`'s `PACK_ALLOWED_EXACT` (`:113`) in the
+            form the allowlist reader matches — exactly two leading spaces, double-quoted, a
+            trailing comma. Driven both ways: `scripts/release-check.test.ts`'s
+            `packed allowlist tracks package.json#files` (`:494`) is green with the entry and reddens
+            when the entry is malformed (wrong indentation or quoting) while `package.json#files`
+            still declares the file. `src/query/change.ts` needs no allowlist entry (it is under the
+            `src/query/` prefix).
+          </Criterion>
+          <Criterion>
+            `test-metrics.json` is regenerated (`bun run test:metrics`) after T-001…T-004 have
+            landed, so `scripts/test-metrics.test.ts`'s freshness relation (`:31`–`:32`) and count
+            sum (`:33`) hold over the final file set and case counts. The artifact is a measurement,
+            never a projected figure.
+          </Criterion>
+          <Criterion>
+            No version-synchronised file moves (`README.md`'s version line, `openpackage.yml`,
+            `.claude-plugin/marketplace.json`, `plugins/ngrace/.claude-plugin/plugin.json` stay at
+            `6.2.0`); no skill text and no packaged skill mirror is edited; `CHANGELOG.md` is
+            untouched.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/query/command.test.ts</Command>
+          <Command>bun test --timeout=0 scripts/release-check.test.ts</Command>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Wire the payer map for F270 and F291</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `scripts/validate-record-retirement.test.ts`'s `bundleMinted` map (`:46`) gains
+            `F270: "C-INSPECTION-SURFACE-1-2628AA2B"` and `F291: "C-INSPECTION-SURFACE-1-2628AA2B"`,
+            and a test pins both entries to this bundle, so the post-close walk
+            (`derived.get(token) === baseline[token] ?? bundleMinted[token]`, `:2226`) is green in
+            the applied-archive state and a stale id reddens it.
+          </Criterion>
+          <Criterion>
+            Driven three ways on a copy of the record and the derivation: with `F270`/`F291` absent
+            from both `baseline` and `bundleMinted` the walk's expectation is undefined (red); with
+            a stale payer id the walk reds; with this bundle's id it is green. The registry row that
+            makes `derivePayerMap` mint the two tokens is the close's write (Goal 6 of the spec),
+            not this task's.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-006>
+    </ImplementationPlan>
+  </C-INSPECTION-SURFACE-1-2628AA2B>
+</NgraceChangePlan>
