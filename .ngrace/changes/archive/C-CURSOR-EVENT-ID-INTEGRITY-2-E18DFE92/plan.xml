@@ -1,0 +1,217 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92>
+    <IntentSummary>
+      Plan for `C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92` (tier **T1**, roadmap `RM-GOVERNED-PATH`,
+      paying `F288`; the successor of `C-CURSOR-EVENT-ID-INTEGRITY-1-A0E753F3`, supersede depth 1):
+      **four tasks**, each carrying the narrowest instrument for its own subject, with the single
+      full CI-equivalent verification left to `TargetAssertions` under
+      `--assertions final --run-commands`.
+      T-001 (prevent colliding event ids at mint: the lock-free uniqueness check and the three
+      prevention guards), T-002 (diagnose a collided stream: the duplicate-id blocker in `recover`
+      and the duplicate-naming refusal in `fold`; depends on T-001 because it edits the same
+      `validateEventsAgainstAllocations`), T-003 (the `README.md` cursor-table row), and T-004 (the
+      `bundleMinted` payer-map entry for `F288`).
+
+      **How a race is tested — two different instruments.** The **forced** collision is
+      deterministic: T-001 adds a test-only allocation probe (the house `set*ForTests` pattern
+      already used by `setEvaluateTargetCompleteThrowProbeForTests`, `src/grace-cursor.ts:1642`) that
+      pins the candidate id, so a writer is made to choose an id another loose event already holds;
+      the guard reds whenever the uniqueness check is absent or removed and greens with it, and never
+      depends on the scheduler. The **real-concurrency** test is the probabilistic instrument: it
+      spawns 12 real child `bun ./src/grace.ts cursor advance` processes after one `--open-epoch`
+      and repeats **3 rounds** per guard. Three rounds at 12 concurrent writers discriminate because
+      the unfixed writer collided in **5 of 5** measured rounds for both shapes (distinct tasks:
+      13 files carrying 5–8 distinct ids; same task: 12 concurrent calls leaving 5–6 files), so the
+      chance that all three rounds happen to serialise on the unfixed tree is negligible; on the
+      fixed tree every round is green **by construction**, not by luck. A test that could only pass
+      when the scheduler cooperated would be worse than no test, so the real-process guard is
+      **corroboration of the deterministic one**, never the sole evidence.
+
+      **Full-suite runs: one.** `bun run validate:ci` appears only in `TargetAssertions`, so it runs
+      once, at `--assertions final --run-commands`; `--assertions target` is evaluated without
+      `--run-commands`, so the same command is not executed there, and no task `Verification` runs
+      the whole suite.
+
+      **All seven `AC-*` are close-bound** (each carries `CloseEvidence`), so no task carries
+      `Satisfies`; absence of `Satisfies` is not an error and there is no unmapped ordinary
+      criterion to warn.
+
+      **What the close must write, and where it is allowed (F285 / F293).** `Pays F288` is non-empty,
+      so the close writes the record. From the engine's write loops, not from a copied list:
+      `--flush` writes exactly four live documents (`findings.xml`, `rulings.xml`, `decisions.xml`,
+      `registry.xml`; `scripts/validate-record-retirement.ts:1707`), and `--retire` writes seven —
+      those four plus the three retired siblings (`findings-retired.xml`, `rulings-retired.xml`,
+      `registry-retired.xml`; `:1300`). The union of seven record files, the `bundleMinted` payer-map
+      file `scripts/validate-record-retirement.test.ts`, the code and docs files, and the bundle's
+      own archive arrival are the close's write set; all of them are in `ObservedWriteScope` below
+      **and** the seven record files plus the payer-map file are excluded from the spec's
+      `AC-NO-OTHER-SRC`, whose exclusions were narrowed from the record directory to those seven
+      named XML files so `plan.md` and the other ten entries stay guarded.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/run-membership.ts</Value></MustExist>
+      <MustPassCommand><Command>bun run typecheck</Command></MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+      </GraphAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>README.md</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Prevent colliding event ids at mint</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Every path that appends a loose event through `src/grace-cursor.ts` allocates an id that
+            is unique against the loose `run/` events **and** `run-ledger.xml` and verifies that
+            uniqueness after the write lands. When another writer already holds the candidate id, the
+            writer removes **only the file it created in this same call** and retries with
+            `floor = candidate + 1`; it never overwrites another writer's file, never deletes or
+            renumbers a pre-existing event, adds **no permanent artifact** to `run/`, and introduces
+            no lock that can leave a bundle uncloseable. The mechanism stays inside
+            `src/grace-cursor.ts`; `src/artifact/run-membership.ts`, the loose filename schema
+            (`&lt;id&gt;-&lt;task&gt;-&lt;kind&gt;.xml`), `foldEpoch`'s write→verify→delete order and
+            `recover --fix`'s `extend-allocation` contract are unchanged.
+          </Criterion>
+          <Criterion>
+            A test-only allocation probe (house pattern `set*ForTests`, like
+            `setEvaluateTargetCompleteThrowProbeForTests` at `src/grace-cursor.ts:1642`) pins the
+            candidate id so the collision is **forced, not raced**. The test
+            `forced event-id collision renumbers the writer's own file (AC-FORCED-COLLISION)` makes a
+            writer choose an id already held by another loose event and asserts that no two events
+            carry that id, the other writer's file is byte-identical (sha256) before and after, and
+            the resulting stream folds; it reds when the uniqueness check is removed and greens with
+            it.
+          </Criterion>
+          <Criterion>
+            `concurrent advances with distinct tasks yield unique event ids (AC-UNIQUE-CONCURRENT)`
+            spawns 12 real child `bun ./src/grace.ts cursor advance` processes with 12 distinct tasks
+            after one `--open-epoch --from 1 --to 199`, repeats that **3 rounds**, and asserts, every
+            round, 13 event files carrying 13 distinct ids read from each file's XML `id` attribute
+            through the shipped parser (never the filename alone). On base
+            `b6d7abad58b36111e07129ca81f32f72504d335a` the same case yielded 13 files with **5–8**
+            distinct ids in **5 of 5** measured rounds.
+          </Criterion>
+          <Criterion>
+            `concurrent advances on one task lose no event (AC-NO-SILENT-OVERWRITE)` spawns 12
+            concurrent advances on `T-001` after one open epoch, repeats **3 rounds**, and asserts 12
+            progress events (13 files including the opened) with no write lost. On base the same case
+            left **5–6** files in **5 of 5** measured rounds.
+          </Criterion>
+          <Criterion>
+            `an advance does not touch a pre-existing collided stream (AC-NO-RECORDED-EVENT-TOUCHED)`
+            builds a stream with two loose events sharing an id, then runs one more `advance`: both
+            pre-existing files are byte-identical by sha256 before and after, the appended event
+            carries a fresh unique id, and `ngrace cursor recover` reports the duplicate without
+            renumbering or deleting it. This is `D41` and `cursor recover`'s stated stance as a
+            mechanically checkable guard.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "forced event-id collision"</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "concurrent advances with distinct tasks"</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "concurrent advances on one task"</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "does not touch a pre-existing collided stream"</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Diagnose a collided stream as a duplicate event id</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The fold-blocker validator (`validateEventsAgainstAllocations`, `src/grace-cursor.ts:2810`)
+            reports a duplicated id as an issue (`duplicate event id &lt;id&gt; …, appears N times`),
+            so `ngrace cursor recover` carries it in `foldBlockReasons` and
+            `formatRecoverDiagnosis` prints `Fold: blocked (…)` on a collided stream instead of
+            `Fold: ok`; the same reason appears in `--format json`. The duplicate check is read-only:
+            it changes no file, renumbers nothing and deletes nothing.
+          </Criterion>
+          <Criterion>
+            `ngrace cursor fold` refuses a duplicate-id stream **before** its write loop, with a
+            message that names the duplicated id and the duplicate-id condition — not the current
+            `payload mismatch` text, which describes a different failure. A stream with unique ids
+            whose payload was genuinely dropped still reports `payload mismatch`, so the existing
+            `injectDropPayload` guards stay green and the two failures stay distinguishable.
+          </Criterion>
+          <Criterion>
+            The test `recover and fold name a duplicate event id (AC-RECOVER-NAMES-DUPLICATE)` drives
+            both directions: a collided stream is blocked and refused with the duplicate named, and
+            the unique-id payload-drop stream still reports `payload mismatch`. `foldEpoch`'s
+            write→verify→delete order and `recover --fix`'s `extend-allocation` contract are
+            unchanged.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "name a duplicate event id"</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "injectDropPayload"</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Name duplicate-id diagnosis in the README cursor table</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `README.md`'s `ngrace cursor recover` row (`README.md:211`) states that recover
+            diagnoses duplicate event ids as a fold blocker, so an operator reading the command table
+            learns the recovery surface reports a collision rather than only allocations. No other
+            README surface moves, and the `ngrace cursor fold` row (`:210`) stays accurate as
+            written.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>grep -n "duplicate event ids" README.md</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Extend the payer map with F288 for this bundle</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `scripts/validate-record-retirement.test.ts`'s `bundleMinted` map gains exactly
+            `F288: "C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92"` — **this** successor, never the
+            superseded `C-CURSOR-EVENT-ID-INTEGRITY-1-A0E753F3` — so the walk at
+            `scripts/validate-record-retirement.test.ts:2222`
+            (`derived.get(token) === baseline[token] ?? bundleMinted[token]`) is green once the
+            close's row makes the successor name an archive directory and `derivePayerMap` mints
+            `F288`. `derivePayerMap` itself is unchanged.
+          </Criterion>
+          <Criterion>
+            A test named with `F288` drives the walk's expectation three ways against a synthetic
+            archive root, as the `F289` ratchet test does: **absent** entry RED, **stale**
+            `C-CURSOR-EVENT-ID-INTEGRITY-1-A0E753F3` RED, **correct** successor GREEN. The derivation
+            is read, not assumed: `baseline[F288]` is absent from
+            `scripts/fixtures/record-parse/baseline-probes.json`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts -t "F288"</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+  </C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92>
+</NgraceChangePlan>

@@ -208,7 +208,7 @@ These carry the execute lifecycle. A permitting recorded approve writes approved
 | `ngrace cursor pause --change C-ID` | Pause the open epoch without closing it |
 | `ngrace cursor resume --change C-ID` | Resume a paused epoch; clearing an ordinary escalation requires `--reason`. A circuit-tripped (`paused-pending-supersede`) task cannot be resumed — `ngrace supersede` is the exit. |
 | `ngrace cursor fold --change C-ID` | Fold a terminated epoch into `run-ledger.xml` |
-| `ngrace cursor recover --change C-ID` | Diagnose (and optionally `--fix`) an unreadable or incomplete cursor |
+| `ngrace cursor recover --change C-ID` | Diagnose (and optionally `--fix`) an unreadable or incomplete cursor, including duplicate event ids reported as a fold blocker |
 | `ngrace cursor attempt --change C-ID --task T-NNN --outcome pass\|fail` | Record a verification cycle; signature required on fail. Optional `--claimed-confidence` is write-only analysis data no gate reads |
 | `ngrace cursor verification-unavailable --change C-ID --task T-NNN --reason <why>` | Record that verification could not run — an absence, not an attempt, and not counted against the fix budget |
 | `ngrace context --task T-NNN --change C-ID` | Emit a task slice: the modules, files, and verification that task needs. Selection, never compression |

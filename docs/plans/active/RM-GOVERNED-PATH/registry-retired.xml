@@ -416,4 +416,10 @@
     <Pays>F289</Pays>
     <StatusText>The flush verb's decision path: the element and its index entry written together, a genre refusal before any write, and the index-versus-genre presence relation enforced at rest and before the write.</StatusText>
   </Row>
+  <Row name="C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug CURSOR-EVENT-ID-INTEGRITY. Author half: searched before minting over the archive directories and both registry layers; the successor of a supersede, no prior bundle carries the slug CURSOR-EVENT-ID-INTEGRITY.</Charter>
+    <Pays>F288</Pays>
+    <StatusText>Cursor event-id integrity: allocation serialized behind a per-bundle write lock, a post-write uniqueness renumber of the writer's own file, and a duplicate-id fold blocker named by recover.</StatusText>
+  </Row>
 </Registry>

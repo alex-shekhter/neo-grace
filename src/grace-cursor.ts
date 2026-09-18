@@ -57,6 +57,7 @@
 //   inheritLooseEventTask
 //   lastResolvingResumeId
 //   setEvaluateTargetCompleteThrowProbeForTests
+//   setEventIdAllocationProbeForTests
 //   listAccountingEvents
 //   listCalibrationRestatements
 //   listLedgerCalibrationEpochs
@@ -755,14 +756,14 @@ function writeCoveringOpened(
   const coveringRequirementTo = Math.max(options.to, openedId);
   const to = Math.max(coveringRequirementTo, openedId + OPEN_EPOCH_DEFAULT_HEADROOM);
   assertValidEpochBounds(from, to);
-  writeEventFile(bundlePath, {
+  const writtenId = writeEventFile(bundlePath, {
     id: openedId,
     task: options.task,
     kind: "opened",
-    allocations: [{ worker: options.worker, from, to }],
+    allocationsFor: (id) => [{ worker: options.worker, from: Math.min(from, id), to: Math.max(to, id) }],
   });
-  const file = path.join(bundlePath, "run", `${openedId}-${options.task}-opened.xml`);
-  return { id: openedId, file, from, to };
+  const file = path.join(bundlePath, "run", `${writtenId}-${options.task}-opened.xml`);
+  return { id: writtenId, file, from, to };
 }
 
 /**
@@ -975,7 +976,6 @@ export function advanceCursor(
     // Re-check after defaults (to may be derived only when from is valid).
     assertValidEpochBounds(from, to);
     const worker = options.worker ?? "w0";
-    const id = nextEventId(bundlePath, from);
     const task = options.task;
     const openChildren: GraceXmlNode[] = [];
     if (options.executorIdentity) {
@@ -994,10 +994,10 @@ export function advanceCursor(
       }
     }
     writeEventFile(bundlePath, {
-      id,
+      id: from,
       task,
       kind: "opened",
-      allocations: [{ worker, from, to }],
+      allocationsFor: (id) => [{ worker, from: Math.min(from, id), to: Math.max(to, id) }],
       wave: options.wave,
       children: openChildren.length > 0 ? openChildren : undefined,
     });
@@ -1081,9 +1081,7 @@ export function advanceCursor(
     }
   }
 
-  const id = nextEventId(bundlePath);
   writeEventFile(bundlePath, {
-    id,
     task,
     kind,
     ...(resumeChildren ? { children: resumeChildren } : {}),
@@ -2809,6 +2807,20 @@ function collectEffectiveAllocations(events: LooseEvent[]): RangeAllocation[] {
 
 function validateEventsAgainstAllocations(events: LooseEvent[], allocations: RangeAllocation[]): string[] {
   const issues: string[] = [];
+  // Duplicate ids are invisible to the membership/hole checks below (a Set of ids),
+  // but they make fold refuse with a misleading payload mismatch. Report them first
+  // so `recover` names the real blocker and `fold` refuses before its write (F288).
+  const idCounts = new Map<number, number>();
+  for (const event of events) {
+    idCounts.set(event.id, (idCounts.get(event.id) ?? 0) + 1);
+  }
+  for (const [id, count] of [...idCounts.entries()].sort((a, b) => a[0] - b[0])) {
+    if (count > 1) {
+      issues.push(
+        `duplicate event id ${id} appears ${count} times; the stream cannot fold until every event id is unique`,
+      );
+    }
+  }
   for (const event of events) {
     const ok = allocations.some((a) => event.id >= a.from && event.id <= a.to);
     if (!ok) issues.push(`event ${event.id} outside every allocation`);
@@ -3279,66 +3291,176 @@ export function appendCommandRunEvent(
   });
 }
 
+/**
+ * Exclusive per-bundle writer lock for loose-event allocation (F288).
+ *
+ * `nextEventId` is read-then-return with no reservation, so two concurrent writers
+ * mint the same id; the lock makes allocation + write one critical section. The lock
+ * sits beside `run/` (never inside it, so no `run/` listing, orphan inventory or
+ * membership reader can observe it), and is released in `finally`. A holder that dies
+ * is detected by pid liveness — with a long-held TTL backstop — and stolen by the next
+ * writer, so a crash cannot deadlock the bundle. No recorded event is ever touched.
+ */
+const EVENT_WRITE_LOCK = ".run-write.lock";
+const EVENT_WRITE_LOCK_TTL_MS = 30_000;
+
+function processAlive(pid: number): boolean {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as { code?: string }).code === "EPERM";
+  }
+}
+
+function withEventWriteLock<T>(bundlePath: string, fn: () => T): T {
+  const lockPath = path.join(bundlePath, EVENT_WRITE_LOCK);
+  for (;;) {
+    try {
+      writeFileSync(lockPath, `${process.pid}\n${Date.now()}\n`, { flag: "wx" });
+      break;
+    } catch (error) {
+      if ((error as { code?: string }).code !== "EEXIST") throw error;
+      let stale = false;
+      try {
+        const [pidRaw, stampRaw] = readFileSync(lockPath, "utf8").split("\n");
+        const pid = Number(pidRaw);
+        const stamp = Number(stampRaw);
+        stale =
+          !processAlive(pid)
+          || (Number.isFinite(stamp) && Date.now() - stamp > EVENT_WRITE_LOCK_TTL_MS);
+      } catch {
+        // The holder released the lock between EEXIST and the read; retry.
+        continue;
+      }
+      if (stale) {
+        unlinkSync(lockPath);
+        continue;
+      }
+      Bun.sleepSync(2);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    try {
+      unlinkSync(lockPath);
+    } catch {
+      // already released
+    }
+  }
+}
+
 function writeEventFile(
   bundlePath: string,
   event: {
-    id: number;
+    /** Starting floor for allocation; the id actually written may be higher (F288). */
+    id?: number;
     task: string;
     kind: string;
     allocations?: RangeAllocation[];
+    /** Allocation children derived from the final id (opened events). */
+    allocationsFor?: (id: number) => RangeAllocation[];
     wave?: string;
     /** Extra root attributes (e.g. outcome). id/task/kind/graceVersion are forced. */
     attributes?: Record<string, string>;
     /** Extra root children (FailureSignature, WriteEvidence, …). */
     children?: GraceXmlNode[];
   },
-): void {
+): number {
   rejectAuthoredContextAttributes(event.attributes);
-  const runDirRel = "run";
-  const filename = `${event.id}-${event.task}-${event.kind}.xml`;
-  const relative = `${runDirRel}/${filename}`;
-  const children: GraceXmlNode[] = (event.allocations ?? []).map((allocation) => ({
-    tag: "Allocation",
-    attributes: {
-      worker: allocation.worker,
-      from: String(allocation.from),
-      to: String(allocation.to),
-    },
-    children: [],
-    text: "",
-  }));
-  if (event.wave) {
-    children.push({ tag: "Wave", attributes: {}, children: [], text: event.wave });
+  return withEventWriteLock(bundlePath, () => {
+  let floor = event.id ?? 1;
+  for (;;) {
+    const id = nextEventId(bundlePath, floor);
+    const allocations = event.allocationsFor ? event.allocationsFor(id) : (event.allocations ?? []);
+    const children: GraceXmlNode[] = allocations.map((allocation) => ({
+      tag: "Allocation",
+      attributes: {
+        worker: allocation.worker,
+        from: String(allocation.from),
+        to: String(allocation.to),
+      },
+      children: [],
+      text: "",
+    }));
+    if (event.wave) {
+      children.push({ tag: "Wave", attributes: {}, children: [], text: event.wave });
+    }
+    for (const child of event.children ?? []) {
+      children.push(cloneXmlNode(child));
+    }
+    const attributes: Record<string, string> = {
+      ...(event.attributes ?? {}),
+      graceVersion: NGRACE_ARTIFACT_VERSION,
+      id: String(id),
+      task: event.task,
+      kind: event.kind,
+    };
+    const node: GraceXmlNode = {
+      tag: `${ARTIFACT_TAG_PREFIX}RunEvent`,
+      attributes,
+      children,
+      text: "",
+    };
+    const filename = `${id}-${event.task}-${event.kind}.xml`;
+    const relative = `run/${filename}`;
+    const contained = resolveContainedProjectPath(bundlePath, relative, {
+      mode: "output",
+      allowedRoot: bundlePath,
+    });
+    mkdirSync(path.dirname(contained.absolutePath), { recursive: true });
+    try {
+      // Exclusive create: a second writer with the same task and kind loses here
+      // rather than silently overwriting the first event (F288).
+      writeFileSync(contained.absolutePath, serializeGraceXmlDocument(node), { flag: "wx" });
+    } catch (error) {
+      if ((error as { code?: string }).code === "EEXIST") {
+        floor = id + 1;
+        continue;
+      }
+      throw error;
+    }
+    // Post-write uniqueness: a second writer holding the same id but a different
+    // task and kind lands elsewhere on disk, so the duplicate is detected by id.
+    // Compare basenames: the contained path may be realpath-normalised while
+    // listLooseEvents joins the bundle path verbatim (/var vs /private/var).
+    const clash = listLooseEvents(bundlePath).some(
+      (loose) => loose.id === id && path.basename(loose.file) !== filename,
+    );
+    if (!clash) {
+      return id;
+    }
+    // Renumber only the file this call just created; a recorded event is never touched.
+    unlinkSync(contained.absolutePath);
+    floor = id + 1;
   }
-  for (const child of event.children ?? []) {
-    children.push(cloneXmlNode(child));
-  }
-  const attributes: Record<string, string> = {
-    ...(event.attributes ?? {}),
-    graceVersion: NGRACE_ARTIFACT_VERSION,
-    id: String(event.id),
-    task: event.task,
-    kind: event.kind,
-  };
-  const node: GraceXmlNode = {
-    tag: `${ARTIFACT_TAG_PREFIX}RunEvent`,
-    attributes,
-    children,
-    text: "",
-  };
-  const contained = resolveContainedProjectPath(bundlePath, relative, {
-    mode: "output",
-    allowedRoot: bundlePath,
   });
-  mkdirSync(path.dirname(contained.absolutePath), { recursive: true });
-  writeFileSync(contained.absolutePath, serializeGraceXmlDocument(node));
 }
 
 function nextEventId(bundlePath: string, floor = 1): number {
   const existing = listLooseEvents(bundlePath);
   const ledgerMax = maxLedgerEventId(bundlePath);
   const looseMax = existing.reduce((max, event) => Math.max(max, event.id), 0);
-  return Math.max(floor, looseMax + 1, ledgerMax + 1);
+  const candidate = Math.max(floor, looseMax + 1, ledgerMax + 1);
+  return eventIdAllocationProbeForTests
+    ? eventIdAllocationProbeForTests(bundlePath, candidate)
+    : candidate;
+}
+
+/**
+ * Test-only probe (mirrors setEvaluateTargetCompleteThrowProbeForTests): maps a
+ * candidate event id to the id the allocator will use. Returning an id another
+ * loose event already holds makes a collision deterministic — forced, not raced —
+ * so the post-write uniqueness check can be driven red on demand (F288).
+ */
+let eventIdAllocationProbeForTests: ((bundlePath: string, candidate: number) => number) | undefined;
+
+export function setEventIdAllocationProbeForTests(
+  probe: ((bundlePath: string, candidate: number) => number) | undefined,
+): void {
+  eventIdAllocationProbeForTests = probe;
 }
 
 function maxLedgerEventId(bundlePath: string): number {

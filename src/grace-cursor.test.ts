@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -26,6 +26,7 @@ import {
   fixBudgetSkillRequiredSubstrings,
   foldEpoch,
   formatCursorPosition,
+  formatRecoverDiagnosis,
   inheritLooseEventTask,
   KNOWN_EVENT_KINDS,
   lastResolvingResumeId,
@@ -42,6 +43,7 @@ import {
   recordAttempt,
   recordVerificationUnavailable,
   recoverCursor,
+  setEventIdAllocationProbeForTests,
   regenerateCursor,
   resumeCursor,
   showCursor,
@@ -570,15 +572,24 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
       ).toBe(true);
     }
     const callSites = lines.filter((line) => /(?:unlinkSync|rmSync|rmdirSync)\s*\(/.test(line)).sort();
-    const cursorUnlink = callSites.find((line) => line.startsWith("src/grace-cursor.ts:"));
+    const cursorContained = callSites.filter(
+      (line) => line.startsWith("src/grace-cursor.ts:") && /unlinkSync\(contained\.absolutePath\);$/.test(line),
+    );
+    const cursorLock = callSites.filter(
+      (line) => line.startsWith("src/grace-cursor.ts:") && /unlinkSync\(lockPath\);$/.test(line),
+    );
     const ledgerUnlink = callSites.find((line) => line.startsWith("src/gates/ledger.ts:"));
     const dartRm = callSites.find((line) => line.startsWith("src/lint/adapters/dart.ts:"));
     const scorerRm = callSites.find((line) => line.startsWith("src/review/scorer.ts:"));
-    expect(cursorUnlink).toMatch(/^src\/grace-cursor\.ts:\d+:\s*unlinkSync\(contained\.absolutePath\);$/);
+    // F288 adds the loose-event writer lock: two unlinkSync(lockPath) sites (stale-holder
+    // steal and finally release) beside the two contained-path deletes (fold delete and the
+    // writer's renumber of the file it just created).
+    expect(cursorContained).toHaveLength(2);
+    expect(cursorLock).toHaveLength(2);
     expect(ledgerUnlink).toMatch(/^src\/gates\/ledger\.ts:\d+:\s*unlinkSync\(ledgerPath\);$/);
     expect(dartRm).toMatch(/^src\/lint\/adapters\/dart\.ts:\d+:\s*rmSync\(temporaryDirectory, \{ recursive: true, force: true \}\);$/);
     expect(scorerRm).toMatch(/^src\/review\/scorer\.ts:\d+:\s*rmSync\(root, \{ recursive: true, force: true \}\);$/);
-    expect(callSites).toHaveLength(4);
+    expect(callSites).toHaveLength(7);
     expect(lines.some((line) => line.includes("rmdirSync"))).toBe(false);
   });
 });
@@ -4026,3 +4037,172 @@ describe("C-CURSOR-TASK-RESOLVER T-002: sibling no-guess helper", () => {
 });
 
 
+
+describe("cursor event-id integrity (C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92)", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+
+  async function runConcurrentAdvances(root: string, changeId: string, tasks: string[]): Promise<number[]> {
+    const procs = tasks.map((task) =>
+      Bun.spawn({
+        cmd: [
+          process.execPath,
+          "./src/grace.ts",
+          "cursor",
+          "advance",
+          "--change",
+          changeId,
+          "--task",
+          task,
+          "--path",
+          root,
+        ],
+        cwd: repoRoot,
+        stdout: "pipe",
+        stderr: "pipe",
+      }),
+    );
+    return Promise.all(procs.map((proc) => proc.exited));
+  }
+
+  function pinNextAllocationOnce(pinned: number): void {
+    let forced = true;
+    setEventIdAllocationProbeForTests((_bundle, candidate) => {
+      if (forced) {
+        forced = false;
+        return pinned;
+      }
+      return candidate;
+    });
+  }
+
+  it("forced event-id collision renumbers the writer's own file (AC-FORCED-COLLISION)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    const existing = path.join(runDir, "5-T-001-progress.xml");
+    writeFileSync(
+      existing,
+      `<NgraceRunEvent graceVersion="1.0" id="5" task="T-001" kind="progress"/>`,
+    );
+    const before = readFileSync(existing);
+
+    // Force the writer onto the id another loose event already holds. The collision
+    // is deterministic, not scheduler-dependent: the allocator is pinned once.
+    pinNextAllocationOnce(5);
+    try {
+      advanceCursor(root, "C-RUN", { task: "T-002" });
+    } finally {
+      setEventIdAllocationProbeForTests(undefined);
+    }
+
+    const events = listLooseEvents(bundle);
+    const fives = events.filter((event) => event.id === 5);
+    expect(fives.length).toBe(1);
+    expect(path.resolve(fives[0]!.file)).toBe(path.resolve(existing));
+    const appended = events.find((event) => event.task === "T-002");
+    expect(appended).toBeDefined();
+    expect(appended!.id).not.toBe(5);
+    // The recorded event is byte-identical; only the writer's own file moved.
+    expect(readFileSync(existing)).toEqual(before);
+  });
+
+  it("concurrent advances with distinct tasks yield unique event ids (AC-UNIQUE-CONCURRENT)", async () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    const tasks = Array.from({ length: 12 }, (_, index) => `T-${String(index + 2).padStart(3, "0")}`);
+    for (let round = 0; round < 3; round += 1) {
+      rmSync(runDir, { recursive: true, force: true });
+      advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 199 });
+      const codes = await runConcurrentAdvances(root, "C-RUN", tasks);
+      expect(codes.every((code) => code === 0), `round ${round} exits`).toBe(true);
+      const events = listLooseEvents(bundle);
+      expect(events.length, `round ${round} files`).toBe(13);
+      expect(new Set(events.map((event) => event.id)).size, `round ${round} unique ids`).toBe(13);
+    }
+  });
+
+  it("concurrent advances on one task lose no event (AC-NO-SILENT-OVERWRITE)", async () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    const tasks = Array.from({ length: 12 }, () => "T-001");
+    for (let round = 0; round < 3; round += 1) {
+      rmSync(runDir, { recursive: true, force: true });
+      advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 199 });
+      const codes = await runConcurrentAdvances(root, "C-RUN", tasks);
+      expect(codes.every((code) => code === 0), `round ${round} exits`).toBe(true);
+      const events = listLooseEvents(bundle);
+      expect(events.length, `round ${round} files`).toBe(13);
+      expect(new Set(events.map((event) => event.id)).size, `round ${round} unique ids`).toBe(13);
+    }
+  });
+
+  it("an advance does not touch a pre-existing collided stream (AC-NO-RECORDED-EVENT-TOUCHED)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    const holder = path.join(runDir, "3-T-001-progress.xml");
+    const other = path.join(runDir, "3-T-002-progress.xml");
+    writeFileSync(holder, `<NgraceRunEvent graceVersion="1.0" id="3" task="T-001" kind="progress"/>`);
+    writeFileSync(other, `<NgraceRunEvent graceVersion="1.0" id="3" task="T-002" kind="progress"/>`);
+    const beforeHolder = readFileSync(holder);
+    const beforeOther = readFileSync(other);
+
+    // Pin the allocator onto the duplicated id; the writer must renumber its own file.
+    pinNextAllocationOnce(3);
+    try {
+      advanceCursor(root, "C-RUN", { task: "T-003" });
+    } finally {
+      setEventIdAllocationProbeForTests(undefined);
+    }
+
+    // D41: a recorded event is never rewritten or deleted.
+    expect(readFileSync(holder)).toEqual(beforeHolder);
+    expect(readFileSync(other)).toEqual(beforeOther);
+    const appended = listLooseEvents(bundle).find((event) => event.task === "T-003");
+    expect(appended).toBeDefined();
+    expect(appended!.id).not.toBe(3);
+  });
+
+  it("recover and fold name a duplicate event id (AC-RECOVER-NAMES-DUPLICATE)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, "1-T-001-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="99"/></NgraceRunEvent>`,
+    );
+    writeFileSync(
+      path.join(runDir, "7-T-002-progress.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="7" task="T-002" kind="progress"/>`,
+    );
+    writeFileSync(
+      path.join(runDir, "7-T-003-progress.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="7" task="T-003" kind="progress"/>`,
+    );
+    writeFileSync(
+      path.join(runDir, "8-T-003-terminal.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="8" task="T-003" kind="terminal"/>`,
+    );
+
+    const diagnosis = recoverCursor(root, "C-RUN");
+    expect(diagnosis.foldBlocked).toBe(true);
+    expect(diagnosis.foldBlockReasons.some((reason) => /duplicate event id 7/.test(reason))).toBe(true);
+    const rendered = formatRecoverDiagnosis(diagnosis);
+    expect(rendered).toContain("duplicate event id 7");
+    expect(rendered).not.toMatch(/Fold: ok/);
+
+    let thrown: unknown;
+    try {
+      foldEpoch(root, "C-RUN");
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(GraceCommandError);
+    expect(String((thrown as Error).message)).toMatch(/duplicate event id 7/);
+  });
+});
