@@ -5129,4 +5129,34 @@ Owner: a record-engine bundle — `--decision` either appends the element and th
 Owner: a cursor-integrity bundle — `src/grace-cursor.ts` (`LINKS: M-CURSOR`) and its guards. Stays staged.
 </Body>
   </Finding>
+  <Finding id="f270" token="F270" status="retired">
+    <PaidBy>C-INSPECTION-SURFACE-1-2628AA2B</PaidBy>
+    <Title>### F270 — no shipped verb prints a verdict's per-criterion `Result`/`Exit` tally; `gate verdict` records them and `review` only reports an unevaluated criterion, so row 19's &quot;read them from the ledger&quot; is readable only by opening the ledger. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `da727d0`.** `grep -n defineGraceCommand src/*.ts src/**/*.ts` lists every live root and sub-root — `apply, context, cursor, doctor, file, gate, graph, lint, module, plan, review, scaffold, spec, status, supersede, verification`; `gate`'s subcommands are exactly `approve, apply, archive, verdict` (`src/gates/command.ts:470`), and no verb is named for a verdict's criteria. `gate verdict`'s human output prints only `outcome`, `scope`, `classification`, `reason` (`src/gates/command.ts:439`–`446`) and its `--format json` payload is `stored`, which carries `findings`, `acks`, `snapshotDigest` and no criterion children (`src/gates/ledger.ts:400`–`447`); the criterion nodes are appended to the ledger element after `stored` is fixed (`src/gates/ledger.ts` `section.children.push({ tag: &quot;Verdict&quot;, children: [...findingChildren, ...ackChildren, ...closeChildren] })`). `collectCloseEvidenceEvaluations` (`src/artifact/grammar.ts:2174`), the only reader of `AC-*` → `Exit`/`Result`, is called once, by `auditCloseEvidenceUnevaluated` (`src/review/core.ts:1874`), and only to test *presence* — it emits `review.close-evidence-unevaluated` for a criterion with no recorded evaluation and never prints the recorded `Exit`/`Result`. Row 19's remedy, &quot;read them from the ledger, never from a hand-rolled reader&quot;, therefore names a read no verb performs.
+
+**Proposed owner.** A `src/` bundle adding a `gate verdict --show` / `ngrace status` surface that prints each `Verdict`'s `AC-*` children with `Exit` and `Result`. Not paid by a teaching increment: no skill sentence can print what the engine does not emit, and the ledger element shape (`Verdict` → `AC-*` children with `Exit` and `Result`) is a `src/` contract.
+
+Owner: a `src/` bundle (a verdict-inspection surface); stays staged here.
+</Body>
+  </Finding>
+  <Finding id="f291" token="F291" status="retired">
+    <PaidBy>C-INSPECTION-SURFACE-1-2628AA2B</PaidBy>
+    <Title>### F291 — the two artifact families the authority verifies most, change bundles and the record, are the only ones with no query verb; every close-time question is answered by a bespoke script. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `0545433`.** `bun run ngrace --help` lists sixteen commands, three of which are semantic query surfaces: `file` (&quot;Query file-local neo-grace markup and private implementation context&quot;), `module` (&quot;Query shared neo-grace module artifacts&quot;) and `verification` (&quot;Query neo-grace verification entries, scenarios, evidence requirements, and failure localization&quot;). **No verb queries a change bundle (`spec.xml`, `plan.xml`) or the record** (`findings.xml`, `rulings.xml`, `registry.xml`, `decisions.xml` and their retired siblings). `src/query/command.ts` is not a counter-example: its header reads `PURPOSE: Citty CLI argument-form guard and error-channel routing`, `LINKS: M-CLI-INFRA` — it is the command-definition helper, not a query engine.
+
+**The asymmetry is the finding.** The authority's entire function is verifying bundles and the record, and those are precisely the two families the CLI does not serve. Every question the close asks — what does this bundle pay; which `AC-*` carry `CloseEvidence`; what is in `ObservedWriteScope`; does this index `Entry` have its genre element; is this finding retired and by whom; what did the last `Verdict` record per criterion — is answered today by a `bun -e` script written fresh at the moment of asking, unauditable and not re-drivable by the next reader.
+
+**The measured cost of that.** [F290](docs/plans/active/RM-GOVERNED-PATH/decisions.md) records two structural mis-readings in one session, both from hand-written patterns over XML: a `MustExist` regex that read **0** needles where `xmllint --xpath` read **13**, and an absence claim about a renderer that existed. The tools to be right were installed throughout; what was missing was a sanctioned, repeatable way to ask.
+
+**It folds with an already-staged finding.** `F270` records that no shipped verb prints a `Verdict`'s per-criterion `Exit`/`Result` tally — the ledger stores it and nothing surfaces it, so every close reads the tally with a hand-rolled walk. That is this same gap in this same family. The two belong in one bundle: **a read-only inspection surface for governed artifacts.**
+
+**Two properties the remedy must carry, both bought with this session's evidence.** (1) **Read-only.** It creates no state, so it cannot produce the class `F288` and the archived-bundle traps just cost four supersedes — a state the product can enter and no verb can leave. (2) **The engine's own parser**, so a query can never disagree with a gate; a second reader of the same bytes is a second source of truth, which is the defect `F289` produced inside one verb.
+
+**What this does not fix, stated so the remedy is not oversold.** The defect behind `F290` was discipline, not capability. A verb makes the correct reading easy and auditable; it does not make the incorrect one impossible. `F290`'s teaching rule is the cheaper half and must land regardless.
+
+Owner: an inspection-surface bundle, sequenced **after** [F288](docs/plans/active/RM-GOVERNED-PATH/decisions.md) — cursor integrity can still deadlock the repository, and a convenience does not outrank it. Carries `F270` and this entry together. Stays staged.
+</Body>
+  </Finding>
 </Findings>

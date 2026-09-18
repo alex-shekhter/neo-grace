@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
-import { selectAffectedTests } from "./test-affected";
+import { allTestFiles, selectAffectedTests } from "./test-affected";
 
 const repoRoot = path.resolve(import.meta.dir, "..");
 const ALL_TESTS = ["src/gates/core.test.ts", "src/lint/core.test.ts", "scripts/audit-regressions.test.ts"];
@@ -26,6 +26,24 @@ function everySpecOrPlan(root: string): string[] {
 }
 
 describe("C-TEST-TIME-BUDGET-2-3EC1F016 selective runner", () => {
+  it("C-INSPECTION-SURFACE-1-2628AA2B T-004: this bundle's src/ write set maps to narrow tests, not the full suite", () => {
+    const all = allTestFiles(repoRoot);
+
+    const onlyRoot = selectAffectedTests(["src/grace-change.ts"], all);
+    expect(onlyRoot.fallbackToFullSuite, "the new root is mapped, not fail-safe").toBe(false);
+    expect(onlyRoot.tests).toContain("src/query/change.test.ts");
+
+    const whole = selectAffectedTests(
+      ["src/grace-change.ts", "src/query/change.ts", "src/query/render.ts", "src/grace.ts", "src/gates/ledger.ts"],
+      all,
+    );
+    expect(whole.fallbackToFullSuite, "the bundle's whole src/ write set selects narrow tests").toBe(false);
+    expect(whole.tests).toContain("src/query/change.test.ts");
+    expect(whole.tests).toContain("src/grace-query.test.ts");
+    expect(whole.tests).toContain("src/query/command.test.ts");
+    expect(whole.tests).not.toEqual([...all].sort());
+  });
+
   it("selects a changed file's test, and falls back to the full suite on an unmapped source", () => {
     const mapped = selectAffectedTests(["src/gates/core.ts"], ALL_TESTS);
     expect(mapped.fallbackToFullSuite).toBe(false);

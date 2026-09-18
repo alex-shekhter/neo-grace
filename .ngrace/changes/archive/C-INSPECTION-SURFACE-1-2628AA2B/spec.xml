@@ -1,0 +1,634 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-INSPECTION-SURFACE-1-2628AA2B>
+    <Summary>
+      T2 change on `RM-GOVERNED-PATH`: a **read-only inspection surface for governed artifacts.**
+      It pays two staged findings together — **`F270`** and **`F291`** in
+      `.ngrace/scratch/staged-findings.md` — because they are one gap seen at two resolutions. The
+      two artifact families the authority verifies most, **change bundles** and **the record**, are
+      the only ones with no query verb, so every close-time question is answered today by a `bun -e`
+      script written fresh at the moment of asking. `F270` is the same gap at its sharpest: `gate
+      verdict` records each close-bound `AC-*` criterion's `Exit`/`Result` into `run-ledger.xml`, and
+      no shipped reader or verb prints them back.
+
+      **The remedy is two query surfaces, placed by artifact ownership, and the code decides the
+      placement.** A new shipped root verb **`ngrace change find|show`** answers the change-bundle
+      questions: which `AC-*` carry a complete `CloseEvidence`, what the plan's `ObservedWriteScope`
+      and `DurableScope` hold, what the latest `Verdict` recorded per criterion. A new repo-tooling
+      record query **`bun run record:query`** (`scripts/record-query.ts`, beside the record's only
+      writer) answers the record questions: whether an index `Entry` has its genre element, whether
+      an entry is retired and by whom, and what a bundle pays. The shipped package does not absorb
+      the record: `scripts/` is not in `package.json#files` and `README.md` never names the record
+      (measured: zero occurrences of `findings.xml`, `rulings.xml`, `registry.xml`, `RM-GOVERNED`).
+
+      Both surfaces are **read-only** — no file, lock or cache — and both read through the engine's
+      own readers, never a second reader of the same bytes. This does **not** fix `F290`, whose
+      defect was discipline rather than capability; a verb makes the correct reading easy and
+      auditable, it does not make the incorrect one impossible, and `F290`'s teaching rule is a
+      separate, cheaper half that lands regardless.
+
+      The spec is written at `status="draft"` and stops there: the approval write, the gates, the
+      applied close and the flush are the authority's.
+    </Summary>
+    <Problem>
+      **Measured 2026-09-18 at base `c83dfaea340368bf1b8cd3134c1b52241b2ce282`** (= merged `main`,
+      branch `c-inspection-surface`, tree clean, `bun ./src/grace.ts lint --path .` exit **0**,
+      `Errors: 0` / `Warnings: 0`, 478 XML artifacts checked). Every figure below is a command read
+      at that commit; structural claims were answered with `xmllint --xpath` or the shipped parser,
+      never a regex (`F290`).
+
+      **`F291`, re-measured rather than quoted.** `bun ./src/grace.ts --help` lists sixteen roots —
+      `apply|context|cursor|doctor|file|gate|graph|lint|module|plan|review|scaffold|spec|status|supersede|verification`.
+      Three are semantic query surfaces (`file`, `module`, `verification`); none queries a change
+      bundle or the record. Every close question named by `F291` is answered today only by an
+      ad-hoc `bun -e` reading of XML bytes: the `MustExist` regex that read **0** needles where
+      `xmllint --xpath` read **13** is `F290`'s cost, and it is the same cost this bundle removes.
+
+      **`F270`, re-measured rather than quoted.** `evaluateCloseEvidenceChildren`
+      (`src/gates/ledger.ts:493`) pins each close-bound criterion as an `AC-*` child carrying `Exit`
+      and `Result` onto the recorded `Verdict` (`:479`). `collectCloseEvidenceEvaluations`
+      (`src/artifact/grammar.ts:2174`) is the only reader of that shape, and it is called from
+      exactly one place, `auditCloseEvidenceUnevaluated` (`src/review/core.ts:1874`, call at `:1900`),
+      solely to test **presence** — it emits `review.close-evidence-unevaluated` and never prints the
+      recorded `Exit`/`Result`. Worse for a query verb, the shipped Verdict reader **drops the
+      children on the floor**: `parseVerdictNode` (`src/gates/ledger.ts:736`) parses only `Finding`
+      and `Ack` children, so `readLedgerVerdictsSurface` (`:682`) and `readLatestReviewVerdict`
+      (`:874`) return a record with `outcome`/`scope`/`classification` and no criterion tally at all.
+      The tally is in the ledger; the engine's Verdict reader cannot see it. A verb that reads the
+      bytes itself would be a **second** reader of the same file, which is the defect this bundle
+      exists to refuse.
+
+      **The design question, and the three shapes weighed.**
+      *Two family verbs* (recommended) — one shipped change-bundle query, one record query, each in
+      the layer that owns its artifact. Pros: each noun matches its family (`ngrace change` beside
+      `.ngrace/changes/`; the record query beside `scripts/validate-record-retirement.ts`); each
+      surface reuses its own shipped reader with no cross-layer dependency; the shipped package stays
+      free of a repo-internal schema. Cons: two surfaces to keep honest.
+      *One verb over both* — a single `ngrace inspect`/`ngrace record` with a family discriminator.
+      Cons: the families have different schemas, different readers and different failure modes; a
+      single verb either hard-codes a discriminator (a query language by another name) or forces the
+      repo-internal record schema into `src/` and the published tarball, where no user-facing README
+      documents it. This is the variant the brief warns against ("not a licence to design a general
+      query language").
+      *Extending existing verbs* — `gate verdict --show` and `ngrace status --with record`. Pros:
+      no new root; `status --with modules` is a shipped precedent. Cons, and decisive: `gate` is a
+      **mutating** surface whose help says "Records in run-ledger.xml", so a read mode there mixes
+      read and write in one namespace; `status` is a health snapshot, not an addressable query; and
+      neither answers two of the three change-bundle questions — "which `AC-*` carry `CloseEvidence`"
+      needs `spec.xml`, and "what is in `ObservedWriteScope`" needs `plan.xml`, neither of which
+      `gate verdict` reads — so the extension collapses into a new verb anyway, with a worse home.
+
+      **The house shape, derived from the code, not from this paragraph.** The existing query verbs
+      are noun roots with `find` (search; empty result prints `No modules found.` and exits **0**,
+      measured) and `show` (one target; absent prints a one-line message and exits **1**, measured
+      for `file show nope.txt` and `verification show V-NOPE`), plus `--path`/`-p`, `--format`, and a
+      `--json` shortcut. The new surface follows exactly that shape. The record query is the same
+      shape in the layer that owns it.
+
+      **Why the record query is repo tooling and not a shipped verb.** `scripts/` is absent from
+      `package.json#files`; `README.md` mentions the record zero times; the record's path and schema
+      live in `DEFAULT_RECORD_DIR` (`scripts/validate-record-retirement.ts:32`) and
+      `RECORD_SCHEMA` (`scripts/record-serialize.ts:42`). A shipped `ngrace record` would require
+      moving that schema into `src/`, adding a config key and documenting a repo-internal concept in
+      the user's README. The brief's own instruction is to derive the convention from the code rather
+      than from its paragraph, and the code places the record's reader beside its writer. This is a
+      deliberate placement, not a deferral: `F291` asks for a committed, tested, re-drivable answer
+      to the close questions, and `bun run record:query` is one.
+
+      **Lineage and payment.** `F270` (a recorded verdict tally no verb prints) and `F291` (no query
+      verb for bundles or the record) are both staged and both live; the buffer's own note says
+      `F291` "folds with `F270` — next in the queue, together". The owner named by both findings is
+      "an inspection-surface bundle"; this is it. `Pays` is non-empty, so the close writes the record
+      and the payer map — the Constraint below names every one of those writes and the criterion
+      `AC-NO-OTHER-SRC` excludes them, so this spec cannot repeat `F293` (a `Pays` line its own
+      byte-invariance criterion forbade).
+
+      **What this does not fix, stated so the remedy is not oversold.** `F290` records a
+      verification **discipline** failure — four structural mis-readings, one of them made with the
+      right tool (`xmllint`) from an assumed nesting. A verb makes the correct reading easy and
+      auditable; it does not make the incorrect one impossible. `F290`'s rule ("read the shape
+      first") is a teaching increment owned separately, and this bundle does not claim it.
+    </Problem>
+    <Goals>
+      <Goal>
+        **(1) `ngrace change find|show` — the change-bundle query, shipped.** A new root verb on the
+        query surface (`src/grace-change.ts`, `LINKS: M-QUERY`; the reader in `src/query/change.ts`;
+        the text renderer in `src/query/render.ts`), registered on `main` (`src/grace.ts`).
+        `ngrace change find [query]` lists bundles with id, location, spec status, plan status and
+        derived states; `ngrace change show &lt;C-ID&gt;` answers, for one bundle in `active/` or
+        `archive/`:
+        - the spec's **close-bound criteria**, read by `collectCloseBoundCriterionIds`
+          (`src/artifact/grammar.ts:2161`) over the `C-*` wrapper of `spec.xml`;
+        - the plan's **`ObservedWriteScope`** files and globs and its **`DurableScope`** anchors,
+          read by the shipped scope readers `collectActiveChangeScopes` (`src/artifact/scope.ts:241`)
+          for an active bundle and `collectAppliedChangeScopes` (`:253`) for an archived one;
+        - the **latest `Verdict`** and, for each close-bound criterion, its recorded `Exit` and
+          `Result`, read by extending the engine's own Verdict reader (Goal 3) and calling
+          `collectCloseEvidenceEvaluations` — never a new reader of `run-ledger.xml`.
+        Text for a reader, `--format json` for a script, both deterministic; `--path`/`-p` as the
+        house convention.
+      </Goal>
+      <Goal>
+        **(2) `bun run record:query` — the record query, in the record's own layer.** A new
+        `scripts/record-query.ts` with the house subcommands `find`, `show`, `check`, reading a
+        record directory resolved by the engine's own `resolveRecordDirWithinBoundary`
+        (`scripts/validate-record-retirement.ts:2031`) from `DEFAULT_RECORD_DIR` (`:32`) or
+        `--record-dir`:
+        - `find [--token T] [--genre finding|decision|row|entry] [--layer live|retired|index]
+          [--pays T] [--bundle C-ID]` — matching entries across the live and retired layers and the
+          index, with id, token, genre and layer;
+        - `show --token T` (or `--id`) — one entry's layer, its `status`, its `PaidBy` (finding) or
+          `CodifiedIn`/`TaughtIn` (decision), and its index `Entry`'s genre and layer;
+        - `check` — the engine's index-versus-genre presence relation over the whole record,
+          obtained by calling the engine's **already-exported** `structuralCheck(recordDir)`
+          (`scripts/validate-record-retirement.ts:1527`), which composes `genreLayerEntries` /
+          `holdingFromDocs` / `indexOrphanFindings` (`:1464`, `:1487`, `:1504`) and returns
+          `record-duplicate-id`, `record-index-orphan` and `record-index-layer-mismatch`.
+        `--format json` for a script; no expression language, no filter beyond the flags above.
+        Exposed as a `record:query` package script beside the shipped `record:flush`.
+      </Goal>
+      <Goal>
+        **(3) The engine's own reader, extended where it is blind — not forked.** The Verdict reader
+        carries what it already parses past: `ReviewVerdictRecord` gains an optional
+        `closeEvidence` field (`Array&lt;{ criterionId: string; exit: string; result: string }&gt;`)
+        and `parseVerdictNode` (`src/gates/ledger.ts:736`) populates it by calling the shipped
+        `collectCloseEvidenceEvaluations` (`src/artifact/grammar.ts:2174`). Every consumer of
+        `readLatestReviewVerdict`/`readLedgerVerdictsSurface` then sees the tally, and `F270`'s
+        remedy is fixed at the reader, not at one verb. The record query reuses the engine's
+        **already-exported** structural relation `structuralCheck`
+        (`scripts/validate-record-retirement.ts:1527`), which composes
+        `genreLayerEntries`/`holdingFromDocs`/`indexOrphanFindings` (`:1464`, `:1487`, `:1504`), so
+        `check` and the validator cannot disagree; `find`/`show` read raw entries through the shared
+        `parseGraceXmlArtifact` and read a bundle's `Pays` through the exported `derivePayerMap`
+        (`:370`). **`scripts/validate-record-retirement.ts` is not edited** — measured, its exported
+        surface (`structuralCheck`, `derivePayerMap`, `resolveRecordDirWithinBoundary`,
+        `DEFAULT_RECORD_DIR`) plus the shared parser already serve every `find`/`show`/`check`
+        question, and its only side effect is guarded by `if (import.meta.main)` at `:2140`.
+        **No second reader of any governed byte is created.**
+      </Goal>
+      <Goal>
+        **(4) Read-only, and mechanically so.** Neither surface creates or mutates any file, lock,
+        cache or temp artifact anywhere. A test snapshots a throwaway project tree (or the record
+        dir) by content hash before and after each query and asserts byte-identity and no new path,
+        for `change find`, `change show`, `record find`, `record show` and `record check`. This is
+        the class `F288` and the archived-bundle traps cost four supersedes: a state the product can
+        enter and no verb can leave. A read-only verb cannot produce that class.
+      </Goal>
+      <Goal>
+        **(5) The release surface is decided here, with a named owner for each item.**
+        `README.md` moves: one CLI Overview row per new invocation (`ngrace change find …`,
+        `ngrace change show …`, bound by the `listLiveInvocations` test) and the matching entries in
+        the Output-modes list. `package.json#files` gains `src/grace-change.ts` and
+        `scripts/release-check.ts`'s `PACK_ALLOWED_EXACT` gains the same exact entry (`:113`), because
+        a shipped file the packer does not allow is a broken tarball; `package.json` also gains the
+        `record:query` script. `test-metrics.json` is regenerated (`bun run test:metrics`): the test
+        at `scripts/test-metrics.test.ts:31`–`:32` compares the artifact's `files` list against a
+        freshly computed `allTestFiles(repoRoot)` — a freshness relation, not a static pin — and
+        `:33` sums the per-file counts, so a new or longer test file makes the artifact stale until
+        it is regenerated. The payer map gains `F270` and `F291` (Constraint). The four
+        version-synchronised files, the packaged skill mirror and `CHANGELOG.md` do **not** move —
+        see the NonGoals that name their owners.
+      </Goal>
+      <Goal>
+        **(6) The payment.** Mint a `kind="chartered"` registry row in
+        `docs/plans/active/RM-GOVERNED-PATH/registry.xml` whose `name` is this bundle's id and whose
+        `&lt;Pays&gt;` contains `F270` and `F291`; flush both findings from
+        `.ngrace/scratch/staged-findings.md` (through the shipped `--flush`, one index `Entry` each);
+        after the close archives the bundle, `--retire` stamps `&lt;PaidBy&gt;` on both and moves
+        them to `findings-retired.xml`. The `bundleMinted` map in
+        `scripts/validate-record-retirement.test.ts` names **this** bundle for both tokens.
+      </Goal>
+      <Goal>
+        **(7) The selective developer-loop runner stays mapped for every `src/` source this bundle
+        writes.** `scripts/test-affected.ts`'s `AFFECTED_EDGES` gains three entries —
+        `src/grace-change.ts` → `src/query/change.test.ts`, `src/query/render.ts` →
+        `src/grace-query.test.ts`, and `src/grace.ts` → `src/query/command.test.ts` — so an edit to
+        any of them selects narrow tests instead of the fail-safe full-suite fallback. The new root
+        is the sharpest case: it has no path-neighbour test (`src/grace-change.test.ts` does not
+        exist; its cases live in `src/query/change.test.ts`), so without the edge every edit to it
+        sends the dev loop to the whole suite, the exact cost `C-TEST-TIME-BUDGET` bought down.
+        `src/query/change.ts` maps through its own new path-neighbour test. This is a dev-loop
+        convenience, never a gate: `scripts/test-affected.test.ts` already asserts that no
+        aggregate script and no `CloseEvidence` invokes the selective runner.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        **Tier and base.** Ceremony tier **T2** (cross-cutting): a new shipped command root, an
+        engine-reader extension, a new repo-tooling query, README, packaging metadata, the payer map
+        and a record write. Not T3: no new subsystem, no contract major bump, no `NGRACE_ARTIFACT_VERSION`
+        change. Base commit `c83dfaea340368bf1b8cd3134c1b52241b2ce282` (= merged `main`, branch
+        `c-inspection-surface`, tree clean, root lint 0/0).
+      </Constraint>
+      <Constraint>
+        **Write scope, and the module list, stated once.** The module-ownable files this bundle
+        writes, each with its owning anchor — and `AffectedAreas` names exactly these three anchors
+        and no others, so the list cannot be wrong in two places with one copy fixed (`F136.1`):
+        `src/grace-change.ts` (**M-QUERY**, new), `src/query/change.ts` (**M-QUERY**, new),
+        `src/query/render.ts` (**M-QUERY**), `src/gates/ledger.ts` (**M-GATES**) and `src/grace.ts`
+        (**M-CLI**). Verified with the shipped predicate at the base:
+        `isModuleOwnableWritePath` (`src/lint/core.ts:734`) returned **true** for every one of the
+        five; it returned **false** for `src/query/change.test.ts`, `src/gates/core.test.ts`,
+        `src/query/command.test.ts`, `scripts/record-query.ts`, `scripts/record-query.test.ts`,
+        `scripts/test-affected.ts`, `scripts/test-affected.test.ts`, `README.md`, `package.json`
+        and `test-metrics.json` — re-measured after the revision, not carried from the first draft.
+        Non-module-ownable writes: `src/query/change.test.ts` (new),
+        `src/gates/core.test.ts` (the ledger-reader cases already live here — `src/gates/core.test.ts:27`
+        imports `readLatestReviewVerdict`), `src/query/command.test.ts` (the `liveCommandRoots`
+        entry and the boolean-site pin), `scripts/record-query.ts` (new; no module header, like its
+        ungoverned siblings), `scripts/record-query.test.ts` (new), `scripts/test-affected.ts` (the
+        `AFFECTED_EDGES` entries) and `scripts/test-affected.test.ts` (the driven selection case),
+        `scripts/release-check.ts`, `package.json`, `README.md`, `test-metrics.json`, and this
+        bundle's own artifacts under `.ngrace/changes/active/C-INSPECTION-SURFACE-1-2628AA2B/`.
+        `scripts/validate-record-retirement.ts` is **not written**: its already-exported
+        `structuralCheck` (`:1527`), `derivePayerMap` (`:370`) and the shared parser serve the
+        record query, and its only side effect is guarded by `if (import.meta.main)` (`:2140`).
+      </Constraint>
+      <Constraint>
+        **What the close must write, and why every criterion permits it (`F285`, `F293`).** `Pays`
+        is non-empty (`F270`, `F291`), so the close writes the record and the payer map, and every
+        byte-invariance criterion below excludes the whole set. The flush writes exactly four live
+        documents — `findings.xml`, `rulings.xml`, `decisions.xml`, `registry.xml` (`flushRecord`'s
+        write loop, `scripts/validate-record-retirement.ts:1708`) — and `--retire` writes seven:
+        those four plus `findings-retired.xml`, `rulings-retired.xml`, `registry-retired.xml`
+        (`retireRecord`'s write loop, `:1300`), so the union is **seven** files under
+        `docs/plans/active/RM-GOVERNED-PATH/`. The close also writes the `bundleMinted` entries in
+        `scripts/validate-record-retirement.test.ts`, and the close itself renames the bundle's
+        directory into `.ngrace/changes/archive/`, so the change's own arrival is excluded by path.
+        Nothing else. All of these are in the write scope above and in `AC-NO-OTHER-SRC`'s pathspec.
+      </Constraint>
+      <Constraint>
+        **Read-only, and no verb that can leave the tree in an unrecoverable state.** Neither the
+        shipped verb nor the record query opens a file for writing. No lock, no cache, no temp file
+        under the project tree, no `.ngrace/` mutation. A read-only verb cannot produce the class
+        `F288` records — a state the product can enter and no verb can leave. Each surface is proven
+        read-only by a before/after content-hash test over a throwaway tree.
+      </Constraint>
+      <Constraint>
+        **The engine's own parser; no second reader.** The change verb reads `spec.xml`/`plan.xml`
+        through `readGraceXmlArtifact` (`src/artifact/xml.ts`) and the shipped grammar/scope
+        readers; it reads verdict criteria through the **extended** `readLatestReviewVerdict` and
+        `collectCloseEvidenceEvaluations`, never a fresh walk of `run-ledger.xml`. The record query
+        reads XML through the shared `parseGraceXmlArtifact`, calls the engine's already-exported
+        `structuralCheck` (`scripts/validate-record-retirement.ts:1527`) for the `check` relation,
+        and reuses the exported `derivePayerMap` (`:370`) for `Pays`, never a re-implementation. No
+        edit to `scripts/validate-record-retirement.ts` is needed. If a needed reader did not exist,
+        this spec would name it and its home; measured, each needed reader exists and only the
+        Verdict tally needs surfacing where it already lives (`parseVerdictNode`).
+      </Constraint>
+      <Constraint>
+        **Exit-code and output contract, stated for each surface.** For `ngrace change`:
+        `find` with no match prints a non-empty "no change bundles found" line and exits **0** (an
+        empty result is not a failure and must be usable inside a script — measured house precedent:
+        `ngrace module find` empty, exit 0); `show` for an absent `C-ID` exits **non-zero** with one
+        actionable line and no stack trace (house precedent: `file show` absent, exit 1); an
+        unreadable or invalid bundle exits **non-zero** through the shipped
+        `GraceCommandError("invalid-project")` channel, never `0`. For `record:query`: `find` empty,
+        exit 0; `show` absent token, exit 1; an unparsable or malformed record, exit 1 with a named
+        reason. A query that exits 0 on a parse failure is a lie; a query that exits non-zero on an
+        empty result is unusable inside `CloseEvidence`.
+      </Constraint>
+      <Constraint>
+        **No general query language, and no new issue code.** `ngrace change` exposes exactly
+        `find|show`; `record:query` exposes exactly `find|show|check` with the flags above. No
+        expression grammar, no sort/select language. No new `src/lint/catalog.ts` code, no
+        `.ngrace-lint.json` change, no `src/artifact/grammar.ts` change, no `src/artifact/types.ts`
+        `ANCHOR_PATTERNS` change, no new graph or verification anchor.
+      </Constraint>
+      <Constraint>
+        **Close-time only, and no per-test timeouts.** `bun test --timeout=0` stays on every
+        invocation; no numeric per-test timeout is introduced anywhere. The full, CI-equivalent
+        verification (`bun run validate:ci`) runs **once**, at the plan's `TargetAssertions`
+        `MustPassCommand` under `--assertions final --run-commands`. Each task's `Verification` names
+        the narrowest instrument — `bun test --timeout=0 src/query/change.test.ts`,
+        `bun test --timeout=0 src/gates/core.test.ts`, `bun test --timeout=0 scripts/record-query.test.ts`
+        — and **no `CloseEvidence` in this bundle names `bun run test` or `bun run validate:ci`**,
+        because no criterion here is about the whole suite. The CI job's `timeout-minutes: 30` is the
+        only ceiling (`.github/workflows/validate.yml`).
+      </Constraint>
+      <Constraint>
+        **The README and `examples/` decision.** `README.md` moves **once** and only in the CLI
+        Overview: one row per new invocation, plus the Output-modes list entries, so the
+        `listLiveInvocations` test stays green. `examples/` is unchanged — no example exercises the
+        new verb and nothing there states a change-bundle or record query rule. Both are decided
+        again in Goals and NonGoals so no reader has to infer the answer.
+      </Constraint>
+      <Constraint>
+        **No skill teaches the verb; the packaged mirror does not move.** `ngrace-cli` already states
+        that its command inventory *is* the README CLI Overview table ("Do not restate that inventory
+        here"), so a skill edit would duplicate a bound surface and move skill footprints and token
+        accounting for nothing. The packaged mirror under `plugins/ngrace/skills/` stays
+        byte-identical because it is not edited. This is a decision, not an omission; the NonGoal
+        names the owner of any later teaching increment.
+      </Constraint>
+      <Constraint>
+        **Version surface unchanged.** The four version-synchronised files (`README.md`'s version
+        line, `openpackage.yml`, `.claude-plugin/marketplace.json`,
+        `plugins/ngrace/.claude-plugin/plugin.json`) stay at `6.2.0`; a new CLI verb does not bump a
+        version, and the release act is the maintainer's. `CHANGELOG.md` is generated at release, not
+        here.
+      </Constraint>
+      <Constraint>
+        **Public-repository hygiene, and markup as character data.** Nothing identifying a person, a
+        secret or an agent session is written to any artifact, message, name, comment, URI or prose;
+        no session URL and no session/conversation/thread/trace identifier appears anywhere, and no
+        credential-shaped token is introduced. XML artifacts escape markup as character data
+        (`&lt;`, `&gt;`, `&amp;`); no bracket is paraphrased away (`F43`). Grep the staged diff before
+        any commit.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        **Shipping the record query as an `ngrace record` verb is refused, not deferred.** It would
+        force the repo-internal record schema (`RECORD_SCHEMA`,
+        `scripts/record-serialize.ts:42`) into `src/` and the published tarball, add a config key to
+        `src/lint/config.ts`, and document a concept the user's README does not mention. The record
+        query ships in `scripts/`, beside its only writer. Owner: unchanged; this is a deliberate
+        placement the Problem answers (`F291` is served by a committed, tested, re-drivable query,
+        which is what it asks for).
+      </NonGoal>
+      <NonGoal>
+        **`examples/` unchanged.** No polyglot surface, no `.ngrace` fixture, no walkthrough step.
+        Nothing under `examples/` exercises a change-bundle or record query. Owner: unchanged; no
+        user-visible example surface.
+      </NonGoal>
+      <NonGoal>
+        **No skill text and no packaged skill mirror move.** `ngrace-cli`'s inventory is the README
+        table, which this bundle already moves. Owner: a later teaching increment, if one is ever
+        justified; it is not this bundle's.
+      </NonGoal>
+      <NonGoal>
+        **`F290`'s teaching rule is not shipped here.** "Read the shape first — print the element,
+        list the call sites, look at the nesting — then write the query" belongs to the
+        reviewer/authority teaching surface, not to a CLI verb. Owner: a teaching increment for the
+        authority surface; the Problem says so and this bundle does not claim to fix `F290`.
+      </NonGoal>
+      <NonGoal>
+        **No new lint code, no grammar or anchor-pattern change, no record writer change.** The
+        record query reads; `--flush`, `--retire`, `--stamp-paid-by`, `--rewrite-roots` and the
+        validator are unchanged except for exporting a relation they already implement. Owner:
+        unchanged.
+      </NonGoal>
+      <NonGoal>
+        **Authoring is not closing.** No `ngrace gate approve`, no hand-written `status`, no
+        `plan.xml`, no flush or retire against the production record, no gate or commit. Owner: the
+        authority; this spec is authored at `status="draft"`.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-CHANGE-SHOW-CRITERIA>
+        `ngrace change show &lt;C-ID&gt;` prints the spec's close-bound criteria — every `AC-*` whose
+        `CloseEvidence` carries at least one non-empty `Command` — and the printed id set equals
+        `collectCloseBoundCriterionIds` over the same `spec.xml` wrapper (the shipped reader, not a
+        second walk). Discriminating negatives: a bundle whose spec has no close-bound criterion
+        prints an explicit empty state, not a fabricated id; a criterion with an empty `CloseEvidence`
+        is not printed as close-bound. Driven in `src/query/change.test.ts` both ways.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/query/change.test.ts</Command>
+        </CloseEvidence>
+      </AC-CHANGE-SHOW-CRITERIA>
+      <AC-CHANGE-SHOW-SCOPE>
+        `ngrace change show &lt;C-ID&gt;` prints the plan's `ObservedWriteScope` files and globs and
+        its `DurableScope` graph/verification anchors, and the printed scope equals the shipped
+        reader's (`collectActiveChangeScopes` for an active bundle, `collectAppliedChangeScopes` for
+        an archived one). Discriminating negatives: a draft bundle with no `plan.xml` reports the
+        scope as absent, not as an empty-and-green scope; a plan with a `&lt;None/&gt;` scope reports it as
+        declared-none, distinguishable from absent. Driven both ways.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/query/change.test.ts</Command>
+        </CloseEvidence>
+      </AC-CHANGE-SHOW-SCOPE>
+      <AC-CHANGE-SHOW-VERDICT>
+        `ngrace change show &lt;C-ID&gt;` prints the latest recorded `Verdict` and, for every
+        close-bound criterion, its recorded `Exit` and `Result`; the printed per-criterion set equals
+        `collectCloseEvidenceEvaluations` over the same `Verdict` node. Discriminating negatives: a
+        bundle with no `Verdicts` section reports the tally absent rather than printing zeros; a
+        `Verdict` whose `AC-*` child is missing `Exit` or `Result` is not rendered as a recorded
+        pass. Driven in `src/gates/core.test.ts` at the reader (the extended
+        `readLatestReviewVerdict` carries the tally) and in `src/query/change.test.ts` at the verb
+        (the printed set equals the reader's), both ways.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/gates/core.test.ts</Command>
+        </CloseEvidence>
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/query/change.test.ts</Command>
+        </CloseEvidence>
+      </AC-CHANGE-SHOW-VERDICT>
+      <AC-CHANGE-EXIT-CONTRACT>
+        `ngrace change find` with no match prints a non-empty line and exits **0**; `ngrace change
+        find` with a match exits **0**; `ngrace change show &lt;absent-id&gt;` exits **non-zero**
+        with one actionable line and no stack trace; a bundle that is present but unreadable exits
+        **non-zero**, never `0`. Driven both ways in `src/query/change.test.ts`, reading each exit
+        code directly (never through a pipe, `F290`).
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/query/change.test.ts</Command>
+        </CloseEvidence>
+      </AC-CHANGE-EXIT-CONTRACT>
+      <AC-CHANGE-READ-ONLY>
+        `ngrace change find` and `ngrace change show` mutate nothing: over a throwaway project the
+        content hash of every file under the project root (including the bundle directory and
+        `.ngrace/`) is identical before and after each invocation, and no path is created, deleted or
+        renamed. Driven in `src/query/change.test.ts` by hashing the tree before and after.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/query/change.test.ts</Command>
+        </CloseEvidence>
+      </AC-CHANGE-READ-ONLY>
+      <AC-RECORD-SHOW-ENTRY>
+        `bun run record:query show --token &lt;T&gt;` reports, for a throwaway record copy, the
+        token's layer, its `status`, and its `PaidBy` when the entry is retired (findings) or its
+        `CodifiedIn`/`TaughtIn` when present (decisions), plus its index `Entry` genre and layer.
+        Discriminating negatives: a live entry is reported live with no `PaidBy`; a retired entry is
+        reported retired **with** its payer; an absent token exits non-zero naming it. Assertions are
+        relations over the throwaway copy (exists-once-across-layers, layer agreement), never a
+        pinned production `status` or ceiling value.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/record-query.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-SHOW-ENTRY>
+      <AC-RECORD-CHECK-INDEX>
+        `bun run record:query check` reports the engine's own `structuralCheck(recordDir)` findings
+        verbatim — every index `Entry` with no holding genre element of its own genre in either
+        layer of its pair (the index orphan), every id duplicated across a live/retired pair, and
+        every index `Entry` whose layer disagrees with its holding. The relation is the
+        already-exported `structuralCheck` (`scripts/validate-record-retirement.ts:1527`), which
+        composes `genreLayerEntries`/`holdingFromDocs`/`indexOrphanFindings` (`:1464`, `:1487`,
+        `:1504`); `check` calls it and edits no engine file, so `check` and the validator cannot
+        disagree. Driven both ways on throwaway record copies: a planted index orphan reddens the
+        check, a planted layer mismatch reddens it, and the same record with both removed is clean.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/record-query.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-CHECK-INDEX>
+      <AC-RECORD-BUNDLE-PAYS>
+        `bun run record:query show --bundle &lt;C-ID&gt;` (and `find --bundle`) reports the registry
+        row named for that bundle and its `Pays` cell, and — through the shipped `derivePayerMap`
+        (`scripts/validate-record-retirement.ts:370`) — the tokens the row mints once the bundle's
+        name is an archive directory. Discriminating negatives: a bundle with no registry row reports
+        absence, not a fabricated empty `Pays`; a row whose name is not an archive directory mints
+        nothing, so the derivation distinguishes live from archived. Driven both ways on throwaway
+        copies.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/record-query.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-BUNDLE-PAYS>
+      <AC-RECORD-READ-ONLY>
+        `record:query find|show|check` mutate nothing: over a throwaway record directory the content
+        hash of every file is identical before and after each subcommand, and no path is created,
+        deleted or renamed. The production record and the production run streams are never touched by
+        this bundle's tests; every query is driven against a copied or built fixture.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/record-query.test.ts</Command>
+        </CloseEvidence>
+      </AC-RECORD-READ-ONLY>
+      <AC-PAYMENT-WIRED>
+        The payer map names this bundle for both tokens: `scripts/validate-record-retirement.test.ts`'s
+        `bundleMinted` carries `F270` and `F291` mapped to
+        `C-INSPECTION-SURFACE-1-2628AA2B`, so the post-close walk
+        (`derived.get(token) === baseline[token] ?? bundleMinted[token]`, `:2226`) is green in the
+        applied-archive state and a stale id reds it. The test pins the two entries to this bundle
+        and re-derives them through the shipped `derivePayerMap`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-PAYMENT-WIRED>
+      <AC-CLI-INVENTORY>
+        The new root is a live, branded command: `src/query/command.test.ts`'s `liveCommandRoots`
+        includes `change`, the boolean-site pin (`src/query/command.test.ts:772`, `:998`, `:1011`)
+        moves from 28 to 30 — one `--json` boolean per new subcommand, both carried — the figure
+        re-measured at execute rather than projected, and `README.md`'s CLI Overview contains an
+        `ngrace change find` and an `ngrace change show` row that `listLiveInvocations` accepts. A
+        planted removal of either README row reddens the inventory test.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/query/command.test.ts</Command>
+        </CloseEvidence>
+      </AC-CLI-INVENTORY>
+      <AC-AFFECTED-EDGE>
+        The selective developer-loop runner stays mapped for every `src/` source this bundle writes.
+        `scripts/test-affected.ts`'s `AFFECTED_EDGES` gains `src/grace-change.ts` →
+        `src/query/change.test.ts`, `src/query/render.ts` → `src/grace-query.test.ts`, and
+        `src/grace.ts` → `src/query/command.test.ts`, and `src/query/change.ts` maps through its own
+        new path-neighbour test. Driven in `scripts/test-affected.test.ts` against the live
+        `allTestFiles(repoRoot)`: with `src/grace-change.ts` as the only changed file the runner
+        selects `src/query/change.test.ts` and `fallbackToFullSuite` is **false**; with this
+        bundle's whole `src/` source write set as the changed set it selects the mapped and
+        conventional tests and does **not** fall back to the full suite. The red direction is real:
+        before the edges the same call falls back, because `src/grace-change.ts` has no
+        path-neighbour test (`src/grace-change.test.ts` does not exist) and the fail-safe at
+        `scripts/test-affected.ts:48` sends an unmapped source to the whole suite. No gate: the
+        selective runner is never an aggregate script and never a `CloseEvidence` command.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/test-affected.test.ts</Command>
+        </CloseEvidence>
+      </AC-AFFECTED-EDGE>
+      <AC-NO-OTHER-SRC>
+        No file changes relative to this spec's base commit
+        `c83dfaea340368bf1b8cd3134c1b52241b2ce282` except the write-scope files named in the
+        write-scope Constraint — `src/grace-change.ts`, `src/query/change.ts`,
+        `src/query/change.test.ts`, `src/query/render.ts`, `src/query/command.test.ts`,
+        `src/gates/ledger.ts`, `src/gates/core.test.ts`, `src/grace.ts`, `scripts/record-query.ts`,
+        `scripts/record-query.test.ts`, `scripts/test-affected.ts`, `scripts/test-affected.test.ts`,
+        `scripts/validate-record-retirement.test.ts`, `scripts/release-check.ts`, `package.json`,
+        `README.md`, `test-metrics.json` — the record documents the close writes under
+        `docs/plans/active/RM-GOVERNED-PATH/` (`findings.xml`, `findings-retired.xml`, `rulings.xml`,
+        `rulings-retired.xml`, `registry.xml`, `registry-retired.xml`, `decisions.xml`), and this
+        bundle's own arrival under `.ngrace/changes/archive/C-INSPECTION-SURFACE-1-2628AA2B/` — the
+        close renames the bundle's directory into the archive, and the exclusion is **narrowed to
+        this bundle's own arrival** so an edit to any other bundle, active or archived, still
+        reddens the criterion. The coarse `:(exclude).ngrace/changes` form is refused: it makes such
+        an edit invisible, and "never edit anything under `archive/`" has no other mechanical
+        guard. The record excludes are the payment's, not a licence: `Pays F270 F291` is non-empty,
+        so the close must write the record and the payer map, and without these excludes the
+        criterion would forbid the write the spec requires (`F293`).
+
+        Drivability, both directions, on a copy at the base commit in the applied-archive shape:
+        with this bundle's arrival committed under
+        `.ngrace/changes/archive/C-INSPECTION-SURFACE-1-2628AA2B/` the command exits **0**; a
+        one-byte append to another archived bundle's `spec.xml` makes the same command exit **1**;
+        and the coarse-exclude control exits **0** on that plant, which is why the narrow form is
+        the one written.
+
+        This criterion reads tracked edits and deletions; it does **not** see a first-time untracked
+        write, which is [F174](docs/plans/active/RM-GOVERNED-PATH/findings.xml)'s recorded residue of
+        the `git diff` shape, and the spec does not claim otherwise. The untracked class is covered
+        one layer up by `ngrace review`'s scope audit, whose porcelain walk runs
+        `git status --porcelain=v1 --untracked-files=all` (`src/review/core.ts:2033`, `:2035`,
+        untracked collected at `:2062`–`:2075`) and raises `review.scope-outside-write-scope` for a
+        changed path outside `ObservedWriteScope`; the plan declares every file this bundle and the
+        close write and that audit is the layer that sees an untracked write outside it.
+        <CloseEvidence>
+          <Command>git diff --exit-code c83dfaea340368bf1b8cd3134c1b52241b2ce282 -- . ':(exclude)src/grace-change.ts' ':(exclude)src/query/change.ts' ':(exclude)src/query/change.test.ts' ':(exclude)src/query/render.ts' ':(exclude)src/query/command.test.ts' ':(exclude)src/gates/ledger.ts' ':(exclude)src/gates/core.test.ts' ':(exclude)src/grace.ts' ':(exclude)scripts/record-query.ts' ':(exclude)scripts/record-query.test.ts' ':(exclude)scripts/test-affected.ts' ':(exclude)scripts/test-affected.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts' ':(exclude)scripts/release-check.ts' ':(exclude)package.json' ':(exclude)README.md' ':(exclude)test-metrics.json' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/rulings.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml' ':(exclude)docs/plans/active/RM-GOVERNED-PATH/decisions.xml' ':(exclude).ngrace/changes/archive/C-INSPECTION-SURFACE-1-2628AA2B'</Command>
+        </CloseEvidence>
+      </AC-NO-OTHER-SRC>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0 at this root. This is the only place current-mode lint of this root
+        appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI />
+      <M-GATES />
+      <M-QUERY />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 src/query/change.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 src/gates/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/record-query.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/test-affected.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        T2 cross-cutting: a shipped change-bundle query and a repo-tooling record query, each
+        read-only and each reading through the engine's own readers. Proven by relations, each driven
+        both ways (clean direction green, planted violation red): the printed close-bound criterion
+        set equals `collectCloseBoundCriterionIds`; the printed scope equals the shipped scope
+        reader; the printed per-criterion `Exit`/`Result` equals `collectCloseEvidenceEvaluations`
+        over the extended `readLatestReviewVerdict`; the record `check` relation equals the engine's
+        exported `structuralCheck`; the exit-code contract discriminates empty from absent from
+        unreadable; the selective runner selects narrow tests for this bundle's `src/` write set
+        instead of falling back; and content hashes prove both surfaces create no state. The full
+        CI-equivalent verification (`bun run validate:ci`) runs **once**, at the plan's `--assertions
+        final --run-commands`; structural counts come from `xmllint --xpath` or the shipped parser,
+        never `grep -c`; exit codes are read directly, never through a pipe; the record query and the
+        change verb are exercised against throwaway copies and never mutate the production record or
+        a production `run/` stream; and `AC-NO-OTHER-SRC` was driven on a copy at the base commit in
+        the applied-archive shape, both directions. Every `CloseEvidence` command runs green inside a
+        faithful copy of the applied-archive state.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **The expected full-suite-run count (projection).** One. The full CI-equivalent verification
+        runs once, at the plan's `--assertions final --run-commands` `MustPassCommand`
+        (`bun run validate:ci`). No task `Verification` and no `CloseEvidence` here names
+        `bun run test` or `bun run validate:ci`; each names the narrowest test file. The new cases
+        add wall time to four files and the new tests add one or two files to the suite; the CI job's
+        `timeout-minutes: 30` remains the only ceiling. `test-metrics.json` is regenerated and its
+        pinned file list and counts are re-measured, never projected.
+      </Assumption>
+      <Assumption>
+        **The placement of the record query (decision, not assumption, restated for the reader).**
+        `scripts/` is absent from `package.json#files` and `README.md` contains zero occurrences of
+        the record's filenames or `RM-GOVERNED` (measured at the base). The record query therefore
+        ships beside the record's only writer, and `F291` is served by a committed, tested,
+        re-drivable command rather than a shipped-but-undocumented verb. If the maintainer later
+        wants a shipped `ngrace record`, that is a separate T3 bundle that moves `RECORD_SCHEMA`
+        into `src/`, adds a config key and documents the record — and it supersedes, never amends,
+        this one.
+      </Assumption>
+      <Assumption>
+        **The record directory default (read, not assumed).** `DEFAULT_RECORD_DIR`
+        (`scripts/validate-record-retirement.ts:32`) is `docs/plans/active/RM-GOVERNED-PATH`; the
+        query resolves `--record-dir` through the engine's `resolveRecordDirWithinBoundary`
+        (`:2031`), so the query and the writer resolve the same path by the same rule.
+      </Assumption>
+      <Assumption>
+        **The boolean-site count is a measurement, not a projection (expires).** The base pin is
+        `28` (`src/query/command.test.ts:772`, `:998`, `:1011`). The expected post-change figure is
+        30 (both `find` and `show` carry `--json`, as every query subcommand does); it is re-measured
+        at execute and written into the pin, never projected from this line.
+      </Assumption>
+    </Assumptions>
+  </C-INSPECTION-SURFACE-1-2628AA2B>
+</NgraceChangeSpec>

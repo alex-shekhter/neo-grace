@@ -120,6 +120,7 @@ const PACK_ALLOWED_EXACT = new Set([
   "src/grace.ts",
   "src/grace-context.ts",
   "src/grace-apply.ts",
+  "src/grace-change.ts",
   "src/grace-cursor.ts",
   "src/grace-doctor.ts",
   "src/grace-graph.ts",

@@ -44,6 +44,13 @@ const RECORD_REL = "docs/plans/active/RM-GOVERNED-PATH";
 // mints, so the walk is inert (green) with the row live and green in the
 // applied-archive state.
 const bundleMinted: Record<string, string> = {
+  // C-INSPECTION-SURFACE-1-2628AA2B T-006: the chartered row's two minted tokens.
+  // The extension is consulted only for tokens the derivation actually mints, so
+  // the walk is green with the row live (nothing minted — the row's name is not an
+  // archive directory while the bundle is active) and green in the applied-archive
+  // state (the close's mint). A stale id reds the same walk.
+  F270: "C-INSPECTION-SURFACE-1-2628AA2B",
+  F291: "C-INSPECTION-SURFACE-1-2628AA2B",
   F205: "C-INDEX-METRIC-2",
   F216: "C-ROOT-WINDOW",
   F182: "C-ROOT-WINDOW",
@@ -6685,6 +6692,40 @@ describe("C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92 T-004 payer ratchet", () => {
       "the correct successor entry greens the walk",
     ).toBe(true);
     expect(bundleMinted["F288"], "the map carries this successor, not the superseded predecessor").toBe("C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92");
+    expect(derivePayerMap(root, [{ ...row, pays: "D41" }]).has("D41"), "a D token is not minted").toBe(false);
+  });
+});
+
+// C-INSPECTION-SURFACE-1-2628AA2B T-006: the payer-map ratchet for F270 and F291.
+// Once this bundle's row is an archive directory carrying `Pays F270 F291`,
+// `derivePayerMap` mints both and the production walk at :2226 expects
+// `baseline[token] ?? bundleMinted[token]`; absent and stale entries red the walk.
+describe("C-INSPECTION-SURFACE-1-2628AA2B T-006 payer ratchet", () => {
+  it("F270 and F291 derive to this bundle from an archived row, and the map carries both; absent and stale entries red the walk", () => {
+    const root = isolatedRoot();
+    mkdirSync(path.join(root, ".ngrace", "changes", "archive", "C-INSPECTION-SURFACE-1-2628AA2B"), { recursive: true });
+    const row = { name: "C-INSPECTION-SURFACE-1-2628AA2B", pays: "F270 F291", statusText: "" };
+    const derived = derivePayerMap(root, [row]);
+    expect(derived.get("F270")).toBe("C-INSPECTION-SURFACE-1-2628AA2B");
+    expect(derived.get("F291")).toBe("C-INSPECTION-SURFACE-1-2628AA2B");
+
+    const baseline: Record<string, string> = JSON.parse(
+      readFileSync(path.join(import.meta.dir, "fixtures", "record-parse", "baseline-probes.json"), "utf8"),
+    ).payerMapBaseline.map;
+    for (const token of ["F270", "F291"] as const) {
+      expect(baseline[token], `baseline carries no ${token} route`).toBeUndefined();
+      const expectation = (minted: string | undefined): string | undefined => baseline[token] ?? minted;
+      expect(derived.get(token) === expectation(undefined), `an absent ${token} entry reds the walk`).toBe(false);
+      expect(
+        derived.get(token) === expectation("C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92"),
+        `a stale ${token} id reds the walk`,
+      ).toBe(false);
+      expect(
+        derived.get(token) === expectation("C-INSPECTION-SURFACE-1-2628AA2B"),
+        `the correct ${token} entry greens the walk`,
+      ).toBe(true);
+      expect(bundleMinted[token], `${token} is pinned to this bundle`).toBe("C-INSPECTION-SURFACE-1-2628AA2B");
+    }
     expect(derivePayerMap(root, [{ ...row, pays: "D41" }]).has("D41"), "a D token is not minted").toBe(false);
   });
 });
