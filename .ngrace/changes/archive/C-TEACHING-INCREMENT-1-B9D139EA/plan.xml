@@ -1,0 +1,561 @@
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-TEACHING-INCREMENT-1-B9D139EA><Replacement>C-TEACHING-INCREMENT-2-4E28E16C</Replacement>
+    <IntentSummary>
+      Convert the approved spec into the executable plan: add
+      `--taught D&lt;n&gt;:&lt;path&gt;:&lt;section&gt;` to the `--flush`
+      mode of `scripts/validate-record-retirement.ts` with its guard cluster
+      in `scripts/validate-record-retirement.test.ts`; fix the same
+      function's data-derived `String.replace` sites so a buffer body cannot
+      be read as a replacement pattern (the plan-time close drive found this
+      refusal — see T-002); land the six taught rules and the D41 run-stream
+      inviolability at their named section homes in `ngrace-spec`,
+      `ngrace-plan`, `ngrace-execute` and `ngrace-reviewer` and their
+      packaged mirrors, stated generically in each skill's own voice;
+      extend `TAUGHT_RULES` in `scripts/check-teaching-surface.ts` and its
+      test twin with one load-bearing token per new rule; extend the payer
+      map in `scripts/validate-record-retirement.test.ts` with this bundle's
+      seven minted tokens; and re-measure the skill-footprint pin into
+      `src/test-support/token-accounting.test.ts` and the `README.md` cell.
+      The instrument moves before the skill text in each teaching task, so
+      the red direction is genuine and recordable rather than manufactured.
+      **Close-time only.** Each task's `Verification` names the narrowest
+      instrument (one test file, or a slice of one). The full CI-equivalent
+      verification runs exactly **once**, at this plan's `TargetAssertions`
+      `MustPassCommand` (`bun run validate:ci`) under `--assertions final
+      --run-commands`; no task `Verification` names `bun run test` or
+      `bun run validate:ci`. Every `bun test` invocation carries
+      `--timeout=0` (the suite corpus grows by design; no per-test timeout
+      is pinned). Every `AC-*` in the approved spec is close-bound, so no
+      task carries `&lt;Satisfies&gt;` — a `Satisfies` of a close-bound
+      criterion is an error. No `Clarifications` are open. **The authority's
+      close acts are named, never tasked:** the `--flush` that lands the
+      seven findings and mints the row with `--pays "F296 F298 F283 F285
+      F290 F293 F302"` and `--mint-search "0 active, 0 archive"`, the
+      codify-only `--flush ... --taught
+      D41:skills/ngrace/ngrace-execute/SKILL.md:execution_rules`, the
+      `ngrace apply`, and the `--retire`; no task performs or depends on
+      them. The seven record files the close writes and the bundle's own
+      archive arrival are nevertheless declared in `ObservedWriteScope`
+      (the spec's `F285`/`F293` rule, which this bundle teaches and is
+      bound by). This bundle's executor does not approve, runs no review,
+      gate, supersede or apply verb, and does not commit.
+    </IntentSummary>
+    <Assumptions>
+      <Assumption>
+        **Plan-time post-close copy drive, and why one half is deferred.**
+        The plan-time post-close copy drive (ngrace-plan row 19) cannot
+        exercise `--taught`, because the writer does not exist until T-001
+        lands; its owner is the implementation-time copy drive named in
+        `AC-TAUGHT-VERB` and in T-001's acceptance text. The half that is
+        drivable today was driven at plan time on throwaway copies of the
+        shipped tree: `--flush` with the seven findings and
+        `--retire` — exits recorded in the report's `PROBES`.
+      </Assumption>
+      <Assumption>
+        **The `--flush` refusal T-002 fixes, measured at plan time.** On an
+        unmodified copy of the shipped tree, `--flush` selecting the seven
+        findings refuses `flush-index-orphan: decisions.xml: Entry id="f1"
+        token="F1" has no holding Finding/Decision in either layer of its
+        pair` at exit 1, because F302's staged body carries a dollar
+        immediately followed by a backtick and `flushRecord` builds its
+        next-documents with `String.replace(search, replacement)` — the
+        replacement string, assembled from buffer bodies, is read as a
+        replacement pattern. The same invocation selecting the other six
+        exits 0. On the same copy with the four `replace` sites switched to
+        a function replacement, `--flush` selecting all seven exits 0 and
+        F302 lands exactly once; `--retire` and the validator then exit 0.
+        The fix is forced by the spec's own Goal — the close must land the
+        seven findings, and one of them cannot be landed without it — and it
+        is in scope: `scripts/validate-record-retirement.ts` is in
+        `ObservedWriteScope` and excluded from `AC-NO-SRC-OTHER`.
+      </Assumption>
+      <Assumption>
+        **Footprint and payer snapshot.** At the base commit the footprint
+        pin asserts `skillTextLines().total` = 871 and `totalBytes` = 81285,
+        and the `README.md` cell publishes the same two figures; both move
+        with the teaching and are re-measured in T-005, never written toward.
+        The payer map gains seven tokens in T-005, inert while the row is
+        live and green post-close.
+      </Assumption>
+    </Assumptions>
+    <BaselineAssertions>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>Atomic Mechanism Exception</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>reverting a landed mechanism</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>engine-written</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>simultaneous red</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>after the edit that greens it</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>the close writes</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>what must the close write</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>read the shape first</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>flush-taught-absent</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>--taught</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>flush-taught-absent</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>replacement pattern</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>C-TEACHING-INCREMENT-1-B9D139EA</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>scripts/validate-record-retirement.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>README.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <Glob>.ngrace/changes/archive/C-TEACHING-INCREMENT-1-B9D139EA/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Add --taught to --flush and its guard cluster</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test,
+            signature-key validate-record-retirement): author the `--taught`
+            guard cluster in `scripts/validate-record-retirement.test.ts`,
+            driven on isolated fixture roots (never the production record),
+            against the shipped `flushRoot()` shape. Plant a section-bearing
+            skill file under the isolated root so `taughtResolvesCheck`
+            resolves, and a live, uncodified decision (`d-fixture`) in the
+            copied rulings. The cluster asserts: (a) `--flush --taught
+            d-fixture:skills/ngrace/ngrace-execute/SKILL.md:execution_rules`
+            writes exactly one `&lt;TaughtIn&gt;` child on the decision with
+            `path` and `section` attributes and the section text, exit 0;
+            (b) a non-decision target refuses with `flush-taught-absent`;
+            (c) an absent skill path refuses and leaves the four
+            flush-written record files (`findings.xml`, `rulings.xml`,
+            `decisions.xml`, `registry.xml`) byte-identical; (d) an absent
+            section refuses the same way; (e) a byte-identical duplicate
+            refuses; (f) a second, different `path`/`section` on the same
+            decision is admitted; (g) the `--taught` value is not read as a
+            positional (the call names the record directory once and lands
+            the child). The writer is absent at this state, so the
+            assertion reds; paste the tail. **Atomic Mechanism Exception
+            (this bundle's own F296/F298 rule):** the `--taught` writer is
+            one indivisible mechanism and these guards are its cluster —
+            author them together against the baseline, witness their
+            simultaneous red in one round trip, and record exactly **one**
+            `cursor attempt --outcome fail` for the cluster (the
+            attempt-pair audit pairs attempts, not test cases). Do not
+            record one `fail` per guard; never revert a landed guard or a
+            landed mechanism to manufacture a red. Do not land production in
+            this round trip.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): implement
+            `--taught D&lt;n&gt;:&lt;path&gt;:&lt;section&gt;` in
+            `scripts/validate-record-retirement.ts`, mirroring `--codify`.
+            Add `--taught` to the `main` argv positional filter beside
+            `--codify`; pass it into `flushRecord`; parse the first
+            colon-separated part as the target decision's `id` or `token`
+            in the **next** `rulings.xml` document and refuse
+            `flush-taught-absent` when it names no decision; run the shipped
+            `taughtResolvesCheck` against the next-document **before the
+            write loop**, so a missing skill path or an absent section
+            refuses with all four flush-written record files byte-identical
+            and the message names the offending path or section; refuse a
+            `TaughtIn` already byte-identical in `path` and `section` on the
+            target while admitting a second, different pair (the schema's
+            `*`); emit
+            `&lt;TaughtIn path="…" section="…"&gt;section&lt;/TaughtIn&gt;`
+            through `writeRecordXml` like every other flush write. Then
+            record exactly **one** `cursor attempt --outcome pass` for the
+            cluster. No new test file — the tests live in
+            `scripts/validate-record-retirement.test.ts` (a new file would
+            force a `test-metrics.json` regeneration that runs the whole
+            suite, F299). Do not touch `scripts/record-query.ts` or
+            `scripts/record-serialize.ts`; the reader, validator and schema
+            already admit `TaughtIn`. Do not extend `bundleMinted` in this
+            task (T-005 owns the payer map). Failure conditions: this round
+            trip also lands production; the refusal computes after any write;
+            a guard recorded as its own `fail`; a landed guard reverted; a
+            duplicate admitted; multiplicity refused; the element text left
+            empty.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+          <Command>git diff --exit-code 220a061e86c45e02eef87eeef324bfa23abcb12d -- skills/ plugins/ src/ scripts/ README.md ':(exclude)scripts/validate-record-retirement.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Write data-derived replacements literally in flushRecord</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test,
+            signature-key validate-record-retirement): on an isolated
+            fixture root, add a test (named so its subject contains the
+            words "replacement pattern") that flushes a finding whose body
+            carries a dollar sign immediately followed by a backtick —
+            `String.prototype.replace`'s substitution-pattern syntax —
+            alongside a second finding, and asserts the flush exits 0 and
+            both findings land exactly once with the sequence written
+            literally. The shipped `flushRecord` builds its next-documents
+            with `String.replace(search, replacement)` where the replacement
+            is assembled from buffer bodies, so the sequence is read as a
+            replacement pattern and the next `findings.xml` is corrupted;
+            the flush then refuses `flush-index-orphan`. Measured at plan
+            time on an unmodified copy of the shipped record: `--flush`
+            selecting the seven findings refuses `flush-index-orphan:
+            decisions.xml: Entry id="f1" token="F1" has no holding
+            Finding/Decision in either layer of its pair` at exit 1, while
+            the same invocation selecting the other six exits 0. Paste the
+            tail. Record exactly **one** `cursor attempt --outcome fail` —
+            one mechanism, one pair; do not record a `fail` per `replace`
+            site, and never manufacture a red by reverting. Do not land the
+            fix in this round trip.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): in
+            `scripts/validate-record-retirement.ts`'s `flushRecord`, switch
+            every data-derived `String.replace(search, replacement)` to a
+            function replacement (`replace(search, () => replacement)`) so a
+            replacement-pattern character in a finding body, a decision body,
+            an index id or a registry value is written literally. The four
+            sites are `nextFindings`, `nextIndex`, `nextRulings` and
+            `nextRegistry`; the `--codify`/`--taught` insertion site
+            interpolates data (`kind`, `val`) into a replacement string
+            beside its capture groups, so it becomes a function replacement
+            too, taking the groups as arguments — five sites. Confirm the flush
+            selecting all seven findings exits 0 and each lands exactly once,
+            and that a body containing the sequence round-trips literally and
+            validates clean. Record exactly **one** `cursor attempt --outcome
+            pass`. This fix is forced by the spec's own Goal (the close must
+            land the seven findings, and one of them cannot be landed
+            without it) and is in scope: `scripts/validate-record-retirement.ts`
+            is in `ObservedWriteScope` and excluded from `AC-NO-SRC-OTHER`.
+            Failure conditions: fewer than five sites converted; the sequence escaped
+            by stripping it from the body; a per-site `fail`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+          <Command>git diff --exit-code 220a061e86c45e02eef87eeef324bfa23abcb12d -- skills/ plugins/ src/ scripts/ README.md ':(exclude)scripts/validate-record-retirement.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Instrument red, then teach ngrace-execute (F296 F298 F283 D41)</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test,
+            signature-key check-teaching-surface): move the instrument
+            before the text. Add the five `ngrace-execute` load-bearing
+            tokens to `TAUGHT_RULES` in
+            `scripts/check-teaching-surface.ts` **and** to the twin list in
+            `scripts/check-teaching-surface.test.ts` in lockstep (the
+            planted-root contract reads the twin; a one-sided move reds it):
+            under `execution_rules`, `Atomic Mechanism Exception`,
+            `reverting a landed mechanism` and `engine-written`; under
+            `cursor_kinds` kind `attempt`, `simultaneous red` and `after the
+            edit that greens it`. The instrument now demands tokens the
+            shipped skill text lacks, so the real-repository assertion
+            `checkTaughtRules(REPO_ROOT)` in
+            `scripts/check-teaching-surface.test.ts` reds; paste the tail.
+            The five token additions are one indivisible instrument move:
+            record exactly **one** `cursor attempt --outcome fail`, never one
+            per token, and never manufacture a red by reverting. Do not land
+            any skill text in this round trip.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): land the four
+            teachings in `skills/ngrace/ngrace-execute/SKILL.md` and its
+            packaged mirror, in the skill's own voice, woven into the
+            passage an author already reads, never as an appended list, in
+            both trees together: (a) the **Atomic Mechanism Exception** in
+            `execution_rules` rule 5, replacing the maintainer's word
+            "facets" with the house vocabulary (`AC-*`, tasks, verification
+            cycles, attempt pairs), naming the forbidden move — reverting a
+            landed mechanism to manufacture a red — and the late-guards path
+            (recorded pass-only, disclosed, proven non-vacuous by planted
+            mutation); (b) in `cursor_kinds` kind `attempt`, the recording
+            shape `F298` measured — author the minimal cluster against the
+            baseline, witness simultaneous red in one round trip, record one
+            `fail`, land the mechanism once, record one `pass`, one pair for
+            N guards; (c) the `F283` sentence in the attempt kind's
+            "Ordering for honest red-first" paragraph and a short
+            restatement in `execution_rules` rule 13: a `fail` recorded
+            after the edit that greens it is uncorroborated because
+            `WriteEvidence` digests at attempt time, the red must be
+            recorded before the edit, and a correction whose red has already
+            passed is a single pass-only attempt; (d) the `D41` run-stream
+            inviolability in `execution_rules` rule 11: the run stream is
+            engine-written, no agent edits, renumbers, deletes or reorders a
+            `run/` event or `run-ledger.xml` by hand, and a stream no
+            shipped verb accepts is a defect to report, never to correct —
+            the `D41` `TaughtIn` section the authority stamps is
+            `execution_rules`. Keep every shipped pin: `one guard per pair`,
+            `pass-only cycle`, `pass-only correction`, `report evidence`,
+            `interleaves them`, `task that owns the surface`, `attributes to
+            it`, `the intended task`, `the event carries no`, `close-time
+            only`, and the eleven `&lt;kind id&gt;` markers including
+            `attempt`. Run the universality check: `checkRecordTokens` over
+            the four skills in both trees, plus a grep for the classes the
+            shipped scanner does not cover (harness install paths,
+            repository-private function names, `scripts/` paths) over the
+            four skills in both trees, and paste both. Record exactly **one**
+            `cursor attempt --outcome pass`. Failure conditions: a taught
+            sentence naming this repository, its record, a bundle, a harness
+            install path or a repository-private function; only one tree
+            updated; a pinned token dropped; a `fail` per token.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts</Command>
+          <Command>git diff --exit-code 220a061e86c45e02eef87eeef324bfa23abcb12d -- skills/ plugins/ src/ scripts/ README.md ':(exclude)scripts/validate-record-retirement.ts' ':(exclude)scripts/validate-record-retirement.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md'</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Instrument red, then teach ngrace-plan, ngrace-spec and ngrace-reviewer (F285 F293 F290)</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test,
+            signature-key check-teaching-surface): add the three remaining
+            load-bearing tokens to `TAUGHT_RULES` in
+            `scripts/check-teaching-surface.ts` and its test twin in
+            lockstep, before the text: `the close writes` under
+            `ngrace-plan` `must_do`; `what must the close write` under
+            `ngrace-spec` `acceptance_criteria_anchors`; `read the shape
+            first` under `ngrace-reviewer` `review_judgment`. The
+            real-repository assertion reds; paste the tail. The three
+            additions are one indivisible instrument move: record exactly
+            **one** `cursor attempt --outcome fail`, never one per token and
+            never a manufactured red. Do not land skill text in this round
+            trip.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): land the three
+            teachings, in each skill's own voice, at the spec's named homes,
+            in both trees together. `ngrace-plan` `must_do` row 6 gains the
+            close-writes rule — scope covers what the **close** writes, not
+            only what the tasks write; when the spec assigns an act to a
+            party other than the executor, the act's write targets still
+            belong in `ObservedWriteScope`; the close's write set is stated
+            as a rule (the flush writes the record documents it annotates
+            while the bundle is active, the retirement move writes the
+            retired siblings and rewrites the live roots, and the close adds
+            the bundle's own archive arrival), never as this repository's
+            file names; the approval-time check is that every act the spec
+            assigns away from the executor has its write targets in
+            `ObservedWriteScope` before approval. `ngrace-spec`
+            `acceptance_criteria_anchors` gains the prior question beside
+            the "requires no change another criterion forbids" sentence and
+            the "list what the deliverable moves" bullet: before writing a
+            byte-invariance pathspec, ask what must the close write and does
+            every criterion permit it — derivable mechanically from a
+            non-empty `Pays` — and the payer-map half stated as a rule (a
+            bundle whose `Pays` is non-empty has a close write set: the
+            record documents the payment writes, any fixture that pins the
+            payment relation, and the bundle's own archive arrival, each
+            declared in the write scope and permitted by every
+            byte-invariance pathspec before the pathspecs are written).
+            `ngrace-reviewer` `review_judgment` gains one bullet: a
+            structural claim about an XML artifact is answered by reading
+            the shape first — print the element, list the call sites, look
+            at the nesting — and only then writing the query, `xmllint
+            --xpath` or the shipped parser; `grep` locates, it does not
+            testify; the four reasons are the four generic shapes (a search
+            for a token the target never carried; a single-line pattern
+            against an element written across lines; a truncated listing
+            read as the whole population; a path query that assumed the
+            nesting), with no repository name, path or private function name
+            in the bullet. Keep every shipped pin: row 6's `deliverable
+            forces`, `skill-footprint`, `fixtures that construct` and the
+            `change.graph-anchors-miss-write-scope` clause; rows 15, 16 and
+            17 keep their numbers and their pinned content; the
+            `acceptance_criteria_anchors` tokens (`named baseline commit`,
+            `archive arrival`, `applied-archive state`, `every module list`,
+            `shipped parser`, `through a pipe`, `only ceiling`, `shipped
+            engine`, `both directions`, `only against an active`, `states
+            the relation`, `list what the deliverable moves`, `close-time
+            only`); the `review_judgment` tokens (`artifact whole`, `is a
+            claim`, `forced-file set`, `both directions`, `faithful copy`,
+            `any later lawful move of the record`, `red-direction fixture`).
+            Run the universality check as in T-003 and paste both outputs.
+            Record exactly **one** `cursor attempt --outcome pass`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun test --timeout=0 scripts/skill-contracts.test.ts</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts</Command>
+          <Command>git diff --exit-code 220a061e86c45e02eef87eeef324bfa23abcb12d -- skills/ plugins/ src/ scripts/ README.md ':(exclude)scripts/validate-record-retirement.ts' ':(exclude)scripts/validate-record-retirement.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)skills/ngrace/ngrace-reviewer/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md'</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Re-measure the footprint pin, extend the payer map, and terminate the epoch</Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Pass-only cycles (new content the shipped checks do not see; no
+            red direction is recordable before the write). (a) Re-measure
+            `skillTextLines().total` and `totalBytes` from the tree after
+            T-003 and T-004 land, and transcribe the measured values into
+            the `toBe` assertions in
+            `src/test-support/token-accounting.test.ts` and the `README.md`
+            measurement cell the test cross-checks — the pin equals the
+            measurement, never a projected figure. (b) Extend the payer map
+            `bundleMinted` in
+            `scripts/validate-record-retirement.test.ts` with the seven
+            tokens `F296`, `F298`, `F283`, `F285`, `F290`, `F293`, `F302`,
+            each mapped to `C-TEACHING-INCREMENT-1-B9D139EA`, following the
+            comment block above the map; the extension is inert while the
+            row is live (the derivation mints nothing until the row's name
+            is an archive directory) and greens the post-close walk. (c)
+            Conditional pin repair: before editing, grep the four
+            conditional files (`scripts/skill-contracts.test.ts`,
+            `src/review/core.test.ts`, `src/grace-cursor.test.ts`,
+            `src/artifact/grammar.test.ts`) for the phrases the spec says
+            must survive and paste the result; repair a file only if the
+            executed teaching actually falsified one of its pins, at the
+            same matcher strength, never by weakening or deleting, and never
+            without its own recorded red. **Terminal event:** the executing
+            agent's last act in this task is `ngrace cursor advance --change
+            C-TEACHING-INCREMENT-1-B9D139EA --task T-005 --kind terminal` —
+            the close's `fold` refuses an unterminated range, so the range
+            must be closed before the authority runs the close. Emit
+            terminal for a declared task only; never terminal an undeclared
+            event task and never terminal another task's range.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/test-support/token-accounting.test.ts</Command>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test --timeout=0 src/artifact/grammar.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+          <Command>git diff --exit-code 220a061e86c45e02eef87eeef324bfa23abcb12d -- skills/ plugins/ src/ scripts/ README.md docs/plans/active/RM-GOVERNED-PATH/ ':(exclude)scripts/validate-record-retirement.ts' ':(exclude)scripts/validate-record-retirement.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)skills/ngrace/ngrace-reviewer/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)README.md'</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-TEACHING-INCREMENT-1-B9D139EA>
+</NgraceChangePlan>
