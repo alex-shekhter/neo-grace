@@ -410,4 +410,10 @@
     <Pays>F281 F282 F286</Pays>
     <StatusText>Test-time budget: the suite halved, a non-gating selective runner, per-test metrics, in-process validator calls, the close-time only rule, and the attempt-pair exemption for abandoned archived governance.</StatusText>
   </Row>
+  <Row name="C-RECORD-DECISION-FLUSH-1-368E01F2" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug RECORD-DECISION-FLUSH. Author half: searched before minting over the 121 archive directories and both registry layers; no prior bundle carries the slug RECORD-DECISION-FLUSH.</Charter>
+    <Pays>F289</Pays>
+    <StatusText>The flush verb's decision path: the element and its index entry written together, a genre refusal before any write, and the index-versus-genre presence relation enforced at rest and before the write.</StatusText>
+  </Row>
 </Registry>

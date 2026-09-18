@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-RECORD-DECISION-FLUSH-1-368E01F2>
     <Summary>
       Repair the `--flush` mode's `--decision` path in `scripts/validate-record-retirement.ts`. A
