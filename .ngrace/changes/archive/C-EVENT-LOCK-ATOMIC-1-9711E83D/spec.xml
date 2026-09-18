@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-EVENT-LOCK-ATOMIC-1-9711E83D>
     <Summary>
       One `src/` bundle that pays the one staged finding `F307`: the event

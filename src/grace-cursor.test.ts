@@ -51,6 +51,7 @@ import {
   type KnownEventKind,
   type WriteEvidenceSnapshot,
 } from "./grace-cursor";
+import * as graceCursorModule from "./grace-cursor";
 import { GraceCommandError } from "./query/errors";
 import { collectProjectStatus, formatStatusText } from "./grace-status";
 import { lintGraceProject } from "./lint/core";
@@ -4061,7 +4062,15 @@ describe("cursor event-id integrity (C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92)", (
         stderr: "pipe",
       }),
     );
-    return Promise.all(procs.map((proc) => proc.exited));
+    const stderrs = procs.map((proc) => new Response(proc.stderr).text());
+    const codes = await Promise.all(procs.map((proc) => proc.exited));
+    if (codes.some((code) => code !== 0)) {
+      const texts = await Promise.all(stderrs);
+      for (let index = 0; index < tasks.length; index += 1) {
+        console.error(`runConcurrentAdvances: ${tasks[index]} exited ${codes[index]}\n${texts[index]}`);
+      }
+    }
+    return codes;
   }
 
   function pinNextAllocationOnce(pinned: number): void {
@@ -4074,6 +4083,25 @@ describe("cursor event-id integrity (C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92)", (
       return candidate;
     });
   }
+
+  it("prints each failing task's id, code and stderr (AC-CONCURRENCY-DIAGNOSABLE)", async () => {
+    const root = createProject();
+    seedBundle(root);
+    const printed: string[] = [];
+    const originalError = console.error;
+    console.error = (...parts: unknown[]) => printed.push(parts.map(String).join(" "));
+    let codes: number[];
+    try {
+      codes = await runConcurrentAdvances(root, "C-DOES-NOT-EXIST", ["T-002", "T-003"]);
+    } finally {
+      console.error = originalError;
+    }
+    expect(codes.every((code) => code !== 0), "both spawns fail").toBe(true);
+    const text = printed.join("\n");
+    expect(text, "the failing task id is printed").toContain("T-002");
+    expect(text, "the exit code is printed").toContain("1");
+    expect(text, "the captured stderr is printed").toContain("C-DOES-NOT-EXIST");
+  });
 
   it("forced event-id collision renumbers the writer's own file (AC-FORCED-COLLISION)", () => {
     const root = createProject();
@@ -4204,5 +4232,90 @@ describe("cursor event-id integrity (C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92)", (
     }
     expect(thrown).toBeInstanceOf(GraceCommandError);
     expect(String((thrown as Error).message)).toMatch(/duplicate event id 7/);
+  });
+});
+
+// C-EVENT-LOCK-ATOMIC-1-9711E83D T-001: the event write lock keeps its
+// exclusive `wx` create, classifies an empty or non-numeric holder `unknown`
+// (never `stale`), bounds the wait by the TTL with the lock file's mtime as
+// the age fallback, and guards the stale unlink against a lost race. The TTL
+// override is reached through a namespace import with an optional call so the
+// file loads on the base tree, where the export does not exist.
+const setEventWriteLockTtlForTests = (
+  graceCursorModule as { setEventWriteLockTtlForTests?: (ms: number | null) => void }
+).setEventWriteLockTtlForTests;
+
+function withShortLockTtl<T>(ms: number, fn: () => T): T {
+  setEventWriteLockTtlForTests?.(ms);
+  try {
+    return fn();
+  } finally {
+    setEventWriteLockTtlForTests?.(null);
+  }
+}
+
+describe("C-EVENT-LOCK-ATOMIC-1-9711E83D event write lock", () => {
+  function contendedBundle(content: string): string {
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 199 });
+    writeFileSync(path.join(bundle, ".run-write.lock"), content);
+    return root;
+  }
+
+  it("waits on a 0-byte lock instead of stealing it (AC-EMPTY-HOLDER-UNKNOWN)", () => {
+    const root = contendedBundle("");
+    const t0 = Date.now();
+    withShortLockTtl(200, () => advanceCursor(root, "C-RUN", { task: "T-002" }));
+    const elapsed = Date.now() - t0;
+    expect(elapsed, `an empty holder is unknown, so the contender waits: ${elapsed}ms`).toBeGreaterThanOrEqual(100);
+  });
+
+  it("waits on an unparsable or zero pid instead of stealing it (AC-EMPTY-HOLDER-UNKNOWN)", () => {
+    for (const pidText of ["x", "0"]) {
+      const content = `${pidText}\n${Date.now()}\n`;
+      const root = contendedBundle(content);
+      const t0 = Date.now();
+      withShortLockTtl(200, () => advanceCursor(root, "C-RUN", { task: "T-002" }));
+      const elapsed = Date.now() - t0;
+      expect(elapsed, `pid ${JSON.stringify(pidText)} is unknown: ${elapsed}ms`).toBeGreaterThanOrEqual(100);
+    }
+  });
+
+  it("waits on a record with a pid line but no stamp line (AC-EMPTY-HOLDER-UNKNOWN)", () => {
+    for (const pidText of ["x", "1234"]) {
+      const content = `${pidText}\n`;
+      const root = contendedBundle(content);
+      const t0 = Date.now();
+      withShortLockTtl(200, () => advanceCursor(root, "C-RUN", { task: "T-002" }));
+      const elapsed = Date.now() - t0;
+      expect(elapsed, `an incomplete holder record (${JSON.stringify(content)}) is unknown: ${elapsed}ms`).toBeGreaterThanOrEqual(100);
+    }
+  });
+
+  it("still steals a known dead pid's lock immediately (AC-EMPTY-HOLDER-UNKNOWN)", () => {
+    const root = contendedBundle(`999999\n${Date.now()}\n`);
+    const t0 = Date.now();
+    withShortLockTtl(60000, () => advanceCursor(root, "C-RUN", { task: "T-002" }));
+    const elapsed = Date.now() - t0;
+    expect(elapsed, `the real stale path is not blunted by the unknown state: ${elapsed}ms`).toBeLessThan(5000);
+  });
+
+  it("catches a stale unlink that loses the race (AC-STALE-UNLINK-GUARDED)", async () => {
+    if (process.platform !== "darwin") return;
+    const root = createProject();
+    const bundle = seedBundle(root);
+    advanceCursor(root, "C-RUN", { task: "T-001", openEpoch: true, from: 1, to: 199 });
+    const lockPath = path.join(bundle, ".run-write.lock");
+    writeFileSync(lockPath, `999999\n${Date.now()}\n`);
+    const marker = Bun.spawnSync(["chflags", "uchg", lockPath]);
+    expect(marker.exitCode, "chflags uchg").toBe(0);
+    const childScript = `import { advanceCursor } from ${JSON.stringify(path.resolve(import.meta.dir, "grace-cursor.ts"))}; advanceCursor(${JSON.stringify(root)}, "C-RUN", { task: "T-002" });`;
+    const child = Bun.spawn({ cmd: [process.execPath, "-e", childScript], stdout: "pipe", stderr: "pipe" });
+    await Bun.sleep(200);
+    Bun.spawnSync(["chflags", "nouchg", lockPath]);
+    const code = await child.exited;
+    const stderr = await new Response(child.stderr).text();
+    expect(code, `the guarded stale unlink retried after the EPERM: ${stderr}`).toBe(0);
   });
 });

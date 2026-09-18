@@ -200,6 +200,10 @@ const bundleMinted: Record<string, string> = {
   F293: "C-TEACHING-INCREMENT-2-4E28E16C",
   F302: "C-TEACHING-INCREMENT-2-4E28E16C",
   F303: "C-TEACHING-INCREMENT-2-4E28E16C",
+  // C-EVENT-LOCK-ATOMIC-1-9711E83D T-003: the chartered row's one minted token.
+  // Consulted only for tokens the derivation actually mints, so the walk is green
+  // with the row live and green in the applied-archive state (the close's mint).
+  F307: "C-EVENT-LOCK-ATOMIC-1-9711E83D",
 };
 
 

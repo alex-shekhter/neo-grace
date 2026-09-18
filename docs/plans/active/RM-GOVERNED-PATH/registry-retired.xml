@@ -434,4 +434,10 @@
     <Pays>F296 F298 F283 F285 F290 F293 F302 F303</Pays>
     <StatusText>Eight findings paid by one bundle: six taught rules across four skills, a TaughtIn writer, and the flush verb writing bodies as data.</StatusText>
   </Row>
+  <Row name="C-EVENT-LOCK-ATOMIC-1-9711E83D" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug EVENT-LOCK-ATOMIC. Author half: the event write lock treats an empty or unparsable holder as unknown and waits, guards the stale unlink, and the concurrency guard names its failing process.</Charter>
+    <Pays>F307</Pays>
+    <StatusText>One finding paid: the cursor event write lock no longer steals a live holder it read before the holder's content landed.</StatusText>
+  </Row>
 </Registry>

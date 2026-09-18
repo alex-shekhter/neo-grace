@@ -58,6 +58,7 @@
 //   lastResolvingResumeId
 //   setEvaluateTargetCompleteThrowProbeForTests
 //   setEventIdAllocationProbeForTests
+//   setEventWriteLockTtlForTests
 //   listAccountingEvents
 //   listCalibrationRestatements
 //   listLedgerCalibrationEpochs
@@ -96,6 +97,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  statSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -3314,28 +3316,52 @@ function processAlive(pid: number): boolean {
   }
 }
 
+let eventWriteLockTtlOverride: number | null = null;
+
+/** Test-only: shorten the TTL backstop; `null` restores `EVENT_WRITE_LOCK_TTL_MS`. */
+export function setEventWriteLockTtlForTests(ms: number | null): void {
+  eventWriteLockTtlOverride = ms;
+}
+
 function withEventWriteLock<T>(bundlePath: string, fn: () => T): T {
   const lockPath = path.join(bundlePath, EVENT_WRITE_LOCK);
+  const ttl = eventWriteLockTtlOverride ?? EVENT_WRITE_LOCK_TTL_MS;
   for (;;) {
     try {
       writeFileSync(lockPath, `${process.pid}\n${Date.now()}\n`, { flag: "wx" });
       break;
     } catch (error) {
       if ((error as { code?: string }).code !== "EEXIST") throw error;
-      let stale = false;
+      let pidRaw = "";
+      let stampRaw = "";
       try {
-        const [pidRaw, stampRaw] = readFileSync(lockPath, "utf8").split("\n");
-        const pid = Number(pidRaw);
-        const stamp = Number(stampRaw);
-        stale =
-          !processAlive(pid)
-          || (Number.isFinite(stamp) && Date.now() - stamp > EVENT_WRITE_LOCK_TTL_MS);
+        [pidRaw, stampRaw] = readFileSync(lockPath, "utf8").split("\n");
       } catch {
         // The holder released the lock between EEXIST and the read; retry.
         continue;
       }
+      const pid = Number(pidRaw);
+      const stampParsed = /^\d+$/.test((stampRaw ?? "").trim());
+      const pidKnown = Number.isInteger(pid) && pid > 0;
+      let age: number;
+      if (stampParsed) age = Date.now() - Number(stampRaw);
+      else {
+        try {
+          age = Date.now() - statSync(lockPath).mtimeMs;
+        } catch {
+          age = 0;
+        }
+      }
+      const stale =
+        (Number.isFinite(age) && age > ttl) || (pidKnown && stampParsed && !processAlive(pid));
       if (stale) {
-        unlinkSync(lockPath);
+        try {
+          unlinkSync(lockPath);
+        } catch (error) {
+          const code = (error as { code?: string }).code;
+          if (code !== "ENOENT" && code !== "EPERM" && code !== "EBUSY") throw error;
+          // Lost the race (ENOENT) or the holder has it open (EPERM/EBUSY): retry.
+        }
         continue;
       }
       Bun.sleepSync(2);
