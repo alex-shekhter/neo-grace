@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-INSPECTION-SURFACE-1-2628AA2B>
     <Summary>
       T2 change on `RM-GOVERNED-PATH`: a **read-only inspection surface for governed artifacts.**

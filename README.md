@@ -182,6 +182,8 @@ Migration cleanup is separately gated: successful current lint, fresh status pro
 | `ngrace file show <path> --path <root>` | Show file-local `MODULE_CONTRACT`, `MODULE_MAP`, and `CHANGE_SUMMARY` |
 | `ngrace file exports <path> --path <root>` | Print the first matching language adapter's exports and exportConfidence for a named file |
 | `ngrace file exports --module <id> --path <root>` | Print adapter exports for a module's authored graph Path only |
+| `ngrace change find <query> --path <root>` | List change bundles with location, spec/plan status, and derived states; an empty result exits 0 |
+| `ngrace change show C-ID --path <root>` | Show one bundle's close-bound criteria, `ObservedWriteScope`/`DurableScope`, and the latest verdict's per-criterion `Exit`/`Result` |
 | `ngrace lint --explain <code>` | Explain one issue code without linting. Three answers, never a guess: a catalogued code, a code this binary emits but has no dedicated entry for, or an unknown string — which says so and exits nonzero |
 | `ngrace doctor --path <root>` | Read-only report: adapters, analysis coverage, document size pressure, context gaps, absence issues, calibration, plan quality |
 | `ngrace graph split --by <path-prefix> --path <root>` | Move modules whose `Path` matches a prefix into a new `GD-*` document (dry-run by default; `--apply` to write) |
@@ -231,6 +233,8 @@ Output modes:
 - `ngrace verification show`: `text`, `json`
 - `ngrace file show`: `text`, `json`
 - `ngrace file exports`: `text`, `json`
+- `ngrace change find`: `text`, `json`
+- `ngrace change show`: `text`, `json`
 
 Lint, status, and projection-backed navigation fail closed: invalid options, invalid grammar, malformed active assertions/scopes, duplicate ownership, missing routed files, or ambiguous targets produce structured results or a nonzero error envelope. Unrecognized arguments are rejected and usage is printed. JSON command failures emit one stable `{ "schemaVersion": "1.0.0", "ok": false, "error": { ... } }` envelope on stdout; text failures emit one concise actionable line without a stack trace.
 

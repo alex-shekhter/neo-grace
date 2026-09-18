@@ -391,6 +391,87 @@ describe("correction 68 — newest-governs at the section boundary (A32.1)", () 
   });
 });
 
+describe("C-INSPECTION-SURFACE-1-2628AA2B T-001 — the Verdict reader carries the close-evidence tally", () => {
+  const tallyA = { criterionId: "AC-CLOSE-LINT", exit: "0", result: "pass" };
+  const tallyB = { criterionId: "AC-NO-OTHER-SRC", exit: "1", result: "fail" };
+
+  function writeVerdict(root: string, verdictBody: string, changeId = "C-GATE") {
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
+    mkdirSync(bundle, { recursive: true });
+    writeFileSync(
+      path.join(bundle, "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><${changeId}>`
+        + `<Verdicts>${verdictBody}</Verdicts>`
+        + `</${changeId}></NgraceRunLedger>`,
+    );
+  }
+
+  it("readLatestReviewVerdict carries Exit/Result for every complete AC-* criterion", () => {
+    const root = tempProject();
+    activeBundle(root);
+    writeVerdict(
+      root,
+      `<Verdict outcome="fail">`
+        + `<AC-CLOSE-LINT><Exit>0</Exit><Result>pass</Result></AC-CLOSE-LINT>`
+        + `<AC-NO-OTHER-SRC><Exit>1</Exit><Result>fail</Result></AC-NO-OTHER-SRC>`
+        + `</Verdict>`,
+    );
+    const latest = readLatestReviewVerdict(root, "C-GATE");
+    expect(latest.state).toBe("present");
+    if (latest.state === "present") {
+      expect(latest.verdict.closeEvidence).toEqual([tallyA, tallyB]);
+    }
+  });
+
+  it("readLedgerVerdictsSurface carries the same tally on every Verdict", () => {
+    const root = tempProject();
+    activeBundle(root);
+    writeVerdict(
+      root,
+      `<Verdict outcome="pass"><AC-CLOSE-LINT><Exit>0</Exit><Result>pass</Result></AC-CLOSE-LINT></Verdict>`
+        + `<Verdict outcome="fail"><AC-NO-OTHER-SRC><Exit>1</Exit><Result>fail</Result></AC-NO-OTHER-SRC></Verdict>`,
+    );
+    const surface = readLedgerVerdictsSurface(root, "C-GATE");
+    expect(surface.state).toBe("ok");
+    if (surface.state === "ok") {
+      expect(surface.verdicts.map((v) => v.closeEvidence)).toEqual([[tallyA], [tallyB]]);
+    }
+  });
+
+  it("an AC-* child missing Exit or Result is not carried as a recorded pass", () => {
+    const root = tempProject();
+    activeBundle(root);
+    writeVerdict(
+      root,
+      `<Verdict outcome="pass">`
+        + `<AC-COMPLETE><Exit>0</Exit><Result>pass</Result></AC-COMPLETE>`
+        + `<AC-NO-EXIT><Result>pass</Result></AC-NO-EXIT>`
+        + `<AC-EMPTY-EXIT><Exit></Exit><Result>pass</Result></AC-EMPTY-EXIT>`
+        + `<AC-BAD-RESULT><Exit>0</Exit><Result>maybe</Result></AC-BAD-RESULT>`
+        + `<Note>not a criterion</Note>`
+        + `</Verdict>`,
+    );
+    const latest = readLatestReviewVerdict(root, "C-GATE");
+    expect(latest.state).toBe("present");
+    if (latest.state === "present") {
+      expect(latest.verdict.closeEvidence).toEqual([
+        { criterionId: "AC-COMPLETE", exit: "0", result: "pass" },
+      ]);
+    }
+  });
+
+  it("a Verdict with no complete AC-* child carries no tally at all — absent, never an empty array", () => {
+    const root = tempProject();
+    activeBundle(root);
+    writeVerdict(root, `<Verdict outcome="pass"><AC-NO-EXIT><Result>pass</Result></AC-NO-EXIT></Verdict>`);
+    const latest = readLatestReviewVerdict(root, "C-GATE");
+    expect(latest.state).toBe("present");
+    if (latest.state === "present") {
+      expect(latest.verdict.closeEvidence).toBeUndefined();
+    }
+  });
+});
+
 describe("correction 69 — absent Decisions is not applied-without-gate-record (A33.1)", () => {
   it("no Decisions section → absent, not no-permit", () => {
     const root = tempProject();

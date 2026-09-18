@@ -35,6 +35,13 @@ export const AFFECTED_EDGES: Record<string, string[]> = {
   ".github/workflows/publish.yml": ["scripts/publish-workflow.test.ts"],
   "src/gates/ledger.ts": ["src/gates/core.test.ts", "src/grace-status.test.ts"],
   "src/gates/core.ts": ["src/gates/core.test.ts"],
+  // C-INSPECTION-SURFACE-1-2628AA2B T-004: the new root has no path-neighbour test
+  // (`src/query/change.test.ts` is where its cases live), and `src/query/render.ts`
+  // and `src/grace.ts` have no neighbour either, so without these edges every edit to
+  // a file this bundle writes would send the dev loop to the whole suite.
+  "src/grace-change.ts": ["src/query/change.test.ts"],
+  "src/query/render.ts": ["src/grace-query.test.ts"],
+  "src/grace.ts": ["src/query/command.test.ts"],
   "README.md": ["src/test-support/token-accounting.test.ts"],
   "test-metrics.json": ["scripts/test-metrics.test.ts"],
 };

@@ -8,6 +8,7 @@ import { writeMinimalNgraceProject } from "../artifact/test-fixtures";
 
 import { contextCommand } from "../grace-context";
 import { applyCommand } from "../grace-apply";
+import { changeCommand } from "../grace-change";
 import { cursorCommand } from "../grace-cursor";
 import { doctorCommand } from "../grace-doctor";
 import { fileCommand } from "../grace-file";
@@ -769,7 +770,7 @@ describe("listBooleanFlags live inventory (anti-F10)", () => {
 
     // Re-measured at execute via this walker. Plan-authoring HEAD 4bf483c: 24.
     // F23: exact pin, not a lower bound. F12.2: this run's number is the source of truth.
-    expect(sites.length).toBe(28);
+    expect(sites.length).toBe(30);
 
     // review and doctor included in the walk (0 booleans today).
     expect(sites.some((s) => s.path.startsWith("review"))).toBe(false);
@@ -847,6 +848,7 @@ function liveCommandRoots() {
     { name: "graph", command: graphCommand },
     { name: "context", command: contextCommand },
     { name: "verification", command: verificationCommand },
+    { name: "change", command: changeCommand },
     { name: "review", command: reviewCommand },
     { name: "doctor", command: doctorCommand },
     { name: "spec", command: specCommand },
@@ -995,7 +997,7 @@ describe("AC-CLASS-COVERAGE (T-003)", () => {
     const roots = liveCommandRoots();
     const sites = listBooleanFlags([...roots]);
     // Re-measure at execute (F12.2). Plan authoring: 24. F23: exact pin.
-    expect(sites.length).toBe(28);
+    expect(sites.length).toBe(30);
 
     for (const site of sites) {
       const node = commandAtPath(roots as never, site.path);
@@ -1008,7 +1010,7 @@ describe("AC-CLASS-COVERAGE (T-003)", () => {
 
   it("pure refuse covers every collected live flag name for space true and space false", () => {
     const sites = listBooleanFlags([...liveCommandRoots()]);
-    expect(sites.length).toBe(28);
+    expect(sites.length).toBe(30);
     const names = [...new Set(sites.map((s) => s.name))];
     for (const name of names) {
       const long = `--${name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/_/g, "-").toLowerCase()}`;

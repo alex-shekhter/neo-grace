@@ -66,7 +66,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync,
 import path from "node:path";
 
 import { spawnShellCommand } from "../artifact/assertions";
-import { isCloseBoundCriterion, validateRunLedgerArtifact } from "../artifact/grammar";
+import { collectCloseEvidenceEvaluations, isCloseBoundCriterion, validateRunLedgerArtifact } from "../artifact/grammar";
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { ANCHOR_PATTERNS, ARTIFACT_TAG_PREFIX, NGRACE_ARTIFACT_VERSION } from "../artifact/types";
 import { cloneXmlNode, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "../artifact/xml";
@@ -133,6 +133,14 @@ export type ReviewVerdictRecord = {
   findings?: VerdictFindingRecord[];
   /** Pass-only acknowledgements of persisted findingIds. */
   acks?: VerdictAckRecord[];
+  /**
+   * Recorded close-evidence tally: one entry per close-bound `AC-*` child that
+   * carries both `Exit` and a `pass`/`fail` `Result`. Absent when the Verdict
+   * carries no complete criterion — never an empty array (F270). Read here,
+   * through the shipped `collectCloseEvidenceEvaluations`, so no surface needs
+   * a second reader of the ledger bytes.
+   */
+  closeEvidence?: Array<{ criterionId: string; exit: string; result: string }>;
 };
 
 /** Canonical snapshot digest: SHA-256 of changeId plus findings sorted by (code, file, findingId). */
@@ -790,6 +798,8 @@ function parseVerdictNode(child: GraceXmlNode): ReviewVerdictRecord | { invalid:
   }
   if (record.snapshotDigest) record.findings = findings;
   if (acks.length > 0) record.acks = acks;
+  const closeEvidence = collectCloseEvidenceEvaluations(child);
+  if (closeEvidence.length > 0) record.closeEvidence = closeEvidence;
   return record;
 }
 

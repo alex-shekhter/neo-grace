@@ -8,6 +8,8 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   formatChangeFindTable
+//   formatChangeText
 //   formatFileExportsText
 //   formatFileText
 //   formatModuleFindTable
@@ -18,6 +20,7 @@
 //   formatVerificationText
 // END_MODULE_MAP
 import { getModuleDepends, getModuleName, getModulePath, getModuleType, getModuleVerificationIds } from "./core";
+import type { ChangeBundleListing, ChangeDurableScope, ChangeView } from "./change";
 import type { FileMarkupRecord, ModuleHealthRecord, ModuleMatch, ModuleRecord, ModuleVerificationRecord, VerificationMatch } from "./types";
 
 function formatList(label: string, items: string[]) {
@@ -172,4 +175,67 @@ export function formatFileText(fileRecord: FileMarkupRecord, options: { includeC
     lines.push("", "Blocks", ...(fileRecord.blocks.length > 0 ? fileRecord.blocks.map((block) => `- ${block.name} (lines ${block.startLine}-${block.endLine})`) : ["- none"]));
   }
   return lines.join("\n");
+}
+
+/** One row per bundle for `ngrace change find`. */
+export function formatChangeFindTable(bundles: ChangeBundleListing[]) {
+  if (bundles.length === 0) return "No change bundles found.";
+  return bundles
+    .map((bundle) => {
+      const statuses = [
+        `spec=${bundle.specStatus ?? "none"}`,
+        `plan=${bundle.planStatus ?? "none"}`,
+        `states=${bundle.derivedStates.length > 0 ? bundle.derivedStates.join(",") : "none"}`,
+      ].join(" ");
+      return `${bundle.changeId} ${bundle.location} ${statuses}`;
+    })
+    .join("\n");
+}
+
+/** Human-readable view for `ngrace change show`. */
+export function formatChangeText(view: ChangeView) {
+  const lines = [
+    `Change: ${view.changeId}`,
+    `Location: ${view.location}`,
+    `Spec: ${view.specStatus ?? "absent"}`,
+    `Plan: ${view.planStatus ?? "absent"}`,
+    ...formatList("Close-bound criteria", view.closeBoundCriteria),
+    "ObservedWriteScope:",
+    ...(view.observedWriteScope
+      ? [
+        ...(view.observedWriteScope.files.length > 0 ? view.observedWriteScope.files.map((file) => `  file: ${file}`) : ["  files: none"]),
+        ...(view.observedWriteScope.globs.length > 0 ? view.observedWriteScope.globs.map((glob) => `  glob: ${glob}`) : ["  globs: none"]),
+      ]
+      : ["  absent"]),
+    "DurableScope:",
+    ...formatDurableScope(view.durableScope),
+    ...formatList("States", view.derivedStates),
+    `Verdict: ${view.verdict ? view.verdict.outcome : "absent"}`,
+    ...(view.verdict
+      ? (view.verdict.closeEvidence.length > 0
+        ? view.verdict.closeEvidence.map((evaluation) => `  ${evaluation.criterionId}: exit=${evaluation.exit} result=${evaluation.result}`)
+        : ["  close-evidence tally: absent"])
+      : []),
+  ];
+  return lines.join("\n");
+}
+
+/** Label the durable-scope state the shipped readers can actually tell apart. */
+function formatDurableScope(durable: ChangeDurableScope): string[] {
+  switch (durable.state) {
+    case "carried":
+      return [
+        ...formatList("  graph anchors", durable.scope.graphAnchors),
+        ...formatList("  verification anchors", durable.scope.verificationAnchors),
+      ];
+    case "declared-none":
+      return ["  declared none (\u0060<None />\u0060)"];
+    case "not-carried-archived":
+      return [
+        "  not carried for an archived bundle (the applied-scope reader carries no durable scope;"
+        + " the archived plan declares its own anchors)",
+      ];
+    case "absent":
+      return ["  absent"];
+  }
 }

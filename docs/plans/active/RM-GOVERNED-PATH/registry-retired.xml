@@ -422,4 +422,10 @@
     <Pays>F288</Pays>
     <StatusText>Cursor event-id integrity: allocation serialized behind a per-bundle write lock, a post-write uniqueness renumber of the writer's own file, and a duplicate-id fold blocker named by recover.</StatusText>
   </Row>
+  <Row name="C-INSPECTION-SURFACE-1-2628AA2B" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug INSPECTION-SURFACE. Author half: searched the archive directories and both registry layers before minting; no prior bundle carries the slug INSPECTION-SURFACE.</Charter>
+    <Pays>F270 F291</Pays>
+    <StatusText>A read-only inspection surface for governed artifacts: a shipped ngrace change find|show and a repo-tooling record:query, both reading through the engine's own readers, with the Verdict reader carrying the close-evidence tally it already parsed past.</StatusText>
+  </Row>
 </Registry>
