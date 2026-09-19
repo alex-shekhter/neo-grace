@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-PER-BUNDLE-READERS-1-58BB7AB1>
     <IntentSummary>
       Convert the approved spec into the executable plan. Tier **T2** across

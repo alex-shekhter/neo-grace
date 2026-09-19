@@ -22,10 +22,10 @@ import path from "node:path";
 
 import { collectCloseBoundCriterionIds } from "../artifact/grammar";
 import { resolveNgracePaths } from "../artifact/project";
-import { collectActiveChangeScopes, collectAppliedChangeScopes } from "../artifact/scope";
+import { collectActiveChangeScopes, collectAppliedChangeScopes, type DurableScope } from "../artifact/scope";
 import { ANCHOR_PATTERNS } from "../artifact/types";
 import { readGraceXmlArtifact } from "../artifact/xml";
-import { collectProjectStatus } from "../grace-status";
+import { collectProjectStatus, derivedStatesForChange } from "../grace-status";
 import { readLatestReviewVerdict } from "../gates/ledger";
 import { GraceCommandError } from "./errors";
 
@@ -45,13 +45,11 @@ export type ChangeDurableSummary = {
   optionalContextArtifacts: string[];
 };
 
-/** Durable scope as the shipped readers label it. `not-carried-archived` is the third state: the
- * applied-scope reader is documented "No durable", so an archived bundle's anchors are not carried
- * here — distinguishable from a plan that declares `<None />` (`declared-none`). */
+/** Durable scope as the shipped readers label it: the plan's declared anchors, a declared
+ * `<None />` (`declared-none`), or no carried scope at all (`absent`). */
 export type ChangeDurableScope =
   | { state: "carried"; scope: ChangeDurableSummary }
   | { state: "declared-none" }
-  | { state: "not-carried-archived" }
   | { state: "absent" };
 
 /** One change bundle's derived state, for `change find`. */
@@ -85,6 +83,25 @@ export type ChangeView = {
 
 function isArchivePath(bundlePath: string): boolean {
   return bundlePath.includes(`${path.sep}changes${path.sep}archive${path.sep}`);
+}
+
+/** Maps one plan's durable scope to the carried/`<None />` label the view prints. */
+function durableScopeFrom(durable: DurableScope): ChangeDurableScope {
+  const carried: ChangeDurableSummary = {
+    graphAnchors: durable.graphAnchors,
+    verificationAnchors: durable.verificationAnchors,
+    graphDocuments: durable.graphDocuments,
+    verificationDocuments: durable.verificationDocuments,
+    contextArtifacts: durable.contextArtifacts,
+    optionalContextArtifacts: durable.optionalContextArtifacts,
+  };
+  const empty = carried.graphAnchors.length === 0
+    && carried.verificationAnchors.length === 0
+    && carried.graphDocuments.length === 0
+    && carried.verificationDocuments.length === 0
+    && carried.contextArtifacts.length === 0
+    && carried.optionalContextArtifacts.length === 0;
+  return empty ? { state: "declared-none" } : { state: "carried", scope: carried };
 }
 
 function changeWrapper(root: ReturnType<typeof readGraceXmlArtifact>["root"]) {
@@ -155,32 +172,17 @@ export function collectChangeView(projectRoot: string, changeId: string): Change
     const scope = collectActiveChangeScopes(paths).find((candidate) => candidate.changeId === changeId);
     if (scope) {
       observedWriteScope = { files: scope.observedWrites.files, globs: scope.observedWrites.globs };
-      const carried: ChangeDurableSummary = {
-        graphAnchors: scope.durable.graphAnchors,
-        verificationAnchors: scope.durable.verificationAnchors,
-        graphDocuments: scope.durable.graphDocuments,
-        verificationDocuments: scope.durable.verificationDocuments,
-        contextArtifacts: scope.durable.contextArtifacts,
-        optionalContextArtifacts: scope.durable.optionalContextArtifacts,
-      };
-      const empty = carried.graphAnchors.length === 0
-        && carried.verificationAnchors.length === 0
-        && carried.graphDocuments.length === 0
-        && carried.verificationDocuments.length === 0
-        && carried.contextArtifacts.length === 0
-        && carried.optionalContextArtifacts.length === 0;
-      durableScope = empty ? { state: "declared-none" } : { state: "carried", scope: carried };
+      durableScope = durableScopeFrom(scope.durable);
     }
   } else {
     const scope = collectAppliedChangeScopes(paths).find((candidate) => candidate.changeId === changeId);
     if (scope) {
       observedWriteScope = { files: scope.observedWrites.files, globs: scope.observedWrites.globs };
-      // The applied-scope reader carries no durable scope by design; name that, do not call it absent.
-      durableScope = { state: "not-carried-archived" };
+      durableScope = durableScopeFrom(scope.durable);
     }
   }
 
-  const derivedStates = locateDerivedStates(projectRoot, changeId);
+  const derivedStates = derivedStatesForChange(projectRoot, changeId);
 
   const latest = readLatestReviewVerdict(projectRoot, changeId);
   if (latest.state === "invalid") {
@@ -207,9 +209,4 @@ export function collectChangeView(projectRoot: string, changeId: string): Change
     derivedStates,
     verdict,
   };
-}
-
-/** Derived states for one bundle from the shipped status reader; [] when the bundle is unknown. */
-function locateDerivedStates(projectRoot: string, changeId: string): string[] {
-  return collectProjectStatus(projectRoot).changes.find((change) => change.changeId === changeId)?.derivedStates ?? [];
 }

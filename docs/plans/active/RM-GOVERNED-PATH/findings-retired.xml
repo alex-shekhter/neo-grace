@@ -5335,4 +5335,72 @@ Owner: a cursor-lock bundle, `src/` only, **immediately** — it blocks PR #110 
 Owner: a cursor-allocation `src/` bundle. Stays staged.
 </Body>
   </Finding>
+  <Finding id="f300" token="F300" status="retired">
+    <PaidBy>C-PER-BUNDLE-READERS-1-58BB7AB1</PaidBy>
+    <Title>### F300 — no shipped reader carries an applied bundle's `DurableScope`: `AppliedChangeScope` omits the field `ActiveChangeScope` carries, so `ngrace change show` can only label an archived bundle's durable scope &quot;not carried&quot;, never print its anchors. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 executing `C-INSPECTION-SURFACE-1-2628AA2B`.** `ngrace change show
+C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92` (archived, `plan.xml` declares
+`&amp;lt;DurableScope&amp;gt;&amp;lt;GraphAnchors&amp;gt;&amp;lt;M-CURSOR/&amp;gt;&amp;lt;/GraphAnchors&amp;gt;&amp;lt;/DurableScope&amp;gt;`) printed
+`DurableScope: absent` before the fix and prints the honest third state
+`not carried for an archived bundle (the applied-scope reader carries no durable scope; the archived
+plan declares its own anchors)` after it.
+
+**Read from the code, not inferred.** `collectAppliedChangeScopes`
+(`src/artifact/scope.ts:253`) delegates to `readAppliedChangeScope` (`:322`), which extracts only
+`extractObservedWriteScope` and returns an `AppliedChangeScope` (`:65`) — a type with no `durable`
+field, documented *&quot;No durable&quot;*. `collectActiveChangeScopes` (`:241`) delegates to
+`readActiveChangeScope` (`:344`), which does call `extractDurableScope` and returns a `DurableScope`.
+`extractDurableScope` (`:368`) is **not exported**, and `collectDurableScopeAnchors`
+(`src/artifact/grammar.ts:2110`) is a local helper on a different shape, so no shipped reader returns
+the anchors for an applied bundle. Exporting `extractDurableScope` from `src/artifact/scope.ts` would
+be the two-line fix — and that file is outside this bundle's approved write scope, which is why the
+third state was the answer here.
+
+**Why it matters beyond this verb.** `F291`'s floor names &quot;what the plan's `DurableScope` holds&quot; as a
+close-time question. For an active bundle the verb now answers it; for an archived bundle — which is the
+state the close is actually verifying — the answer is &quot;not carried&quot;, and a reader who needs the anchors
+must open the archived `plan.xml` by hand, the exact `bun -e` the bundle exists to replace. The
+asymmetry is invisible until a consumer wants the archived side.
+
+**The remedy is scoped, not a redesign.** Either `extractDurableScope` is exported and
+`AppliedChangeScope` gains a `durable` field populated by `readAppliedChangeScope`, or
+`collectAppliedChangeScopes` returns an optional durable scope for callers that ask. Both keep the
+drift-credit consumer unchanged (it reads only `observedWrites`).
+
+Owner: a `src/artifact/scope.ts` bundle (`M-GRAMMAR`), which would also let `ngrace change show` print an
+archived bundle's real anchors. Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f301" token="F301" status="retired">
+    <PaidBy>C-PER-BUNDLE-READERS-1-58BB7AB1</PaidBy>
+    <Title>### F301 — there is no shipped per-bundle derived-state reader, so a single-bundle query must compute whole-project status; `ngrace change show` costs 3.6× a peer `show` for it. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 at the delivered tree of `C-INSPECTION-SURFACE-1-2628AA2B`.** Wall time, same
+machine, same warm cache: `ngrace module show M-QUERY` **0.52 s**; `ngrace change show
+C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92` **1.87 s**; `ngrace change find` **1.71 s**; `ngrace status`
+**1.72 s**. The change verb costs what the whole-project status snapshot costs, because that is what it
+calls.
+
+**Read from the code, not inferred.** `locateDerivedStates` (`src/query/change.ts:214`) is
+`collectProjectStatus(projectRoot).changes.find(…)?.derivedStates ?? []`, and `collectProjectStatus` is
+the only shipped producer of `derivedStates` — a repository-wide walk. `change find` (`:109`) calls it
+once for the listing, which is proportionate; `change show` calls it to answer **one** bundle's
+question.
+
+**Why the implementation is nevertheless right.** The bundle's own Constraint forbids a second reader
+of any governed byte, and deriving a narrower per-bundle state inside the verb would be exactly that.
+Given the shipped surface, calling `collectProjectStatus` is the only conformant choice. The cost is
+the missing reader, not the caller.
+
+**Same shape as [F300](docs/plans/active/RM-GOVERNED-PATH/findings.xml)**, staged in the same dispatch:
+`extractDurableScope` (`src/artifact/scope.ts:368`) is module-private and `AppliedChangeScope` omits the
+field, so an archived bundle's anchors cannot be read either. Two questions about one bundle, two
+missing narrow readers, both answered today by widening the call or by labelling the gap honestly.
+
+Owner: a `src/` bundle that gives the status and scope layers a per-bundle entry point
+(`derivedStatesForChange(projectRoot, changeId)` and an applied durable scope), paying `F300` and this
+together. Stays staged.
+</Body>
+  </Finding>
 </Findings>

@@ -5,7 +5,10 @@ import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
 import { ARTIFACT_DIR } from "./artifact/paths";
+import { lintGraceProject } from "./lint/core";
+import type { LintIssue, LintResult } from "./lint/types";
 import { collectProjectStatus, formatStatusText } from "./grace-status";
+import * as graceStatusModule from "./grace-status";
 
 const REPO_ROOT = path.resolve(import.meta.dir, "..");
 const LIVE_NAN_ORPHAN = path.join(
@@ -1193,5 +1196,60 @@ describe("C-AMENDMENT-COUNT T-002 status surfaces", () => {
     const editedText = formatStatusText(collectProjectStatus(edited));
     const editedLine = editedText.split("\n").find((line) => line.includes("C-EDIT")) ?? "";
     expect(editedLine).toContain("re-ratifications=1");
+  });
+});
+
+const derivedStatesForChange = (graceStatusModule as unknown as {
+  derivedStatesForChange?: (projectRoot: string, changeId: string, options?: { lint?: LintResult }) => string[];
+}).derivedStatesForChange;
+
+describe("C-PER-BUNDLE-READERS-1-58BB7AB1 per-bundle derived states", () => {
+  it("equals the whole-project snapshot's states for every real bundle", () => {
+    expect(typeof derivedStatesForChange).toBe("function");
+    const snapshot = collectProjectStatus(REPO_ROOT);
+    const lint = lintGraceProject(REPO_ROOT, { profile: "standard" });
+    for (const change of snapshot.changes) {
+      expect(derivedStatesForChange!(REPO_ROOT, change.changeId, { lint }), change.changeId).toEqual(change.derivedStates);
+    }
+  });
+
+  it("returns an empty list for an unknown bundle id", () => {
+    expect(typeof derivedStatesForChange).toBe("function");
+    expect(derivedStatesForChange!(REPO_ROOT, "C-NO-SUCH-1-00000000")).toEqual([]);
+  });
+
+  it("is non-vacuous: a planted malformed plan's integrity-issues state is reproduced", () => {
+    expect(typeof derivedStatesForChange).toBe("function");
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-PLANT-1-AAAA1111/spec.xml`,
+      `<NgraceChangeSpec graceVersion="1.0" status="draft"><C-PLANT-1-AAAA1111><Summary>x</Summary></C-PLANT-1-AAAA1111></NgraceChangeSpec>`,
+    );
+    writeProjectFile(
+      root,
+      `${ARTIFACT_DIR}/changes/active/C-PLANT-1-AAAA1111/plan.xml`,
+      `<NgraceChangePlan graceVersion="1.0" status="draft"><C-PLANT-1-AAAA1111><IntentSummary>x</IntentSummary></C-PLANT-1-AAAA1111></NgraceChangePlan>`,
+    );
+    const snapshot = collectProjectStatus(root);
+    const planted = snapshot.changes.find((change) => change.changeId === "C-PLANT-1-AAAA1111")!;
+    expect(planted.derivedStates).toContain("integrity-issues");
+    expect(derivedStatesForChange!(root, "C-PLANT-1-AAAA1111")).toEqual(planted.derivedStates);
+  });
+
+  it("uses a caller-supplied lint report instead of re-linting the project", () => {
+    expect(typeof derivedStatesForChange).toBe("function");
+    const clean = lintGraceProject(REPO_ROOT, { profile: "standard" });
+    const plantedIssue: LintIssue = {
+      severity: "error",
+      code: "test.planted-in-bundle-error",
+      file: path.join(REPO_ROOT, ".ngrace/changes/archive/C-EVENT-LOCK-ATOMIC-1-9711E83D/plan.xml"),
+      message: "planted in-bundle error for the per-bundle reader",
+    };
+    const planted = { ...clean, issues: [...clean.issues, plantedIssue] };
+    expect(
+      derivedStatesForChange!(REPO_ROOT, "C-EVENT-LOCK-ATOMIC-1-9711E83D", { lint: planted }),
+    ).toContain("integrity-issues");
   });
 });

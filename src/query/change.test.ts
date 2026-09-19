@@ -204,22 +204,46 @@ describe("C-INSPECTION-SURFACE-1-2628AA2B T-002 ngrace change", () => {
     expect(collectChangeView(root, CHANGE_ID).specStatus).toBeNull();
   });
 
-  it("labels an archived bundle's undeclared durable scope as not-carried, never as absent or declared-none", () => {
+  it("carries an archived applied bundle's declared durable anchors, never the third-state label", () => {
     const root = tempProject();
     writeBundle(root, { location: "archive" });
     // The archived plan declares <DurableScope><GraphAnchors><M-EXAMPLE/></GraphAnchors></DurableScope>.
     const archived = collectChangeView(root, CHANGE_ID);
     expect(archived.location).toBe("archive");
-    expect(archived.durableScope.state).toBe("not-carried-archived");
-    expect(archived.durableScope.state).not.toBe("declared-none");
-    expect(archived.durableScope.state).not.toBe("absent");
+    expect(archived.durableScope.state).toBe("carried");
+    expect(archived.durableScope).toMatchObject({ scope: expect.objectContaining({ graphAnchors: ["M-EXAMPLE"] }) });
 
     const text = runCli(root, ["show", CHANGE_ID]);
     expect(text.status).toBe(0);
-    expect(text.stdout).toContain("not carried for an archived bundle");
+    expect(text.stdout).toContain("M-EXAMPLE");
+    expect(text.stdout).not.toContain("not carried for an archived bundle");
 
     const json = runCli(root, ["show", CHANGE_ID, "--format", "json"]);
-    expect(JSON.parse(json.stdout).durableScope.state).toBe("not-carried-archived");
+    const durable = JSON.parse(json.stdout).durableScope;
+    expect(durable.state).toBe("carried");
+    expect(durable.scope.graphAnchors).toContain("M-EXAMPLE");
+  });
+
+  it("distinguishes an archived declared <None /> from an archived non-applied bundle", () => {
+    const none = tempProject();
+    const noneBundle = writeBundle(none, { location: "archive" });
+    writeFileSync(
+      path.join(noneBundle, "plan.xml"),
+      `<NgraceChangePlan graceVersion="1.0" status="applied"><${CHANGE_ID}>${PLAN_BODY.replace("<DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>", "<DurableScope><None /></DurableScope>")}</${CHANGE_ID}></NgraceChangePlan>`,
+    );
+    expect(collectChangeView(none, CHANGE_ID).durableScope.state).toBe("declared-none");
+
+    const rejected = tempProject();
+    const rejectedBundle = writeBundle(rejected, { location: "archive" });
+    writeFileSync(
+      path.join(rejectedBundle, "spec.xml"),
+      readFileSync(path.join(rejectedBundle, "spec.xml"), "utf8").replace('status="applied"', 'status="rejected"'),
+    );
+    writeFileSync(
+      path.join(rejectedBundle, "plan.xml"),
+      readFileSync(path.join(rejectedBundle, "plan.xml"), "utf8").replace('status="applied"', 'status="rejected"'),
+    );
+    expect(collectChangeView(rejected, CHANGE_ID).durableScope.state).toBe("absent");
   });
 
   it("distinguishes an active bundle's real anchors (carried) from a declared <None /> (declared-none)", () => {
@@ -245,5 +269,11 @@ describe("C-INSPECTION-SURFACE-1-2628AA2B T-002 ngrace change", () => {
     runCli(root, ["find"]);
     runCli(root, ["show", CHANGE_ID]);
     expect(hashTree(root)).toBe(before);
+  });
+
+  it("answers change show through the per-bundle reader, leaving one whole-project walk in find", () => {
+    const source = readFileSync(path.join(REPO_ROOT, "src/query/change.ts"), "utf8");
+    expect((source.match(/collectProjectStatus\(/g) ?? []).length).toBe(1);
+    expect(source).toContain("derivedStatesForChange");
   });
 });
