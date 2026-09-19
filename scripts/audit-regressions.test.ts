@@ -305,12 +305,16 @@ function resolvesToTests(segment: string, scripts: Record<string, string>): bool
   return false;
 }
 
+// C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0 T-003: the suite segment is the JUnit-emitting
+// measured runner (`bun run test:metrics`), still exactly one suite invocation.
+const SUITE_SEGMENT = /^bun (?:run )?(?:test|test:metrics)$/;
+
 export function validateCiRerunsSuite(scripts: Record<string, string>): string[] {
   const command = scripts["validate:ci"];
   if (!command) return ["validate:ci: missing"];
   const segments = command.split("&&").map((s) => s.trim()).filter(Boolean);
-  const suites = segments.filter((s) => /^bun (?:run )?test$/.test(s));
-  const extras = segments.filter((s) => resolvesToTests(s, scripts) && !/^bun (?:run )?test$/.test(s));
+  const suites = segments.filter((s) => SUITE_SEGMENT.test(s));
+  const extras = segments.filter((s) => resolvesToTests(s, scripts) && !SUITE_SEGMENT.test(s));
   return suites.length === 1 && extras.length === 0
     ? []
     : [`validate:ci: full-suite=${suites.length} extra=${extras.join(", ") || "none"}`];
@@ -350,5 +354,14 @@ export function coverageRegressions(root: string): string[] {
 describe("C-TEST-TIME-BUDGET-2-3EC1F016 coverage never falls", () => {
   it("no *.test.ts has fewer test declarations than at the base commit", () => {
     expect(coverageRegressions(repoRoot)).toEqual([]);
+  });
+});
+
+describe("C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0 CI governance lint", () => {
+  it("validate:ci contains the assertions-off governance lint and no current-mode lint of this root", () => {
+    const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as { scripts: Record<string, string> };
+    const command = pkg.scripts["validate:ci"];
+    expect(command).toContain("bun ./src/grace.ts lint --path . --assertions none --fail-on errors");
+    expect(command).not.toContain("--assertions current");
   });
 });

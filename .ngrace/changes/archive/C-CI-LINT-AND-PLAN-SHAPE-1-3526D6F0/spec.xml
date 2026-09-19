@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0>
     <Summary>
       Close three defects on three surfaces in one bundle: the repository's own governance

@@ -512,6 +512,7 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-plan", section: "must_do", token: "faithful post-close copy" },
   { skill: "ngrace-plan", section: "must_do", token: "red-direction fixture" },
   { skill: "ngrace-plan", section: "must_do", token: "change.graph-anchors-miss-write-scope" },
+  { skill: "ngrace-plan", section: "must_do", token: "change.graph-anchors-pending-file" },
   { skill: "ngrace-plan", section: "must_do", token: "the close writes" },
   { skill: "ngrace-plan", section: "spec_plan_traceability", token: "uncloseable bundle" },
   { skill: "ngrace-plan", section: "command_phase_rules", token: "stage the task runs" },

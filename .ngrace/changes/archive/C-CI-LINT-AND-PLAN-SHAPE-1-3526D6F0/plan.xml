@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0>
     <IntentSummary>
       Convert the approved spec into six tasks over four surfaces with separable reds.

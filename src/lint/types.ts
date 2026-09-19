@@ -42,7 +42,7 @@ export type LintSeverity = "error" | "warning";
 export type LintProfile = "standard";
 
 /** Selected assertion section evaluated by ngrace lint. */
-export type LintAssertionMode = "current" | "baseline" | "target" | "final";
+export type LintAssertionMode = "current" | "baseline" | "target" | "final" | "none";
 
 export type ModuleRole = "RUNTIME" | "TEST" | "BARREL" | "CONFIG" | "TYPES" | "SCRIPT";
 export type MapMode = "EXPORTS" | "LOCALS" | "SUMMARY" | "NONE";

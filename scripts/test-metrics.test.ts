@@ -1,8 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
-import { parseJUnit, rankSlowest, type TestMetrics } from "./test-metrics";
+import { artifactIsStale, parseJUnit, rankSlowest, type TestMetrics } from "./test-metrics";
 
 const repoRoot = path.resolve(import.meta.dir, "..");
 const ARTIFACT = path.join(repoRoot, "test-metrics.json");
@@ -51,5 +52,41 @@ describe("C-TEST-TIME-BUDGET-2-3EC1F016 per-test metrics", () => {
     const metrics = parseJUnit(xml, "2026-09-17");
     expect(JSON.stringify(metrics)).not.toContain("some-machine");
     expect(metrics.files).toEqual([{ file: "a.test.ts", tests: 2, ms: 750 }]);
+  });
+});
+
+describe("C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0 metrics stale gate", () => {
+  it("is false when the committed artifact matches the tree and true when it does not", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "test-metrics-stale-"));
+    mkdirSync(path.join(root, "src"), { recursive: true });
+    mkdirSync(path.join(root, "scripts"), { recursive: true });
+    writeFileSync(path.join(root, "src", "a.test.ts"), "import { test, expect } from \"bun:test\"; test(\"a\", () => expect(1).toBe(1));\n");
+    writeFileSync(path.join(root, "src", "b.test.ts"), "import { test, expect } from \"bun:test\"; test(\"b\", () => expect(1).toBe(1));\n");
+    const outfile = path.join(root, "test-metrics.json");
+    const fresh: TestMetrics = {
+      schemaVersion: "1.0.0",
+      generated: "2026-09-19",
+      files: [
+        { file: "src/a.test.ts", tests: 1, ms: 1 },
+        { file: "src/b.test.ts", tests: 1, ms: 1 },
+      ],
+      tests: [
+        { file: "src/a.test.ts", name: "a", ms: 1 },
+        { file: "src/b.test.ts", name: "b", ms: 1 },
+      ],
+    };
+    writeFileSync(outfile, JSON.stringify(fresh));
+    expect(artifactIsStale(root, outfile)).toBe(false);
+
+    writeFileSync(outfile, JSON.stringify({ ...fresh, files: [fresh.files[0]!] }));
+    expect(artifactIsStale(root, outfile)).toBe(true);
+
+    writeFileSync(outfile, JSON.stringify({ ...fresh, files: [...fresh.files, { file: "src/c.test.ts", tests: 1, ms: 1 }] }));
+    expect(artifactIsStale(root, outfile)).toBe(true);
+
+    writeFileSync(outfile, JSON.stringify({ ...fresh, tests: [fresh.tests[0]!] }));
+    expect(artifactIsStale(root, outfile)).toBe(true);
+
+    expect(artifactIsStale(root, path.join(root, "absent.json"))).toBe(true);
   });
 });
