@@ -1,0 +1,434 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0>
+    <Summary>
+      Close three defects on three surfaces in one bundle: the repository's own governance
+      lint runs in no CI job, so a markup, MODULE_MAP or graph-anchor defect reaches main
+      with CI green (F284); the anchor-miss rule has no existence branch, so every plan that
+      declares a not-yet-created module-ownable src/ file is red from approval until the
+      task lands (F297); and `bun run test:metrics` runs the whole suite, so a bundle that
+      regenerates `test-metrics.json` executes the suite twice (F299). The remedies are an
+      explicit assertions-off lint mode plus a root governance lint inside `validate:ci`, an
+      existence branch that warns on a declared-but-absent module-ownable path and keeps the
+      error once it exists without an owning LINKS, and a metrics artifact derived from the
+      single suite run `validate:ci` already makes.
+    </Summary>
+    <Problem>
+      Three recorded findings [verified], re-measured 2026-09-19 at
+      fead8a082646ecbe18e669981833ddcf4661d75f on branch c-ci-lint-and-plan-shape.
+
+      F284 — no governance lint in CI. `bun run validate:ci` invokes no `ngrace lint` in any
+      form (`node -e` over package.json's `validate:ci` reports no `ngrace lint` and no
+      `grace.ts lint` substring), and `.github/workflows/validate.yml` runs no lint step.
+      The escape was observed, not hypothesised: executing C-TEST-TIME-BUDGET-2-3EC1F016,
+      five new exports across `src/gates/ledger.ts` and `scripts/test-affected.ts` landed
+      without their MODULE_MAP entries, `bun run validate:ci` exited 0 over that tree, and
+      the defect surfaced only when the executor ran the lint by hand. Measured this pass:
+      planting an export without its MODULE_MAP entry makes `--assertions current`,
+      `baseline`, `target` and `final` all exit 1 with `markup.module-map-mismatch`; a clean
+      tree is 0/0.
+
+      The counterweight is a shipped ruling, and any remedy must answer it. Default assertion
+      mode is `current` (`src/grace-lint.ts:89`), which evaluates the BaselineAssertions of
+      every active approved plan. Measured this pass with an active approved plan carrying
+      one BaselineAssertion that fails on the present tree: `--assertions current` exits 1
+      with `assertion.MustNotExist`, and `--assertions final` also evaluates unrelated active
+      baselines. C-REPORT-HONESTY (archived) holds that the hazard of a current-mode lint is
+      "a stale baseline masquerading as post-write evidence", `validate:examples` is
+      acceptable only because it lints a different root, and `ngrace-plan`'s command rule
+      forbids a current-mode lint of this root in `TargetAssertions`. A root `ngrace lint`
+      added to `validate:ci` today would evaluate this project's active baselines mid-flight.
+
+      What the tool does not offer is an honest third mode. Measured this pass: with no
+      `--change`, `--assertions baseline` and `--assertions target` both exit 1 with
+      `assertion.change-required`, and `--assertions final` evaluates unrelated active
+      baselines. There is no mode that runs markup, MODULE_MAP, graph-anchor and
+      artifact-pure rules while evaluating no assertion at all. The finding names three
+      shapes — a selected-assertion lint bound to no active change, a lint restricted to
+      markup and graph rules with assertion evaluation off, or a check that runs only when
+      no bundle is active. Making a selected-assertion mode legal without `--change` would
+      contradict the shipped rule that every selected-assertion command names `--change`
+      (F253 / C-TEACH-PLAN-DRIVES-CORRECTIONS-2), so this spec takes the second shape: a new
+      explicit mode, `none`, that evaluates no BaselineAssertions and no TargetAssertions in
+      any tree.
+
+      F297 — the anchor rule has no existence branch.
+      `validateGraphAnchorsOwnWriteScope` (`src/lint/core.ts:750`) builds `linksByPath` from
+      the governed-file records and requires, for every module-ownable ObservedWriteScope
+      path, that the file's header LINKS a GraphAnchors module. A file not yet written has no
+      record, so `links === undefined`, `owned` is false, and the error fires. Archived
+      precedents C-INSPECTION-SURFACE-1-2628AA2B, C-APPLY-VERB and C-SUPERSEDE-VERB all
+      declared a brand-new `src/` file in ObservedWriteScope and were red from approval until
+      the file landed. Re-measured this pass on a throwaway copy: an active approved plan
+      declaring `src/nonexistent-probe-xyz.ts` exits 1 with exactly one
+      `change.graph-anchors-miss-write-scope` and no other issue. The decision that created
+      it, per the repository's own rule, is C-GRAPH-COVERAGE (A53) plus D12, which authorized
+      the window and required it to be recorded rather than avoided. D12's argument is that
+      an expected error named in advance is not a surprise; F297's counter-argument is that a
+      rule known to fire on a correct artifact trains the reader to skip it. This spec does
+      not weaken A53: ownership stays LINKS-only, archives stay unevaluated, and a file that
+      exists without an owning LINKS still errors.
+
+      F299 — the metrics regeneration runs the suite a second time. `bun run test:metrics`
+      spawns the whole suite (`scripts/test-metrics.ts:92`,
+      `spawnSync("bun", ["test", "--timeout=0", "--reporter=junit", ...])`) to write
+      `test-metrics.json`; a bundle that adds a test file must regenerate because the
+      freshness guard (`scripts/test-metrics.test.ts`) compares the artifact's file list and
+      count sum against a freshly computed tree walk, and the close's `bun run validate:ci`
+      runs `bun run test` again. Timed this pass on a throwaway copy: `bun run test` 74.39 s,
+      `bun run test:metrics` 74.80 s, combined 149.19 s for one metrics-regenerating bundle.
+      The two numbers measure different things and the guidance conflates them: the full
+      CI-equivalent invocation runs once (`validate:ci`), while the whole suite executes
+      twice. The one-suite-run property of `validate:ci` is itself pinned by
+      `validateCiRerunsSuite` (`scripts/audit-regressions.test.ts:308`), created by
+      C-TEST-TIME-BUDGET-2-3EC1F016, so any tool remedy must change that predicate
+      deliberately and keep its intent — each test file executes exactly once. The artifact
+      also carries a per-file `ms` and a `generated` date, so an unconditional regeneration
+      would churn on every run — every close commits timing noise and every developer run
+      dirties the tree. The remedy therefore regenerates only when the freshness predicate
+      says the committed artifact is stale (the file list or the count sum differs from a
+      freshly computed tree walk) and leaves it byte-identical otherwise.
+    </Problem>
+    <Goals>
+      <Goal>
+        An explicit assertions-off lint mode exists: `bun ./src/grace.ts lint --path .
+        --assertions none` is accepted, reports `assertionMode` as `none` in
+        `--format json`, runs every non-assertion rule the standard lint runs (markup,
+        MODULE_MAP, graph-anchor ownership, scope, artifact validity), and evaluates no
+        BaselineAssertions and no TargetAssertions in any tree — active or archived, selected
+        or unselected. `current` remains the default and its behaviour is unchanged.
+      </Goal>
+      <Goal>
+        `validate:ci` runs a root governance lint that cannot evaluate a stale baseline:
+        `bun ./src/grace.ts lint --path . --assertions none --fail-on errors` is a member of
+        the `validate:ci` chain. The planted F284 escape (an export without its MODULE_MAP
+        entry) makes that member exit non-zero with `markup.module-map-mismatch`, and a clean
+        tree with no active bundle is 0/0. The workflow needs no new step; it already calls
+        `bun run validate:ci` (`.github/workflows/validate.yml:22`), and the Windows job's
+        own steps are unchanged.
+      </Goal>
+      <Goal>
+        The anchor-miss rule has an honest existence branch. A module-ownable ObservedWriteScope
+        path that does not exist on disk reports `change.graph-anchors-pending-file` at
+        warning severity, naming the path and stating that the error applies once the file
+        exists; the existing `change.graph-anchors-miss-write-scope` error still fires when
+        the path exists and its LINKS share no GraphAnchors module. The new code is registered
+        in `src/lint/catalog.ts` with an `ngrace lint --explain` guide and is covered by the
+        emitted-code scan.
+      </Goal>
+      <Goal>
+        `ngrace-plan`'s must_do row 6 stops teaching the transient as an unconditional error
+        and names both states: a declared-but-absent module-ownable path warns
+        `change.graph-anchors-pending-file` until the task creates the file, and the error
+        `change.graph-anchors-miss-write-scope` applies to a file that exists without an
+        owning LINKS. The edit is forced, not cosmetic: the row's current sentence — that a
+        not-yet-created path "errors `change.graph-anchors-miss-write-scope` at every lint
+        mode until the task that creates it lands" — is false the moment F297 lands. The
+        canonical skill and its packaged mirror move byte-identically, the taught-rule token
+        table follows, and the SKILL.md footprint pin and the README measurement cell it
+        cross-checks are re-measured and transcribed.
+      </Goal>
+      <Goal>
+        A metrics-regenerating bundle executes the whole suite once and a bundle that adds no
+        test file leaves `test-metrics.json` byte-identical. The single suite run in
+        `validate:ci` emits its JUnit report to a temp path; before deciding to write, the stale
+        check reads the committed `test-metrics.json`, computes the tree walk the freshness
+        predicate names (`scripts/test-metrics.test.ts:31–33`), and regenerates the artifact
+        from that report only when the file list or the count sum differs; when the artifact
+        is fresh the derivation is skipped and the committed bytes are untouched. There is no
+        second `bun test`. This requires `validate:ci` to use the JUnit-emitting suite runner
+        as its one suite segment and `scripts/audit-regressions.test.ts`'s one-suite-run
+        predicate (`validateCiRerunsSuite`, `:308`) to accept that runner while still proving
+        exactly one suite segment and no second `bun test`. `test-metrics.json` stays in the
+        write scope because it moves when a bundle adds a test file, and it is excluded from
+        every byte-invariance pathspec with that reason.
+      </Goal>
+      <Goal>
+        On this repository after the change, `bun run validate:ci` exits 0 on the applied
+        tree; `bun ./src/grace.ts lint --path . --assertions none --fail-on warnings` is 0/0
+        on the applied-archive tree; and no archived bundle is edited.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting: the lint engine, the CLI surface, the release/CI
+        surface, the metrics tool, the skill teaching surface and the packaged mirror).
+        Roadmap RM-GOVERNED-PATH. Base commit
+        fead8a082646ecbe18e669981833ddcf4661d75f, the fead8a0 merge. One bundle by the
+        maintainer's ordering; the three findings do not split.
+      </Constraint>
+      <Constraint>
+        Anchors, in every list the artifact enumerates modules. `src/lint/core.ts` and
+        `src/grace-lint.ts` declare `LINKS: M-LINT-CORE`; `src/lint/types.ts` declares
+        `LINKS: M-LINT-TYPES` (the `LintAssertionMode` union is the new mode's home);
+        `src/lint/catalog.ts` declares `LINKS: M-LINT-CATALOG`; `scripts/test-metrics.ts`
+        declares `LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]`; the canonical
+        `skills/ngrace/ngrace-plan/SKILL.md` and its packaged mirror are `M-SKILLS`.
+        `package.json`, `.github/workflows/validate.yml`, `README.md`, `test-metrics.json`
+        and the `*.test.ts` files are not module-ownable and declare no anchor. The module
+        list must agree wherever it appears.
+      </Constraint>
+      <Constraint>
+        The F284 remedy answers C-REPORT-HONESTY rather than overturning it. `none` evaluates
+        no baseline, so no stale baseline can masquerade as post-write evidence; it is honest
+        in CI and on a pull-request branch with an active approved plan. `current` keeps its
+        default status and its baseline evaluation; no existing mode's meaning changes. Do not
+        add a current-mode lint of this root to any `TargetAssertions`.
+      </Constraint>
+      <Constraint>
+        The F297 remedy does not overturn C-GRAPH-COVERAGE / A53 or D12's authorization. It
+        answers D12 by making the transient named rather than silent: the declared-but-absent
+        state gets its own code at warning, the file that exists without an owning LINKS still
+        errors, archives are still not evaluated, and ownership is still LINKS-only, never a
+        directory prefix. The pending warning is the state between plan approval and the
+        creating task; at close every declared file exists, so `--fail-on warnings` sees no
+        pending code.
+      </Constraint>
+      <Constraint>
+        The F284 and F297 remedies interlock by design. `change.graph-anchors-pending-file`
+        is a warning and the CI lint runs `--fail-on errors`, so an active plan that declares
+        a not-yet-created module-ownable file mid-execution does not red CI; this repository
+        opens its pull requests after the close, when the file exists. The close's own
+        `--fail-on warnings` lint (the `AC-CLOSE-LINT` shape, evaluated post-archive) sees
+        nothing from this rule at all, because `validateGraphAnchorsOwnWriteScope` scans
+        active scopes only and the bundle is archived by then.
+      </Constraint>
+      <Constraint>
+        Pinned surfaces move deliberately and are named. `scripts/audit-regressions.test.ts`
+        holds `validateCiRerunsSuite` (`:308`) and `findUntrackedFixtureReads` (`:250`);
+        `scripts/check-teaching-surface.ts` and its test hold the `ngrace-plan` must_do
+        token table; `src/test-support/token-accounting.test.ts` pins the 16-`SKILL.md`
+        `skillTextLines().total` / `totalBytes` (875 lines / 88664 bytes at base) and
+        cross-checks the README measurement cell it must match; `scripts/test-metrics.test.ts`
+        holds the freshness relation; `src/lint/catalog.test.ts` holds the guide and
+        emitted-code assertions; `src/grace-lint.test.ts` holds the mode acceptance and
+        refusal tests. A `SKILL.md` edit moves the footprint pin and the README cell, and
+        both are re-measured with `skillTextLines()` and transcribed, never projected. A new
+        lint code is scanned from its emit site by `collectEmittedIssueCodes` and must
+        resolve to an exact guide through `isEmittableIssueCode`. `grep` each pin before
+        writing scope.
+      </Constraint>
+      <Constraint>
+        F299 changes the one-suite-run pin on purpose and keeps its intent. The plan must
+        state the predicate's new form and prove the property it protects — each test file
+        executes exactly once per `validate:ci` — with a test, not by widening the predicate
+        to accept anything. The `test:metrics` runner keeps `--reporter=junit` and its
+        non-zero exit on suite failure; no test file is added.
+      </Constraint>
+      <Constraint>
+        The close's write set is enumerated once. A non-empty `Pays` forces the seven record
+        files under `docs/plans/active/RM-GOVERNED-PATH/`, the payer-map fixture
+        (`bundleMinted` in `scripts/validate-record-retirement.test.ts`, three entries), the
+        bundle's own archive arrival, and `test-metrics.json`, which moves when a bundle
+        adds a test file: the close's `--assertions final --run-commands` drives
+        `validate:ci`, whose one suite run emits a JUnit report and regenerates the artifact
+        only when the freshness predicate says it is stale. Every one of them is declared in
+        `ObservedWriteScope` and excluded from every byte-invariance pathspec with a reason;
+        the close of a bundle that adds no test file leaves `test-metrics.json`
+        byte-identical.
+      </Constraint>
+      <Constraint>
+        The four byte-invariance criteria are against base
+        fead8a082646ecbe18e669981833ddcf4661d75f, each a `git diff --exit-code` over one
+        surface with its forced writes excluded: (1) `src/` and `scripts/` minus this
+        bundle's deliverable files; (2) the RM-GOVERNED-PATH non-record roadmap files; (3)
+        `docs/plans/archive/` and `.ngrace/changes/archive/` minus this bundle's own archive
+        arrival (no predecessor archive arrival applies — this is not a supersede); (4) the
+        remaining tracked surfaces minus `package.json`, `test-metrics.json`, `README.md`,
+        the two `SKILL.md` trees, `bun.lock` and the pinned scripts under `scripts/` that are
+        themselves deliverable files. Read exit codes directly, never through a pipe.
+      </Constraint>
+      <Constraint>
+        Escape markup, never strip it. Where this spec, the plan or a skill must name a tag
+        or angle-bracketed token, write it with entities (`&lt;`, `&gt;`, `&amp;`).
+        Markup-byte assertions belong in a TypeScript test (F43).
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: probe both directions on a throwaway copy before ratification —
+        the planted F284 escape reddens under `--assertions none` while a clean tree is 0/0;
+        an absent declared path reports the pending warning while a present-unowned file
+        still errors; the chosen F299 path runs the suite once, timed. Red-first with a
+        recorded fail then pass for each guard, one attempt pair per guard. Every `bun test`
+        carries `--timeout=0`. `bun test` green is a precondition, never the evidence.
+      </Constraint>
+      <Constraint>
+        Do not edit anything under `docs/plans/archive/` or `.ngrace/changes/archive/`; the
+        three archived precedent plans are immutable and are read only. Do not hand-edit
+        `docs/plans/active/RM-GOVERNED-PATH/` record files; they are written by the retirement
+        move. Do not add an `Assumptions` section to the plan.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        F284 shapes not chosen: adding a bare current-mode `ngrace lint` of this root to
+        `validate:ci` (the shape C-REPORT-HONESTY refuses); making `--assertions baseline` or
+        `target` legal without `--change` (contradicts the taught rule that every
+        selected-assertion command names `--change`, F253); and an idle-only check that runs
+        only when no bundle is active (weaker than catching the escape on the pull request).
+        Owner: recorded here; no step.
+      </NonGoal>
+      <NonGoal>
+        F297 shapes not chosen: consulting the plan's `DurableScope` anchors as the intended
+        owner of a path that does not exist (weakens A53's LINKS-only stance); treating an
+        absent path as owned without any signal; and any change to archive evaluation.
+        Owner: recorded here; no step.
+      </NonGoal>
+      <NonGoal>
+        F299 shapes not chosen: guidance-only wording that renames the count without changing
+        the run (the brief's alternative); dropping `ms` or the slowest-test ranking from the
+        artifact; changing the plain `bun run test` script (the Windows job passes test-file
+        arguments through it); and any change to the JUnit reporter or the untracked-read
+        guard. Owner: recorded here; no step.
+      </NonGoal>
+      <NonGoal>
+        `README.md` is a documented surface and this bundle owns it: it gains the
+        `--assertions none` row in the CLI Overview table and corrects the per-test-metrics
+        note so it does not claim a second suite run. Owner: a task of this bundle.
+      </NonGoal>
+      <NonGoal>
+        `examples/` is unchanged; no user-visible surface. The new mode and the metrics
+        derivation are CLI, CI and teaching surfaces; `examples/polyglot` neither invokes
+        `--assertions none` nor regenerates `test-metrics.json`, and its active change
+        asserts on files this bundle never writes. Owner: unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        No new graph module, no new verification entry, no new `V-M-*` anchor, no
+        `CHANGELOG.md` edit, no packaging-version change, and no new test file. Owner:
+        recorded here; no step.
+      </NonGoal>
+      <NonGoal>
+        The Windows compatibility job's steps and the `dart-adapter` job's steps do not
+        change; the workflow change is none. Owner: recorded here; no step.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-NONE-MODE>
+        `bun ./src/grace.ts lint --path . --assertions none --fail-on warnings` exits 0 on the
+        applied-archive tree, and `--format json` reports `assertionMode` as `none`.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --assertions none --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-NONE-MODE>
+      <AC-NONE-EVALUATES-NO-ASSERTION>
+        With an active approved plan whose BaselineAssertions fail on the present tree,
+        `--assertions none` reports no `assertion.*` evaluation issue and exits 0 under
+        `--fail-on errors`, while `--assertions current` still reports the failure. A
+        discriminating test drives both directions.
+      </AC-NONE-EVALUATES-NO-ASSERTION>
+      <AC-NONE-CATCHES-ESCAPE>
+        With a planted export that has no MODULE_MAP entry, `--assertions none --fail-on
+        errors` exits non-zero with `markup.module-map-mismatch`; on the unmodified tree it
+        is 0/0. A test constructs the escape as a fixture and asserts the red direction.
+      </AC-NONE-CATCHES-ESCAPE>
+      <AC-CI-LINT-WIRED>
+        `package.json`'s `validate:ci` contains exactly one root governance lint segment,
+        `bun ./src/grace.ts lint --path . --assertions none --fail-on errors`, and contains
+        no `--assertions current` lint of this root. A test reads `package.json` and proves
+        both.
+      </AC-CI-LINT-WIRED>
+      <AC-CURRENT-DEFAULT-UNCHANGED>
+        A test proves `resolveAssertionMode` still defaults to `current` and that an
+        unknown mode token is refused naming all five accepted modes.
+      </AC-CURRENT-DEFAULT-UNCHANGED>
+      <AC-PENDING-FILE-WARNING>
+        An active approved plan that declares a module-ownable ObservedWriteScope path which
+        does not exist reports `change.graph-anchors-pending-file` at warning severity and no
+        `change.graph-anchors-miss-write-scope`; `--fail-on errors` exits 0 and `--fail-on
+        warnings` exits non-zero. A test drives both exit directions.
+      </AC-PENDING-FILE-WARNING>
+      <AC-PRESENT-UNOWNED-STILL-ERRORS>
+        An active approved plan that declares a module-ownable path which exists and whose
+        LINKS share no GraphAnchors module still reports `change.graph-anchors-miss-write-scope`
+        at error severity. A test constructs both the owned and the unowned directions.
+      </AC-PRESENT-UNOWNED-STILL-ERRORS>
+      <AC-PENDING-GUIDE>
+        `change.graph-anchors-pending-file` resolves through `getExactLintIssueGuide` and
+        `isEmittableIssueCode`, the emitted-code scan collects it from its emit site, and the
+        guide's explanation names the absent-versus-unowned distinction. A test asserts all
+        three.
+      </AC-PENDING-GUIDE>
+      <AC-PLAN-SKILL-TAUGHT>
+        `skills/ngrace/ngrace-plan/SKILL.md` and `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md`
+        are byte-identical, its must_do row 6 names both `change.graph-anchors-pending-file`
+        and the transition to `change.graph-anchors-miss-write-scope`, and the taught-rule
+        token table pins the new token.
+        <CloseEvidence>
+          <Command>bun run validate:teaching-surface</Command>
+        </CloseEvidence>
+      </AC-PLAN-SKILL-TAUGHT>
+      <AC-METRICS-ONE-RUN>
+        `validate:ci` runs the whole suite exactly once and adds no second `bun test`; that
+        run emits its JUnit report to a temp path, and the metrics regenerate from it only
+        when the committed `test-metrics.json` is stale under the freshness predicate (the
+        file list or the count sum differs from a freshly computed tree walk), so a bundle
+        that adds no test file leaves `test-metrics.json` byte-identical at the close. A test
+        asserts the one-suite-run property by name and proves it still protects exactly one
+        suite segment; the runner exits non-zero on suite failure.
+      </AC-METRICS-ONE-RUN>
+      <AC-METRICS-FRESH>
+        `test-metrics.json` lists every `*.test.ts` under `src/` and `scripts/` exactly once
+        and the per-file count sum equals the entry count after the change.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts</Command>
+        </CloseEvidence>
+      </AC-METRICS-FRESH>
+      <AC-BASE-BYTE-INVARIANT-SRC>
+        No byte changed under `src/` or `scripts/` against base
+        fead8a082646ecbe18e669981833ddcf4661d75f outside this bundle's deliverable files.
+        <CloseEvidence>
+          <Command>git diff --exit-code fead8a082646ecbe18e669981833ddcf4661d75f -- src/ scripts/ ':(exclude)src/lint/core.ts' ':(exclude)src/lint/types.ts' ':(exclude)src/grace-lint.ts' ':(exclude)src/lint/catalog.ts' ':(exclude)src/lint/core.test.ts' ':(exclude)src/grace-lint.test.ts' ':(exclude)src/lint/catalog.test.ts' ':(exclude)scripts/test-metrics.ts' ':(exclude)scripts/test-metrics.test.ts' ':(exclude)scripts/audit-regressions.test.ts' ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts' ':(exclude)src/test-support/token-accounting.test.ts'</Command>
+        </CloseEvidence>
+      </AC-BASE-BYTE-INVARIANT-SRC>
+      <AC-BASE-BYTE-INVARIANT-ROADMAP>
+        No byte changed under the RM-GOVERNED-PATH roadmap outside the record files the close
+        writes against base fead8a082646ecbe18e669981833ddcf4661d75f.
+        <CloseEvidence>
+          <Command>git diff --exit-code fead8a082646ecbe18e669981833ddcf4661d75f -- docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </CloseEvidence>
+      </AC-BASE-BYTE-INVARIANT-ROADMAP>
+      <AC-BASE-BYTE-INVARIANT-ARCHIVE>
+        No byte changed under the archives outside this bundle's own archive arrival against
+        base fead8a082646ecbe18e669981833ddcf4661d75f. This is not a supersede, so no
+        predecessor archive arrival is excluded.
+        <CloseEvidence>
+          <Command>git diff --exit-code fead8a082646ecbe18e669981833ddcf4661d75f -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0'</Command>
+        </CloseEvidence>
+      </AC-BASE-BYTE-INVARIANT-ARCHIVE>
+      <AC-BASE-BYTE-INVARIANT-SURFACES>
+        No byte changed on the remaining tracked surfaces against base
+        fead8a082646ecbe18e669981833ddcf4661d75f outside this bundle's deliverable files and
+        the close's `test-metrics.json` write. Excluded with reason: `README.md`, `package.json`
+        and `test-metrics.json` are deliverable or close-written surfaces, and the two
+        `ngrace-plan/SKILL.md` trees move with the F297 teaching; `src/test-support/token-accounting.test.ts`
+        and the README measurement cell it cross-checks are re-measured because the skill text
+        moved.
+        <CloseEvidence>
+          <Command>git diff --exit-code fead8a082646ecbe18e669981833ddcf4661d75f -- examples/ CLAUDE.md CONTRIBUTING.md AGENTS.md docs/plans/README.md docs/schema-reference.md package.json bun.lock CHANGELOG.md .ngrace-lint.json openpackage.yml test-metrics.json .claude-plugin/ plugins/ngrace/.claude-plugin/ skills/ngrace/ plugins/ngrace/skills/ngrace/ README.md ':(exclude)package.json' ':(exclude)test-metrics.json' ':(exclude)README.md' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md'</Command>
+        </CloseEvidence>
+      </AC-BASE-BYTE-INVARIANT-SURFACES>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-LINT-CORE />
+      <M-LINT-TYPES />
+      <M-LINT-CATALOG />
+      <M-RELEASE-AUTOMATION />
+      <M-SKILLS />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        The close drives the real product, not only the suite. `bun run validate:ci` must
+        exit 0 on the applied tree and is the single whole-suite invocation for this bundle.
+        `bun ./src/grace.ts lint --path . --assertions none --fail-on warnings` must be 0/0
+        on the applied-archive tree. Each F284/F297 direction is driven on a throwaway copy:
+        the planted escape reddens under `--assertions none` while a clean tree is 0/0; an
+        absent declared path warns while a present-unowned file errors. The F299 path is
+        timed to one suite run. The graph and verification anchors are M-LINT-CORE /
+        V-M-LINT-CORE, M-LINT-TYPES / V-M-LINT-TYPES, M-LINT-CATALOG / V-M-LINT-CATALOG,
+        M-RELEASE-AUTOMATION / V-M-RELEASE-AUTOMATION and M-SKILLS / V-M-SKILLS.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Clarifications>
+      <Clarification resolved="true"><AC-METRICS-ONE-RUN />Resolved: the brief neither states whether the close may rewrite test-metrics.json. This spec decides the close leaves it byte-identical when it is fresh and rewrites it only when stale — the close's validate:ci runs the JUnit-emitting suite once and regenerates from that report only past the freshness predicate — and declares test-metrics.json in the close write set and excludes it from every byte-invariance pathspec.</Clarification>
+    </Clarifications>
+  </C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0>
+</NgraceChangeSpec>
