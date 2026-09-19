@@ -5403,4 +5403,26 @@ Owner: a `src/` bundle that gives the status and scope layers a per-bundle entry
 together. Stays staged.
 </Body>
   </Finding>
+  <Finding id="f304" token="F304" status="retired">
+    <PaidBy>C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9</PaidBy>
+    <Title>### F304 — an unregistered top-level section in a change plan passes `ngrace lint` 0/0: the change-plan shape lists six sections and the linter neither rejects nor reports a seventh. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 at `03af506`,** by the authority on a throwaway copy. `docs/schema-reference.md` lists the change-plan sections as `IntentSummary`, `BaselineAssertions`, `TargetAssertions`, `DurableScope`, `ObservedWriteScope`, `ImplementationPlan`. A draft `plan.xml` carrying an `&amp;lt;Assumptions&amp;gt;` section (written by the executor because the plan brief asked for an assumption and the plan shape has no home for one) linted 0/0 with `--change`; the same plan with `&amp;lt;Bogus&amp;gt;&amp;lt;Item&amp;gt;nothing&amp;lt;/Item&amp;gt;&amp;lt;/Bogus&amp;gt;` inserted as a direct child of the `C-*` wrapper also linted **0 errors / 0 warnings**. The grammar validates the sections it knows and is silent about the ones it does not, so a misspelled section name (`ObservedWriteScopes`) would be accepted as an unknown sibling while the required section reports missing — two findings for one typo, neither naming it.
+
+**Two questions the finding leaves open**, for the bundle that pays it: whether a plan should carry an `Assumptions` section at all (the spec has one; a plan's assumptions about the drive it cannot run at plan time had nowhere to go), and whether an unknown section is an error or a warning.
+
+Owner: a lint-grammar increment; not `C-TEACHING-INCREMENT`'s. Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f305" token="F305" status="retired">
+    <PaidBy>C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9</PaidBy>
+    <Title>### F305 — the flush's codify-only path demands `--mint-search` it never uses, and its success line names a `CodifiedIn` stamp but not a `TaughtIn` one. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 at `55bae41`,** by the authority, driving the close of `C-TEACHING-INCREMENT-2-4E28E16C` on a throwaway copy. With the chartered row already minted, `--flush --change C-… --taught D41:skills/ngrace/ngrace-execute/SKILL.md:execution_rules` without `--mint-search` refuses `flush-mint-search-malformed: &quot;&quot; is not shaped &amp;lt;n&amp;gt; active, &amp;lt;n&amp;gt; archive` at exit 1; the identical call with `--mint-search &quot;1 active, 0 archive&quot;` exits 0. On that path `rowExists` is true, `nextRegistry` is the unchanged `registryXml`, and the charter string the value feeds is never written — the argument is validated and discarded. The success line reads `record-flush: codify-only (row C-…)` for a `--taught` stamp, while a `--codify` stamp prints `, codified D&amp;lt;n&amp;gt;`; the line names one annotation kind and not the other.
+
+**Remedy.** Require `--mint-search` only when the row is minted; print the stamp the call wrote (`taught D41 → path:section`) on the codify-only line. Both are inside `flushRecord` and its argv handling.
+
+Owner: the next flush-verb touch. Stays staged.
+</Body>
+  </Finding>
 </Findings>

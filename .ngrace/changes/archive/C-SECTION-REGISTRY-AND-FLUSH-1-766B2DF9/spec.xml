@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9>
     <Summary>
       Register the section sets of the spec and plan wrappers and make every

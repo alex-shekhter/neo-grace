@@ -1747,6 +1747,16 @@ describe("ngrace lint --explain CLI (Phase 11 / A76)", () => {
     expect(out).toMatch(/does not emit/i);
     expect(out).not.toMatch(/signals drift/i);
   });
+
+  it("exits 0 for the registered-section exact guide", () => {
+    const result = spawnLintExplain(["--explain", "change.unregistered-section"]);
+    expect(result.exitCode).toBe(0);
+    const out = Buffer.from(result.stdout).toString("utf8");
+    expect(out).toContain("change.unregistered-section");
+    expect(out).toContain("Classification: exact");
+    expect(out).toContain("registered section");
+    expect(out).not.toMatch(/signals drift/i);
+  });
 });
 
 describe("AC-POINTER-JSON CLI (C-EXPLAIN-COVERAGE)", () => {

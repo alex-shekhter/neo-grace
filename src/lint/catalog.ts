@@ -230,6 +230,24 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
     explanation: "Two or more active change scopes write to overlapping regions, which can cause unsafe concurrent execution.",
     remediation: ["Do not run overlapping observed writes in parallel-safe mode.", "Sequence the changes or split scopes to eliminate the overlap."],
   },
+  "change.unregistered-section": {
+    title: "Unregistered Change Section",
+    explanation:
+      "A direct child of the C-* wrapper of an NgraceChangeSpec or NgraceChangePlan is not a "
+      + "registered section for its artifact kind. The wrapper is a closed schema: every direct "
+      + "child is a required or optional registered section, or a replacement anchor on a "
+      + "superseded artifact. An unregistered child is reported so a misspelled section name is "
+      + "named instead of passing silently beside the missing-required error.",
+    remediation: [
+      "Use a registered section name for the artifact kind; see `ngrace lint --explain change-spec` "
+        + "and `ngrace lint --explain change-plan`.",
+      "Correct the spelling: a misspelled required section also reports the missing-section code "
+        + "naming the intended name.",
+      "For an additional section, register it in the grammar rather than leaving it unregistered.",
+    ],
+    derivedFrom: "An unregistered top-level section in a change plan passed ngrace lint 0/0 because the change-plan shape listed only the sections it knew.",
+    proposedBy: "regex-over-structure",
+  },
   "change.superseded-missing-replacement": {
     title: "Superseded Change Missing Replacement Reference",
     explanation: "A NgraceChangeSpec or NgraceChangePlan with status='superseded' should name the replacement C-* anchor via a <Replacement> or <ReplacementChange> child tag.",

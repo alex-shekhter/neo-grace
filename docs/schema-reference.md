@@ -2,7 +2,7 @@
 
 Coverage is the registered shapes listed here, and those inventories only.
 
-Registered shapes: artifact-root, root-metadata, change-status, change-spec, change-plan, change-task, assertion, durable-scope, observed-write-scope, anchor-family, context-artifact, ledger-verdict, gate-decision, clarification, design-reference.
+Registered shapes: artifact-root, root-metadata, change-status, change-spec, change-spec-optional, change-plan, change-plan-optional, change-task, assertion, durable-scope, observed-write-scope, anchor-family, context-artifact, ledger-verdict, gate-decision, clarification, design-reference.
 
 This document is not a complete schema. This document is not a complete grammar.
 
@@ -51,6 +51,16 @@ Whole-segment ** matches zero or more path segments, so web/js/**/*.js matches w
 - AcceptanceCriteria
 - AffectedAreas
 - VerificationIntent
+## change-spec-optional
+
+- Problem
+- Assumptions
+- DesignReferences
+- Clarifications
+- Replacement
+- ReplacementChange
+- Proposals
+- ReadAloud
 ## change-plan
 
 - IntentSummary
@@ -59,6 +69,13 @@ Whole-segment ** matches zero or more path segments, so web/js/**/*.js matches w
 - DurableScope
 - ObservedWriteScope
 - ImplementationPlan
+## change-plan-optional
+
+- OutOfPlanScope
+- Clarifications
+- Replacement
+- ReplacementChange
+- Assumptions
 ## change-task
 
 - Title

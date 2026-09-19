@@ -1606,7 +1606,8 @@ function flushRecord(opts: {
     throw new Error(`flush-row-exists: the ${opts.change} row is already live and this run selects entries`);
   }
   const mintSearch = opts.mintSearch ?? "";
-  if (!/^[0-9]+ active, [0-9]+ archive$/.test(mintSearch)) {
+  // Required only when the row is minted; a supplied value is always validated.
+  if ((opts.mintSearch !== undefined || !rowExists) && !/^[0-9]+ active, [0-9]+ archive$/.test(mintSearch)) {
     throw new Error(`flush-mint-search-malformed: "${mintSearch}" is not shaped <n> active, <n> archive`);
   }
   if (/\bF[0-9]+/.test(opts.charter ?? "")) {
@@ -1723,10 +1724,14 @@ function flushRecord(opts: {
   for (const [file, xml] of writes) {
     writeRecordXml(path.join(opts.recordDir, file), xml);
   }
+  const stampSuffix = [
+    opts.codify ? `codified ${opts.codify.split(":")[0]}` : "",
+    opts.taught ? `taught ${opts.taught.split(":")[0]} → ${opts.taught.split(":").slice(1).join(":")}` : "",
+  ].filter(Boolean).join(", ");
   if (rowExists) {
-    console.log(`record-flush: codify-only (row ${opts.change}${opts.codify ? ", codified " + opts.codify.split(":")[0] : ""})`);
+    console.log(`record-flush: codify-only (row ${opts.change}${stampSuffix ? ", " + stampSuffix : ""})`);
   } else {
-    console.log(`record-flush: flushed ${[...opts.findings, ...opts.decisions].join(" ")} (row ${opts.change}, pays ${pays})`);
+    console.log(`record-flush: flushed ${[...opts.findings, ...opts.decisions].join(" ")} (row ${opts.change}, pays ${pays}${stampSuffix ? ", " + stampSuffix : ""})`);
   }
 }
 

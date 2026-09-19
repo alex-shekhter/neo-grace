@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9>
     <IntentSummary>
       Convert the approved spec into the executable plan. Tier **T2** across two

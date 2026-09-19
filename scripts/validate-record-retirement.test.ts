@@ -44,6 +44,11 @@ const RECORD_REL = "docs/plans/active/RM-GOVERNED-PATH";
 // mints, so the walk is inert (green) with the row live and green in the
 // applied-archive state.
 const bundleMinted: Record<string, string> = {
+  // C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9: the two staged tokens this bundle
+  // pays at its close (Pays F304 F305). Pass-only: a map entry has no failing
+  // state.
+  F304: "C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9",
+  F305: "C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9",
   // C-INSPECTION-SURFACE-1-2628AA2B T-006: the chartered row's two minted tokens.
   // The extension is consulted only for tokens the derivation actually mints, so
   // the walk is green with the row live (nothing minted — the row's name is not an
@@ -6456,6 +6461,42 @@ describe("C-RECORD-FLUSH-VERB-2-6BB9DF5A flush mode", () => {
     expect(malformed.status).not.toBe(0);
     expect(malformed.stderr).toContain("flush-mint-search-malformed");
     expect(allText(root).length).toBeGreaterThan(before);
+  });
+
+  it("C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 T-004 --mint-search is required only when the row is minted", () => {
+    const root = flushRoot();
+    const skill = "skills/ngrace/ngrace-execute/SKILL.md";
+    plant(root, skill, "# ngrace-execute (fixture)\n\n<execution_rules>\nrule body carrying the execution_rules home.\n</execution_rules>\n");
+    expect(runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive"]).status).toBe(0);
+    const codifyOnly = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--taught", `d-fixture:${skill}:execution_rules`]);
+    expect(codifyOnly.status, codifyOnly.stderr).toBe(0);
+    const freshRoot = flushRoot();
+    const fresh = runValidatorInProcess(freshRoot, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999"]);
+    expect(fresh.status).not.toBe(0);
+    expect(fresh.stderr).toContain("flush-mint-search-malformed");
+    const bad = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--mint-search", "bad"]);
+    expect(bad.status).not.toBe(0);
+    expect(bad.stderr).toContain("flush-mint-search-malformed");
+  });
+
+  it("C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 T-005 names every stamp the flush wrote", () => {
+    const skill = "skills/ngrace/ngrace-execute/SKILL.md";
+    const root = flushRoot();
+    plant(root, skill, "# ngrace-execute (fixture)\n\n<execution_rules>\nrule body.\n</execution_rules>\n");
+    expect(runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive"]).status).toBe(0);
+    const taught = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--taught", `d-fixture:${skill}:execution_rules`]);
+    expect(taught.status, taught.stderr).toBe(0);
+    expect(taught.stdout).toContain(`taught d-fixture → ${skill}:execution_rules`);
+    const codified = runValidatorInProcess(root, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--codify", "d-fixture:test-suite:scripts/validate-record-retirement.test.ts"]);
+    expect(codified.status, codified.stderr).toBe(0);
+    expect(codified.stdout).toContain("codified d-fixture");
+    expect(codified.stdout).not.toContain("taught ");
+    const mintRoot = flushRoot();
+    plant(mintRoot, skill, "# ngrace-execute (fixture)\n\n<execution_rules>\nrule body.\n</execution_rules>\n");
+    const mintBoth = runValidatorInProcess(mintRoot, ["--flush", RECORD_REL, "--change", "C-FIXTURE-1-00000000", "--finding", "F999", "--pays", "F999", "--mint-search", "1 active, 0 archive", "--taught", `d-fixture:${skill}:execution_rules`, "--codify", "d-fixture:test-suite:scripts/validate-record-retirement.test.ts"]);
+    expect(mintBoth.status, mintBoth.stderr).toBe(0);
+    expect(mintBoth.stdout).toContain(`taught d-fixture → ${skill}:execution_rules`);
+    expect(mintBoth.stdout).toContain("codified d-fixture");
   });
 });
 

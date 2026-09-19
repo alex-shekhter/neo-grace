@@ -452,4 +452,10 @@
     <Pays>F300 F301</Pays>
     <StatusText>Two findings paid: an archived bundle's anchors print, and one bundle's states cost one bundle's work.</StatusText>
   </Row>
+  <Row name="C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug SECTION-REGISTRY-AND-FLUSH. Author half: every direct child of a spec or plan wrapper is a registered section, with the optional sets enumerated from the archive population; the flush verb demands --mint-search only when it mints and names every stamp it writes.</Charter>
+    <Pays>F304 F305</Pays>
+    <StatusText>Two findings paid: a stray or misspelled section is named at lint time, and the flush verb's codify-only path stops demanding a value it never uses.</StatusText>
+  </Row>
 </Registry>
