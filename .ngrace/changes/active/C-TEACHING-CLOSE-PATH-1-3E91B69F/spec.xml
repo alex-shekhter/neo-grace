@@ -1,0 +1,816 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-TEACHING-CLOSE-PATH-1-3E91B69F>
+    <Summary>
+      The second teaching increment: it pays the two staged findings that name
+      it, `F306` and `F311`, by landing the missing and the false sentences in
+      the four governed skills. `F306` measured that the supersede path is
+      untaught — the successor is authored by overwriting the minted skeleton
+      from the archived predecessor's bytes with `status` reset to `draft` and
+      the verb-inserted `Replacement` child dropped; the `mint-search` line
+      printed while the predecessor is still active is carried verbatim by
+      whatever consumes it later; the predecessor's own archive arrival joins
+      every archive-edit criterion's exclude; `--assertions final` without
+      `--run-commands` refuses when the target declares a `MustPassCommand`;
+      `gate apply` refuses until a verdict is recorded and the post-archive
+      verdict is what evaluates `CloseEvidence`; a faithful post-close copy
+      carries `.git` and a symlinked ignored directory needs a bare exclude
+      entry. `F311` measured that `ngrace-execute` says `--run-commands` needs
+      an open epoch (it does not) and that the final run "opens a fresh epoch"
+      (it does not), and collected the selected-baseline `MODULE_MAP`
+      instrument, the pass-only attempt's info-level audit finding, the
+      namespace-import guard technique, the correction's new epoch, and the
+      `xmllint` double-hyphen trap. Every sentence is driven on a throwaway
+      copy before it is written; the instrument and the pins move with it.
+    </Summary>
+    <Goals>
+      <Goal>
+        **`F306` items (1)–(3) → `ngrace-spec` and `ngrace-plan`.** In
+        `ngrace-spec` `shape_sources` the "Lineage path" paragraph gains the
+        authoring mechanic: `spec new --supersedes` mints a throwaway skeleton,
+        and the successor is authored by overwriting that skeleton from the
+        archived predecessor's bytes — `status` reset to `draft` and the
+        verb-inserted `Replacement` child dropped — then applying the bounded
+        diff to the id where it is data, the lineage paragraph in `Problem` and
+        the change that forced the supersede. The same paragraph gains the
+        consumption rule: the `mint-search` line printed at mint, while the
+        predecessor is still active and counted, is the value carried verbatim
+        by whatever consumes it later and is never re-derived after the
+        supersede moves the predecessor. In `ngrace-plan`
+        `approved_plan_immutability` the successor-authoring sentence gains
+        the same overwrite-reset-drop mechanic beside the existing
+        "archived predecessor's draft" clause. In `ngrace-spec`
+        `acceptance_criteria_anchors` the existing archive-edit bullet gains
+        the supersede's own tree effect: the predecessor's archive arrival
+        joins every archive-edit criterion's exclude, with its reason, or the
+        successor is red by construction at its close.
+      </Goal>
+      <Goal>
+        **`F306` item (4) → `ngrace-execute` `assertion_commands`.** State the
+        asymmetry the drive measured: `--assertions final` without
+        `--run-commands`, when the target declares a `MustPassCommand`, exits
+        non-zero carrying `assertion.command-not-evaluated`; the
+        `--assertions target` structural query reports the same issue and does
+        not fail its exit. Home: `assertion_commands`, beside the selected
+        target and final bullets.
+      </Goal>
+      <Goal>
+        **`F306` item (5) → `ngrace-execute` `execution_rules` rule 9.** State
+        the apply-verdict ordering the drive measured: `gate apply` refuses
+        `gate.apply.no-verdict` until a verdict is recorded; the pre-archive
+        verdict records the outcome; after the close moves the bundle into the
+        archive, the post-archive verdict, carrying one `--ack-finding` per
+        displayed `review.close-evidence-unevaluated`, is what evaluates
+        `CloseEvidence` and records `Result` and `Exit`. Home:
+        `execution_rules` rule 9, in the passage that already names the review
+        verdict and `--ack-finding`.
+      </Goal>
+      <Goal>
+        **`F306` item (6) → `ngrace-plan` `must_do` row 19.** State what a
+        faithful post-close copy must carry beyond the tree: `.git`, because
+        every `git diff --exit-code` `CloseEvidence` command needs it to
+        evaluate; and a bare entry in the copy's `.git/info/exclude` for an
+        ignored directory reached through a symlink, because a trailing-slash
+        ignore pattern matches no symlink and `git check-ignore` fatals
+        "beyond a symbolic link". Home: `must_do` row 19, beside the existing
+        "faithful post-close copy" sentence.
+      </Goal>
+      <Goal>
+        **`F311` item (8), the misdescription and its correction →
+        `ngrace-execute` and `ngrace-plan`.** Rewrite, do not append beside,
+        the three places that say `--run-commands` needs an open epoch: the
+        `ngrace-execute` `assertion_commands` precondition sentence, the
+        `ngrace-execute` `execution_rules` rule 7 clause that says the final
+        run "opens a fresh epoch", and the `ngrace-plan` `validation` sentence
+        that repeats the precondition. The corrected rule: `--run-commands`
+        resolves a declared task in scope — an explicit task, the last loose
+        event's task, `run.xml`'s named task, or the last folded ledger event's
+        task — and does not require an open epoch; on a bundle with no ledger
+        history it refuses rather than inventing one. After a fold it writes
+        allocation-less loose `command-run` events that the next fold covers by
+        synthesis; it does not open an epoch.
+      </Goal>
+      <Goal>
+        **`F311` item (9) → `ngrace-execute` `assertion_commands`.** State the
+        post-write markup instrument: the `MODULE_MAP` parity check in
+        post-write task verification is the selected-baseline lint
+        (`--assertions baseline` with `--change`), because a current-mode lint
+        of this root is banned after writes and baseline mode runs the same
+        file-markup checks. Home: `assertion_commands`, beside the selected
+        baseline bullet.
+      </Goal>
+      <Goal>
+        **`F311` item (10) → `ngrace-execute` `cursor_kinds` kind `attempt`
+        and `execution_rules` rule 13.** State what a disclosed pass-only
+        cycle looks like in the review report: the unpaired pass surfaces as
+        an info-level `review.attempt-pair-unpaired-pass`, which the default
+        severity hides while the attempt-pair audit line still counts it; the
+        executor discloses it in the report and never stages a red to fill the
+        pair. Home: `cursor_kinds` kind `attempt` and `execution_rules`
+        rule 13.
+      </Goal>
+      <Goal>
+        **Collected items (11) and (12) → `ngrace-execute` `cursor_kinds`.**
+        (11) A red that reaches a not-yet-existing export goes through a
+        namespace import with an optional call, so the guards red on behaviour
+        rather than the whole test file failing to load. (12) A correction to
+        an already-passed task opens a new epoch on that task, and the
+        end-state terminal stays on the plan's last task. Homes: (11) the
+        `cursor_kinds` kind `attempt` ordering paragraph; (12) kind `attempt`
+        for the correction's new epoch and kind `terminal` for the end-state
+        terminal.
+      </Goal>
+      <Goal>
+        **Collected item (13) → `ngrace-reviewer` `review_judgment`.** Beside
+        the read-the-shape-first bullet, state the parser trap: a structural
+        census of XML artifacts goes through the shipped parser, because
+        `xmllint` rejects a document whose comments contain `--` and silently
+        under-counts. Home: `review_judgment`, in the same bullet's
+        neighbourhood; the existing "read the shape first" and
+        "shipped parser" tokens stay present.
+      </Goal>
+      <Goal>
+        **The pins and the instrument.** `scripts/check-teaching-surface.ts`
+        `TAUGHT_RULES` gains one load-bearing token per newly taught sentence
+        at the sentence's named section (and kind, for `cursor_kinds`) and
+        drops the two tokens that pin the misdescription — `needs an open
+        epoch on a declared task` and `requires an open epoch on a declared
+        task` — while `scripts/check-teaching-surface.test.ts`'s twin list and
+        its planted-root contract move in lockstep, so the red direction
+        (deleting one new token from one tree refuses naming that file, that
+        section and that token) still holds. The skill-footprint pin
+        (`src/test-support/token-accounting.test.ts`) and the `README.md`
+        measurement cell it cross-checks are re-measured from the tree after
+        the edits and transcribed, never projected. Every other shipped pin
+        the teaching moves is repaired at the same matcher strength, never
+        weakened and never deleted; `scripts/skill-contracts.test.ts` is a
+        conditional write, only if the executed teaching falsifies a shipped
+        pin. The `AC-*`-close-bound corollary (candidate item (7)) does not
+        ship; see the Constraints for the reason.
+      </Goal>
+      <Goal>
+        **The row and the payment.** At the close the authority's flush lands
+        the two staged findings and mints this bundle's chartered row into
+        `registry.xml` in the house shape: `&lt;Row
+        name="C-TEACHING-CLOSE-PATH-1-3E91B69F" status="live"
+        kind="chartered"&gt;` with an empty `&lt;Number&gt;`, a
+        `&lt;Charter&gt;` carrying the searched-before-minting statement over
+        the archive and both registry layers, no `F` token and no bundle token
+        other than this one, `&lt;Pays&gt;` naming exactly `F306 F311` in that
+        order, and a `&lt;StatusText&gt;` naming no `F` token and containing
+        no `Closed with` sentence. The flush is invoked with `--mint-search
+        "0 active, 0 archive"`, the value the mint printed, carried verbatim.
+        The move retires the two findings. The plan extends the shipped
+        payer-derivation baseline (`bundleMinted` in
+        `scripts/validate-record-retirement.test.ts`) with the two minted
+        tokens, green pre-close and post-close alike.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T2** (cross-cutting: four published skills plus their
+        packaged mirrors, two `scripts/` files, one `src/test-support` test,
+        one `scripts/` fixture, `README.md`, and the governed record the close
+        writes). Roadmap: `RM-GOVERNED-PATH`. Binding: `F306` and `F311` —
+        this bundle is the teaching increment each names as its owner, and the
+        remedies are the deliverable, not a follow-up; `D11` — nothing is
+        deferred here without a dependency or a conflict; `D30` — no hard
+        `Constraint` below transcribes a scalar count of a file this bundle
+        writes; every occupancy, pin value and census lives in `Assumptions`
+        and expires; `D5.5` — `CHANGELOG.md` is generated and is not edited;
+        newly visible behaviour is named in the commit body; `F136.1` — every
+        file this spec forces into scope has its owner confirmed against every
+        module list this spec carries, and the write scope is enumerated
+        exactly once, in the write-scope Constraint; `F227` — the forced-file
+        set is derived from the Goals, and every byte-invariance criterion
+        excludes every file the Goals make inevitable; `F285` and `F293` — the
+        close's write set is enumerated from the verb, charged to the plan's
+        `ObservedWriteScope`, and permitted by every byte-invariance pathspec;
+        `F43` — markup is escaped as character data in every artifact this
+        bundle writes, never paraphrased away.
+      </Constraint>
+      <Constraint>
+        **Universality of the taught sentences.** Every sentence this bundle
+        lands states a rule of the product, generically: zero references to
+        `RM-GOVERNED-PATH`, zero references to any governed record file name,
+        zero references to any bundle of this repository, and zero `F`-token
+        or bare `D`-token citations. Also forbidden in every taught sentence:
+        any path or identifier under this repository's `scripts/` directory —
+        a private helper or fixture name such as `bundleMinted`, a
+        repository-only function, or the name of the teaching-surface check
+        itself, each the same violation as the path — any harness install path
+        (a skill ships to Claude marketplace, OpenPackage and pi alike and
+        cannot name where any of them installs it), and any name of a function
+        private to this repository. Product terms are not merely permitted but
+        required: `AC-*`, `Pays`, `ObservedWriteScope`, `CloseEvidence`,
+        `run-ledger.xml`, `replacement`, `GraphAnchors`, `xmllint`,
+        "the shipped parser", and the shipped skill and section names. The
+        record keeps the provenance — a `TaughtIn` runs record to skill, never
+        the other way. The shipped exceptions that already satisfy the shipped
+        scanner stay (`decisions.md` is the named stub filename exception; the
+        existing plan-id-pinned `D`-citations stay pinned). The plan runs
+        `checkRecordTokens` over the governed skills in both trees and repairs
+        any new violation it lands.
+      </Constraint>
+      <Constraint>
+        **Placement, stated once per shipped sentence.** (1) Overwrite-reset-
+        drop: `ngrace-spec` `shape_sources` (Lineage path) and `ngrace-plan`
+        `approved_plan_immutability`. (2) `mint-search` carried verbatim:
+        `ngrace-spec` `shape_sources` (Lineage path). (3) Predecessor archive
+        arrival in the exclude: `ngrace-spec` `acceptance_criteria_anchors`.
+        (4) `--assertions final` without `--run-commands` refuses:
+        `ngrace-execute` `assertion_commands`. (5) Apply-verdict ordering:
+        `ngrace-execute` `execution_rules` rule 9. (6) Faithful copy carries
+        `.git` and the symlink bare exclude: `ngrace-plan` `must_do` row 19.
+        (8) `--run-commands` task resolution: `ngrace-execute`
+        `assertion_commands`, `ngrace-execute` `execution_rules` rule 7, and
+        `ngrace-plan` `validation`. (9) Selected-baseline `MODULE_MAP`
+        instrument: `ngrace-execute` `assertion_commands`. (10) Info-level
+        pass-only finding: `ngrace-execute` `cursor_kinds` kind `attempt` and
+        `execution_rules` rule 13. (11) Namespace-import guard:
+        `ngrace-execute` `cursor_kinds` kind `attempt`. (12) Correction's new
+        epoch and end-state terminal: `ngrace-execute` `cursor_kinds` kinds
+        `attempt` and `terminal`. (13) `xmllint` double-hyphen trap:
+        `ngrace-reviewer` `review_judgment`. Each new sentence's load-bearing
+        token is chosen in the plan from the sentence it guards and added to
+        the instrument for that exact section (and kind, for `cursor_kinds`).
+      </Constraint>
+      <Constraint>
+        **The `--run-commands` correction, stated on its face.** The shipped
+        misdescription appears in three places and all three are rewritten in
+        place, never appended beside: `ngrace-execute` `assertion_commands`
+        ("`--run-commands` needs an open epoch on a declared task"), the
+        `ngrace-execute` `execution_rules` rule 7 clause ("final run-commands
+        opens a fresh epoch and leaves loose events"), and the `ngrace-plan`
+        `validation` sentence ("`--run-commands` requires an open epoch on a
+        declared task"). The corrected fact, driven on a throwaway copy:
+        `--run-commands` resolves a declared task in scope from an explicit
+        task, the last loose event's task, `run.xml`'s named task, or the last
+        folded ledger event's task; with none of those it refuses with a
+        message that names the precondition rather than inventing a task; after
+        a fold it exits zero with no open epoch, writes one allocation-less
+        loose `command-run` event, and does not open an epoch — the next fold
+        covers the loose event by synthesis. `ngrace-execute` rule 1's
+        sentence "argv token run-commands requires a declared task in scope"
+        and the `execution_rules` rule 7 clause "after a fold, final
+        run-commands writes loose events and archive requires no-open-epoch, so
+        terminal the declared task and fold before gate archive" are already
+        true and stay present. The instrument's two stale tokens are removed
+        and replaced by tokens from the corrected sentences.
+      </Constraint>
+      <Constraint>
+        **The one dropped candidate and a re-measurement correction.** The
+        candidate sentence "when every `AC-*` is close-bound, no task carries
+        `Satisfies`" (F306 item (7)) does not ship: `ngrace-plan`
+        `spec_plan_traceability` already states the rule directly
+        ("CloseEvidence `AC-*` are not Satisfies targets"; "Satisfies of a
+        complete CloseEvidence `AC-*` is an error"; "a close-bound `AC-*` is
+        never a `Satisfies` target"), the drive confirms both directions
+        (`plan new` seeds no `Satisfies` when every criterion is close-bound;
+        a hand-written `Satisfies` of a close-bound `AC-*` errors
+        `change.close-evidence-and-satisfied`), so the corollary is already
+        written and adding it would duplicate a shipped sentence. Separately,
+        F306's premise that the supersede-path paragraph states "none" of
+        items (1)–(3) is partly stale: the "bounded diff" half of item (1) is
+        already present, so only the overwrite-reset-drop half and items (2)
+        and (3) are new; this is recorded under `Assumptions`.
+      </Constraint>
+      <Constraint>
+        Write scope, anchors, and enumeration — stated once (`F136.1`'s
+        rule). Files the Goals force into write scope: the four canonical
+        skills `skills/ngrace/ngrace-spec/SKILL.md`,
+        `skills/ngrace/ngrace-plan/SKILL.md`,
+        `skills/ngrace/ngrace-execute/SKILL.md`,
+        `skills/ngrace/ngrace-reviewer/SKILL.md`, and their four packaged
+        mirrors under `plugins/ngrace/skills/ngrace/…` (byte-identical twins,
+        every canonical path's mirror in scope);
+        `scripts/check-teaching-surface.ts` and
+        `scripts/check-teaching-surface.test.ts` (one load-bearing token per
+        new sentence, the two lists in lockstep, the two stale tokens
+        removed); `src/test-support/token-accounting.test.ts` (the
+        re-measured footprint pin); `README.md` (the measurement cell the pin
+        test cross-checks); `scripts/validate-record-retirement.test.ts` (the
+        `bundleMinted` extension for `F306` and `F311`); the record files the
+        close writes — `docs/plans/active/RM-GOVERNED-PATH/findings.xml`,
+        `findings-retired.xml`, `rulings.xml`, `rulings-retired.xml`,
+        `registry.xml`, `registry-retired.xml`, `decisions.xml` — listed as
+        the authority's close acts so the close is coverable, and the archive
+        arrival `.ngrace/changes/archive/C-TEACHING-CLOSE-PATH-1-3E91B69F/`.
+        Conditional writes, listed as permission with their trigger:
+        `scripts/skill-contracts.test.ts`, `src/review/core.test.ts`,
+        `src/grace-cursor.test.ts` and `src/artifact/grammar.test.ts` — each
+        only if the executed teaching falsifies a shipped pin (measured at
+        the base commit, each stays green by non-edit). Do **not** add this
+        bundle's own `spec.xml`, `plan.xml` or `design-context.xml` to
+        `ObservedWriteScope`; the review skips them by identity. Anchor facts,
+        measured at the base commit: none of the forced files carries a
+        file-local `LINKS:` header, and every touched `scripts/*.ts` file and
+        `src/test-support/token-accounting.test.ts` carries none either
+        (`isModuleOwnableWritePath` is false outside `src/` and for every
+        `*.test.ts` under it), so no module-ownable path is written and
+        `change.graph-anchors-miss-write-scope` cannot fire. The two real
+        anchors are named once, in `AffectedAreas`, the only module list this
+        spec carries: `M-SKILLS` owns the canonical skill tree, and
+        `M-TEST-SUPPORT` owns `src/test-support`, whose exported measurement
+        this bundle re-reads. Do not mint a synthetic module, do not name
+        `M-RELEASE-AUTOMATION` (the touched `scripts/` files link to no
+        module), and do not repeat this list anywhere. Do not add a lint issue
+        code. Escape markup as character data in every artifact this bundle
+        writes.
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, the rules these skills teach (`F290`, `F293`)
+        applied to this bundle's own criteria. Every byte-invariance baseline
+        is this spec's base commit
+        `ccea5ae88d6636a79aca6faaf53074b04d81d87f` — the base-less form
+        cannot fail; the window is this bundle's own diff; the diff sees
+        tracked paths only; the archive criterion excludes this bundle's own
+        archive arrival with its reason (the close renames this bundle's
+        directory into the archive) and excludes no other arrival, because
+        this bundle supersedes nothing; the record files the close writes are
+        excluded from every byte-invariance criterion and covered by the
+        parse-based and verb-based criteria instead, each named with its
+        reason. Every probe is run in both directions on throwaway copies
+        before the spec is written; probes mutate copies, never the
+        production record. Structural counts come from the shipped parser or
+        `xmllint --xpath` after reading the element's shape — never
+        `grep -c` — and exit codes are read directly, never through a pipe.
+        No criterion pins a named finding `status="live"`, pins a ceiling to a
+        number, or asserts an artifact the shipped engine will not produce; no
+        criterion requires a change another criterion forbids. The
+        `CloseEvidence` criteria are evaluated in the applied-archive state,
+        after the close's own move has run, and each names the narrow
+        instrument for its subject; the full CI-equivalent verification is
+        close-time only.
+      </Constraint>
+      <Constraint>
+        Criterion mapping, stated on its face. Every `AC-*` below is
+        close-bound by its own `CloseEvidence` child, so a task `Satisfies`
+        naming any of them is the shipped error. There is no
+        `Satisfies`-mapped criterion in this spec, because every criterion is
+        evaluated against the post-close state; the production row and the
+        payer fixture extension are named in `VerificationIntent` as the
+        authority's close act and the executor's fixture write respectively,
+        not as criteria that assert the production record. The plan maps no
+        criterion to a task; the close runs the commands.
+      </Constraint>
+      <Constraint>
+        Stop and re-spec rather than touching: `src/` production files (the
+        only `src/` write is the named `.test.ts` and the conditional pin
+        repairs), `src/artifact/grammar.ts` validators, `src/lint/catalog.ts`,
+        `src/lint/core.ts`, `src/gates/**`, `src/review/**` production,
+        `src/grace-*.ts`, `scripts/record-query.ts`,
+        `scripts/record-serialize.ts`, `scripts/validate-record-retirement.ts`
+        production (the `--flush` writer and its schema already admit
+        everything this bundle needs and are unchanged), the four spec and
+        plan teaching templates and every `references/` file, `examples/**`,
+        the twelve other skills and their mirrors, `docs/plans/**` outside the
+        seven record files this bundle's close writes, `docs/plans/archive/`,
+        tracked paths under `.ngrace/changes/archive/` except this bundle's
+        own later arrival there, `CHANGELOG.md`, any version surface,
+        `package.json`, `bun.lock`, `.ngrace-lint.json`, `.claude-plugin/**`,
+        `plugins/ngrace/.claude-plugin/**`, `openpackage.yml`,
+        `docs/schema-reference.md`, and the staged buffer
+        `.ngrace/scratch/staged-findings.md` (read, never written, and nothing
+        in this bundle prunes it).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` is changed only for the skill-footprint measurement cell
+        the shipped pin test cross-checks (the deliverable moves
+        `skillTextLines().total` and `totalBytes`); no other prose, no CLI
+        Overview row, no version change. No new CLI token is documented.
+        Owner: the pin test and the measurement cell, named in the write
+        scope.
+      </NonGoal>
+      <NonGoal>
+        `examples/` unchanged; no user-visible surface there and no polyglot
+        evidence rebalance. Owner: unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        Flushing the buffer, pruning `staged-findings.md`, or rendering any
+        other staged entry into the record. This bundle's close flushes its
+        own two tokens and the buffer is otherwise untouched. Owner: the next
+        flush bundle, post-merge hygiene.
+      </NonGoal>
+      <NonGoal>
+        A production-record assertion that this bundle's row exists or that
+        `F306`/`F311` retired; those are the close's acts and such an
+        assertion would be red at every pre-close task stage. Owner: the
+        authority's close, named in `VerificationIntent`, not a criterion.
+      </NonGoal>
+      <NonGoal>
+        Any new CLI verb, lint issue code, grammar section, record schema
+        change, version bump, or `docs/schema-reference.md` regeneration. The
+        new surface is skill text only; `CHANGELOG.md` is generated and
+        untouched. Owner: unchanged; no user-visible CLI token change.
+      </NonGoal>
+      <NonGoal>
+        Editing the twelve other skills, `ngrace-init` assets, the four
+        teaching templates, any `references/` file, or any archived bundle;
+        their pins stay green by non-edit. Owner: unchanged surfaces.
+      </NonGoal>
+      <NonGoal>
+        Running `ngrace gate`, the close, or committing: authoring this
+        bundle's artifacts is the executor's act; ratification is the
+        maintainer's; approval writes and the close are the authority's. The
+        spec is written at `status="draft"` and the bundle stops there.
+        Owner: the role split above.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-TEACHING-LANDED>
+        The four governed skills carry the newly taught rules at their named
+        section homes in both trees, byte-identical mirrors, and the extended
+        instrument asserts them: per new sentence, one load-bearing token
+        inside the sentence's named section (and kind, for `cursor_kinds`) in
+        both trees, added to `TAUGHT_RULES` in
+        `scripts/check-teaching-surface.ts` and to its test twin in lockstep.
+        The instrument is the production check over the repository. Red
+        direction, driven on a plant: dropping one new rule's token from one
+        tree turns the check non-zero with a refusal naming that file, that
+        section and that token; restoring the bytes returns zero. This
+        criterion is invariant under the close: the ceremony edits no skill.
+        <CloseEvidence>
+          <Command>bun run validate:teaching-surface</Command>
+        </CloseEvidence>
+      </AC-TEACHING-LANDED>
+      <AC-CORRECT-PRECONDITION>
+        The three shipped misdescriptions of the `--run-commands` precondition
+        are rewritten in place — `ngrace-execute` `assertion_commands`,
+        `ngrace-execute` `execution_rules` rule 7, and `ngrace-plan`
+        `validation` — so no taught sentence claims that `--run-commands`
+        requires an open epoch or that the final run opens a fresh epoch; and
+        the instrument's `TAUGHT_RULES` no longer pins the two stale strings
+        `needs an open epoch on a declared task` and `requires an open epoch
+        on a declared task`, while the sentence that is already true
+        ("requires a declared task in scope" in `ngrace-execute` rule 1 and
+        the "after a fold, final run-commands writes loose events" clause in
+        rule 7) stays present. The instrument is the production assertions the
+        later plan adds to `scripts/check-teaching-surface.test.ts`, driven
+        both directions: a planted stale token in the production list or a
+        planted stale phrase in a skill reddens, and restoring returns green.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/check-teaching-surface.test.ts</Command>
+        </CloseEvidence>
+      </AC-CORRECT-PRECONDITION>
+      <AC-FOOTPRINT-PIN>
+        The skill-footprint pin reports the new true measured values after the
+        teaching lands — `skillTextLines().total` and `totalBytes`
+        re-measured from the tree, never written toward — and the `README.md`
+        measurement cell publishes the same two figures, which the shipped
+        test cross-checks against the live measurement. The pin is a
+        transcription reconciled by re-measure, not a ratchet: it moves to
+        whatever the true value is and never by deletion or loosening. Its
+        red direction is the shipped test's own cross-check failing when the
+        cell and the tree disagree.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/test-support/token-accounting.test.ts</Command>
+        </CloseEvidence>
+      </AC-FOOTPRINT-PIN>
+      <AC-MIRROR-IDENTICAL>
+        Every canonical skill this bundle rewrites is byte-identical to its
+        packaged mirror, and the marketplace package stays version-synced
+        across `README.md`, `openpackage.yml`,
+        `.claude-plugin/marketplace.json` and
+        `plugins/ngrace/.claude-plugin/plugin.json`; no version bump is taken.
+        Red direction: editing one tree alone reddens the mirrored-bytes
+        comparison.
+        <CloseEvidence>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </CloseEvidence>
+      </AC-MIRROR-IDENTICAL>
+      <AC-NO-SRC-OTHER>
+        No file under `src/` or `scripts/` changes relative to this spec's
+        base commit except the files the Goals force or conditionally permit,
+        named here and in the command's excludes:
+        `scripts/check-teaching-surface.ts`,
+        `scripts/check-teaching-surface.test.ts`,
+        `src/test-support/token-accounting.test.ts`,
+        `scripts/validate-record-retirement.test.ts`, and — as conditional
+        pin-repair permission, each excluded with its reason —
+        `scripts/skill-contracts.test.ts`, `src/review/core.test.ts`,
+        `src/grace-cursor.test.ts`, `src/artifact/grammar.test.ts`. Prose and
+        command name the same pathset. Failure: any other `src/` or `scripts/`
+        path differs at close.
+        <CloseEvidence>
+          <Command>git diff --exit-code ccea5ae88d6636a79aca6faaf53074b04d81d87f -- src/ scripts/ ':(exclude)scripts/check-teaching-surface.ts' ':(exclude)scripts/check-teaching-surface.test.ts' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts' ':(exclude)scripts/skill-contracts.test.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)src/artifact/grammar.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-SRC-OTHER>
+      <AC-RECORD-SIBLINGS-UNMOVED>
+        The files under the record directory the close provably does not
+        change are byte-identical to this spec's base commit:
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.md` (the stub),
+        `record-inventory.json`, `plan.md`, `review.md`,
+        `brownfield-findings.md`, `brownfield-run4-findings.md`,
+        `p0-calibration-derivation.md`, `p0-cursor-derivation.md`,
+        `p0-derivation.md`, `p0-report-honesty-derivation.md`, and the
+        `sources/` subtree. The seven record files the close writes —
+        `findings.xml`, `findings-retired.xml`, `rulings.xml`,
+        `rulings-retired.xml`, `registry.xml`, `registry-retired.xml`,
+        `decisions.xml` — are deliberately absent from this criterion and are
+        covered by `AC-PAYER-MAP` and the close's verdict. The window is this
+        bundle's own diff, over tracked paths only.
+        <CloseEvidence>
+          <Command>git diff --exit-code ccea5ae88d6636a79aca6faaf53074b04d81d87f -- docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </CloseEvidence>
+      </AC-RECORD-SIBLINGS-UNMOVED>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and
+        `.ngrace/changes/archive/` are not modified; this bundle's own later
+        arrival under
+        `.ngrace/changes/archive/C-TEACHING-CLOSE-PATH-1-3E91B69F/` is not a
+        modification — the close itself renames this bundle's directory into
+        the archive, and the pathspec excludes that arrival so the close's own
+        rename cannot redden the criterion. This bundle supersedes nothing, so
+        no predecessor's arrival is added and the exclusion is no wider than
+        this bundle's own directory. The prose claims tracked paths only.
+        Probed in the post-close state.
+        <CloseEvidence>
+          <Command>git diff --exit-code ccea5ae88d6636a79aca6faaf53074b04d81d87f -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-TEACHING-CLOSE-PATH-1-3E91B69F'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-SURFACES-UNMOVED>
+        Every surface this bundle does not write is byte-identical to this
+        spec's base commit: `examples/`, `CLAUDE.md`, `CONTRIBUTING.md`,
+        `docs/plans/README.md`, `docs/schema-reference.md`, `package.json`,
+        `bun.lock`, `CHANGELOG.md`, `.ngrace-lint.json`, `openpackage.yml`,
+        `.claude-plugin/`, `plugins/ngrace/.claude-plugin/`, and every
+        published skill except the eight `SKILL.md` files the deliverable
+        rewrites — the eight are excluded with their reason (the deliverable)
+        and their mirrors' identity is asserted by `AC-MIRROR-IDENTICAL`,
+        while every `references/` file and the four teaching templates stay
+        byte-identical. `README.md` sits outside this pathset because the
+        measurement cell is a forced write; it is covered by
+        `AC-FOOTPRINT-PIN`'s cross-check. Prose and command name the same
+        pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code ccea5ae88d6636a79aca6faaf53074b04d81d87f -- examples/ CLAUDE.md CONTRIBUTING.md docs/plans/README.md docs/schema-reference.md package.json bun.lock CHANGELOG.md .ngrace-lint.json openpackage.yml .claude-plugin/ plugins/ngrace/.claude-plugin/ skills/ngrace/ plugins/ngrace/skills/ngrace/ ':(exclude)skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)skills/ngrace/ngrace-reviewer/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md'</Command>
+        </CloseEvidence>
+      </AC-SURFACES-UNMOVED>
+      <AC-PAYER-MAP>
+        The shipped payer-derivation baseline (`bundleMinted` in
+        `scripts/validate-record-retirement.test.ts`) carries the two minted
+        tokens `F306` and `F311`, each mapped to
+        `C-TEACHING-CLOSE-PATH-1-3E91B69F`, and the payment relation is green
+        before and after the close: for each of the two tokens, when a
+        `Finding` carries it, it exists exactly once across both findings
+        files with its `status` agreeing with the holding file, its `PaidBy`
+        equal to this bundle's name if retired, and its index `Entry` layer
+        agreeing — the carrier-absent case green. Red direction, on mutated
+        copies: a minted token missing from the extension reddens the
+        derivation walk; a duplicated carrier reddens the at-most-once clause.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+        </CloseEvidence>
+      </AC-PAYER-MAP>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of
+        this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-SKILLS />
+      <M-TEST-SUPPORT />
+      `M-SKILLS` owns the canonical skill tree the four rewritten skills live
+      in; `M-TEST-SUPPORT` owns `src/test-support`, whose measurement this
+      bundle re-reads and re-pins. The four packaged mirrors under
+      `plugins/ngrace/skills/ngrace/` are the byte-identical twins of the same
+      `M-SKILLS` tree. No other module is forced: every touched `scripts/*.ts`
+      file carries no `LINKS:` header, so it links to no module, and
+      `src/test-support/token-accounting.test.ts` is a `.test.ts` that
+      `isModuleOwnableWritePath` does not own. The module enumeration is these
+      two anchors and no more; do not mint a synthetic module.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:teaching-surface</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/check-teaching-surface.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T2): the four skills carry the newly taught rules at
+        their named section homes in both trees, byte-identical mirrors; the
+        three `--run-commands` misdescriptions are rewritten and the
+        instrument's two stale tokens are replaced in lockstep with its test
+        twin; the footprint pin and `README.md` cell agree with the live
+        measurement; the payer baseline carries the two minted tokens; every
+        `CloseEvidence` command and the full `validate:ci` run green inside a
+        faithful copy of the post-close state — a copy carrying untracked
+        files and `.git`, a stand-in plan at `applied` beside the archived
+        spec, the bundle archived, and the close's flush and retire run — with
+        both directions driven for every criterion and every exit code read
+        directly. **The authority's close acts, named here and deliberately
+        not written as criteria:** the flush that lands the two findings and
+        mints the row with `--pays "F306 F311"` and `--mint-search "0 active,
+        0 archive"`, and the retire whose move reports the two findings and
+        the row. **The executor's fixture write:** the two-token
+        `bundleMinted` extension. The reds are ledger-recorded fail/pass
+        pairs, not claims.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      Two staged findings name this increment as their teacher. `F306`
+      measured that the supersede path is untaught: neither `ngrace-spec` nor
+      `ngrace-plan` said that `spec new --supersedes` mints a throwaway
+      skeleton the author overwrites from the archived predecessor's bytes
+      with `status` reset to `draft` and the verb-inserted `Replacement` child
+      dropped; that the `mint-search` line printed at mint, while the
+      predecessor is still active and counted, is the value carried verbatim
+      by whatever consumes it later and never re-derived after the move; or
+      that the predecessor's own archive arrival joins every archive-edit
+      criterion's exclude. Its executor-reported items were re-measured here:
+      `--assertions final` without `--run-commands` does refuse when the
+      target declares a `MustPassCommand`; `gate apply` does refuse
+      `gate.apply.no-verdict` until a verdict is recorded, and the
+      post-archive verdict carrying one `--ack-finding` per displayed
+      `review.close-evidence-unevaluated` is what evaluates `CloseEvidence`; a
+      faithful copy without `.git` cannot evaluate a single `git diff`
+      criterion, and an ignored directory reached through a symlink needs a
+      bare `.git/info/exclude` entry. `F311` measured that `ngrace-execute`
+      misdescribes two mechanics: `--run-commands` does not require an open
+      epoch — it resolves a declared task from an explicit task, a loose
+      event, `run.xml`, or the last folded ledger event — and the final
+      `--run-commands` does not open a fresh epoch; it writes allocation-less
+      `command-run` events the next fold covers by synthesis. The same day
+      collected four more executor-side mechanics: the post-write `MODULE_MAP`
+      check runs as the selected-baseline lint; a pass-only attempt surfaces
+      as an info-level `review.attempt-pair-unpaired-pass` the default
+      severity hides while the audit line counts it; a red reaching a
+      not-yet-existing export must go through a namespace import with an
+      optional call or the whole test file fails to load; and a correction to
+      a passed task opens a new epoch on that task while the end-state
+      terminal stays on the plan's last task. One more was collected for the
+      verifying party: `xmllint` rejects documents whose comments contain `--`
+      and silently under-counts, so a structural census goes through the
+      shipped parser.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        **Authoring commit
+        `ccea5ae88d6636a79aca6faaf53074b04d81d87f`, branch
+        `c-teaching-close-path`, from `main`, 2026-09-19.** The base commit is
+        kept as the byte-invariance baseline: it is `main`'s tip at authoring
+        (PR #113 merged) and the parent of this bundle's approval commit.
+        Re-measured at authoring: `bun ./scripts/validate-record-retirement.ts`
+        exit 0; `bun run ngrace lint --path .` 0 errors / 0 warnings over 505
+        XML artifacts (506 with this bundle's spec); archive 131 directories;
+        this bundle is the only directory under `.ngrace/changes/active`;
+        `diff -rq skills/ngrace plugins/ngrace/skills/ngrace` exit 0. Every
+        count expires; the implementation re-measures and pins nothing
+        (`D30`).
+      </Assumption>
+      <Assumption>
+        **The buffer, measured 2026-09-19.** The staged buffer holds twelve
+        entries — `F280 F284 F287 F292 F294 F295 F297 F299 F306 F309 F310
+        F311`. The two this bundle pays — `F306` and `F311` — are both
+        present and both name this increment as their owner. The buffer is
+        read, never written, and is not pruned by this bundle.
+      </Assumption>
+      <Assumption>
+        **Mint search, measured at mint.** No prior bundle shares the slug
+        `TEACHING-CLOSE-PATH`, counted active or archived:
+        `mint-search: 0 active, 0 archive prior bundle(s) share slug
+        TEACHING-CLOSE-PATH`. The value is carried verbatim and not re-derived.
+        The close's flush carries `--mint-search "0 active, 0 archive"`.
+      </Assumption>
+      <Assumption>
+        **Skill footprint, snapshot at the base commit.**
+        `skillTextLines().total` = 873; `totalBytes` = 85595; `ngrace-fix` =
+        32; 16 skills; the `README.md` measurement cell is `**873 lines** /
+        **85595 UTF-8 bytes**`. These are the values the current pin asserts;
+        they move with the teaching, and the plan re-measures both the test
+        and the `README.md` cell after the edits.
+      </Assumption>
+      <Assumption>
+        **The supersede-path paragraph is partly stale, measured 2026-09-19.**
+        `ngrace-spec` `shape_sources` ("Lineage path") already carries the
+        bounded-diff half — "carry the archived approved predecessor's bytes
+        and apply a bounded diff — the id where it is data, the lineage
+        paragraph in `Problem`, and the change that forced the supersede",
+        shipped by an earlier teaching increment — and `ngrace-plan`
+        `approved_plan_immutability` already carries "Author the successor's
+        artifacts from the archived predecessor's draft". So `F306`'s premise
+        that the passages state "none" of items (1)–(3) is only partly true:
+        what is new is the overwrite-the-minted-skeleton half, the
+        `status`-reset and `Replacement`-drop mechanic, the `mint-search`
+        consumption rule, and the predecessor-archive-arrival exclusion. The
+        plan adds only what is new and does not duplicate the bounded-diff
+        sentence.
+      </Assumption>
+      <Assumption>
+        **The close's write set, read from the verb at the base commit.**
+        `--flush` writes `findings.xml`, `rulings.xml`, `decisions.xml`,
+        `registry.xml` (`flushRecord`, unconditional `writeRecordXml` over the
+        four next-documents) and requires a well-formed `--mint-search` when
+        it mints a row. `--retire` (`retireRecord`) writes all seven record
+        files unconditionally, including `rulings-retired.xml` with zero moved
+        decisions. `ngrace apply` renames the bundle directory into
+        `.ngrace/changes/archive/`. The seven files and the archive arrival
+        are named in the write-scope Constraint.
+      </Assumption>
+      <Assumption>
+        **The misdescribed sentences and their pinned tokens, measured
+        2026-09-19.** `grep -rn "open epoch" skills/ngrace/*/SKILL.md` finds
+        three occurrences of the misdescription: `ngrace-execute:18`
+        (`assertion_commands`), `ngrace-execute:42` (`execution_rules` rule
+        7's "opens a fresh epoch"), and `ngrace-plan:118` (`validation`). The
+        instrument pins two of them:
+        `{ skill: "ngrace-execute", section: "assertion_commands", token:
+        "needs an open epoch on a declared task" }` and
+        `{ skill: "ngrace-plan", section: "validation", token: "requires an
+        open epoch on a declared task" }`, in both
+        `scripts/check-teaching-surface.ts` and its test twin. The brief named
+        only the two `ngrace-execute` sentences; the third is corrected
+        because the same defect is the same defect, and the plan replaces both
+        stale tokens in lockstep.
+      </Assumption>
+      <Assumption>
+        **`--run-commands` resolution, driven 2026-09-19.** On a fresh
+        approved bundle with no ledger history, `--assertions final
+        --run-commands` exits 1 with "Cannot record command-run: no declared
+        task is in scope"; after an epoch is opened, terminal'd and folded,
+        the identical command exits 0 and writes one loose
+        `command-run` event with no allocation, and a subsequent fold covers
+        it by synthesis (ledger epoch 2, three events). On the same bundle,
+        `--assertions final` without `--run-commands` exits 1 with
+        `assertion.command-not-evaluated` while the `--assertions target`
+        structural query exits 0 with the same issue printed.
+      </Assumption>
+      <Assumption>
+        **The close ordering, driven 2026-09-19.** On a throwaway
+        approved-shaped bundle: `gate apply` refuses `gate.apply.no-verdict`
+        (exit 1); a pre-archive `gate verdict --outcome pass` with no acks
+        permits apply and archive; `ngrace apply` writes `applied` on both
+        artifacts and moves the bundle; the post-archive review displays one
+        `review.close-evidence-unevaluated`; a post-archive verdict without
+        the ack refuses, and with `--ack-finding` records `Result=pass` and
+        `Exit=0` on the ledger and clears the finding.
+      </Assumption>
+      <Assumption>
+        **The faithful-copy mechanics, driven 2026-09-19.** `git diff
+        --exit-code HEAD -- path` in a copy without `.git` errors "Could not
+        access 'HEAD'" (exit 1); with `.git` it exits 0. A symlink named by a
+        trailing-slash ignore pattern is not ignored (`git check-ignore`
+        exits 1; `git status` shows `?? node_modules`; `git check-ignore`
+        with the trailing slash fatals "beyond a symbolic link"), and a bare
+        `node_modules` entry in `.git/info/exclude` ignores it.
+      </Assumption>
+      <Assumption>
+        **The collected mechanics, driven 2026-09-19.** The
+        `markup.module-map-mismatch` check fires identically under the plain
+        lint and under `--assertions baseline --change`. A pass-only attempt
+        prints as `[info] review.attempt-pair-unpaired-pass` only under
+        `--severity info` (Findings 2 → 3) while the default review's
+        attempt-pair audit line still reports "1 finding(s)". A named import
+        of a missing export fails the whole file with a `SyntaxError` ("Export
+        named 'NewThing' not found", 1 error), while a namespace import with
+        an optional call reddens on the behaviour (`Expected: 2, Received:
+        undefined`). A correction attempt after a fold auto-opens a new epoch
+        on the corrected task, and a terminal emitted on the plan's last task
+        is accepted and folded. `xmllint --xpath` on a document whose comment
+        contains `--` exits 1 with empty output, while the shipped parser
+        parses it (root plus two children).
+      </Assumption>
+      <Assumption>
+        **Pins population, measured by grep at the base commit.** The forced
+        surfaces are pinned by `scripts/check-teaching-surface.ts` (the
+        `TAUGHT_RULES` list and its test twin), `scripts/skill-contracts.test.ts`
+        (`ngrace-execute` rule 1's "argv token run-commands requires a
+        declared task in scope", rule 7's "after a fold, final run-commands
+        writes loose events", the four skills, `must_do` rows 15/16/17 and
+        row 6's phrases), `src/review/core.test.ts`
+        (`review.attempt-pair-unpaired-pass`, `review.close-evidence-unevaluated`,
+        `ngrace-execute` attempt-pair prose, `ngrace-plan` forced-scope
+        phrases), `src/grace-cursor.test.ts` (kind-id completeness, byte
+        identity, the unscoped run-commands refusal), `src/test-support/token-accounting.test.ts`
+        (the line/byte totals and the `README.md` cell), and
+        `scripts/validate-record-retirement.test.ts` (`bundleMinted`). The
+        teaching is written to keep each green; any pin it falsifies is
+        repaired at the same matcher strength, and the conditional
+        pin-repair files are named in the write-scope Constraint.
+      </Assumption>
+      <Assumption>
+        **The `TaughtIn` search, measured at authoring.** `grep -n "teaching
+        increment" docs/plans/active/RM-GOVERNED-PATH/rulings.xml` finds one
+        live decision, `D41`, whose body names "a later teaching increment" as
+        its teacher; `D41` already carries
+        `&lt;TaughtIn path="skills/ngrace/ngrace-execute/SKILL.md"
+        section="execution_rules"&gt;`, stamped by the previous increment. No
+        other live decision names a teaching increment. This bundle mints no
+        decision and stamps no `TaughtIn`; the close's flush pays only `F306`
+        and `F311`. The taught sentences therefore cite no `D` token.
+      </Assumption>
+      <Assumption>
+        **F43 escape, applied.** Every artifact this bundle writes names an
+        angle-bracketed token as character data with entities; the plan's test
+        asserts emitted bytes, never artifact prose.
+      </Assumption>
+    </Assumptions>
+  </C-TEACHING-CLOSE-PATH-1-3E91B69F>
+</NgraceChangeSpec>
