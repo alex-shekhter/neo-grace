@@ -1,0 +1,500 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-PER-BUNDLE-READERS-1-58BB7AB1>
+    <IntentSummary>
+      Convert the approved spec into the executable plan. Tier **T2** across
+      three modules: `M-GRAMMAR` owns `src/artifact/scope.ts`, `M-QUERY` owns
+      `src/query/change.ts` and `src/query/render.ts`, `M-STATUS` owns
+      `src/grace-status.ts`; the four `*.test.ts` files and
+      `scripts/validate-record-retirement.test.ts` are not module-ownable.
+      **Task split and pairs.** Five tasks, four red-first pairs and one
+      pass-only: **T-001** carries the applied scope's durable anchors
+      (`src/artifact/scope.ts`, `src/artifact/scope.test.ts`); **T-002**
+      exports the per-bundle derived-state reader (`src/grace-status.ts`,
+      `src/grace-status.test.ts`); **T-003** prints an archived plan's anchors
+      and drops the third state (`src/query/change.ts`,
+      `src/query/render.ts`, `src/query/change.test.ts`); **T-004** answers
+      `change show` with the per-bundle reader (`src/query/change.ts`,
+      `src/query/change.test.ts`); **T-005** pins `F300`/`F301` in the
+      payer-map fixture (`scripts/validate-record-retirement.test.ts`).
+      Each red-first task authors its guard against the tree it inherits,
+      records exactly **one** `cursor attempt --outcome fail`, lands its
+      mechanism once, and records exactly **one** `cursor attempt --outcome
+      pass`. **The Atomic Mechanism Exception is not invoked, and the one
+      forced coupling is named:** T-003 removes the `not-carried-archived`
+      member from `ChangeDurableScope` and removes `formatDurableScope`'s
+      case for it in the same edit; the render case cannot be driven red
+      separately because removing the union member makes it a type error — a
+      type-level consequence, not a second mechanism, so it rides T-003's one
+      pair. No other guard in this plan lacks its own red direction. **T-005 is
+      pass-only** (a map entry has no failing state) and its last act is the
+      terminal cursor event `ngrace cursor advance --change
+      C-PER-BUNDLE-READERS-1-58BB7AB1 --task T-005 --kind terminal` — the
+      close's `fold` refuses an unterminated range. **The unlink pin stays
+      green:** no task adds an `unlinkSync`/`rmSync`/`rmdirSync` call site
+      under `src/`. **Three exports, `MODULE_MAP` in the same edit:**
+      `extractDurableScope` (T-001) and `derivedStatesForChange` (T-002); the
+      factored helper `collectChangeBundleStatus` stays module-private, so it
+      carries no header entry. **The whole-project snapshot's pins, grepped
+      before scope was written:** `src/grace-status.test.ts` pins
+      `schemaVersion 1.0.0`, the `StatusResult` top-level key set, the
+      `derivedStates` for `stale-plan`, `integrity-issues`, `draft-spec`,
+      `needs-plan`, `needs-plan-approval`, `ready-to-execute`,
+      `approved-contract-drift` (three cases), `apply-gate-record-absent`,
+      `applied-without-gate-record`, `gate-record-invalid:`, and the
+      git-unavailable absence drop; `src/review/core.test.ts:3579`/`:3653`
+      pins `approved-contract-drift`; `src/query/change.test.ts:158` pins
+      `findChangeBundles`; `scripts/audit-regressions.test.ts:37`-`:43` maps
+      the status regressions to their test evidence. The refactor routes both
+      paths through one shared helper and one shared drift post-processing, so
+      all of them stay green; T-002's `Verification` carries
+      `bun test --timeout=0 src/grace-status.test.ts`. **Baseline asserts
+      only what stays:** `findChangeBundles`'s `collectProjectStatus(` call
+      stays, `readActiveChangeScope`'s durable extraction stays,
+      `deriveChangeStates`, `formatDurableScope` and `findChangeBundles` stay.
+      **The needles the bundle flips are target assertions, never baseline:**
+      `locateDerivedStates`, `not-carried-archived` (both files) and the
+      `No durable` doc lines are `MustNotContain` targets; `export function
+      extractDurableScope`, `export function derivedStatesForChange`, the
+      `derivedStatesForChange` call and the bundle id are `MustContain`
+      targets. `durable: DurableScope` is deliberately **not** a text needle:
+      `ActiveChangeScope` (`src/artifact/scope.ts:76`) already carries that
+      spelling, so the field's addition to `AppliedChangeScope` is guarded
+      behaviorally by T-001's scope test, not by a non-discriminating
+      substring. `declared-none` remains a target-shape `MustContain` (it
+      holds at base and target; it documents the surviving union member).
+      Every baseline needle was driven with `--assertions baseline` on an
+      approved-shaped copy; every flip needle was driven with `--assertions
+      target` against the base code, where exactly the eight flips reddened. **The equivalence guard is over the real archive:**
+      `derivedStatesForChange` equals the snapshot's states for every bundle,
+      under `bun test --timeout=0`, no per-test number pinned (the corpus
+      grows); its non-vacuity is the planted malformed active plan in a
+      throwaway project, which `collectProjectStatus` reports as
+      `integrity-issues` at this base, written into T-002 so it is re-run,
+      not remembered. **The timing relation is close-time evidence:** on the
+      base, `change show C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92` measures
+      1.90 / 1.89 / 1.92 s and `module show M-QUERY` 0.52 / 0.55 / 0.53 s
+      (three warm runs each); the projected post-fix `change show` is
+      ~0.65-0.71 s (≈1.4×), asserted at the close as ≤ 2× a peer `module
+      show` and recorded in the close report — never a test threshold.
+      **Plan-time drives, in the report's `PROBES`.** Baseline:
+      `bun run ngrace lint --path &lt;copy&gt; --change C-PER-BUNDLE-READERS-1-58BB7AB1
+      --assertions baseline` on an approved-shaped copy exits 0, 0 errors
+      over 500 XML artifacts — every baseline needle holds pre-edit. Target
+      on the base code (`--assertions target`) reddens exactly the eight flip
+      needles — `export function extractDurableScope`, `export function
+      derivedStatesForChange`, the `derivedStatesForChange` call, the bundle
+      id in the fixture, `locateDerivedStates`, `not-carried-archived` in
+      both files, and `No durable` — plus the expected
+      `assertion.command-not-evaluated` for the `MustPassCommand` without
+      `--run-commands`. The four task test files are green at base (16, 9, 55
+      and 182 tests pass). The whole close was driven on a faithful
+      `.git`-carrying copy with `node_modules` in `.git/info/exclude` (F280)
+      and `.ngrace/scratch` present read-only, in the product's order:
+      `review` exit 0; `gate verdict --outcome pass` exit 0; `gate apply`
+      permit; `gate archive` permit; `--flush` `flushed F300 F301 (row
+      C-PER-BUNDLE-READERS-1-58BB7AB1, pays F300 F301)`; `ngrace apply` moved
+      the bundle to `archive/` with both statuses `applied`; `--retire`
+      `moved 3`; `validate-record-retirement` exit 0; post-archive `review`
+      exit 1 with the eight `review.close-evidence-unevaluated` findings; the
+      acked `gate verdict` exit 0, its second `Verdict` recording all eight
+      criteria `Exit=0` / `Result=pass`; and `change show &lt;C-ID&gt;` (positional)
+      exit 0. The close writes exactly the seven record files and the
+      bundle's own archive arrival, which is the plan's `ObservedWriteScope`.
+      The timing relation on that post-close copy is 1.85 / 1.88 / 1.89 s
+      against `module show`'s 0.52 / 0.52 / 0.52 s — the base code fails ≤ 2×
+      by construction, because the implementation is not in this plan stage;
+      the projected post-fix figure is ~0.65-0.71 s and the relation is
+      measured at the real close. **The
+      close's write set, read from the verbs:** `--flush` writes
+      `findings.xml`, `rulings.xml`, `decisions.xml`, `registry.xml`;
+      `--retire` writes all seven record files; `ngrace apply` renames the
+      bundle into `.ngrace/changes/archive/`. All seven record files and the
+      archive arrival glob are declared in `ObservedWriteScope`; this bundle's
+      own `spec.xml`/`plan.xml` and the staged buffer are not. **The
+      authority's close acts are named, never tasked:** `--flush --change
+      C-PER-BUNDLE-READERS-1-58BB7AB1 --finding F300 --finding F301 --pays
+      "F300 F301" --mint-search "0 active, 0 archive"`, `ngrace apply`, and
+      `--retire`. T-005's `bundleMinted` extension keeps the post-close payer
+      walk green. **Every `AC-*` in the approved spec is close-bound, so no
+      task carries `Satisfies`.** This plan carries no `Assumptions` section
+      (`F304`); the plan-time drive evidence lives here. This bundle's
+      executor does not approve, runs no review, gate, supersede or apply
+      verb, and does not commit.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/artifact/scope.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/change.ts</Value></MustExist>
+      <MustExist><Value>src/query/change.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/render.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustContain>
+        <File>src/query/change.ts</File>
+        <Text>collectProjectStatus(</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/change.ts</File>
+        <Text>findChangeBundles</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>readActiveChangeScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>extractObservedWriteScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>deriveChangeStates</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/render.ts</File>
+        <Text>formatDurableScope</Text>
+      </MustContain>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/artifact/scope.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/change.ts</Value></MustExist>
+      <MustExist><Value>src/query/change.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/render.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.ts</Value></MustExist>
+      <MustExist><Value>src/grace-status.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-STATUS</Value></MustExist>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-STATUS</Module></MustVerify>
+      <MustContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>export function extractDurableScope</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-status.ts</File>
+        <Text>export function derivedStatesForChange</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/change.ts</File>
+        <Text>derivedStatesForChange</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/change.ts</File>
+        <Text>declared-none</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/render.ts</File>
+        <Text>declared-none</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>C-PER-BUNDLE-READERS-1-58BB7AB1</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/query/change.ts</File>
+        <Text>locateDerivedStates</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/query/change.ts</File>
+        <Text>not-carried-archived</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/query/render.ts</File>
+        <Text>not-carried-archived</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/artifact/scope.ts</File>
+        <Text>No durable</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+        <M-QUERY />
+        <M-STATUS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GRAMMAR />
+        <V-M-QUERY />
+        <V-M-STATUS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/scope.ts</File>
+      <File>src/artifact/scope.test.ts</File>
+      <File>src/query/change.ts</File>
+      <File>src/query/change.test.ts</File>
+      <File>src/query/render.ts</File>
+      <File>src/grace-status.ts</File>
+      <File>src/grace-status.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <Glob>.ngrace/changes/archive/C-PER-BUNDLE-READERS-1-58BB7AB1/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Carry the applied scope's durable anchors</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip. In
+            `src/artifact/scope.test.ts`, in the applied-scope test, replace
+            `expect(applied[0]).not.toHaveProperty("durable")` with an
+            assertion that the archived applied scope carries the anchors its
+            `plan.xml` declares:
+            `expect(applied[0]?.durable.graphAnchors).toEqual(["M-EXAMPLE"])`,
+            and rename the test so it no longer claims "never returns
+            durable". On the base tree `AppliedChangeScope` has no `durable`
+            property, so the assertion reads `undefined` and fails; paste the
+            tail. Record exactly **one** `cursor attempt --outcome fail` for
+            the guard; do not land production in this round trip.
+          </Criterion>
+          <Criterion>
+            Production, after the red. In `src/artifact/scope.ts`: change
+            `function extractDurableScope` (module-private) to
+            `export function extractDurableScope`; add `durable: DurableScope`
+            to `AppliedChangeScope`; in `readAppliedChangeScope` compute
+            `const durable = extractDurableScope(plan.root, planFile)` and
+            return `durable: durable.scope` with `issues: [...durable.issues,
+            ...observed.issues]`, keeping the existing
+            `specStatus === "applied" &amp;&amp; planStatus === "applied"`
+            guard and the `observedWrites` bytes unchanged; correct the
+            `AppliedChangeScope` doc line that reads `No durable field` and
+            the `collectAppliedChangeScopes` doc line that reads `No durable`;
+            add `extractDurableScope` to the `START_MODULE_MAP` block between
+            `durableOverlaps` and `observedWriteScopeContains`. Record exactly
+            **one** `cursor attempt --outcome pass`. Failure conditions:
+            `durable` absent from `AppliedChangeScope`; `extractDurableScope`
+            still unexported; the `MODULE_MAP` entry missing or named
+            elsewhere; the applied-reader guard or `observedWrites` bytes
+            changed; a new lint issue code; a new export added without its
+            header entry.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/artifact/scope.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-PER-BUNDLE-READERS-1-58BB7AB1 --assertions baseline</Command>
+          <Command>git diff --exit-code 5bf5eb0c965dd46fe97f5cd34d07b8561dc94073 -- README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/ docs/schema-reference.md package.json bun.lock CHANGELOG.md docs/plans/archive/ .ngrace/changes/archive/ docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Export the per-bundle derived-state reader</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip. In
+            `src/grace-status.test.ts`, reach `derivedStatesForChange` through
+            a namespace import with an optional call
+            (`status.derivedStatesForChange?.(…)`) so the file still loads on
+            the base tree and the guards red on **behaviour** — an `undefined`
+            result against the snapshot's states — not on a missing import
+            that fails the whole file at load. Author three guards: (i) the archive-wide equivalence test —
+            `const snapshot = collectProjectStatus(REPO_ROOT);` then for each
+            `change` of `snapshot.changes`,
+            `expect(derivedStatesForChange(REPO_ROOT, change.changeId))`
+            `toEqual(change.derivedStates)`, with **no** bundle count and no
+            per-test duration asserted; (ii) `derivedStatesForChange(REPO_ROOT,
+            "C-NO-SUCH-1-00000000")` equals `[]`; (iii) the planted red
+            direction in a throwaway project — a malformed active `plan.xml`
+            (missing `BaselineAssertions`/`TargetAssertions` beside a `draft`
+            spec) makes `collectProjectStatus` report `["integrity-issues"]`
+            for that bundle, and `derivedStatesForChange` equals that
+            snapshot. On the base tree the three guards red (the optional call
+            yields `undefined`) while the rest of the file stays green; paste
+            the tail. Record exactly **one** `cursor attempt --outcome fail`.
+          </Criterion>
+          <Criterion>
+            Production, after the red. In `src/grace-status.ts`: extract the
+            per-bundle body of `collectChangeBundleStatuses` (line 165) into a
+            module-private
+            `collectChangeBundleStatus(root, location, bundlePath, lintIssues):
+            ChangeBundleStatus` and have `collectChangeBundleStatuses` call it
+            for each `listBundleDirs(...)` entry, preserving the
+            `relativeBundlePath`, lint-issue filter, apply-gate-record
+            derivation, epoch/orphan/task/amendment fields and state order
+            exactly; extract the `approvedContractDrift`/`absence`
+            post-processing in `collectProjectStatus` into a shared helper and
+            call it from both sites; add
+            `export function derivedStatesForChange(projectRoot: string,
+            changeId: string): string[]` that resolves the bundle in
+            `.ngrace/changes/active/` then `archive/`, returns `[]` for an
+            unknown id and for a non-`grace4` project, runs
+            `lintGraceProject(root, { profile: "standard" })` exactly as the
+            snapshot does, derives the bundle's facts through the shared
+            helper, computes
+            `collectApprovedContractDrift(root, collectActiveChangeScopes(resolveNgracePaths(root)))`,
+            and applies the shared post-processing — so the per-bundle states
+            are the snapshot's states for that bundle, no second reader and no
+            facade over `collectProjectStatus`; add `derivedStatesForChange`
+            to the `START_MODULE_MAP` block between `collectProjectStatus` and
+            `formatStatusText`. Record exactly **one** `cursor attempt
+            --outcome pass`. Failure conditions: the whole-project
+            `StatusResult` bytes move (any `src/grace-status.test.ts` or
+            `src/review/core.test.ts` pin reddens); `deriveChangeStates` moves
+            or is inlined; a second artifact parser; a facade that calls
+            `collectProjectStatus`; the `MODULE_MAP` entry missing; the
+            `src/grace-status.ts` byte guard (`not.toContain("commit")`)
+            reddens.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-status.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-PER-BUNDLE-READERS-1-58BB7AB1 --assertions baseline</Command>
+          <Command>git diff --exit-code 5bf5eb0c965dd46fe97f5cd34d07b8561dc94073 -- README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/ docs/schema-reference.md package.json bun.lock CHANGELOG.md docs/plans/archive/ .ngrace/changes/archive/ docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Print an archived plan's anchors and drop the third state</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip. In
+            `src/query/change.test.ts`, rewrite the test that currently
+            asserts an archived bundle's `durableScope.state` is
+            `not-carried-archived`: assert `state` is `carried` with
+            `graphAnchors` containing `M-EXAMPLE` (the fixture's archived
+            `plan.xml` declares `&lt;GraphAnchors&gt;&lt;M-EXAMPLE
+            /&gt;&lt;/GraphAnchors&gt;`), assert the JSON `durableScope.state`
+            is `carried`, and assert the rendered text contains `M-EXAMPLE`
+            and does not contain `not carried for an archived bundle`; add an
+            assertion that an archived plan declaring `&lt;DurableScope&gt;
+            &lt;None /&gt;&lt;/DurableScope&gt;` reports `declared-none` and
+            that a `rejected` archive still reports `absent`. On the T-001
+            tree `collectChangeView` still returns `not-carried-archived`, so
+            the rewritten assertion fails; paste the tail. Record exactly
+            **one** `cursor attempt --outcome fail`.
+          </Criterion>
+          <Criterion>
+            Production, after the red. In `collectChangeView`
+            (`src/query/change.ts`), replace the archived branch's
+            `durableScope = { state: "not-carried-archived" }` with the same
+            mapping the active branch uses: build `carried` from
+            `scope.durable`'s six buckets, report `declared-none` when all are
+            empty, `carried` otherwise; leave the `scope`-absent path as
+            `{ state: "absent" }` so a `rejected`/`cancelled`/`superseded`
+            archive is unchanged. Remove the `not-carried-archived` member
+            from `ChangeDurableScope` and, in the same edit, remove
+            `case "not-carried-archived"` from `formatDurableScope` in
+            `src/query/render.ts` — the union-member removal makes the case a
+            type error, so the two edits are one change, not two mechanisms.
+            Record exactly **one** `cursor attempt --outcome pass`. Failure
+            conditions: the third-state label still printable; the union
+            member retained; a non-applied archive's `absent` changed;
+            `observedWrites` bytes changed; `declared-none`'s `<None />`
+            label changed.
+          </Criterion>
+          <Criterion>
+            **The forced coupling, named.** This task's two production edits
+            (`ChangeDurableScope` and `formatDurableScope`) cannot be driven
+            red separately: removing the member alone fails `bun run
+            typecheck`, and the render case alone is unreachable. Both land
+            in this one pair. This is the only such coupling in the plan; no
+            Atomic Mechanism Exception is claimed for any other task.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/query/change.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-PER-BUNDLE-READERS-1-58BB7AB1 --assertions baseline</Command>
+          <Command>git diff --exit-code 5bf5eb0c965dd46fe97f5cd34d07b8561dc94073 -- README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/ docs/schema-reference.md package.json bun.lock CHANGELOG.md docs/plans/archive/ .ngrace/changes/archive/ docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Answer change show with the per-bundle reader</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip. In
+            `src/query/change.test.ts`, add the structural guard for
+            `AC-NO-WHOLE-PROJECT-WALK`: read
+            `path.join(REPO_ROOT, "src/query/change.ts")` and assert
+            `(source.match(/collectProjectStatus\(/g) ?? []).length === 1`
+            and `source.includes("derivedStatesForChange")`. On the T-003
+            tree `locateDerivedStates` still calls `collectProjectStatus`, so
+            the count is 2 and the assertion fails; paste the tail. Record
+            exactly **one** `cursor attempt --outcome fail`.
+          </Criterion>
+          <Criterion>
+            Production, after the red. In `src/query/change.ts`, delete
+            `locateDerivedStates` and its call in `collectChangeView`; import
+            `derivedStatesForChange` from `../grace-status` beside
+            `collectProjectStatus`, and use it for the view's `derivedStates`.
+            Keep `findChangeBundles`'s `collectProjectStatus` call and the
+            `collectProjectStatus` import — the listing stays a whole-project
+            walk. Record exactly **one** `cursor attempt --outcome pass`.
+            Failure conditions: `locateDerivedStates` retained; more than one
+            `collectProjectStatus(` call; a second reader of `derivedStates`
+            added inside `src/query/change.ts`; `findChangeBundles`'s call
+            removed.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/query/change.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-PER-BUNDLE-READERS-1-58BB7AB1 --assertions baseline</Command>
+          <Command>git diff --exit-code 5bf5eb0c965dd46fe97f5cd34d07b8561dc94073 -- README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/ docs/schema-reference.md package.json bun.lock CHANGELOG.md docs/plans/archive/ .ngrace/changes/archive/ docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Pin F300 and F301 in the payer-map fixture</Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Pass-only. Add to `bundleMinted` in
+            `scripts/validate-record-retirement.test.ts` two entries —
+            `F300: "C-PER-BUNDLE-READERS-1-58BB7AB1"` and
+            `F301: "C-PER-BUNDLE-READERS-1-58BB7AB1"` — with a comment naming
+            this bundle and stating that the extension is consulted only for
+            tokens the derivation actually mints, so the walk is green with
+            the row live and green in the applied-archive state (the close's
+            mint). A map entry has no failing state, so this task authors no
+            red; drive the fixture test once green and record exactly **one**
+            `cursor attempt --outcome pass`. Failure conditions: either entry
+            absent, or mapped to another bundle id, or a third token added.
+            **Last act of the bundle:** `ngrace cursor advance --change
+            C-PER-BUNDLE-READERS-1-58BB7AB1 --task T-005 --kind terminal`,
+            so the close's `fold` finds a terminated range.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-PER-BUNDLE-READERS-1-58BB7AB1 --assertions baseline</Command>
+          <Command>git diff --exit-code 5bf5eb0c965dd46fe97f5cd34d07b8561dc94073 -- README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/ docs/schema-reference.md package.json bun.lock CHANGELOG.md docs/plans/archive/ .ngrace/changes/archive/ docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-PER-BUNDLE-READERS-1-58BB7AB1>
+</NgraceChangePlan>

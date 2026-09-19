@@ -12,6 +12,7 @@
 //   ChangeBundleStatus
 //   StatusResult
 //   collectProjectStatus
+//   derivedStatesForChange
 //   formatStatusText
 //   statusCommand
 // END_MODULE_MAP
@@ -23,7 +24,7 @@ import { defineCommand, type CommandDef, runMain } from "citty";
 import { defineGraceCommand } from "./query/command";
 
 import { lintGraceProject } from "./lint/core";
-import type { AnalysisCoverage, LintIssue } from "./lint/types";
+import type { AnalysisCoverage, LintIssue, LintResult } from "./lint/types";
 import { ARTIFACT_DIR, toProjectRelativePath } from "./artifact/paths";
 import { detectGraceProjectKind, formatGrace3MigrationGuidance, resolveNgracePaths } from "./artifact/project";
 import { listLooseEvents, listRunOrphans } from "./artifact/run-membership";
@@ -163,86 +164,137 @@ function readRootStatus(file: string) {
 }
 
 function collectChangeBundleStatuses(root: string, location: "active" | "archive", directory: string, lintIssues: LintIssue[]) {
-  return listBundleDirs(directory).map((bundlePath) => {
-    const changeId = path.basename(bundlePath);
-    const specFile = path.join(bundlePath, "spec.xml");
-    const planFile = path.join(bundlePath, "plan.xml");
-    const ledgerFile = path.join(bundlePath, "run-ledger.xml");
-    const specStatus = existsSync(specFile) ? readRootStatus(specFile) : undefined;
-    const planStatus = existsSync(planFile) ? readRootStatus(planFile) : undefined;
-    const relativeBundlePath = path.relative(root, bundlePath) || ".";
-    const bundleLintIssues = lintIssues.filter((issue) => {
-      const resolvedIssue = path.resolve(issue.file);
-      return resolvedIssue === path.resolve(bundlePath) || resolvedIssue.startsWith(path.resolve(bundlePath) + path.sep);
-    });
-    const derivedStates = deriveChangeStates({
-      location,
-      specStatus,
-      planStatus,
-      integrityErrors: bundleLintIssues.filter((issue) => issue.severity === "error").length,
-      baselineFailures: bundleLintIssues.filter((issue) => /^assertion\.(?:Must|command-not-evaluated)/.test(issue.code)).length,
-    });
+  return listBundleDirs(directory).map((bundlePath) => collectChangeBundleStatus(root, location, bundlePath, lintIssues));
+}
 
-    // A29.9 / A32.1 / A33.1: gate-record findings for archived applied bundles (never gate.* from lint).
-    // absent ≠ no-permit: no Decisions section is grandfathered with reason; section without permit is the violation.
-    let applyGateRecord: ChangeBundleStatus["applyGateRecord"];
-    if (location === "archive" && (specStatus === "applied" || planStatus === "applied")) {
-      const permit = readPermittingDecision(root, changeId, "apply");
-      if (permit.state === "permit") {
-        applyGateRecord = { status: "permit" };
-      } else if (permit.state === "invalid") {
-        applyGateRecord = {
-          status: "invalid",
-          code: permit.code,
-          detail: permit.detail,
-        };
-        derivedStates.push(`gate-record-invalid:${permit.code}`);
-      } else if (permit.state === "absent") {
-        applyGateRecord = {
-          status: "absent",
-          detail: "no Decisions section (bundle may predate the gate surface)",
-        };
-        // Absence with reason — not dressed as a violation (A33.1 / D5).
-        derivedStates.push("apply-gate-record-absent");
-      } else {
-        // Decisions section exists and holds no permitting apply — the real violation.
-        applyGateRecord = { status: "no-permit" };
-        derivedStates.push("applied-without-gate-record");
-      }
-    }
-
-    const openEpochCount = countOpenEpochs(bundlePath);
-    const orphanCount = listRunOrphans(bundlePath).length;
-    const hasLedger = existsSync(ledgerFile);
-    // Folded count only when a ledger exists; still surface open activity without a ledger.
-    // With-ledger path: openEpochCount is independent (foldable loose only). Without ledger:
-    // epochCount=0 when foldable open exists so status can print epochs=0 open=1; undefined
-    // when neither ledger nor open foldable activity (orphan-only without ledger still needs
-    // the orphan signal — see formatStatusText).
-    const epochCount = hasLedger
-      ? countLedgerEpochs(ledgerFile)
-      : openEpochCount > 0
-        ? 0
-        : undefined;
-    const taskCount = existsSync(planFile) ? countPlanTasks(planFile) : undefined;
-    const amendment = readAmendmentInstrument(root, changeId);
-
-    return {
-      changeId,
-      location,
-      specStatus,
-      planStatus,
-      derivedStates: [...new Set(derivedStates)],
-      path: relativeBundlePath,
-      epochCount,
-      openEpochCount: epochCount !== undefined || openEpochCount > 0 ? openEpochCount : undefined,
-      orphanCount: orphanCount > 0 ? orphanCount : undefined,
-      taskCount,
-      applyGateRecord,
-      reRatificationCount: amendment.reRatificationCount,
-      supersedeChainDepth: amendment.supersedeChainDepth,
-    } satisfies ChangeBundleStatus;
+function collectChangeBundleStatus(root: string, location: "active" | "archive", bundlePath: string, lintIssues: LintIssue[]): ChangeBundleStatus {
+  const changeId = path.basename(bundlePath);
+  const specFile = path.join(bundlePath, "spec.xml");
+  const planFile = path.join(bundlePath, "plan.xml");
+  const ledgerFile = path.join(bundlePath, "run-ledger.xml");
+  const specStatus = existsSync(specFile) ? readRootStatus(specFile) : undefined;
+  const planStatus = existsSync(planFile) ? readRootStatus(planFile) : undefined;
+  const relativeBundlePath = path.relative(root, bundlePath) || ".";
+  const bundleLintIssues = lintIssues.filter((issue) => {
+    const resolvedIssue = path.resolve(issue.file);
+    return resolvedIssue === path.resolve(bundlePath) || resolvedIssue.startsWith(path.resolve(bundlePath) + path.sep);
   });
+  const derivedStates = deriveChangeStates({
+    location,
+    specStatus,
+    planStatus,
+    integrityErrors: bundleLintIssues.filter((issue) => issue.severity === "error").length,
+    baselineFailures: bundleLintIssues.filter((issue) => /^assertion\.(?:Must|command-not-evaluated)/.test(issue.code)).length,
+  });
+
+  // A29.9 / A32.1 / A33.1: gate-record findings for archived applied bundles (never gate.* from lint).
+  // absent ≠ no-permit: no Decisions section is grandfathered with reason; section without permit is the violation.
+  let applyGateRecord: ChangeBundleStatus["applyGateRecord"];
+  if (location === "archive" && (specStatus === "applied" || planStatus === "applied")) {
+    const permit = readPermittingDecision(root, changeId, "apply");
+    if (permit.state === "permit") {
+      applyGateRecord = { status: "permit" };
+    } else if (permit.state === "invalid") {
+      applyGateRecord = {
+        status: "invalid",
+        code: permit.code,
+        detail: permit.detail,
+      };
+      derivedStates.push(`gate-record-invalid:${permit.code}`);
+    } else if (permit.state === "absent") {
+      applyGateRecord = {
+        status: "absent",
+        detail: "no Decisions section (bundle may predate the gate surface)",
+      };
+      // Absence with reason — not dressed as a violation (A33.1 / D5).
+      derivedStates.push("apply-gate-record-absent");
+    } else {
+      // Decisions section exists and holds no permitting apply — the real violation.
+      applyGateRecord = { status: "no-permit" };
+      derivedStates.push("applied-without-gate-record");
+    }
+  }
+
+  const openEpochCount = countOpenEpochs(bundlePath);
+  const orphanCount = listRunOrphans(bundlePath).length;
+  const hasLedger = existsSync(ledgerFile);
+  // Folded count only when a ledger exists; still surface open activity without a ledger.
+  // With-ledger path: openEpochCount is independent (foldable loose only). Without ledger:
+  // epochCount=0 when foldable open exists so status can print epochs=0 open=1; undefined
+  // when neither ledger nor open foldable activity (orphan-only without ledger still needs
+  // the orphan signal — see formatStatusText).
+  const epochCount = hasLedger
+    ? countLedgerEpochs(ledgerFile)
+    : openEpochCount > 0
+      ? 0
+      : undefined;
+  const taskCount = existsSync(planFile) ? countPlanTasks(planFile) : undefined;
+  const amendment = readAmendmentInstrument(root, changeId);
+
+  return {
+    changeId,
+    location,
+    specStatus,
+    planStatus,
+    derivedStates: [...new Set(derivedStates)],
+    path: relativeBundlePath,
+    epochCount,
+    openEpochCount: epochCount !== undefined || openEpochCount > 0 ? openEpochCount : undefined,
+    orphanCount: orphanCount > 0 ? orphanCount : undefined,
+    taskCount,
+    applyGateRecord,
+    reRatificationCount: amendment.reRatificationCount,
+    supersedeChainDepth: amendment.supersedeChainDepth,
+  } satisfies ChangeBundleStatus;
+}
+
+/** Applies the snapshot's approved-contract-drift/absence correction to one bundle's states. */
+function applyApprovedContractDrift(
+  states: string[],
+  changeId: string,
+  drift: { drifted: Set<string>; absence?: { verdict: "unable-to-determine"; reason: string } },
+): string[] {
+  let derivedStates = states;
+  if (drift.drifted.has(changeId)) {
+    derivedStates = [...new Set([...derivedStates.filter((state) => state !== "ready-to-execute"), "approved-contract-drift"])];
+  }
+  if (drift.absence) {
+    derivedStates = derivedStates.filter((state) => state !== "ready-to-execute");
+  }
+  return derivedStates;
+}
+
+/**
+ * Derived states for one bundle, from the same readers the whole-project snapshot uses.
+ * Returns `[]` for an unknown bundle id and for a non-`grace4` project. A caller that already
+ * holds a project lint report passes it as `options.lint`, sparing this reader a second
+ * whole-project lint; omitted, the reader lints as before.
+ */
+export function derivedStatesForChange(
+  projectRoot: string,
+  changeId: string,
+  options: { lint?: LintResult } = {},
+): string[] {
+  const root = path.resolve(projectRoot);
+  if (detectGraceProjectKind(root) !== "grace4") {
+    return [];
+  }
+  const paths = resolveNgracePaths(root);
+  const activeBundle = path.join(paths.changesActiveDir, changeId);
+  const archivedBundle = path.join(paths.changesArchiveDir, changeId);
+  const location: "active" | "archive" | null = existsSync(activeBundle)
+    ? "active"
+    : existsSync(archivedBundle)
+      ? "archive"
+      : null;
+  if (!location) {
+    return [];
+  }
+  const bundlePath = location === "active" ? activeBundle : archivedBundle;
+  const lintIssues = options.lint ? options.lint.issues : lintGraceProject(root, { profile: "standard" }).issues;
+  const status = collectChangeBundleStatus(root, location, bundlePath, lintIssues);
+  const classifiedDrift = collectApprovedContractDrift(root, collectActiveChangeScopes(paths));
+  return applyApprovedContractDrift(status.derivedStates, changeId, classifiedDrift);
 }
 
 /** Folded Epoch-N wrappers only — never open/loose run/ activity (D8.8). */
@@ -395,15 +447,8 @@ export function collectProjectStatus(projectRoot: string, options: { includeModu
   const collectedDrift = collectObservedDrift(root, activeScopes, appliedScopes, buildDriftRouteIndex(root, graph, verification));
   const observedDrift = collectedDrift.drift;
   const classifiedDrift = collectApprovedContractDrift(root, activeScopes);
-  const approvedContractDrift = classifiedDrift.drifted;
   const changes = rawChanges.map((change) => {
-    let derivedStates = change.derivedStates;
-    if (approvedContractDrift.has(change.changeId)) {
-      derivedStates = [...new Set([...derivedStates.filter((state) => state !== "ready-to-execute"), "approved-contract-drift"])];
-    }
-    if (classifiedDrift.absence) {
-      derivedStates = derivedStates.filter((state) => state !== "ready-to-execute");
-    }
+    const derivedStates = applyApprovedContractDrift(change.derivedStates, change.changeId, classifiedDrift);
     if (derivedStates === change.derivedStates) return change;
     return { ...change, derivedStates };
   });

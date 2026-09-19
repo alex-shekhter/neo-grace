@@ -446,4 +446,10 @@
     <Pays>F308</Pays>
     <StatusText>One finding paid: a bundle with a folded history can open an epoch without bounds and fold it.</StatusText>
   </Row>
+  <Row name="C-PER-BUNDLE-READERS-1-58BB7AB1" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug PER-BUNDLE-READERS. Author half: the applied change scope carries its durable anchors, and a per-bundle derived-state reader factored from the whole-project derivation answers change show without a project-wide status walk.</Charter>
+    <Pays>F300 F301</Pays>
+    <StatusText>Two findings paid: an archived bundle's anchors print, and one bundle's states cost one bundle's work.</StatusText>
+  </Row>
 </Registry>

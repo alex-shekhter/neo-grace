@@ -230,11 +230,6 @@ function formatDurableScope(durable: ChangeDurableScope): string[] {
       ];
     case "declared-none":
       return ["  declared none (\u0060<None />\u0060)"];
-    case "not-carried-archived":
-      return [
-        "  not carried for an archived bundle (the applied-scope reader carries no durable scope;"
-        + " the archived plan declares its own anchors)",
-      ];
     case "absent":
       return ["  absent"];
   }

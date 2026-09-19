@@ -68,7 +68,7 @@ describe("neo-grace scope detector", () => {
     expect(one?.observedWrites.files).toContain("src/auth.ts");
   });
 
-  it("collects only applied+applied archive scopes and never returns durable", () => {
+  it("collects only applied+applied archive scopes and carries their declared durable anchors", () => {
     const root = createProject();
     writeChange(root, "C-ACTIVE-APPROVED", { graphAnchor: "M-AUTH-SESSION", file: "src/auth.ts" });
     writeChange(root, "C-APPLIED-IN-ACTIVE", { graphAnchor: "M-AUTH-SESSION", file: "src/active.ts", status: "applied" });
@@ -83,7 +83,7 @@ describe("neo-grace scope detector", () => {
 
     expect(applied.map((scope) => scope.changeId)).toEqual(["C-APPLIED"]);
     expect(applied[0]?.observedWrites.files).toContain("src/applied.ts");
-    expect(applied[0]).not.toHaveProperty("durable");
+    expect(applied[0]?.durable?.graphAnchors).toEqual(["M-EXAMPLE"]);
     expect(active.map((scope) => scope.changeId).sort()).toEqual(["C-ACTIVE-APPROVED"]);
     expect(active.every((scope) => scope.changeId !== "C-APPLIED")).toBe(true);
   });

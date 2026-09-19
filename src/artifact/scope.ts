@@ -21,6 +21,7 @@
 //   detectScopeOverlaps
 //   detectUnsafeConcurrentExecution
 //   durableOverlaps
+//   extractDurableScope
 //   observedWriteScopeContains
 //   parseScopeGlob
 //   scopeGlobsOverlap
@@ -78,12 +79,13 @@ export type ActiveChangeScope = {
   issues: NgraceIssue[];
 };
 
-/** Archived applied change used for observed-drift credit. No durable field. */
+/** Archived applied change used for observed-drift credit; carries its declared durable scope. */
 export type AppliedChangeScope = {
   changeId: string;
   bundlePath: string;
   specStatus: string;
   planStatus: string;
+  durable: DurableScope;
   observedWrites: ObservedWriteScope;
   issues: NgraceIssue[];
 };
@@ -249,7 +251,7 @@ export function collectActiveChangeScopes(paths: NgraceProjectPaths): ActiveChan
     .filter((scope): scope is ActiveChangeScope => scope !== null);
 }
 
-/** Reads archive/ only. Enters only when spec and plan are both applied. No durable. */
+/** Reads archive/ only. Enters only when spec and plan are both applied. */
 export function collectAppliedChangeScopes(paths: NgraceProjectPaths): AppliedChangeScope[] {
   if (!existsSync(paths.changesArchiveDir)) {
     return [];
@@ -330,14 +332,16 @@ function readAppliedChangeScope(paths: NgraceProjectPaths, bundlePath: string, c
     return null;
   }
 
+  const durable = extractDurableScope(plan.root, planFile);
   const observed = extractObservedWriteScope(plan.root, paths.root, planFile);
   return {
     changeId,
     bundlePath,
     specStatus,
     planStatus,
+    durable: durable.scope,
     observedWrites: observed.scope,
-    issues: [...observed.issues],
+    issues: [...durable.issues, ...observed.issues],
   };
 }
 
@@ -365,7 +369,7 @@ function readActiveChangeScope(paths: NgraceProjectPaths, bundlePath: string, ch
   };
 }
 
-function extractDurableScope(root: GraceXmlNode, planFile: string): { scope: DurableScope; issues: NgraceIssue[] } {
+export function extractDurableScope(root: GraceXmlNode, planFile: string): { scope: DurableScope; issues: NgraceIssue[] } {
   const scopeNode = [...walkNodes(root)].find((node) => node.tag === "DurableScope");
   const scope: DurableScope = {
     graphAnchors: [],

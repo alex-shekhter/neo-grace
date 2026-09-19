@@ -208,6 +208,12 @@ const bundleMinted: Record<string, string> = {
   // Consulted only for tokens the derivation actually mints, so the walk is green
   // with the row live and green in the applied-archive state (the close's mint).
   F308: "C-EPOCH-OPEN-DEFAULT-1-CE010A4C",
+  // C-PER-BUNDLE-READERS-1-58BB7AB1 T-005: the chartered row's two minted tokens
+  // (F300 and F301). The extension is consulted only for tokens the derivation
+  // actually mints, so the walk is green with the row live (nothing minted while
+  // the bundle is active) and green in the applied-archive state (the close's mint).
+  F300: "C-PER-BUNDLE-READERS-1-58BB7AB1",
+  F301: "C-PER-BUNDLE-READERS-1-58BB7AB1",
 };
 
 
