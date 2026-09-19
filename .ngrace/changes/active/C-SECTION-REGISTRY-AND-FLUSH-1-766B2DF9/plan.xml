@@ -1,0 +1,519 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9>
+    <IntentSummary>
+      Convert the approved spec into the executable plan. Tier **T2** across two
+      modules: `M-GRAMMAR` owns `src/artifact/grammar.ts` and
+      `src/artifact/schema-reference.ts`; `M-LINT-CATALOG` owns
+      `src/lint/catalog.ts`. The five `*.test.ts` files, `docs/schema-reference.md`
+      and `scripts/validate-record-retirement.ts` are not module-ownable.
+      **Task split and pairs.** Six tasks, five red-first pairs and one
+      pass-only: **T-001** the registered-section check (reds the new
+      `change.unregistered-section` on a planted `&lt;Bogus&gt;` and on the
+      typo `&lt;ObservedWriteScopes&gt;`); **T-002** the catalog exact
+      `--explain` guide and its CLI test; **T-003** the two registered schema
+      shapes and the regenerated `docs/schema-reference.md`; **T-004** the
+      flush's `--mint-search` requirement; **T-005** the flush's stamp-naming
+      success line; **T-006** the `bundleMinted` entries (pass-only — a map
+      entry has no failing state) whose last act is the terminal cursor event
+      `ngrace cursor advance --change C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9
+      --task T-006 --kind terminal` (the close's fold refuses an unterminated
+      range). Each red-first task authors its guard against the tree it
+      inherits, records exactly **one** `cursor attempt --outcome fail`, lands
+      its mechanism once, and records exactly **one** `cursor attempt --outcome
+      pass`. **The Atomic Mechanism Exception is not invoked, and the split is
+      justified by what reds each task alone.** T-001's check and T-002's
+      catalog guide are different mechanisms — a validator versus catalog data:
+      T-002 alone reds `src/lint/catalog.test.ts` (the exact-guide fields) and
+      the `src/grace-lint.test.ts` `--explain` case asserting
+      `Classification: exact`, because without the guide the emitted code
+      resolves only through the `change.` family prefix as
+      `emittable-uncatalogued`; T-001 alone reds
+      `src/artifact/grammar.test.ts`, and its emitted code is the
+      prefix-resolved one until T-002 lands. T-003 is a third mechanism (the
+      schema-shape registry and the generated document) and reds
+      `src/artifact/schema-reference.test.ts`. T-004 and T-005 are two
+      independent reds inside `flushRecord` (the guard versus the success
+      line), so they are two tasks and T-005 depends on T-004 only to keep one
+      file's edits serial. **No new exports; `MODULE_MAP` does not move:**
+      T-001 adds two module-private constants and one module-private function;
+      T-002 adds an `EXACT_GUIDES` entry; T-003 adds two members of the
+      module-private `REGISTERED_SHAPE_NAMES` and two registry rows;
+      T-004/T-005 change the body of `flushRecord`. **The unlink pin stays
+      green:** no task adds an `unlinkSync`/`rmSync`/`rmdirSync` call site
+      under `src/` (`src/grace-cursor.test.ts:552`-`:592` pins exactly seven in
+      four files). **The catalog is pinned; grepped before scope was written:**
+      `isEmittableIssueCode` already admits any `change.*` code through
+      `PREFIX_GUIDES`, and T-002's `EXACT_GUIDES` entry moves it to `exact`;
+      the `collectEmittedIssueCodes` scanner in `src/lint/catalog.test.ts`
+      reads the first-arg literal of `issue(...)`, so T-001's emit site is a
+      string literal; `src/lint/catalog.test.ts:638` pins every exact code into
+      the emittable union. **`docs/schema-reference.md` is generated and
+      checked:** T-003 adds `SPEC_OPTIONAL_SECTIONS` and
+      `PLAN_OPTIONAL_SECTIONS` to `GRAMMAR_INVENTORIES`, registers them as
+      `change-spec-optional` and `change-plan-optional`, regenerates the
+      document in the same round trip, runs `validate:schema-reference`, and
+      updates `src/artifact/schema-reference.test.ts`'s pinned
+      `REGISTERED_SHAPES` and preamble sentence (its
+      `interpolates every live inventory member` case already forces the
+      document to carry them). `scripts/generate-schema-reference.ts` and
+      `scripts/generate-schema-reference.test.ts` do not change.
+      **Baseline asserts only what stays:** the `SPEC_REQUIRED_SECTIONS` /
+      `PLAN_REQUIRED_SECTIONS` constants, `validateDirectSectionCardinality`,
+      and the `change.spec-missing-section` / `change.plan-missing-section`
+      codes; all forced files and the seven record files exist. **The needles
+      the bundle flips are target assertions, never baseline:**
+      `change.unregistered-section` (both `src/artifact/grammar.ts` and
+      `src/lint/catalog.ts`), `SPEC_OPTIONAL_SECTIONS`,
+      `PLAN_OPTIONAL_SECTIONS`, `change-spec-optional` and
+      `change-plan-optional` (both `src/artifact/schema-reference.ts` and the
+      regenerated `docs/schema-reference.md`), the mint-search guard
+      `opts.mintSearch !== undefined || !rowExists`, the success-line arrow
+      `→`, and `F304` / `F305` / the bundle id in
+      `scripts/validate-record-retirement.test.ts`. Every baseline needle and
+      every flip needle was driven on an approved-shaped copy; the target run
+      on the base code reddens exactly the flips. **The close's write set, read
+      from the verbs:** `--flush` writes `findings.xml`, `rulings.xml`,
+      `decisions.xml`, `registry.xml`; `--retire` moves the eligible entries to
+      the retired siblings and rewrites the live roots; `ngrace apply` renames
+      the bundle into `.ngrace/changes/archive/`. All seven record files and
+      `.ngrace/changes/archive/C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9/**` are
+      declared in `ObservedWriteScope`; this bundle's own `spec.xml`/`plan.xml`
+      and the staged buffer are not. **The close order carries a fold the
+      brief's list omits:** the executor's terminal event on T-006 is followed
+      by `ngrace cursor fold --change C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9`;
+      without it `gate archive` refuses `gate.archive.open-epoch` (driven at
+      plan time: loose `run/` events remain after the terminal event, and the
+      permit comes only after the fold). **The authority's close acts are named,
+      never tasked:** `--flush --change C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9
+      --finding F304 --finding F305 --pays "F304 F305" --mint-search "0 active,
+      0 archive"`, `ngrace apply`, and `--retire`. T-006's `bundleMinted`
+      extension keeps the post-close payer walk green. **Every `AC-*` with
+      `CloseEvidence` is close-bound and carries no `Satisfies`;** the eight
+      ordinary criteria map to T-001 through T-005. This plan carries no
+      `Assumptions` section even though the spec registers it for plans; its
+      plan-time evidence lives here. This bundle's executor does not approve,
+      runs no review, gate, supersede or apply verb, and does not commit.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/schema-reference.ts</Value></MustExist>
+      <MustExist><Value>docs/schema-reference.md</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/schema-reference.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>change.spec-missing-section</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>change.plan-missing-section</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>SPEC_REQUIRED_SECTIONS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>PLAN_REQUIRED_SECTIONS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>validateDirectSectionCardinality</Text>
+      </MustContain>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/lint/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/schema-reference.ts</Value></MustExist>
+      <MustExist><Value>docs/schema-reference.md</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.ts</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CATALOG</Value></MustExist>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CATALOG</Module></MustVerify>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>change.unregistered-section</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>SPEC_OPTIONAL_SECTIONS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>PLAN_OPTIONAL_SECTIONS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>change.unregistered-section</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/schema-reference.ts</File>
+        <Text>change-spec-optional</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/schema-reference.ts</File>
+        <Text>change-plan-optional</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/schema-reference.md</File>
+        <Text>change-spec-optional</Text>
+      </MustContain>
+      <MustContain>
+        <File>docs/schema-reference.md</File>
+        <Text>change-plan-optional</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>opts.mintSearch !== undefined || !rowExists</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.ts</File>
+        <Text>→</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F304</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F305</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+        <M-LINT-CATALOG />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GRAMMAR />
+        <V-M-LINT-CATALOG />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/lint/catalog.test.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>src/artifact/schema-reference.ts</File>
+      <File>src/artifact/schema-reference.test.ts</File>
+      <File>docs/schema-reference.md</File>
+      <File>scripts/validate-record-retirement.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <Glob>.ngrace/changes/archive/C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Report an unregistered direct section as an error</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip. In
+            `src/artifact/grammar.test.ts`, add a case that builds a spec whose
+            `C-*` wrapper carries a direct `&lt;Bogus&gt;&lt;Item&gt;nothing&lt;/Item&gt;&lt;/Bogus&gt;`
+            and a plan whose wrapper carries `&lt;ObservedWriteScopes&gt;` in
+            place of `&lt;ObservedWriteScope&gt;`, runs
+            `validateChangeArtifact(parseGraceXmlArtifact(...), "active")`, and
+            asserts: the spec reports `change.unregistered-section` with a
+            message containing `Bogus`; the plan reports both
+            `change.plan-missing-section` naming `ObservedWriteScope` and
+            `change.unregistered-section` naming `ObservedWriteScopes`; a clean
+            registered spec and plan report no `change.unregistered-section`; a
+            plan carrying a direct `&lt;Assumptions&gt;` reports none; a
+            `status="superseded"` wrapper carrying a direct `C-*` child, a
+            `&lt;Replacement&gt;C-OTHER-1-ABCDEF&lt;/Replacement&gt;` child, or
+            a `&lt;ReplacementChange&gt;C-OTHER-1-ABCDEF&lt;/ReplacementChange&gt;`
+            child reports none. On the base tree the code does not exist, so
+            the planted cases read `undefined` and fail; paste the tail. Record
+            exactly **one** `cursor attempt --outcome fail` for the guard; do
+            not land production in this round trip.
+          </Criterion>
+          <Criterion>
+            Production, after the red. In `src/artifact/grammar.ts`: after
+            `PLAN_REQUIRED_SECTIONS`, add module-private `SPEC_OPTIONAL_SECTIONS`
+            = `["Problem", "Assumptions", "DesignReferences", "Clarifications",
+            "Replacement", "ReplacementChange", "Proposals", "ReadAloud"]` and
+            `PLAN_OPTIONAL_SECTIONS` = `["OutOfPlanScope", "Clarifications",
+            "Replacement", "ReplacementChange", "Assumptions"]`; add a
+            module-private `validateRegisteredSections(file, wrapper, required,
+            optional, allowReplacementAnchor, issues)` beside
+            `validateDirectSectionCardinality` that reports
+            `issue("error", "change.unregistered-section", file, "&lt;tag&gt;
+            contains unregistered direct section &lt;child&gt;; not a registered
+            spec/plan section.")` for every direct child not in required ∪
+            optional, admitting a direct `ANCHOR_PATTERNS.change` child when
+            `allowReplacementAnchor`; call it in both branches of
+            `validateChangeArtifact`, passing `status === "superseded"` as
+            `allowReplacementAnchor`; and add `SPEC_OPTIONAL_SECTIONS` and
+            `PLAN_OPTIONAL_SECTIONS` to `GRAMMAR_INVENTORIES` beside the
+            required sets. The existing required-cardinality and
+            meaningful-section cases are unchanged. Record exactly **one**
+            `cursor attempt --outcome pass`. Failure conditions: the registered
+            sets omit a name the archive census found
+            (`src/artifact/grammar.ts` reds the whole archive); a
+            `status="superseded"` direct `C-*` child errors; the emit site is
+            not a string literal `change.unregistered-section` (the
+            `collectEmittedIssueCodes` scanner would miss it).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/artifact/grammar.test.ts</Command>
+          <Command>bun run ./src/grace.ts lint --path examples/polyglot --fail-on errors</Command>
+          <Command>bun run ngrace lint --path . --change C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 --assertions baseline</Command>
+          <Command>git diff --exit-code 3a1d5c6dd3df43b1d5a89723a0a627ed8c006f8a -- README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/ CLAUDE.md CONTRIBUTING.md docs/plans/README.md package.json bun.lock CHANGELOG.md .ngrace-lint.json openpackage.yml test-metrics.json .claude-plugin/ plugins/ngrace/.claude-plugin/ docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9' docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </Verification>
+        <Satisfies>
+          <AC-UNREGISTERED-SECTION-ERROR />
+          <AC-TYPO-NAMED />
+          <AC-PLAN-ASSUMPTIONS-CLEAN />
+          <AC-SUPERSEDE-ANCHOR-CLEAN />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Register the exact --explain guide for the new code</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip. In
+            `src/lint/catalog.test.ts`, add a case that asserts
+            `getExactLintIssueGuide("change.unregistered-section")` is defined
+            with a non-empty title, explanation and remediation, that
+            `classifyIssueCode("change.unregistered-section")` is `exact`, and
+            that `isEmittableIssueCode("change.unregistered-section")` is true;
+            in `src/grace-lint.test.ts`, add a `--explain` CLI case that runs
+            `./src/grace.ts lint --explain change.unregistered-section`, expects
+            exit 0, and expects the output to contain `Classification: exact`
+            and the words `registered section`. On the base tree the exact guide
+            is undefined and the CLI prints `Classification:
+            emittable-uncatalogued`, so both cases fail; paste the tail. Record
+            exactly **one** `cursor attempt --outcome fail`.
+          </Criterion>
+          <Criterion>
+            Production, after the red. In `src/lint/catalog.ts`, add an
+            `EXACT_GUIDES` entry keyed `change.unregistered-section` with a
+            title, an explanation that the C-* wrapper is a closed schema whose
+            every direct child must be a required or optional registered
+            section (or a replacement anchor on a superseded artifact), three
+            remediation lines (use a registered name and read
+            `ngrace lint --explain change-spec` / `change-plan`; correct the
+            spelling, since the missing-section code names the intended name;
+            register an additional section rather than leaving it unregistered),
+            `derivedFrom`, and `proposedBy: "regex-over-structure"`. No other
+            catalog entry moves. Record exactly **one** `cursor attempt
+            --outcome pass`. Failure conditions: the entry is not an exact key
+            (so `--explain` stays `emittable-uncatalogued`); a title,
+            explanation or remediation is empty; the `change.` prefix guide is
+            altered instead.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/lint/catalog.test.ts src/grace-lint.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 --assertions baseline</Command>
+          <Command>git diff --exit-code 3a1d5c6dd3df43b1d5a89723a0a627ed8c006f8a -- README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/ CLAUDE.md CONTRIBUTING.md docs/plans/README.md package.json bun.lock CHANGELOG.md .ngrace-lint.json openpackage.yml test-metrics.json .claude-plugin/ plugins/ngrace/.claude-plugin/ docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9' docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </Verification>
+        <Satisfies>
+          <AC-EXPLAIN-GUIDE />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>Register the two optional shapes and regenerate the reference</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip. In
+            `src/artifact/schema-reference.test.ts`, add the two shape names
+            `change-spec-optional` and `change-plan-optional` to the pinned
+            `REGISTERED_SHAPES` list and the preamble sentence, and add a case
+            that asserts `renderSchemaShape("change-spec-optional")` lists all
+            eight optional spec names and
+            `renderSchemaShape("change-plan-optional")` lists all five optional
+            plan names. On the base tree `isRegisteredSchemaShape("change-spec-optional")`
+            is false and the render is empty, so the case fails; paste the tail.
+            Record exactly **one** `cursor attempt --outcome fail`.
+          </Criterion>
+          <Criterion>
+            Production, after the red. In `src/artifact/schema-reference.ts`:
+            add `change-spec-optional` after `change-spec` and
+            `change-plan-optional` after `change-plan` in
+            `REGISTERED_SHAPE_NAMES`; add
+            `"change-spec-optional": ["SPEC_OPTIONAL_SECTIONS"]` and
+            `"change-plan-optional": ["PLAN_OPTIONAL_SECTIONS"]` to
+            `SCHEMA_SHAPE_REGISTRY`. Then run
+            `bun run ./scripts/generate-schema-reference.ts` to regenerate
+            `docs/schema-reference.md`, and `bun run validate:schema-reference`
+            to prove the committed document is byte-identical to the renderer.
+            Record exactly **one** `cursor attempt --outcome pass`. Failure
+            conditions: the optional members are added to the `change-spec` /
+            `change-plan` rows instead (the required set blurs); the document
+            is hand-edited rather than regenerated; the generator or its test
+            is changed (neither is forced).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/artifact/schema-reference.test.ts</Command>
+          <Command>bun run validate:schema-reference</Command>
+          <Command>bun run ngrace lint --path . --change C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 --assertions baseline</Command>
+          <Command>git diff --exit-code 3a1d5c6dd3df43b1d5a89723a0a627ed8c006f8a -- README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/ CLAUDE.md CONTRIBUTING.md docs/plans/README.md package.json bun.lock CHANGELOG.md .ngrace-lint.json openpackage.yml test-metrics.json .claude-plugin/ plugins/ngrace/.claude-plugin/ docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9' docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SCHEMA-SHAPES />
+        </Satisfies>
+      </T-003>
+      <T-004>
+        <Title>Require --mint-search only when the row is minted</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip. In
+            `scripts/validate-record-retirement.test.ts`, in the flush-mode
+            describe, add a case that (i) mints the row with a finding and
+            `--mint-search "1 active, 0 archive"`, then (ii) runs the codify-only
+            `--flush --taught d-fixture:&lt;skill&gt;:&lt;section&gt;` with no
+            `--mint-search` and asserts exit 0, and (iii) runs a fresh mint
+            without `--mint-search` and asserts exit 1 with
+            `flush-mint-search-malformed`, and (iv) runs a supplied
+            `--mint-search "bad"` and asserts exit 1 with
+            `flush-mint-search-malformed`. On the base tree step (ii) exits 1,
+            so the case fails; paste the tail. Drive it on an isolated fixture
+            root, never the production record. Record exactly **one** `cursor
+            attempt --outcome fail`.
+          </Criterion>
+          <Criterion>
+            Production, after the red. In `scripts/validate-record-retirement.ts`
+            `flushRecord`, change the shape guard from
+            `if (!/^[0-9]+ active, [0-9]+ archive$/.test(mintSearch))` to
+            `if ((opts.mintSearch !== undefined || !rowExists) &amp;&amp;
+            !/^[0-9]+ active, [0-9]+ archive$/.test(mintSearch))`, so the
+            argument is required only when the row is minted and a supplied
+            value is always validated. Nothing else in `flushRecord` moves.
+            Record exactly **one** `cursor attempt --outcome pass`. Failure
+            conditions: a fresh mint without `--mint-search` stops refusing; a
+            supplied malformed value stops refusing; the codify-only path still
+            demands it.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 --assertions baseline</Command>
+          <Command>git diff --exit-code 3a1d5c6dd3df43b1d5a89723a0a627ed8c006f8a -- README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/ CLAUDE.md CONTRIBUTING.md docs/plans/README.md package.json bun.lock CHANGELOG.md .ngrace-lint.json openpackage.yml test-metrics.json .claude-plugin/ plugins/ngrace/.claude-plugin/ docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9' docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </Verification>
+        <Satisfies>
+          <AC-FLUSH-MINT-SEARCH />
+        </Satisfies>
+      </T-004>
+      <T-005>
+        <Title>Name every stamp the flush call wrote</Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip. In
+            `scripts/validate-record-retirement.test.ts`, add a case that mints
+            the row, then runs a codify-only `--flush --taught
+            d-fixture:&lt;skill&gt;:&lt;section&gt;` (a supplied `--mint-search`
+            is fine) and asserts exit 0 and that stdout contains
+            `taught d-fixture → &lt;skill&gt;:&lt;section&gt;`; and a case that
+            runs a codify-only `--flush --codify ...` and asserts stdout
+            contains `codified d-fixture`; and a case where both flags are
+            supplied and both suffixes appear. On the T-004 tree the codify-only
+            `--taught` line reads `record-flush: codify-only (row ...)` and
+            names no stamp, so the case fails; paste the tail. Drive it on
+            isolated fixture roots. Record exactly **one** `cursor attempt
+            --outcome fail`.
+          </Criterion>
+          <Criterion>
+            Production, after the red. In `scripts/validate-record-retirement.ts`
+            `flushRecord`, build one module-private `stampSuffix` from
+            `opts.codify ? \`codified ${opts.codify.split(":")[0]}\` : ""` and
+            `opts.taught ? \`taught ${opts.taught.split(":")[0]} → ${opts.taught
+            .split(":").slice(1).join(":")}\` : ""`, joined with `", "`, and
+            append it to both success lines when non-empty, so the codify-only
+            line reads `record-flush: codify-only (row &lt;change&gt;[, codified
+            &lt;D-id&gt;][, taught &lt;D-id&gt; → &lt;path&gt;:&lt;section&gt;])`
+            and the mint line reads `record-flush: flushed ... (row ...,
+            pays ...[, ...])`. The arrow is the literal U+2192 character. Record
+            exactly **one** `cursor attempt --outcome pass`. Failure conditions:
+            the line names one annotation kind and not the other; a call that
+            writes no stamp prints a stray separator; the arrow is written as
+            the two-character escape `\u2192` (the target needle is the literal
+            `→`).
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 --assertions baseline</Command>
+          <Command>git diff --exit-code 3a1d5c6dd3df43b1d5a89723a0a627ed8c006f8a -- README.md examples/ skills/ngrace/ plugins/ngrace/skills/ngrace/ CLAUDE.md CONTRIBUTING.md docs/plans/README.md package.json bun.lock CHANGELOG.md .ngrace-lint.json openpackage.yml test-metrics.json .claude-plugin/ plugins/ngrace/.claude-plugin/ docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9' docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </Verification>
+        <Satisfies>
+          <AC-FLUSH-STAMP-LINE />
+        </Satisfies>
+      </T-005>
+      <T-006>
+        <Title>Pin the paid tokens in the payer-map fixture and close the stream</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+          <Task>T-002</Task>
+          <Task>T-003</Task>
+          <Task>T-004</Task>
+          <Task>T-005</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Pass-only; a map entry has no failing state. In
+            `scripts/validate-record-retirement.test.ts`, add
+            `F304: "C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9"` and
+            `F305: "C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9"` to the
+            `bundleMinted` map, with a comment naming this bundle as the payer
+            the close's `Pays F304 F305` requires. Run
+            `bun test --timeout=0 scripts/validate-record-retirement.test.ts`
+            and paste the tail. Record exactly **one** `cursor attempt --outcome
+            pass`.
+          </Criterion>
+          <Criterion>
+            The last act of this task is the terminal cursor event
+            `ngrace cursor advance --change
+            C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 --task T-006 --kind
+            terminal`, so the close's fold finds a terminated range. Paste its
+            exit.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 --assertions baseline</Command>
+        </Verification>
+      </T-006>
+    </ImplementationPlan>
+  </C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9>
+</NgraceChangePlan>
