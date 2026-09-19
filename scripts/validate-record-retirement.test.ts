@@ -44,6 +44,11 @@ const RECORD_REL = "docs/plans/active/RM-GOVERNED-PATH";
 // mints, so the walk is inert (green) with the row live and green in the
 // applied-archive state.
 const bundleMinted: Record<string, string> = {
+  // C-CURSOR-STATE-HONESTY-1-53C5EC0B: the two staged tokens this bundle
+  // pays at its close (Pays F309 F310). Pass-only: a map entry has no failing
+  // state.
+  F309: "C-CURSOR-STATE-HONESTY-1-53C5EC0B",
+  F310: "C-CURSOR-STATE-HONESTY-1-53C5EC0B",
   // C-TEACHING-CLOSE-PATH-1-3E91B69F: the two staged tokens this bundle
   // pays at its close (Pays F306 F311). Pass-only: a map entry has no failing
   // state.

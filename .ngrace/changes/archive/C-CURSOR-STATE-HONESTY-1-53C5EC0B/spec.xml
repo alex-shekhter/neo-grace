@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-CURSOR-STATE-HONESTY-1-53C5EC0B>
     <Summary>
       One `src/` bundle that pays the two staged cursor findings `F309` and

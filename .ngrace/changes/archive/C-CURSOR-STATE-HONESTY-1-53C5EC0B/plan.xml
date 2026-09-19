@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-CURSOR-STATE-HONESTY-1-53C5EC0B>
     <IntentSummary>
       Convert the approved spec into the executable plan. Two mechanisms,

@@ -4398,3 +4398,137 @@ describe("C-EPOCH-OPEN-DEFAULT-1-CE010A4C T-002: recover --fix leading hole", ()
     expect(() => foldEpoch(root, "C-FIXMID")).toThrow(/range hole at 3/i);
   });
 });
+
+// ---------------------------------------------------------------------------
+// C-CURSOR-STATE-HONESTY-1-53C5EC0B T-001: state from the range's closer (F310).
+// ---------------------------------------------------------------------------
+
+describe("C-CURSOR-STATE-HONESTY-1-53C5EC0B: state from the range's closer (F310)", () => {
+  function seedEndStateBundle(root: string, changeId: string) {
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, {
+      changeId,
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+      planTargetAssertions:
+        `<MustExist><Value>src/example.ts</Value></MustExist>`
+        + `<MustPassCommand><Command>exit 0</Command></MustPassCommand>`,
+    });
+  }
+
+  it("AC-END-STATE-READS-COMPLETE: the end-state fold reads complete, not in-progress", () => {
+    const root = createProject();
+    const changeId = "C-ENDSTATE";
+    seedEndStateBundle(root, changeId);
+    advanceCursor(root, changeId, { task: "T-001", openEpoch: true, worker: "w0", from: 1, to: 20 });
+    advanceCursor(root, changeId, { task: "T-001", kind: "progress" });
+    advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+    expect(foldEpoch(root, changeId).applied).toBe(true);
+    lintGraceProject(root, { assertionMode: "final", changeId, runCommands: true });
+    advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+    expect(foldEpoch(root, changeId).applied).toBe(true);
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "active", changeId);
+    const runDir = path.join(bundle, "run");
+    expect(existsSync(runDir) ? readdirSync(runDir) : []).toEqual([]);
+    const position = showCursor(root, changeId);
+    expect(position.state).toBe("complete");
+    expect(readFileSync(path.join(bundle, "run.xml"), "utf8")).toContain("<State>complete</State>");
+  });
+
+  it("range control: a bounded reopen over a prior terminal stays in-progress", () => {
+    const root = createProject();
+    const changeId = "C-BOUNDED";
+    seedEndStateBundle(root, changeId);
+    advanceCursor(root, changeId, { task: "T-001", openEpoch: true, worker: "w0", from: 1, to: 20 });
+    advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+    expect(foldEpoch(root, changeId).applied).toBe(true);
+    advanceCursor(root, changeId, { task: "T-001", openEpoch: true, worker: "w0", from: 1, to: 99 });
+    expect(showCursor(root, changeId).state).toBe("in-progress");
+  });
+
+  it("range control: a stray terminal inside a live range reads its closer's state", () => {
+    const root = createProject();
+    const changeId = "C-STRAY";
+    seedEndStateBundle(root, changeId);
+    advanceCursor(root, changeId, { task: "T-001", openEpoch: true, worker: "w0", from: 1, to: 20 });
+    advanceCursor(root, changeId, { task: "T-001", kind: "progress" });
+    advanceCursor(root, changeId, { task: "T-001", kind: "terminal" });
+    advanceCursor(root, changeId, { task: "T-001", kind: "progress" });
+    expect(showCursor(root, changeId).state).toBe("complete");
+    expect(foldEpoch(root, changeId).applied).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-CURSOR-STATE-HONESTY-1-53C5EC0B T-002: recover --fix refuses a lost event (F309).
+// ---------------------------------------------------------------------------
+
+describe("C-CURSOR-STATE-HONESTY-1-53C5EC0B: recover --fix refuses a lost event (F309)", () => {
+  function seedLoose(root: string, changeId: string, ids: Array<[number, string]>) {
+    const bundle = seedBundle(root, changeId);
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    for (const [id, kind] of ids) {
+      writeFileSync(
+        path.join(runDir, `${id}-T-001-${kind}.xml`),
+        `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="${kind}"/>`,
+      );
+    }
+    return bundle;
+  }
+
+  it("AC-FIX-REFUSES-LOST-EVENT: a missing covering over a mid-range hole is not repaired", () => {
+    const root = createProject();
+    const bundle = seedLoose(root, "C-LOST", [[27, "progress"], [29, "progress"], [30, "terminal"]]);
+    const before = listLooseEvents(bundle).map((event) => event.file).sort();
+    const fixed = recoverCursor(root, "C-LOST", { fix: true });
+    expect(fixed.fixApplied).toBe(false);
+    expect(fixed.foldBlockReasons.some((reason) => /range hole at 28/.test(reason))).toBe(true);
+    expect(listLooseEvents(bundle).map((event) => event.file).sort()).toEqual(before);
+    expect(() => foldEpoch(root, "C-LOST")).toThrow(/range hole at 28/);
+    const rendered = formatRecoverDiagnosis(fixed);
+    expect(rendered).toContain("Fix applied: no");
+    expect(rendered).not.toMatch(/Fix applied:\s*yes/i);
+    expect(rendered).toContain("range hole at 28");
+  });
+
+  it("control: a dense loose range with no covering still writes and folds", () => {
+    const root = createProject();
+    const bundle = seedLoose(root, "C-DENSE", [[1, "progress"], [2, "progress"], [3, "terminal"]]);
+    const fixed = recoverCursor(root, "C-DENSE", { fix: true });
+    expect(fixed.fixApplied).toBe(true);
+    expect(fixed.coveringOpenedFile).toBeDefined();
+    expect(foldEpoch(root, "C-DENSE").applied).toBe(true);
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+  });
+
+  it("control: a leading hole still re-homes and folds", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-LEADING");
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(path.join(runDir, "12-T-001-opened.xml"), `<NgraceRunEvent graceVersion="1.0" id="12" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="20"/></NgraceRunEvent>`);
+    writeFileSync(path.join(runDir, "13-T-001-progress.xml"), `<NgraceRunEvent graceVersion="1.0" id="13" task="T-001" kind="progress"/>`);
+    writeFileSync(path.join(runDir, "14-T-001-terminal.xml"), `<NgraceRunEvent graceVersion="1.0" id="14" task="T-001" kind="terminal"/>`);
+    const fixed = recoverCursor(root, "C-LEADING", { fix: true });
+    expect(fixed.fixApplied).toBe(true);
+    expect(fixed.foldBlocked).toBe(false);
+    expect(foldEpoch(root, "C-LEADING").applied).toBe(true);
+  });
+
+  it("control: a present covering with a mid-range hole still declines", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-MIDPRESENT");
+    const runDir = path.join(bundle, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(path.join(runDir, "1-T-001-opened.xml"), `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="10"/></NgraceRunEvent>`);
+    writeFileSync(path.join(runDir, "2-T-001-progress.xml"), `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="progress"/>`);
+    writeFileSync(path.join(runDir, "4-T-001-terminal.xml"), `<NgraceRunEvent graceVersion="1.0" id="4" task="T-001" kind="terminal"/>`);
+    const before = listLooseEvents(bundle).map((event) => event.file).sort();
+    const fixed = recoverCursor(root, "C-MIDPRESENT", { fix: true });
+    expect(fixed.fixApplied).toBe(false);
+    expect(listLooseEvents(bundle).map((event) => event.file).sort()).toEqual(before);
+    expect(() => foldEpoch(root, "C-MIDPRESENT")).toThrow(/range hole at 3/);
+  });
+});
