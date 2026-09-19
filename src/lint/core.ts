@@ -495,6 +495,7 @@ function validateAssertions(
   options: LintOptions,
 ) {
   const assertionMode = options.assertionMode ?? "current";
+  if (assertionMode === "none") return;
   // D6.3(c): record command-run evidence only under explicit runCommands opt-in
   // with a selected changeId. Layering: callback into grace-cursor; assertions
   // never import the write surface (avoids assertions → grace-cursor cycle).
@@ -721,7 +722,7 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
     addNgraceIssue(result, issue);
   }
 
-  validateGraphAnchorsOwnWriteScope(result, activeScopes, governedRecords);
+  validateGraphAnchorsOwnWriteScope(result, activeScopes, governedRecords, root);
 
   const planFilesActive = [...listPlanFiles(paths.changesActiveDir)];
   const planFilesArchived = [...listPlanFiles(paths.changesArchiveDir)];
@@ -751,6 +752,7 @@ function validateGraphAnchorsOwnWriteScope(
   result: LintResult,
   activeScopes: ActiveChangeScope[],
   governedRecords: FileMarkupRecord[],
+  root: string,
 ): void {
   const linksByPath = new Map<string, readonly string[]>();
   for (const record of governedRecords) {
@@ -768,6 +770,15 @@ function validateGraphAnchorsOwnWriteScope(
       const links = linksByPath.get(rel);
       const owned = Boolean(links?.some((id) => anchors.has(id)));
       if (owned) {
+        continue;
+      }
+      if (!existsSync(path.join(root, rel))) {
+        addIssue(result, {
+          severity: "warning",
+          code: "change.graph-anchors-pending-file",
+          file: planFile,
+          message: `ObservedWriteScope path ${rel} is declared but not yet written; change.graph-anchors-miss-write-scope applies once the file exists without an owning LINKS.`,
+        });
         continue;
       }
       const anchorList = [...anchors].sort().join(", ") || "none";

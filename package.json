@@ -80,7 +80,7 @@
     "validate:schema-reference": "bun run ./scripts/generate-schema-reference.ts check",
     "validate:skeleton-templates": "bun run ./scripts/generate-skeleton-templates.ts check",
     "validate:teaching-surface": "bun run ./scripts/check-teaching-surface.ts check",
-    "validate:ci": "bun run typecheck && bun run test && bun run ./scripts/validate-marketplace.ts && bun run validate:examples && bun run validate:determinism && bun run validate:packed && bun run validate:schema-reference && bun run validate:skeleton-templates && bun run validate:teaching-surface && bun run validate:citation-anchors && bun run validate:record-retirement && bun run prove-record-preservation",
+    "validate:ci": "bun run typecheck && bun run test:metrics && bun ./src/grace.ts lint --path . --assertions none --fail-on errors && bun run ./scripts/validate-marketplace.ts && bun run validate:examples && bun run validate:determinism && bun run validate:packed && bun run validate:schema-reference && bun run validate:skeleton-templates && bun run validate:teaching-surface && bun run validate:citation-anchors && bun run validate:record-retirement && bun run prove-record-preservation",
     "validate:marketplace": "bun run ./scripts/validate-marketplace.ts",
     "validate:release": "bun run typecheck && bun run test && bun run validate:cli && bun run release:check && bun run ./scripts/validate-marketplace.ts && bun run validate:examples && bun run validate:packed",
     "validate:packed": "bun run ./scripts/packed-cli-smoke.ts",

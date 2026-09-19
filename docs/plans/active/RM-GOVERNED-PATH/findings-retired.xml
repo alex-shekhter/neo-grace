@@ -5463,4 +5463,84 @@ Owner: the cursor-recovery surface, after `C-EPOCH-OPEN-DEFAULT` lands. Stays st
 Owner: a cursor-state bundle beside `F309`'s. Stays staged.
 </Body>
   </Finding>
+  <Finding id="f284" token="F284" status="retired">
+    <PaidBy>C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0</PaidBy>
+    <Title>### F284 — the repository's own governance lint runs in no CI job and in no `validate:*` aggregate, so a markup, `MODULE_MAP` or graph-anchor defect reaches `main` with CI green and surfaces only at the next bundle's close. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `0b0eba5`,** by the authority. `bun run validate:ci` does not invoke `ngrace lint` in any form (`node -e` over `package.json`'s `validate:ci` → no `ngrace lint` and no `grace.ts lint` substring), and `.github/workflows/validate.yml` runs no lint step — its only `lint` matches are unrelated test-file arguments. The repository's governance lint therefore executes in exactly two places: a bundle's `AC-CLOSE-LINT` `CloseEvidence` (`bun ./src/grace.ts lint --path . --fail-on warnings`), run by the authority at the close, and a hand invocation.
+
+**The escape, observed rather than hypothesised.** Executing `C-TEST-TIME-BUDGET-2-3EC1F016`, five new exports across `src/gates/ledger.ts` (`__predecessorMapView`, `__predecessorMemoStats`, `__resetPredecessorCache`) and `scripts/test-affected.ts` (`AFFECTED_EDGES`, `allTestFiles`) landed without their `MODULE_MAP` entries. `bun run validate:ci` exited **0** over that tree; the defect appeared only when the executor ran `ngrace lint --path . --assertions current` as a pre-report command. Had the bundle's tasks not included that command by convention, the mismatch would have merged.
+
+**The counterweight, which any remedy must answer first.** The obvious fix — add a root `ngrace lint` to `validate:ci` — runs into a shipped ruling. Default assertion mode *is* `current` (`src/grace-lint.ts:88`), and the recorded reasoning holds that the hazard of a current-mode lint is &quot;a stale baseline masquerading as post-write evidence&quot;; `validate:examples` is acceptable precisely because it lints a **different** root (`examples/polyglot`) whose active change asserts on files the outer bundle never writes. A root lint inside `validate:ci` would evaluate this project's own active baselines mid-flight, which is the shape the rule exists to refuse. `ngrace-plan`'s `command_phase_rules` say the same: do not put a current-mode lint of this project root in `TargetAssertions`.
+
+**So the remedy is not &quot;add the lint&quot; but &quot;find the mode that is honest in CI&quot;** — a selected-assertion lint bound to no active change, a lint restricted to markup and graph rules with assertion evaluation off, or a check that runs only when no bundle is active. Each is a design question, not a one-line script edit, and a bundle proposing one must say which ruling it is answering and answer it ([CLAUDE.md](CLAUDE.md) rule 9).
+
+Owner: a CI-shape bundle, not `C-TEST-TIME-BUDGET-2-3EC1F016` — its approved scope removes CI passes and adds none, and the spec's `AC-NO-OTHER-SRC` pathspec does not admit a workflow or `package.json` change for this purpose. Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f297" token="F297" status="retired">
+    <PaidBy>C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0</PaidBy>
+    <Title>### F297 — `change.graph-anchors-miss-write-scope` cannot tell a not-yet-created file from an unanchored one, so every plan that declares a new module-ownable `src/` file is red from approval until the file exists. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 at `cc021f0`**, planning `C-INSPECTION-SURFACE-1-2628AA2B`. Its `plan.xml` declares
+`src/grace-change.ts` and `src/query/change.ts` in `ObservedWriteScope`; neither exists yet, and
+`bun run ngrace lint --path . --assertions current --change …` exits **1** with exactly two
+`change.graph-anchors-miss-write-scope` errors and no other issue. On a clone at the same commit with the
+two files present carrying `LINKS: M-QUERY`, both errors are gone.
+
+**Read from the implementation, not inferred.** `validateGraphAnchorsOwnWriteScope`
+(`src/lint/core.ts:745`) builds `linksByPath` from the governed file records and, for every
+`ObservedWriteScope` file where `isModuleOwnableWritePath` is true, requires `links?.some(id =&amp;gt;
+anchors.has(id))`. A path with no record on disk yields `links === undefined`, so `owned` is `false` and
+the error fires. There is no existence branch: the rule asks a question about a file's header that a file
+not yet written cannot answer.
+
+**Not new, and that is the point.** `C-APPLY-VERB` (`src/grace-apply.ts`) and `C-SUPERSEDE-VERB`
+(`src/grace-supersede.ts`) both declared a brand-new `src/grace-*.ts` in `ObservedWriteScope`, so this
+transient red is the established shape for any bundle that creates a module-ownable file — it has simply
+never been written down.
+
+**What it costs.** &quot;Current-mode lint 0/0 at plan approval&quot; is the authority's standing check, and for
+this whole class of bundle it cannot discriminate between the expected red and a real one; the reviewer
+must read two errors and decide they are the harmless pair. A rule that is *known* to fire on a correct
+artifact trains the reader to skip it.
+
+**The decision that created it, per the repository's own rule.** The behaviour is `C-GRAPH-COVERAGE`
+(A53): ownership is `LINKS` only, never a directory prefix, and archives are deliberately not evaluated.
+An exemption for a path that does not yet exist does not weaken that stance: the file becomes governed
+the moment it is created, while the bundle is still **active**, so the rule still catches an unanchored
+new file — only the window between approval and creation changes.
+
+Owner: a `src/` bundle (a target-state-aware branch in the rule, or a named info-severity variant for a
+declared-but-absent path), or an explicit teaching line that names the transient. Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f299" token="F299" status="retired">
+    <PaidBy>C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0</PaidBy>
+    <Title>### F299 — a plan that regenerates `test-metrics.json` cannot keep the full-suite-run count at 1: `bun run test:metrics` itself runs the whole suite, so the executed count is 2. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 executing `C-INSPECTION-SURFACE-1-2628AA2B`.** The plan's T-005 regenerates
+`test-metrics.json` because its freshness guard (`scripts/test-metrics.test.ts:31`–`:33`) compares the
+artifact's `files` list and count sum against a freshly computed `allTestFiles(repoRoot)`, so two new
+test files make the committed artifact stale. The canonical regeneration, `bun run test:metrics`, runs
+the whole suite — `spawnSync(&quot;bun&quot;, [&quot;test&quot;, &quot;--timeout=0&quot;, &quot;--reporter=junit&quot;, …])`
+(`scripts/test-metrics.ts:92`) — and that is **one** full `bun test` invocation (1m19s here). The close's
+`bun run validate:ci` runs `bun run test` again — **two**.
+
+**The two numbers measure different things and the guidance conflates them.** The plan's Assumption and
+the dispatch both say &quot;the single full run … keep the count at 1&quot;, which is true of the *full
+CI-equivalent* invocation (`validate:ci`, once) and false of the number of times the *whole test suite*
+executes during the bundle. A reader told &quot;the full suite runs once&quot; for a bundle whose deliverable is
+`test-metrics.json` will be surprised by the second run, and a reviewer counting invocations will read
+the plan's &quot;1&quot; as wrong.
+
+**Not fixable inside this bundle.** The approved plan is immutable (D27) and the metrics regeneration is
+mandatory; the remedy is in the guidance or in the tool.
+
+Owner: a teaching increment on `ngrace-plan`/`ngrace-execute` that names which count the &quot;1&quot; is (full
+CI-equivalent runs, not full `bun test` invocations), or a `test-metrics` change that can refresh the
+artifact without re-running the suite (the freshness guard reads only the file list and counts, never
+`ms`). Stays staged.
+</Body>
+  </Finding>
 </Findings>

@@ -267,6 +267,21 @@ const EXACT_GUIDES: Record<string, LintIssueGuideFields> = {
       "C-GRAPH-COVERAGE / A53: GraphAnchors must be able to name the code the plan claims to write; LINKS is the partition.",
     proposedBy: "confidently-wrong",
   },
+  "change.graph-anchors-pending-file": {
+    title: "Declared ObservedWriteScope Path Not Yet Written",
+    explanation:
+      "An active plan lists a non-test src/ path in ObservedWriteScope that does not exist on disk yet. "
+      + "The path cannot declare its MODULE_CONTRACT LINKS before it is written, so the anchor-miss check "
+      + "reports this pending state at warning while the path is absent, and the error "
+      + "change.graph-anchors-miss-write-scope applies once the file exists without an owning LINKS.",
+    remediation: [
+      "Create the file with a MODULE_CONTRACT LINKS that includes a DurableScope/GraphAnchors module.",
+      "Or remove the path from ObservedWriteScope if it is not part of this change's source write set.",
+    ],
+    derivedFrom:
+      "F297: a declared-but-absent module-ownable path is not an unanchored file; the window between plan approval and the creating task is named rather than read as a defect.",
+    proposedBy: "confidently-wrong",
+  },
   "change.scope-does-not-cover-spec": {
     title: "Plan Scope Does Not Cover Spec AffectedAreas",
     explanation: "The plan's DurableScope omits a module or data-flow anchor that the authorizing NgraceChangeSpec lists under AffectedAreas, and the omission is not justified under OutOfPlanScope.",

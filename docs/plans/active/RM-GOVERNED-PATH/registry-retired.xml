@@ -470,4 +470,10 @@
     <Pays>F309 F310</Pays>
     <StatusText>Two findings paid: a folded stream reads what it is, and a repair verb no longer says yes beside a fold it left blocked.</StatusText>
   </Row>
+  <Row name="C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug CI-LINT-AND-PLAN-SHAPE. Author half: an assertions-off lint mode wired into the CI chain, an existence branch on the anchor rule with its taught transition, and a metrics runner that regenerates only when stale.</Charter>
+    <Pays>F284 F297 F299</Pays>
+    <StatusText>Three findings paid: CI now lints the governance surfaces honestly, a declared-but-absent file warns instead of erring, and the suite runs once at the close.</StatusText>
+  </Row>
 </Registry>

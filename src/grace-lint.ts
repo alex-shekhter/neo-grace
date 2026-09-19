@@ -88,8 +88,8 @@ function resolveFailOn(value: unknown) {
 
 function resolveAssertionMode(value: unknown): LintAssertionMode {
   const mode = String(value ?? "current");
-  if (mode !== "current" && mode !== "baseline" && mode !== "target" && mode !== "final") {
-    throw new GraceCommandError("invalid-arguments", `Unsupported assertion mode \`${mode}\`. Use \`current\`, \`baseline\`, \`target\`, or \`final\`.`);
+  if (mode !== "current" && mode !== "baseline" && mode !== "target" && mode !== "final" && mode !== "none") {
+    throw new GraceCommandError("invalid-arguments", `Unsupported assertion mode \`${mode}\`. Use \`current\`, \`baseline\`, \`target\`, \`final\`, or \`none\`.`);
   }
   return mode;
 }
@@ -194,7 +194,7 @@ export const lintCommand = defineGraceCommand({
     },
     assertions: {
       type: "string",
-      description: "Assertion mode: current (pre-write active baselines), baseline, target, or final",
+      description: "Assertion mode: current (pre-write active baselines), baseline, target, final, or none (no assertion evaluation)",
       default: "current",
     },
     runCommands: {

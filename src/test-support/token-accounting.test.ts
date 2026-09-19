@@ -101,9 +101,12 @@ describe("token-accounting (D15)", () => {
     // run-stream rule landed in ngrace-execute, ngrace-plan, ngrace-spec and
     // ngrace-reviewer, both trees (measured): 871 → 873 lines and
     // 81285 → 85595 bytes.
+    // C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0 T-005: the anchor-miss pending-file
+    // teaching in ngrace-plan, both trees (line-neutral, byte-moving):
+    // 875 → 875 lines and 88664 → 88728 bytes.
     const measured = skillTextLines();
     expect(measured.total).toBe(875);
-    expect(measured.totalBytes).toBe(88664);
+    expect(measured.totalBytes).toBe(88728);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

@@ -2375,3 +2375,118 @@ describe("undeclared flag tokens on lint", () => {
 });
 
 
+
+describe("C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0 assertions-off mode", () => {
+  it("accepts --assertions none and evaluates no active baseline", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeApprovedChange(
+      root,
+      "C-NONE-PROBE",
+      `<MustNotExist><Value>src/example.ts</Value></MustNotExist>`,
+      `<MustVerify><Module>M-MISSING</Module></MustVerify>`,
+    );
+    const current = lintGraceProject(root, { assertionMode: "current" });
+    expect(current.issues.some((issue) => issue.code === "assertion.MustNotExist")).toBe(true);
+    const none = lintGraceProject(root, { assertionMode: "none" });
+    expect(none.issues.filter((issue) => issue.code.startsWith("assertion.") && issue.code !== "assertion.command-not-evaluated")).toHaveLength(0);
+    expect(none.assertionMode).toBe("none");
+  });
+
+  it("catches a planted MODULE_MAP escape under --assertions none", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const file = path.join(root, "src/example.ts");
+    writeFileSync(file, `${readFileSync(file, "utf8")}\nexport const escapeExport = 1;\n`);
+    const none = lintGraceProject(root, { assertionMode: "none" });
+    expect(none.issues.some((issue) => issue.code === "markup.module-map-mismatch")).toBe(true);
+  });
+
+  it("accepts --assertions none through the CLI and keeps current the default", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const cli = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--assertions", "none", "--format", "json"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(cli.exitCode).toBe(0);
+    expect(JSON.parse(Buffer.from(cli.stdout).toString("utf8")).assertionMode).toBe("none");
+    expect(lintGraceProject(root).assertionMode).toBe("current");
+  });
+
+  it("refuses an unknown mode naming all five accepted modes", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const cli = Bun.spawnSync({
+      cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--assertions", "bogus", "--format", "json"],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(cli.exitCode).not.toBe(0);
+    const output = Buffer.from(cli.stderr).toString("utf8") + Buffer.from(cli.stdout).toString("utf8");
+    for (const mode of ["current", "baseline", "target", "final", "none"]) {
+      expect(output).toContain(mode);
+    }
+  });
+});
+
+describe("C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0 anchor-miss existence branch", () => {
+  function writeAnchorProbe(root: string, changeId: string, anchor: string, file: string) {
+    const bundle = `${ARTIFACT_DIR}/changes/active/${changeId}`;
+    writeProjectFile(
+      root,
+      `${bundle}/spec.xml`,
+      `<NgraceChangeSpec graceVersion="1.0" status="approved"><${changeId}><Summary>Anchor probe.</Summary><Goals><Goal>Exercise the anchor branch.</Goal></Goals><Constraints><Constraint>Preserve fixture validity.</Constraint></Constraints><NonGoals><NonGoal>Unrelated behavior.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Anchor ownership is checked.</Criterion></AcceptanceCriteria><AffectedAreas><${anchor} /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></${changeId}></NgraceChangeSpec>`,
+    );
+    writeProjectFile(
+      root,
+      `${bundle}/plan.xml`,
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><${changeId}><IntentSummary>Exercise the anchor branch.</IntentSummary><BaselineAssertions><MustExist><Value>${anchor}</Value></MustExist></BaselineAssertions><TargetAssertions><MustExist><Value>${anchor}</Value></MustExist></TargetAssertions><DurableScope><GraphAnchors><${anchor} /></GraphAnchors></DurableScope><ObservedWriteScope><File>${file}</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Anchor probe</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Anchor branch exercised.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></${changeId}></NgraceChangePlan>`,
+    );
+  }
+
+  it("warns pending for a declared-but-absent path and errors only once the file exists unowned", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeAnchorProbe(root, "C-ABSENT", "M-EXAMPLE", "src/absent-module.ts");
+    const absent = lintGraceProject(root, { assertionMode: "none" });
+    expect(absent.issues.some((issue) => issue.code === "change.graph-anchors-pending-file" && issue.severity === "warning")).toBe(true);
+    expect(absent.issues.some((issue) => issue.code === "change.graph-anchors-miss-write-scope")).toBe(false);
+
+    const root2 = createProject();
+    writeMinimalNgraceProject(root2);
+    writeProjectFile(root2, "src/unowned-probe.ts", "export const unowned = 1;\n");
+    writeAnchorProbe(root2, "C-UNOWNED", "M-EXAMPLE", "src/unowned-probe.ts");
+    const unowned = lintGraceProject(root2, { assertionMode: "none" });
+    expect(unowned.issues.some((issue) => issue.code === "change.graph-anchors-miss-write-scope" && issue.severity === "error")).toBe(true);
+    expect(unowned.issues.some((issue) => issue.code === "change.graph-anchors-pending-file")).toBe(false);
+  });
+
+  it("drives both fail-on directions through the CLI for an absent declared path", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    writeAnchorProbe(root, "C-ABSENT", "M-EXAMPLE", "src/absent-module.ts");
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const run = (failOn: string) =>
+      Bun.spawnSync({
+        cmd: [process.execPath, "./src/grace.ts", "lint", "--path", root, "--assertions", "none", "--fail-on", failOn],
+        cwd: repoRoot,
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+    expect(run("errors").exitCode).toBe(0);
+    expect(run("warnings").exitCode).not.toBe(0);
+  });
+
+  it("carries an exact guide for change.graph-anchors-pending-file", () => {
+    const guide = getLintIssueGuide("change.graph-anchors-pending-file");
+    expect(guide).toBeDefined();
+    expect(guide!.title.length).toBeGreaterThan(0);
+    expect(guide!.explanation).toContain("change.graph-anchors-miss-write-scope");
+  });
+});
