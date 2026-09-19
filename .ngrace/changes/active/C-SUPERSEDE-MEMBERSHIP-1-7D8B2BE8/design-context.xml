@@ -1,0 +1,340 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    Four questions now share one draft: how a refusing supersede should avoid leaving a successor,
+    how the mint should acquire its candidate exclusively, how an interrupted fold should recover,
+    and what a loose-event reader should do when a file it enumerated is gone by the time it reads
+    it. The spec states the requirements; this document compares the mechanisms so the plan does not
+    re-litigate them, and so the reviewer can see the measured basis for the recommendation and for
+    what is deliberately left unresolved. Nothing here adds a requirement to `spec.xml`.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      **Supersede refusal ordering — Variant A, fold-before-mint.** Reorder the implicit path so
+      validation runs before `mintBundle`: predecessor, archive destination, `spec.xml`, and supplied
+      replacement; then fold; then mint; then statuses and rename.
+
+      Pros. The dominant refusal class — a stream fold cannot satisfy — creates no successor at all,
+      so no transient directory exists for a crash or a competitor to catch. No delete surface. It
+      matches the ordering [C-SUPERSEDE-RECORD-2](.ngrace/changes/archive/C-SUPERSEDE-RECORD-2/plan.xml)
+      already chose (fold before the governance write).
+
+      Cons. It does not cover the post-fold window by itself, and it conflates two different mint
+      outcomes: a **refused acquisition** (the resolved id already exists — `refuseExistingBundle` or
+      the leaf `mkdir` refuses before any write, so nothing is left) versus a **later failure after a
+      successful mint** (an id collision discovered after the fold, or a rename failure — a successor
+      this invocation did acquire can remain). It also changes the observable partial state after a
+      crash between fold and apply.
+    </Alternative>
+    <Alternative>
+      **Supersede refusal ordering — Variant B, ownership-aware cleanup.** Keep the current order;
+      track whether this invocation minted the successor and remove only the directory it created on
+      any later failure.
+
+      Pros. Covers every refusal class including the rename failure.
+
+      Cons. Adds a recursive-delete surface; a crash between mint and cleanup leaves the successor;
+      and — before the mint-ownership repair below — "this invocation created it" is not knowable,
+      because `mkdirSync(recursive)` overwrites a competitor's directory. Variant B cannot be built
+      honestly until Variant M-A lands.
+    </Alternative>
+    <Alternative>
+      **Supersede refusal ordering — Variant C, hybrid (recommended).** Validation and fold precede
+      the mint; a cleanup scoped to a directory **provably acquired exclusively by this invocation**
+      runs on any failure past the mint. Variant M-A supplies the proof of ownership.
+
+      Pros. Satisfies the no-successor requirement across every refusal class. The common refusal
+      never creates a transient. The explicit-candidate protection is structural: with the mint
+      last, the only successor that can exist is one this invocation created exclusively.
+
+      Cons. Largest change; still carries a residual window (below).
+    </Alternative>
+    <Alternative>
+      **Mint ownership — Variant M-A, exclusive directory acquisition plus no-clobber write
+      (recommended).** Replace `mkdirSync(dir, { recursive: true })` with a two-step acquisition:
+      create parents recursively, then create the leaf directory non-recursively so `EEXIST` is a
+      refusal; write `spec.xml` with an exclusive-create flag so a race between acquisition and
+      write cannot truncate a competitor's file. Cleanup removes the leaf only when it contains no
+      artifact this invocation did not write; otherwise it refuses and preserves evidence.
+
+      Pros. Directly satisfies the C-HASHED-BUNDLE-IDS-2 promise and the measured interleaving.
+      Ownership becomes a fact the code establishes, not an inference from "mint returned".
+
+      Cons. The non-recursive leaf `mkdir` must be paired with a recursive parent `mkdir`, so the
+      acquisition is two syscalls; a competitor can still create files inside a directory this
+      invocation acquired, which is why cleanup consults the directory's contents.
+    </Alternative>
+    <Alternative>
+      **Mint ownership — Variant M-B, stage in a temp directory and rename (runner-up).** Build the candidate in
+      a uniquely named temp directory and atomically rename it to the target, relying on `rename` to
+      fail if the target exists.
+
+      Pros. A single atomic step, and the temp directory is never the target.
+
+      Cons. `renameSync` onto an existing **directory** does not fail on every filesystem and is
+      exactly the operation already used and refused under EXDEV elsewhere; it also changes the
+      failure surface more than the defect warrants. It loses to M-A because M-A's `EEXIST` on a
+      non-recursive leaf `mkdir` is portable and directly models the "exists → refuse" promise,
+      while rename semantics vary by platform.
+    </Alternative>
+    <Alternative>
+      **Cleanup policy — Variant CL-2, bounded handled cleanup (review candidate, recommended).**
+      Exclusive acquisition (leaf `mkdir`, `EEXIST` refuses) plus a cleanup that removes an
+      invocation-created directory only while it holds no foreign artifact; on removal failure or a
+      foreign artifact the invocation refuses, preserves the residue, and emits a residual-state
+      diagnostic.
+
+      Pros. Safe for foreign bytes, buildable without a publication protocol, and every exception is
+      testable (planted foreign file after the ownership scan; injected cleanup I/O failure). It
+      handles the ordinary cleanup-failure and competing-modification cases the earlier draft folded
+      into "interruption".
+
+      Cons. Deliberately narrows the universal cleanliness promise: a refusal may leave an
+      invocation-created directory, named by a diagnostic. The strict variant is the runner-up and
+      loses until a synchronization/publication/recovery protocol — not a directory scan, which is
+      itself racy — is actually demonstrated.
+    </Alternative>
+    <Alternative>
+      **Cleanup policy — Variant CL-1, strict zero-residue (runner-up).** Promise an empty successor
+      set after every refusal, unconditionally.
+
+      Pros. The strongest cleanliness guarantee.
+
+      Cons. It cannot be met by a scan-then-delete (a competitor can write after the scan, and
+      deletion failure is not preventable), so it requires a demonstrated protocol. It loses to CL-2
+      because CL-2 is provable now and CL-1 is a promise without a mechanism.
+    </Alternative>
+    <Alternative>
+      **Cleanup protocol — the cooperating-lock protocol (selected together with CL-2).** Supported
+      writer model: only `ngrace` verbs write candidate directories, serialized on a per-candidate
+      lock. Protocol: exclusive leaf `mkdir` (EEXIST refuses); write an ownership marker; on failure,
+      under the lock verify device/inode identity (same-path replacement refuses) and that every entry
+      is this invocation's own (`spec.xml` byte-for-byte and the marker — same-path modification
+      refuses); delete only own files; `rmdir` non-recursively as the atomic emptiness test; any
+      failure preserves the residue and names it.
+
+      Pros. Demonstrable with portable primitives; `rmdir` never deletes a foreign entry; replacement
+      and modification are caught by identity and byte comparison; it needs no new record shape.
+
+      Cons. A **non-cooperating** writer that replaces this invocation's own file between the byte
+      check and the unlink cannot be closed portably. That is the precise remaining decision — restrict
+      the supported model to cooperating ngrace verbs (proposed), or require CL-1's protocol.
+
+      Enforcement and lifecycle (proposal, not implemented). Reachable mutators of an unpublished
+      candidate are **approval writes** (`stampApproveArtifact`, `src/gates/ledger.ts:1606-1617`),
+      **cursor/event writes** (`src/grace-cursor.ts:1092-1105`, `:3449-3455`), and **supersede targeting
+      the candidate** — `supersedeChangeBundle` (`src/gates/ledger.ts:1539-1556`) accepts an active
+      spec-only draft (`:1512-1529`), and an authority drive superseded a freshly minted candidate with
+      exit 0 and moved it into archive. `plan new` (`src/grace-generate.ts:271-288`) already refuses on
+      a non-approved spec; the applied close (`src/gates/ledger.ts:1792-1830`) needs a published,
+      closeable bundle. Rule: those reachable mutators take the candidate lock or refuse naming the
+      unpublished candidate, and supersede of an ordinary **published** spec-only draft keeps working
+      with no approved-status prerequisite added. Lock ordering is candidate lock **then**
+      `.run-write.lock`, never the reverse. The marker is created with the leaf, removed on publication
+      and on handled cleanup, recovered on crash by pid-liveness/TTL, and lives beside the leaf as a
+      non-companion artifact — invisible to `ngrace lint`/`ngrace status` on a **clean** fixture
+      (approved spec plus draft plan, `authority-cleanup-primitives.ts`), while the original
+      `cleanup-primitives.ts` fixture's lint exit 1 was its own `change.plan-requires-approved-spec`
+      prerequisite failure, not a stray report. A concurrent real-verb test (approval, event write, or
+      supersede) is required. Non-cooperating processes stay outside the model, and today's verbs do not
+      yet cooperate.
+    </Alternative>
+    <Alternative>
+      **Uncatchable-interruption remedy — Variant D, a future recovery verb (evaluated, not
+      selected).** A shipped verb that reconciles a bundle whose successor was acquired but never
+      cleaned after SIGKILL/power loss.
+
+      Pros. The only variant that could close the uncatchable window; it does not pretend an
+      in-process cleanup can.
+
+      Cons. New CLI surface and a new governed operation for a window no in-process code can close;
+      it needs its own spec and a maintainer ruling. It is an actual evaluated alternative, not the
+      recommendation, and it is distinct from ordering Variant A/B/C.
+    </Alternative>
+    <Alternative>
+      **Interrupted fold recovery — Variant R-A, ledger-first subset recovery (recommended).** Before
+      advancing the epoch number, and before any loose-only closure/hole check or auto-open, compare
+      each loose event to the durable ledger under the canonical projection `expectedLedgerEventAttributes`
+      plus children. A loose event matching a recorded event is already-recorded residue; a loose event
+      matching no recorded event is newly allocated; a loose event whose id matches a recorded event
+      with a differing canonical payload is a conflict. The whole-set-is-residue case (including a
+      partial verified deletion) reuses the owning epoch, deletes the residue, and writes no new epoch
+      and no synthesized `opened`; the mixed case folds the new events into the next epoch; the
+      conflict case refuses.
+
+      Pros. Distinguishes matching residue from genuine conflict, so the reachable partial-deletion
+      state is resumed rather than misclassified; repeated interruptions stay idempotent; reuses the
+      existing replace-if-tag-matches branch.
+
+      Cons. The classification must run before fold's existing membership/auto-open path, so the plan
+      has to order it carefully. The earlier exact-match rule would have wrongly refused the
+      legitimate prefix-deleted subset measured by `partial-cleanup.ts`. The reachable **mixed set**
+      (matching residue plus fresh events) is specified by `AC-FOLD-MIXED-RECOVERY` with a normative
+      **validate-first, destroy-last** order and a state table: all residue and fresh-event foldability
+      checks run before any deletion or auto-open materialization, so an invalid-fresh refusal preserves
+      every loose byte and materializes nothing; on success the residue is deleted before the new ledger
+      write (so a retry never sees an older-epoch overlap), auto-open is materialized only for the fresh
+      set, and the fresh events fold into the next epoch.
+    </Alternative>
+    <Alternative>
+      **Interrupted fold recovery — Variant R-B, record an in-progress marker (runner-up).** Write an explicit
+      "interrupted" attribute or marker before the ledger write and clear it on success.
+
+      Pros. Unambiguous state — no inference from the event sets.
+
+      Cons. Adds a durable state to the record for a condition that is already detectable from the
+      ledger and the loose set, and creates a new uncloseable-state risk if the marker survives.
+      It loses to R-A because R-A needs no new record shape and reuses the existing
+      replace-if-tag-matches branch.
+    </Alternative>
+    <Alternative>
+      **Discarded residue — Variant DR-1, preflight fold's validation before writing (recommended,
+      bounded).** `discardAndFoldEpoch` computes the prospective event set including the synthetic
+      `discarded`, runs fold's own pre-write membership validation on it, and writes the `discarded`
+      event only if that validation passes. It mirrors the allocator and single-controller auto-open
+      so it never refuses a stream fold would accept.
+
+      Pros. Removes exactly the residue that is unnecessary, without touching the post-write
+      boundary F158 records, and keeps D21's chosen representation.
+
+      Cons. The guarantee is bounded to the snapshot the preflight reads: it runs before the
+      allocator's lock, so a competing writer can change the stream before `foldEpoch` and still
+      produce a refused fold with a `discarded` residue. The plan must either take the allocator's
+      serialization boundary across the preflight-through-write window or state this bound and prove
+      it with a competing-writer test. It must not claim it will never permit what the later fold
+      refuses.
+    </Alternative>
+    <Alternative>
+      **Discarded residue — Variant DR-2, synthesize the `discarded` into the ledger (runner-up).** Fold builds the
+      event in memory and injects it into the ledger and the verification expectation.
+
+      Pros. No loose `discarded` file ever exists, so no residue from the discard step.
+
+      Cons. Changes how abandonment is represented and verified, enlarging the diff into [D21](docs/plans/active/RM-GOVERNED-PATH/rulings.xml)'s
+      deliberate choice. It loses to DR-1 because DR-1 removes the unnecessary residue at the refusal
+      class this spec measured without changing the record shape.
+    </Alternative>
+    <Alternative>
+      **Membership tolerance — Variant M1, omit the vanished entry (recommended).** Missing-file or
+      caught `ENOENT` omits the entry and continues; `EISDIR`/`EACCES` and `xml.parse` behavior are
+      unchanged.
+
+      Pros. Keeps the reader a reader (`cursor show` exit 0) and lets the loss surface where it
+      already does — an interior hole refuses fold, while the trailing and absent-closer cases follow
+      the engine's own auto-open. Only the disappearance signals are tolerated.
+
+      Cons. Silent at the moment of disappearance; detection is **conditional** — an interior hole
+      refuses fold, but a trailing loss with a closer present, or a vanished `opened` covered by the
+      D8.2 auto-open, folds without a refusal. It cannot make such a loss observable and must not
+      manufacture a ghost event to pretend it can. That is M1's detection limit.
+    </Alternative>
+    <Alternative>
+      **Membership tolerance — Variant M2, handled typed refusal.** Convert a vanished entry into a
+      caught `GraceCommandError` naming the file.
+
+      Pros. Names the disappearance immediately, and — being caught — is genuinely different from
+      today's uncaught `ENOENT` stack, not merely relabelled.
+
+      Cons. It still turns a read-only query into a failure for a benign concurrent removal, and it
+      cannot distinguish corruption from a race. This is a real alternative with a real advantage
+      over today's behavior (a caught error is different from an uncaught stack); it is not the
+      recommendation because it turns `cursor show` into a failure for a benign race, and adopting it
+      would require changing the affected membership ACs.
+    </Alternative>
+    <Alternative>
+      **Membership tolerance — Variant M3, retry the read (runner-up).** Bounded retries around `readFileSync`.
+
+      Pros. Absorbs an instantaneous replacement.
+
+      Cons. The file is gone; a retry finds nothing, and a bounded retry that then throws is M2 with
+      latency. It loses to M1 because it adds no discrimination and pins a timing figure that
+      expires, while M1 already leaves the fold outcome as the signal.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      **UNRESOLVED — the uncatchable-interruption window only.** The only unresolved window is a
+      successor acquired under ordering **C** (or **B**) and then lost to SIGKILL/power loss, or
+      adopted by a concurrent actor, before a handled cleanup can run. Ordinary cleanup I/O failure
+      and competing modification are **handled** by the bounded policy, not unresolved. Labels are
+      stable across this document and the report: **A** fold-before-mint, **B** ownership-aware
+      cleanup, **C** hybrid (recommended ordering); **CL-1** strict zero-residue (runner-up), **CL-2**
+      bounded handled cleanup (review candidate, recommended); **D** a future recovery verb (evaluated,
+      not selected). No impossible-by-construction claim is made. The no-debt rule is satisfied by
+      fixing the reachable classes (A/B/C + CL-2) now; D is an explicit open decision, not silent debt.
+    </Decision>
+    <Decision>
+      **UNRESOLVED — whether a vanished membership entry should be reported through a new channel.**
+      M1 (conditional, silent omit) is the draft's normative proposal because the fold outcome is the
+      existing signal where it exists; M2 (handled typed refusal) is a genuine alternative the
+      maintainer may prefer for an immediate name, at the cost of turning `cursor show` into a failure
+      on a benign race and changing the affected membership ACs. Neither is ratified; the draft does
+      not leave the output behavior undecided — M1 is stated as the contract and M2 is the recorded
+      alternative.
+    </Decision>
+    <Decision>
+      **RESOLVED for this draft — F315 is paid by refusing unparseable input at the fold boundary, with a variant comparison.** (a) **Fold-boundary refusal (selected):** the read-only inventory keeps the filename fallback and lint keeps its deliberate division, but the authoritative fold refuses an existing-but-unparseable loose file before any discarded/auto-open/ledger write; it preserves evidence and stops a filename becoming false terminal evidence, at the cost of a handled failure for corrupt input. (b) **Orphan diagnostic only:** improves visibility but does not by itself prevent malformed-terminal acceptance; the archive gate consults the orphan inventory only when foldable membership is empty (`src/gates/core.ts:476-510`), and classifying also removes membership — a separate semantic change needing explicit policy. (c) **Keep the fallback at fold:** compatibility, but retains the demonstrated integrity defect and fails the no-debt rule. (a) wins because it closes the fabrication at the boundary that records evidence without changing the read-only surfaces.
+    </Decision>
+    <Decision>
+      **RESOLVED for this draft — the write guard has a finite, explicit invocation.** An applied archive
+      stays applied indefinitely, so "active or applied" cannot deactivate a guard. The guard is dormant
+      unless an explicit command/environment switch names this bundle and its `baseCommit`
+      (`NGRACE_SCOPE_GUARD_CHANGE=C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8`); that activated command is the
+      criterion's `CloseEvidence`, so the real repository check cannot be skipped. Ordinary runs keep
+      the generic assertion helpers; a later unrelated change does not fail.
+    </Decision>
+    <Decision>
+      **UNRESOLVED — the non-cooperating same-path modification window.** Under the proposed cooperating
+      model the cleanup protocol is demonstrable; for an arbitrary non-cooperating writer that replaces
+      this invocation's own file between the byte check and the unlink, no portable primitive provides
+      atomic delete-if-unmodified. The decision is to restrict the supported writer model to cooperating
+      `ngrace` verbs (proposed) or to require CL-1's publication protocol.
+    </Decision>
+    <Decision>
+      **RESOLVED for this draft — a predecessor left active with a folded epoch but no successor is a
+      legal partial state.** It is recoverable by re-running with a usable timestamp, writes no
+      superseded status, and moves nothing; recorded so a later reader does not read it as
+      corruption. This follows from the ordering, not from a separate ruling.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      **Fold-refusal stream, implicit supersede.** Two `run/` events share id 2. Today: exit 1, a
+      newly minted successor under `active/`, and a new `run/3-T-002-discarded.xml`. After the
+      recommended design: exit 1, the predecessor alone (recursive snapshot identical except where
+      the taxonomy intentionally permits evidence), no new `run/` file.
+    </Scenario>
+    <Scenario>
+      **Competing mint between check and creation.** A competitor writes `spec.xml` into the resolved
+      directory after the check. Today: exit 0, the competitor's `spec.xml` overwritten. After: exit
+      non-zero, the competitor's bytes intact.
+    </Scenario>
+    <Scenario>
+      **Interrupted fold, both hooks.** The ledger already holds the events but loose files remain.
+      Today: retry appends `Epoch-2` with the same events. After: retry replaces `Epoch-1`; repeated
+      interruptions stay single-epoch; a conflicting last epoch refuses.
+    </Scenario>
+    <Scenario>
+      **Event removed after enumeration / after the existence check.** Today: a fabricated entry, or
+      an uncaught `ENOENT`. After: omitted, `cursor show` exit 0, an interior loss still refuses at
+      fold, and a vanished `opened` is covered by auto-open.
+    </Scenario>
+    <Scenario>
+      **Interrupted fold, prefix deletion.** After `injectFailureAfterWrite`, the first verified event
+      is deleted in loop order (synthetic, per `partial-cleanup.ts`). Today: retry appends `Epoch-2`
+      with the terminal again plus a synthesized opened. After: retry resumes `Epoch-1`, removes the
+      residue, and fabricates nothing.
+    </Scenario>
+    <Scenario>
+      **Competing modification of an acquired directory, and cleanup failure.** Today: the cleanup
+      path does not exist. After (CL-2): preserve the foreign bytes, refuse, and name the residual
+      directory in a diagnostic; an injected removal failure behaves the same.
+    </Scenario>
+    <Scenario>
+      **Orphan-only bundle.** A well-named file with a non-integer id. `ngrace status` counts it and
+      `ngrace gate archive` names it; if it vanishes before the read, both still exit 0 after the
+      tolerance.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
