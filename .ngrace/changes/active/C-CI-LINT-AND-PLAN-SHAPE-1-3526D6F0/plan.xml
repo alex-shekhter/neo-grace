@@ -1,0 +1,378 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0>
+    <IntentSummary>
+      Convert the approved spec into six tasks over four surfaces with separable reds.
+      (1) The `none` mode: `src/lint/types.ts` gains `"none"` on `LintAssertionMode`,
+      `src/grace-lint.ts` accepts it, `src/lint/core.ts` returns before evaluating any
+      assertion section, and `package.json`'s `validate:ci` gains
+      `bun ./src/grace.ts lint --path . --assertions none --fail-on errors`. (2) The
+      pending-file branch: `src/lint/core.ts` threads the project root into
+      `validateGraphAnchorsOwnWriteScope` and emits `change.graph-anchors-pending-file` at
+      warning for a declared-but-absent module-ownable path, `src/lint/catalog.ts` carries
+      its exact guide, and the present-unowned error is untouched. (3) The metrics runner:
+      `scripts/test-metrics.ts` gains an exported `artifactIsStale` stale check, writes the
+      provisional artifact only when stale, and writes the measured artifact only when
+      stale, so a fresh `test-metrics.json` is byte-identical after the one suite run;
+      `validate:ci` replaces `bun run test` with `bun run test:metrics` as its single suite
+      segment and `scripts/audit-regressions.test.ts`'s `validateCiRerunsSuite` accepts that
+      segment. (4) The `ngrace-plan` row-6 rewrite, its instrument token and its footprint
+      re-measure.
+
+      The `validate:ci` string is written twice: T-001 appends the `none` lint, then T-003
+      replaces the suite segment in T-001's result, so T-003 depends on T-001. Both tasks
+      verify with `bun test --timeout=0 scripts/audit-regressions.test.ts`. The pin at
+      `scripts/audit-regressions.test.ts:308` changes shape once, in T-003, and its intent
+      survives as a test: exactly one suite segment and no second `bun test`.
+
+      T-002 is one task under the Atomic Mechanism Exception: the new emit literal and its
+      exact catalog guide land together because `collectEmittedIssueCodes` reds
+      `src/lint/catalog.test.ts` until the guide exists, so neither half is independently
+      green. T-005 (footprint) and T-006 (payer fixture) are pass-only and disclosed: a
+      transcription and a map entry have no failing state.
+
+      What stays, and is a baseline assertion rather than a target: `default: "current"`
+      at `src/grace-lint.ts:198`, the `change.graph-anchors-miss-write-scope` emit,
+      `spawnSync("bun", ["test"` in the metrics script (it still runs the suite when invoked
+      standalone, and inside `validate:ci` it is the one suite run), and `allTestFiles` in
+      the freshness predicate. What flips is a target assertion: the absent `none` mode, the
+      absent pending code, and the row-6 sentence that becomes false once the pending branch
+      lands.
+
+      `docs/schema-reference.md` does not move. Measured on the prototype: the generator's
+      check exits 0 and the generated reference contains no `LintAssertionMode` member and no
+      lint code, because it renders `GRAMMAR_INVENTORIES`, not the catalog or the mode union.
+
+      The close acts are named here, not tasked. The authority runs, in product order:
+      `bun ./scripts/validate-record-retirement.ts --flush --finding F284 --finding F297
+      --finding F299 --pays "F284 F297 F299" --mint-search "0 active, 0 archive"`,
+      `ngrace apply`, then `--retire`. The close's `validate:ci` is the new one: the
+      `none`-mode lint runs inside it and the metrics stale check runs after the one suite
+      run. Never type `--help` at the retirement script (F312). The record files, the payer
+      fixture, `test-metrics.json` and this bundle's archive arrival are in
+      `ObservedWriteScope` and excluded from every byte-invariance pathspec.
+
+      No new test file: the red directions extend `src/grace-lint.test.ts`,
+      `scripts/test-metrics.test.ts`, `scripts/check-teaching-surface.test.ts` and
+      `scripts/audit-regressions.test.ts`. This bundle adds no test file, so the metrics
+      task's own stale check proves the point at close: `test-metrics.json` is fresh and
+      stays byte-identical. No `Assumptions` section. Tier T2. A task's `Verification` names
+      the narrowest instrument for its subject; the whole suite runs only at the close's
+      `--assertions final --run-commands`, whose `TargetAssertions` `MustPassCommand` is
+      `bun run validate:ci` and is not duplicated in any task.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustContain>
+        <File>src/grace-lint.ts</File>
+        <Text>default: "current"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>code: "change.graph-anchors-miss-write-scope"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/test-metrics.ts</File>
+        <Text>spawnSync("bun", ["test"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/test-metrics.test.ts</File>
+        <Text>allTestFiles</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>src/lint/types.ts</File>
+        <Text>"final" | "none"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-lint.ts</File>
+        <Text>mode !== "none"</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/core.ts</File>
+        <Text>change.graph-anchors-pending-file</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/lint/catalog.ts</File>
+        <Text>change.graph-anchors-pending-file</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>--assertions none --fail-on errors</Text>
+      </MustContain>
+      <MustContain>
+        <File>package.json</File>
+        <Text>bun run test:metrics</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>test:metrics</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>change.graph-anchors-pending-file</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>change.graph-anchors-pending-file</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>errors `change.graph-anchors-miss-write-scope` at every lint mode</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-LINT-CORE />
+        <M-LINT-TYPES />
+        <M-LINT-CATALOG />
+        <M-RELEASE-AUTOMATION />
+        <M-SKILLS />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-LINT-CORE />
+        <V-M-LINT-TYPES />
+        <V-M-LINT-CATALOG />
+        <V-M-RELEASE-AUTOMATION />
+        <V-M-SKILLS />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/lint/types.ts</File>
+      <File>src/grace-lint.ts</File>
+      <File>src/lint/core.ts</File>
+      <File>src/lint/catalog.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>scripts/test-metrics.ts</File>
+      <File>scripts/test-metrics.test.ts</File>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>package.json</File>
+      <File>README.md</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>test-metrics.json</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <Glob>.ngrace/changes/archive/C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Add the assertions-off lint mode and the CI governance lint step</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test, signature-key
+            grace-lint): add to `src/grace-lint.test.ts` a test that
+            `bun ./src/grace.ts lint --path ROOT --assertions none --format json` exits 0
+            and reports `assertionMode === "none"`, and a test that an active approved plan
+            whose BaselineAssertions fail on the present tree reports no assertion issue
+            under `--assertions none` while `--assertions current` reports it. Add to
+            `scripts/audit-regressions.test.ts` a test that `validate:ci` contains
+            `--assertions none --fail-on errors` and contains no `--assertions current` lint
+            of this root. At HEAD both tests red: the CLI refuses
+            `Unsupported assertion mode \`none\`` with `invalid-arguments`, and the segment
+            is absent from `validate:ci`. Paste the two failures.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): in `src/lint/types.ts` extend
+            `LintAssertionMode` with `"none"`; in `src/grace-lint.ts` accept `none` in
+            `resolveAssertionMode`, update the refusal message to name all five modes, and
+            update the `assertions` arg description; in `src/lint/core.ts` return from
+            `validateAssertions` when the mode is `none`, before any plan is read; in
+            `package.json` add `bun ./src/grace.ts lint --path . --assertions none
+            --fail-on errors` to the `validate:ci` chain. Do not change `current`'s
+            default, do not evaluate any baseline or target in `none`, and do not add a
+            current-mode lint anywhere. Paste the passing tests and
+            `bun run ngrace lint --path . --assertions none --fail-on warnings` 0/0.
+          </Criterion>
+          <Criterion>
+            Planted-escape field test. On a throwaway copy, append an exported symbol with
+            no MODULE_MAP entry and run
+            `bun ./src/grace.ts lint --path . --assertions none --fail-on errors`: it exits
+            non-zero with `markup.module-map-mismatch`. Restore and re-run: 0/0. Paste both
+            tails. Failure conditions: `none` evaluates a baseline; `none` skips a markup
+            rule; `current` no longer defaults.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-lint.test.ts</Command>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+          <Command>bun run ngrace lint --path . --assertions none --fail-on warnings</Command>
+        </Verification>
+        <Satisfies>
+          <AC-NONE-EVALUATES-NO-ASSERTION />
+          <AC-NONE-CATCHES-ESCAPE />
+          <AC-CI-LINT-WIRED />
+          <AC-CURRENT-DEFAULT-UNCHANGED />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Give the anchor-miss rule an existence branch and its exact guide</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test, signature-key
+            grace-lint): add to `src/grace-lint.test.ts` a test on an approved-shaped copy
+            that an active approved plan declaring a module-ownable path which does not
+            exist reports `change.graph-anchors-pending-file` at warning and no
+            `change.graph-anchors-miss-write-scope`, that `--fail-on errors` exits 0 and
+            `--fail-on warnings` exits non-zero, and that a declared path which exists with
+            LINKS outside the plan's GraphAnchors still reports
+            `change.graph-anchors-miss-write-scope` at error. At HEAD the absent direction
+            reds with exactly one `change.graph-anchors-miss-write-scope` error. Paste it.
+          </Criterion>
+          <Criterion>
+            **Atomic Mechanism Exception — one task.** The emit and its catalog guide land
+            together: the literal at the emit site is scanned by `collectEmittedIssueCodes`
+            and must resolve through `isEmittableIssueCode` to an exact guide, so
+            `src/lint/catalog.test.ts` reds until the guide exists and neither half is
+            independently green. In `src/lint/core.ts` thread the project root into
+            `validateGraphAnchorsOwnWriteScope` and, for a module-ownable path that does not
+            exist, emit `change.graph-anchors-pending-file` at warning naming the path and
+            the error transition, then `continue`; the existing
+            `change.graph-anchors-miss-write-scope` error fires only when the path exists.
+            In `src/lint/catalog.ts` add the exact guide, naming the absent-versus-unowned
+            distinction. Do not change archive evaluation or LINKS-only ownership.
+          </Criterion>
+          <Criterion>
+            Drive both directions on a throwaway copy and paste: absent declared path →
+            1 warning, `--fail-on errors` exit 0, `--fail-on warnings` exit 1; present
+            unowned path → exit 1 with `change.graph-anchors-miss-write-scope`;
+            `bun ./src/grace.ts lint --path . --explain change.graph-anchors-pending-file`
+            prints the guide.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-lint.test.ts</Command>
+          <Command>bun test --timeout=0 src/lint/catalog.test.ts</Command>
+          <Command>bun run ngrace lint --path . --explain change.graph-anchors-pending-file</Command>
+        </Verification>
+        <Satisfies>
+          <AC-PENDING-FILE-WARNING />
+          <AC-PRESENT-UNOWNED-STILL-ERRORS />
+          <AC-PENDING-GUIDE />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>Regenerate metrics only when stale and make test:metrics the one CI suite segment</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test, signature-key
+            test-metrics): add to `scripts/test-metrics.test.ts` tests that the exported
+            `artifactIsStale(root, outfile)` returns false when the committed artifact's
+            file list and count sum match a freshly computed tree walk, and true when the
+            file list is missing an entry, when an extra entry is present, and when the
+            count sum disagrees with `tests.length`. At HEAD `artifactIsStale` does not
+            exist, so the import reds. Paste it.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): in `scripts/test-metrics.ts`
+            export `artifactIsStale`, add it to the module's `START_MODULE_MAP`, and in the
+            `import.meta.main` block compute staleness before any write; write the
+            provisional tree-derived artifact only when stale; still spawn
+            `bun test --timeout=0 --reporter=junit --reporter-outfile=…`; write the measured
+            artifact only when stale, so a fresh `test-metrics.json` is left byte-identical.
+            In `package.json` replace the `bun run test` segment of `validate:ci` with
+            `bun run test:metrics`. In `scripts/audit-regressions.test.ts` widen the
+            `validateCiRerunsSuite` suite segment to accept `test:metrics` (a shared
+            `SUITE_SEGMENT` regex) and keep proving exactly one suite segment and no second
+            `bun test`. Do not change `bun run test`, `validate:release`, or the untracked-read
+            guard.
+          </Criterion>
+          <Criterion>
+            Drive the fresh and stale directions on a throwaway copy and paste: with no
+            added test file, `sha` of `test-metrics.json` before and after
+            `bun run test:metrics` are equal and the run is one suite invocation (timed);
+            with one planted `*.test.ts`, the run rewrites the artifact and the planted file
+            appears in it; remove the plant and restore the artifact.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts</Command>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+          <Command>bun run test:metrics</Command>
+        </Verification>
+        <Satisfies>
+          <AC-METRICS-ONE-RUN />
+        </Satisfies>
+      </T-003>
+      <T-004>
+        <Title>Rewrite the ngrace-plan row-6 sentence and pin its instrument token</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, instrument before sentence (signature-kind test, signature-key
+            check-teaching-surface): add the token
+            `change.graph-anchors-pending-file` for `{ skill: "ngrace-plan", section:
+            "must_do" }` to `TAUGHT_RULES` in `scripts/check-teaching-surface.ts` and to the
+            fixture table in `scripts/check-teaching-surface.test.ts`. Run
+            `bun test --timeout=0 scripts/check-teaching-surface.test.ts`: it reds because
+            the sentence is absent. Paste it.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): rewrite `ngrace-plan` must_do
+            row 6 in `skills/ngrace/ngrace-plan/SKILL.md` so it says a declared-but-absent
+            module-ownable path warns `change.graph-anchors-pending-file` until the creating
+            task lands and the error `change.graph-anchors-miss-write-scope` applies once
+            the file exists without an owning LINKS, and mirror the same bytes into
+            `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md`. Keep the row's remaining
+            teaching (scope covers what the deliverable forces; the close writes) intact.
+            Paste the passing token test and `bun run validate:teaching-surface` exit 0.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/check-teaching-surface.test.ts</Command>
+          <Command>bun run validate:teaching-surface</Command>
+          <Command>bun run validate:marketplace</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Re-measure and transcribe the SKILL.md footprint pin (pass-only)</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Pass-only, disclosed: a transcription and its cross-check have no failing state
+            of their own; the red is the pin mismatch the measurement removes. Run
+            `bun -e 'import { skillTextLines } from "./src/test-support/token-accounting.ts";
+            console.log(skillTextLines());'`, transcribe the measured `total` and
+            `totalBytes` into `src/test-support/token-accounting.test.ts` and the same
+            figures into the README.md measurement cell, and extend the byte-history comment
+            with this bundle's before→after. The figures are measured, never projected.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/test-support/token-accounting.test.ts</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Mint F284, F297 and F299 in the payer fixture (pass-only)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Pass-only, disclosed: a `bundleMinted` map entry has no failing state. Add
+            `F284`, `F297` and `F299` → `C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0` to
+            `bundleMinted` in `scripts/validate-record-retirement.test.ts`, with the comment
+            naming this bundle's `Pays F284 F297 F299`, so the post-close derivation walk is
+            green in the applied-archive state and a stale id reds it. Do not edit the live
+            record files.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-006>
+    </ImplementationPlan>
+  </C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0>
+</NgraceChangePlan>
