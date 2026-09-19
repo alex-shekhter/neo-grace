@@ -1,0 +1,319 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-CURSOR-STATE-HONESTY-1-53C5EC0B>
+    <IntentSummary>
+      Convert the approved spec into the executable plan. Two mechanisms,
+      **two pairs, not one cluster**: the range-aware state projection
+      (`F310`) and the `recover --fix` lost-event decline (`F309`) are edits
+      whose guards red **separately** — the end-state guard reds on the
+      projection alone and passes once T-001 lands; the missing-covering hole
+      guard reds on the `--fix` path alone and passes once T-002 lands — so
+      the Atomic Mechanism Exception (one pair for one cluster) does **not**
+      apply: each task authors its own guard against the tree it inherits,
+      records exactly **one** `cursor attempt --outcome fail`, lands its
+      mechanism once, and records exactly **one** `cursor attempt --outcome
+      pass`. **This bundle's own stream is guard (i)'s field test:** the
+      executing agent's end-state sequence (terminal, fold, `--assertions
+      final --run-commands`, terminal, fold) must leave `cursor show` reading
+      `complete` once T-001 lands; before T-001 lands it reads `in-progress`
+      — that is the defect, not a stream to correct (`D41`), and the agent
+      does not hand-edit `run/` or `run-ledger.xml` to force it. **The
+      shape-(B) risks are tests, not Assumptions:** a bounded reopen over a
+      prior terminal still reads `in-progress`, and a stray terminal inside a
+      live range reads its closer's state. **Baseline needles assert only what
+      stays:** `nextEventId`'s maximum, `writeCoveringOpened`'s append-only
+      shape, the collision renumber (`AC-FORCED-COLLISION`), the leading-hole
+      re-home (`hasLeadingHole`), the write lock, and the fold's `range hole
+      at` message. The `Fix applied: yes`-beside-blocked line and
+      last-event-wins on a closed range are the flips — they live in
+      `TargetAssertions` (`MustContain` the new projection and the density
+      predicate, `MustNotContain` the old full-stream base-state call). **No
+      new export and no `MODULE_MAP` edit:** the range helpers are
+      module-private beside the projection, so `markup.module-map-mismatch`
+      has nothing to move; if an export does appear, `MODULE_MAP` moves in the
+      same edit and that task's selected-baseline lint verifies it. **The
+      unlink pin stays:** `src/grace-cursor.test.ts:551`–`592` pins every
+      `unlinkSync`/`rmSync`/`rmdirSync` call site under `src/` (seven); no
+      task adds one. **The authority's close acts are named, never tasked:**
+      the `--flush --change C-CURSOR-STATE-HONESTY-1-53C5EC0B --finding F309
+      --finding F310 --pays "F309 F310" --mint-search "0 active, 0 archive"`
+      that lands the two findings and mints the row, `ngrace apply`, and the
+      `--retire` whose move reports `F309`, `F310` and the row. The seven
+      record files the close writes and the bundle's own archive arrival are
+      declared in `ObservedWriteScope` (the spec's `F285`/`F293` rule); the
+      bundle's own `spec.xml`/`plan.xml`/`run-ledger.xml` and the staged
+      buffer are not. **Plan-time drives (evidence, not assumptions):** every
+      baseline and target needle was driven on an approved-shaped copy with
+      `--assertions baseline` / `target` / `final`, and the whole close was
+      driven on a faithful copy carrying `.git` (needed by the `git diff`
+      criteria) with `node_modules` in the copy's `.git/info/exclude`
+      (`F280`), in the product's order, with every exit read directly and
+      pasted in the report's `PROBES`. **The whole suite runs only at this
+      plan's `TargetAssertions` `MustPassCommand` (`bun run validate:ci`)
+      under `--assertions final --run-commands`**; each task's `Verification`
+      names the narrowest instrument. **T-003 is pass-only** (a map entry has
+      no red direction the shipped checks see) and its last act is the
+      terminal event `ngrace cursor advance --change
+      C-CURSOR-STATE-HONESTY-1-53C5EC0B --task T-003 --kind terminal` — the
+      close's `fold` refuses an unterminated range. Every `AC-*` in the
+      approved spec is close-bound, so no task carries `Satisfies`. This
+      bundle's executor does not approve, runs no review, gate, supersede or
+      apply verb, and does not commit.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>range hole at</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>writeCoveringOpened</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>withEventWriteLock</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>hasLeadingHole</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>nextEventId</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>AC-FORCED-COLLISION</Text>
+      </MustContain>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>derivePositionState</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>firstLooseRangeHoleId</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>deriveStateFromEvents(stream)</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>AC-END-STATE-READS-COMPLETE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>AC-FIX-REFUSES-LOST-EVENT</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>C-CURSOR-STATE-HONESTY-1-53C5EC0B</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <Glob>.ngrace/changes/archive/C-CURSOR-STATE-HONESTY-1-53C5EC0B/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Derive cursor state from the current range's closer</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test,
+            signature-key grace-cursor): author guard (i)
+            `AC-END-STATE-READS-COMPLETE` and the two shape-(B) risk tests in
+            `src/grace-cursor.test.ts`, on an isolated bundle root (never the
+            production record). Guard (i): seed a bundle whose plan declares a
+            `MustPassCommand`; `advanceCursor` open (bounded, e.g. `from: 1,
+            to: 20`), one `progress`, one `terminal`, `foldEpoch` applies;
+            `lintGraceProject(root, { assertionMode: "final", changeId,
+            runCommands: true })` writes a loose `command-run`; one `terminal`;
+            `foldEpoch` applies; assert `showCursor(root, id).state` is
+            `"complete"` **and** the written `run.xml` carries
+            `&lt;State&gt;complete&lt;/State&gt;`. On the base tree the second
+            `foldEpoch` applies but `showCursor(...).state` is
+            `"in-progress"` (ledger tail `terminal, opened`); paste the tail.
+            Risk test A (bounded reopen): fold an epoch, then
+            `advanceCursor` open with `from: 1, to: 99` — assert the position
+            is `"in-progress"`. Risk test B (stray terminal): open, progress,
+            terminal, progress — assert the position is `"complete"` and
+            `foldEpoch` applies. Record exactly **one** `cursor attempt
+            --outcome fail` for the pair; do not land production in this round
+            trip.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): in
+            `src/grace-cursor.ts` add the module-private helpers
+            `currentRangeEvents(bundlePath)` (the loose `run/` events when any
+            exist, else the last folded ledger epoch's `Event` children) and
+            `currentRangeCloserState(bundlePath)` (the last range-closing
+            event's mapped state, or `undefined`), and a private
+            `derivePositionState(bundlePath)` that keeps escalation and
+            circuit precedence from the **whole** stream
+            (`deriveStateFromEvents(stream)` sticky result: `paused-pending-approval`
+            / `paused-pending-supersede` win) and otherwise returns the current
+            range's closer state when it has one, else the last-event-wins
+            state. Replace the `deriveStateFromEvents(stream)` calls in
+            `positionProjectionFromBundle` (`:526`) and both `derivePosition`
+            sites (`:1422`, `:1537`) with `derivePositionState(bundlePath)`.
+            Do **not** change `deriveStateFromEvents`'s signature or its
+            escalation/circuit logic, do **not** export the new helpers, do
+            **not** touch `nextEventId`, `writeEventFile`, `writeCoveringOpened`
+            or `withEventWriteLock`. Record exactly **one** `cursor attempt
+            --outcome pass` for the pair. Failure conditions: risk test A reds
+            (a merged-stream form of the rule); risk test B reds (the closer is
+            not scoped to the current range); a new export or `MODULE_MAP`
+            entry; a new `unlinkSync`/`rmSync` site under `src/`; the sticky
+            states no longer win over a closer.
+          </Criterion>
+          <Criterion>
+            **Own-stream field test.** After this task's production edit
+            lands, the executing agent's own end-state sequence is the field
+            test: `ngrace cursor fold`, then `ngrace lint --path .
+            --assertions final --run-commands` (writes the loose
+            `command-run`), then `ngrace cursor advance --change
+            C-CURSOR-STATE-HONESTY-1-53C5EC0B --task T-001 --kind terminal`,
+            then `ngrace cursor fold`, then `ngrace cursor show --change
+            C-CURSOR-STATE-HONESTY-1-53C5EC0B` must print `State: complete`.
+            Before the edit lands the same sequence prints `State:
+            in-progress`; that is the defect and the agent never corrects it
+            by hand (`D41`). Never a hand edit of `run/` or `run-ledger.xml`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-CURSOR-STATE-HONESTY-1-53C5EC0B --assertions baseline</Command>
+          <Command>git diff --exit-code efae7553e46be6bd8454bf070e43ee458b02c6ab -- scripts/</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Decline recover --fix over a lost event</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first, in its own tool round trip (signature-kind test,
+            signature-key grace-cursor): author guard (ii)
+            `AC-FIX-REFUSES-LOST-EVENT` and the three F308 controls in
+            `src/grace-cursor.test.ts`, on isolated bundle roots against the
+            tree T-001 left. Guard (ii): a bundle with loose ids `27, 29, 30`
+            (`progress`, `progress`, `terminal`) and no covering allocation —
+            assert `recoverCursor(root, id, { fix: true })` returns
+            `fixApplied: false`, that the diagnosis names `range hole at 28`,
+            that the loose `run/` file set is byte-unchanged, and that
+            `foldEpoch` still throws `range hole at 28`. On the T-001 tree
+            `--fix` writes a covering `opened`, returns `fixApplied: true` and
+            the same diagnosis reads `Fold: blocked (range hole at 28 for
+            w0)`; paste the tail. Controls, green on the T-001 tree: a present
+            covering `w0:1-20` with loose ids `12, 13, 14` (leading hole)
+            re-homes and folds; a present covering `w0:1-10` with loose ids
+            `1, 2, 4` (mid-range hole) declines with `fixApplied: false` and
+            byte-unchanged; a dense loose range `1, 2, 3` with no covering
+            writes the covering `opened` and folds. Record exactly **one**
+            `cursor attempt --outcome fail` for the pair; do not land
+            production in this round trip.
+          </Criterion>
+          <Criterion>
+            Production (own tool round trip after the red): in
+            `src/grace-cursor.ts` add the module-private
+            `firstLooseRangeHoleId(range, ids)` (the first id in `[from, to]`
+            absent from the loose set, or `undefined`); make `buildDiagnosis`
+            name that id as `range hole at &lt;id&gt; for &lt;worker&gt;`
+            when the covering is `missing`; and in `recoverCursor`, after the
+            `present`-and-leading-hole skip, decline when the covering is
+            `missing` and the loose range has a hole — return
+            `{ ...pre, fixApplied: false }` **before** any
+            `writeCoveringOpened` call. The dense missing-covering path, the
+            present leading-hole re-home and the present mid-range decline are
+            unchanged; the multi-worker refusal still precedes any write
+            (`D8.2`), and the write stays append-only (`D9`), last-writer-wins
+            (`D9.1`) and terminal-free (`A29.2` / `F12`). Record exactly
+            **one** `cursor attempt --outcome pass` for the pair. Failure
+            conditions: guard (ii) still writes; a dense missing-covering
+            range stops writing (control reds); a present leading hole stops
+            re-homing; a new export or `MODULE_MAP` entry.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+          <Command>bun run ngrace lint --path . --change C-CURSOR-STATE-HONESTY-1-53C5EC0B --assertions baseline</Command>
+          <Command>git diff --exit-code efae7553e46be6bd8454bf070e43ee458b02c6ab -- scripts/</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Extend the payer map and terminate the epoch</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Pass-only cycle (a map entry has no red direction the shipped
+            checks see). Add `F309: "C-CURSOR-STATE-HONESTY-1-53C5EC0B"` and
+            `F310: "C-CURSOR-STATE-HONESTY-1-53C5EC0B"` to `bundleMinted` in
+            `scripts/validate-record-retirement.test.ts` after the existing
+            entries (the map is inert while the row is live and greens the
+            post-close derivation walk). Before editing, grep the unlink pin
+            subjects (`src/grace-cursor.test.ts:551`–`592`: two
+            `unlinkSync(lockPath);` lines in `src/grace-cursor.ts`, seven call
+            sites under `src/` in all) against the tree T-001 and T-002 left
+            and paste the result; the pin must already be green by
+            construction, and a red here is a T-001/T-002 defect to fix in its
+            own task with its own recorded red, never a pin repair. Record
+            exactly **one** `cursor attempt --outcome pass` and state in the
+            report that this cycle is pass-only.
+            **Terminal event:** the executing agent's last act in this task is
+            `ngrace cursor advance --change C-CURSOR-STATE-HONESTY-1-53C5EC0B
+            --task T-003 --kind terminal` — the close's `fold` refuses an
+            unterminated range. Emit terminal for this declared task only;
+            never terminal an undeclared event task and never terminal another
+            task's range.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-CURSOR-STATE-HONESTY-1-53C5EC0B>
+</NgraceChangePlan>
