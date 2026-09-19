@@ -19,7 +19,9 @@ const REGISTERED_SHAPES = [
   "root-metadata",
   "change-status",
   "change-spec",
+  "change-spec-optional",
   "change-plan",
+  "change-plan-optional",
   "change-task",
   "assertion",
   "durable-scope",
@@ -146,6 +148,20 @@ describe("AC-REFERENCE-GENERATED", () => {
 
     expect(renderSchemaShape("change-spec")).toContain("Summary");
     expect(renderSchemaShape("assertion")).toContain("MustExist");
+  });
+
+  it("registers the two optional-section shapes (C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 T-003)", () => {
+    for (const name of ["change-spec-optional", "change-plan-optional"]) {
+      expect(isRegisteredSchemaShape(name)).toBe(true);
+    }
+    const specOptional = renderSchemaShape("change-spec-optional");
+    for (const name of ["Problem", "Assumptions", "DesignReferences", "Clarifications", "Replacement", "ReplacementChange", "Proposals", "ReadAloud"]) {
+      expect(specOptional).toContain(name);
+    }
+    const planOptional = renderSchemaShape("change-plan-optional");
+    for (const name of ["OutOfPlanScope", "Clarifications", "Replacement", "ReplacementChange", "Assumptions"]) {
+      expect(planOptional).toContain(name);
+    }
   });
 });
 

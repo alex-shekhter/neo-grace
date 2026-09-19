@@ -1603,3 +1603,49 @@ describe("C-HASHED-BUNDLE-IDS-2 minted id grammar", () => {
     }
   });
 });
+
+// C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 T-001: the registered-section rule.
+describe("C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 T-001 registered sections", () => {
+  const sections = `<Summary>Summary.</Summary><Goals><Goal>Goal.</Goal></Goals><Constraints><Constraint>Constraint.</Constraint></Constraints><NonGoals><NonGoal>Non-goal.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Accepted.</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent>`;
+  const planSections = `<IntentSummary>Intent.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>`;
+
+  function specWith(status: string, overrides = "", changeId = "C-EXAMPLE"): string {
+    return `<NgraceChangeSpec graceVersion="1.0" status="${status}"><${changeId}>${sections}${overrides}</${changeId}></NgraceChangeSpec>`;
+  }
+  function planWith(overrides = "", changeId = "C-EXAMPLE"): string {
+    return `<NgraceChangePlan graceVersion="1.0" status="approved"><${changeId}>${planSections}${overrides}<ImplementationPlan>${task("T-001")}</ImplementationPlan></${changeId}></NgraceChangePlan>`;
+  }
+  const issuesOf = (file: string, xml: string, location: "active" | "archive" = "active") =>
+    validateChangeArtifact(parseGraceXmlArtifact(file, xml), location).issues;
+  const unregistered = (got: { code: string }[]) => got.filter((issue) => issue.code === "change.unregistered-section");
+
+  it("reports an unregistered spec section and never a registered one", () => {
+    const planted = issuesOf("spec.xml", specWith("approved", "<Bogus><Item>nothing</Item></Bogus>"));
+    const hit = planted.find((issue) => issue.code === "change.unregistered-section");
+    expect(hit).toBeDefined();
+    expect(hit!.severity).toBe("error");
+    expect(hit!.message).toContain("Bogus");
+    expect(unregistered(issuesOf("spec.xml", specWith("approved")))).toEqual([]);
+  });
+
+  it("names the typo beside the missing required section", () => {
+    const typo = planWith().replace(
+      "<ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>",
+      "<ObservedWriteScopes><File>src/example.ts</File></ObservedWriteScopes>",
+    );
+    const got = issuesOf("plan.xml", typo);
+    expect(got.some((issue) => issue.code === "change.plan-missing-section" && issue.message.includes("ObservedWriteScope"))).toBe(true);
+    expect(got.some((issue) => issue.code === "change.unregistered-section" && issue.message.includes("ObservedWriteScopes"))).toBe(true);
+  });
+
+  it("admits a plan-level Assumptions section", () => {
+    expect(unregistered(issuesOf("plan.xml", planWith("<Assumptions><Assumption>Plan-time assumption.</Assumption></Assumptions>")))).toEqual([]);
+  });
+
+  it("admits a replacement anchor on a superseded wrapper only", () => {
+    for (const anchor of ["<C-OTHER-1-ABCDEF />", "<Replacement>C-OTHER-1-ABCDEF</Replacement>", "<ReplacementChange>C-OTHER-1-ABCDEF</ReplacementChange>"]) {
+      expect(unregistered(issuesOf("spec.xml", specWith("superseded", anchor), "archive"))).toEqual([]);
+    }
+    expect(unregistered(issuesOf("spec.xml", specWith("approved", "<C-OTHER-1-ABCDEF />")))).toHaveLength(1);
+  });
+});

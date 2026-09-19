@@ -926,3 +926,21 @@ describe("C-ARTIFACT-VALIDITY T-001 comment well-formed exact guide", () => {
     expect(text.toLowerCase()).not.toContain("failed to parse");
   });
 });
+
+// C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 T-002: the exact guide for the
+// registered-section code.
+describe("C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9 T-002 exact guide", () => {
+  it("registers change.unregistered-section as an exact defect guide", () => {
+    const exact = getExactLintIssueGuide("change.unregistered-section");
+    expect(exact).toBeDefined();
+    expect(exact!.title.length).toBeGreaterThan(0);
+    expect(exact!.explanation.length).toBeGreaterThan(0);
+    expect(exact!.remediation.length).toBeGreaterThan(0);
+    expect(exact!.explanation).toMatch(/registered section/i);
+    expect(exact!.derivedFrom).toBeTruthy();
+    expect(exact!.proposedBy).toBeTruthy();
+    expect(classifyIssueCode("change.unregistered-section")).toBe("exact");
+    expect(isEmittableIssueCode("change.unregistered-section")).toBe(true);
+    expect(withLintIssueGuide(bare("change.unregistered-section")).title).toBe(exact!.title);
+  });
+});

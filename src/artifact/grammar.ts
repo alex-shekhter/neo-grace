@@ -88,6 +88,29 @@ const PLAN_REQUIRED_SECTIONS = [
   "ImplementationPlan",
 ] as const;
 const TASK_REQUIRED_SECTIONS = ["Title", "DependsOn", "AcceptanceCriteria", "Verification"] as const;
+/**
+ * Registered optional sections, enumerated from the shipped templates and the
+ * archive population (C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9): every direct
+ * child of a C-* wrapper must be a required or optional section for its kind,
+ * or a replacement anchor on a superseded artifact.
+ */
+const SPEC_OPTIONAL_SECTIONS = [
+  "Problem",
+  "Assumptions",
+  "DesignReferences",
+  "Clarifications",
+  "Replacement",
+  "ReplacementChange",
+  "Proposals",
+  "ReadAloud",
+] as const;
+const PLAN_OPTIONAL_SECTIONS = [
+  "OutOfPlanScope",
+  "Clarifications",
+  "Replacement",
+  "ReplacementChange",
+  "Assumptions",
+] as const;
 
 /** Kinds that close a used allocation range for fold and ledger.range-unterminated. */
 export const RANGE_CLOSING_KINDS = Object.freeze(["terminal", "discarded"] as const);
@@ -700,6 +723,14 @@ export function validateChangeArtifact(
         result.issues,
       );
       validateMeaningfulRequiredSections(artifact.file, wrapper, SPEC_REQUIRED_SECTIONS, result.issues);
+      validateRegisteredSections(
+        artifact.file,
+        wrapper,
+        SPEC_REQUIRED_SECTIONS,
+        SPEC_OPTIONAL_SECTIONS,
+        status === "superseded",
+        result.issues,
+      );
       validateSpecAcceptanceCriteria(artifact.file, wrapper, result.issues, projectRoot);
       validateSpecDesignReferences(artifact.file, wrapper, projectRoot, result.issues);
       validateClarificationsSection(artifact.file, wrapper, result.issues);
@@ -713,6 +744,14 @@ export function validateChangeArtifact(
         result.issues,
       );
       validateMeaningfulRequiredSections(artifact.file, wrapper, PLAN_REQUIRED_SECTIONS, result.issues);
+      validateRegisteredSections(
+        artifact.file,
+        wrapper,
+        PLAN_REQUIRED_SECTIONS,
+        PLAN_OPTIONAL_SECTIONS,
+        status === "superseded",
+        result.issues,
+      );
       validateStructuredPlanSections(artifact.file, wrapper, result.issues);
       validateImplementationTasks(artifact.file, wrapper, result.issues);
       validateClarificationsSection(artifact.file, wrapper, result.issues);
@@ -1582,6 +1621,29 @@ function validateReplacementTargetExists(
     if (replacement !== wrapper.tag && !knownChangeIds.has(replacement)) {
       issues.push(issue("error", "change.superseded-replacement-not-found", artifact.file, `Superseded change ${wrapper.tag} references missing replacement bundle ${replacement}.`));
     }
+  }
+}
+
+function validateRegisteredSections(
+  file: string,
+  wrapper: GraceXmlNode,
+  required: readonly string[],
+  optional: readonly string[],
+  allowReplacementAnchor: boolean,
+  issues: NgraceIssue[],
+): void {
+  const allowed = new Set<string>([...required, ...optional]);
+  for (const child of wrapper.children) {
+    if (allowed.has(child.tag)) continue;
+    if (allowReplacementAnchor && ANCHOR_PATTERNS.change.test(child.tag)) continue;
+    issues.push(
+      issue(
+        "error",
+        "change.unregistered-section",
+        file,
+        `${wrapper.tag} contains unregistered direct section <${child.tag}>; not a registered spec/plan section.`,
+      ),
+    );
   }
 }
 
@@ -2621,7 +2683,9 @@ export const GRAMMAR_INVENTORIES = {
   ROOT_METADATA_ATTRIBUTE,
   CHANGE_ROOT_METADATA_ATTRIBUTES,
   SPEC_REQUIRED_SECTIONS,
+  SPEC_OPTIONAL_SECTIONS,
   PLAN_REQUIRED_SECTIONS,
+  PLAN_OPTIONAL_SECTIONS,
   TASK_REQUIRED_SECTIONS,
   ASSERTION_SECTION_TAGS,
   DURABLE_SCOPE_DIRECT_TAGS,
