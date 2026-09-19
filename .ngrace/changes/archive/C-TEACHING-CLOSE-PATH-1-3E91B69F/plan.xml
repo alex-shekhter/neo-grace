@@ -1,0 +1,418 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-TEACHING-CLOSE-PATH-1-3E91B69F>
+    <IntentSummary>
+      Land the twelve taught sentences of C-TEACHING-CLOSE-PATH-1-3E91B69F
+      in the four governed skills and their packaged mirrors, with the
+      teaching instrument moving first and the corrected preconditions. One
+      task per skill file group carries its own instrument tokens (the red)
+      and its own sentences in both trees (the green); the two false
+      `TAUGHT_RULES` tokens are replaced in the same group that rewrites
+      their sentences. Then the skill-footprint pin and the `README.md` cell
+      are re-measured, the payer map gains `F306` and `F311`, and the last
+      task runs the universality checks, confirms the conditional pins, and
+      ends with the terminal cursor event on itself. Every `AC-*` in the
+      authorizing spec is close-bound, so no task carries `Satisfies`.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/skill-contracts.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</Value></MustExist>
+      <MustExist><Value>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.ts</Value></MustExist>
+      <MustExist><Value>scripts/check-teaching-surface.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/token-accounting.test.ts</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>M-SKILLS</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustVerify><Module>M-SKILLS</Module></MustVerify>
+      <MustVerify><Module>M-TEST-SUPPORT</Module></MustVerify>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>overwriting the minted skeleton</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>carried verbatim</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+        <Text>predecessor's archive arrival</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>status reset to draft</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>.git/info/exclude</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>does not require an open epoch</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>exits non-zero</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>gate.apply.no-verdict</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>does not require an open epoch</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>does not open a fresh epoch</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>selected-baseline lint</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>review.attempt-pair-unpaired-pass</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>hidden by the default severity</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>namespace import</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>opens a new epoch</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>stays on the last task</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+        <Text>silently under-counts</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>needs an open epoch on a declared task</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+        <Text>opens a fresh epoch</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>requires an open epoch on a declared task</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>needs an open epoch on a declared task</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>requires an open epoch on a declared task</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-execute/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-reviewer/SKILL.md</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>scripts/skill-contracts.test.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <Glob>.ngrace/changes/archive/C-TEACHING-CLOSE-PATH-1-3E91B69F/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Move the ngrace-spec instrument tokens and land the supersede-path sentences in both trees</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The instrument moves first: `TAUGHT_RULES` in
+            `scripts/check-teaching-surface.ts` and its twin in
+            `scripts/check-teaching-surface.test.ts` gain one entry each for
+            `{ngrace-spec, shape_sources, "overwriting the minted skeleton"}`,
+            `{ngrace-spec, shape_sources, "carried verbatim"}` and
+            `{ngrace-spec, acceptance_criteria_anchors, "predecessor's archive
+            arrival"}`. Before the skill text lands, `bun run
+            validate:teaching-surface` exits non-zero naming the missing
+            token — the recorded red. Then `skills/ngrace/ngrace-spec/SKILL.md`
+            and `plugins/ngrace/skills/ngrace/ngrace-spec/SKILL.md` land the
+            three sentences: the "Lineage path" paragraph states that `spec
+            new --supersedes` mints a throwaway skeleton and the successor is
+            authored by overwriting the minted skeleton from the archived
+            predecessor's bytes with `status` reset to `draft` and the
+            verb-inserted `Replacement` child dropped; it states that the
+            `mint-search` line printed while the predecessor is still active
+            is carried verbatim by whatever consumes it later and never
+            re-derived after the move; and `acceptance_criteria_anchors` adds
+            the predecessor's archive arrival to every archive-edit exclude,
+            with its reason. Both trees carry the same bytes.
+          </Criterion>
+          <Criterion>
+            `bun run validate:teaching-surface` exits 0 and `bun test
+            --timeout=0 scripts/check-teaching-surface.test.ts` passes after
+            the sentences land.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:teaching-surface</Command>
+          <Command>bun test --timeout=0 scripts/check-teaching-surface.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Replace the stale ngrace-plan validation token, add its new tokens, land the plan sentences in both trees</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The two `TAUGHT_RULES` lists drop
+            `{ngrace-plan, validation, "requires an open epoch on a declared
+            task"}` and add `{ngrace-plan, validation, "does not require an
+            open epoch"}`, `{ngrace-plan, approved_plan_immutability, "status
+            reset to draft"}` and `{ngrace-plan, must_do, ".git/info/exclude"}`.
+            Removing a token is not a red; the red for the rewrite is the new
+            token demanded before the corrected sentence exists. Then
+            `skills/ngrace/ngrace-plan/SKILL.md` and its mirror land three
+            sentences: `approved_plan_immutability` gains the
+            overwrite-reset-drop mechanic beside "archived predecessor's
+            draft"; `must_do` row 19 gains that a faithful post-close copy
+            carries `.git` and that an ignored directory reached through a
+            symlink needs a bare `.git/info/exclude` entry; and `validation`
+            is rewritten to say `--run-commands` does not require an open
+            epoch while the true phrases ("requires a declared task in
+            scope" behaviour and `assertion.change-required`) stay present.
+          </Criterion>
+          <Criterion>
+            `bun run validate:teaching-surface` exits 0 and the twin test
+            passes.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:teaching-surface</Command>
+          <Command>bun test --timeout=0 scripts/check-teaching-surface.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Replace the stale ngrace-execute token, add the exec tokens, land the exec sentences in both trees</Title>
+        <DependsOn>
+          <T-002 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The lists drop `{ngrace-execute, assertion_commands, "needs an
+            open epoch on a declared task"}` and add, in lockstep across both
+            files: `{ngrace-execute, assertion_commands, "exits non-zero"}`,
+            `{ngrace-execute, assertion_commands, "does not require an open
+            epoch"}`, `{ngrace-execute, assertion_commands,
+            "selected-baseline lint"}`, `{ngrace-execute, execution_rules,
+            "gate.apply.no-verdict"}`, `{ngrace-execute, execution_rules,
+            "does not open a fresh epoch"}`, `{ngrace-execute,
+            execution_rules, "hidden by the default severity"}`,
+            `{ngrace-execute, cursor_kinds, kind attempt,
+            "review.attempt-pair-unpaired-pass"}`, `{ngrace-execute,
+            cursor_kinds, kind attempt, "namespace import"}`, `{ngrace-execute,
+            cursor_kinds, kind attempt, "opens a new epoch"}`, and
+            `{ngrace-execute, cursor_kinds, kind terminal, "stays on the last
+            task"}`. Then both ngrace-execute trees land the sentences: the
+            final-query asymmetry in `assertion_commands`; the apply-verdict
+            ordering in rule 9; the corrected `--run-commands` task resolution
+            in `assertion_commands` and rule 7 (rewritten in place, so
+            "opens a fresh epoch" is gone while "after a fold, final
+            run-commands writes loose events" stays); the selected-baseline
+            `MODULE_MAP` instrument in `assertion_commands`; the info-level
+            pass-only finding in the `attempt` kind and rule 13; the
+            namespace-import guard in the `attempt` kind; and the correction's
+            new epoch and the end-state terminal on the last task in kinds
+            `attempt` and `terminal`.
+          </Criterion>
+          <Criterion>
+            `bun run validate:teaching-surface` exits 0 and the twin test
+            passes.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:teaching-surface</Command>
+          <Command>bun test --timeout=0 scripts/check-teaching-surface.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Add the ngrace-reviewer instrument token and land the xmllint trap sentence in both trees</Title>
+        <DependsOn>
+          <T-003 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Both lists add `{ngrace-reviewer, review_judgment, "silently
+            under-counts"}`; the red is that token demanded before the
+            sentence exists. Then `skills/ngrace/ngrace-reviewer/SKILL.md` and
+            its mirror state, beside the read-the-shape-first bullet, that a
+            structural census of XML artifacts goes through the shipped
+            parser because `xmllint` rejects a document whose comments contain
+            `--` and silently under-counts; the existing "read the shape
+            first" and "shipped parser" text stays.
+          </Criterion>
+          <Criterion>
+            `bun run validate:teaching-surface` exits 0 and the twin test
+            passes.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:teaching-surface</Command>
+          <Command>bun test --timeout=0 scripts/check-teaching-surface.test.ts</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Re-measure the skill footprint and transcribe the measured values into the pin and the README cell</Title>
+        <DependsOn>
+          <T-004 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            After all four skill edits, re-measure `skillTextLines().total`
+            and `totalBytes` from the tree and transcribe the measured values
+            into `src/test-support/token-accounting.test.ts` and the
+            `README.md` measurement cell. The pin equals the measurement; no
+            value is projected before the edit, and no pin is deleted or
+            loosened.
+          </Criterion>
+          <Criterion>
+            `bun test --timeout=0 src/test-support/token-accounting.test.ts`
+            exits 0, its cell cross-check included.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/test-support/token-accounting.test.ts</Command>
+        </Verification>
+      </T-005>
+      <T-006>
+        <Title>Add the two minted payer tokens to the payer-derivation baseline</Title>
+        <DependsOn>
+          <T-005 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `bundleMinted` in `scripts/validate-record-retirement.test.ts`
+            gains `F306:
+            "C-TEACHING-CLOSE-PATH-1-3E91B69F"` and `F311:
+            "C-TEACHING-CLOSE-PATH-1-3E91B69F"` in the comment-block shape the
+            existing entries use; the extension is pass-only.
+          </Criterion>
+          <Criterion>
+            `bun test --timeout=0 scripts/validate-record-retirement.test.ts`
+            exits 0 before and after the close's flush and retire.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts</Command>
+        </Verification>
+      </T-006>
+      <T-007>
+        <Title>Run the universality checks, confirm the conditional pins, and end the run with the terminal event on this task</Title>
+        <DependsOn>
+          <T-006 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Run `checkRecordTokens` over the four skills in both trees (it
+            runs inside `bun run validate:teaching-surface`) and report its
+            exit; grep the four rewritten skills in both trees for the
+            forbidden classes the scanner does not cover — harness install
+            paths, `scripts/` file or identifier names, repository-private
+            function names, bundle ids and record file names — and report the
+            count.
+          </Criterion>
+          <Criterion>
+            Grep the four conditional pin files
+            (`scripts/skill-contracts.test.ts`, `src/review/core.test.ts`,
+            `src/grace-cursor.test.ts`, `src/artifact/grammar.test.ts`) for the
+            passages T-002 and T-003 rewrite and for the phrases the spec's
+            Constraints require to stay; repair a pin only if the executed
+            teaching falsified it, at the same matcher strength. Report the
+            grep and whether any repair was needed.
+          </Criterion>
+          <Criterion>
+            This task is the last one: after its verification passes, the
+            operator emits the terminal cursor event on itself
+            (`ngrace cursor advance --change C-TEACHING-CLOSE-PATH-1-3E91B69F
+            --task T-007 --kind terminal`) before the final fold, so the
+            close's fold has a range closer.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run validate:teaching-surface</Command>
+          <Command>bun test --timeout=0 scripts/skill-contracts.test.ts</Command>
+        </Verification>
+      </T-007>
+    </ImplementationPlan>
+  </C-TEACHING-CLOSE-PATH-1-3E91B69F>
+</NgraceChangePlan>

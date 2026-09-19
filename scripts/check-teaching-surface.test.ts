@@ -540,8 +540,20 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-plan", section: "must_do", token: "by identity" },
   { skill: "ngrace-plan", section: "must_do", token: "design-context.xml" },
   { skill: "ngrace-plan", section: "must_do", token: "gate approve --artifact plan" },
-  { skill: "ngrace-plan", section: "validation", token: "requires an open epoch on a declared task" },
-  { skill: "ngrace-execute", section: "assertion_commands", token: "needs an open epoch on a declared task" },
+  { skill: "ngrace-plan", section: "validation", token: "does not require an open epoch" },
+  { skill: "ngrace-plan", section: "approved_plan_immutability", token: "status reset to draft" },
+  { skill: "ngrace-plan", section: "must_do", token: ".git/info/exclude" },
+  { skill: "ngrace-execute", section: "assertion_commands", token: "exits non-zero" },
+  { skill: "ngrace-execute", section: "assertion_commands", token: "does not require an open epoch" },
+  { skill: "ngrace-execute", section: "assertion_commands", token: "selected-baseline lint" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "gate.apply.no-verdict" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "does not open a fresh epoch" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "hidden by the default severity" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "review.attempt-pair-unpaired-pass" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "namespace import" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "opens a new epoch" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "terminal", token: "stays on the last task" },
+  { skill: "ngrace-reviewer", section: "review_judgment", token: "silently under-counts" },
   { skill: "ngrace-execute", section: "recovery_decision_table", token: "approved plan's own baseline assertion is false at HEAD" },
   { skill: "ngrace-spec", section: "status_rules", token: "skips the bundle's own" },
   { skill: "ngrace-spec", section: "status_rules", token: "by identity" },
@@ -579,26 +591,41 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-plan", section: "must_do", token: "narrowest instrument" },
   { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "close-time only" },
   { skill: "ngrace-execute", section: "execution_rules", token: "close-time only" },
+  { skill: "ngrace-spec", section: "shape_sources", token: "overwriting the minted skeleton" },
+  { skill: "ngrace-spec", section: "shape_sources", token: "carried verbatim" },
+  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "predecessor's archive arrival" },
 ];
 
 function taughtSkillBody(skill: string, drop?: { section: string; token?: string }): string {
-  const sections = new Map<string, { kind?: string; tokens: string[] }>();
+  const bySection = new Map<string, Array<{ kind?: string; tokens: string[] }>>();
+  const kindIndex = new Map<string, Map<string | undefined, number>>();
   for (const rule of TAUGHT_RULES) {
     if (rule.skill !== skill) continue;
-    const key = `${rule.section}${rule.kind ? `#${rule.kind}` : ""}`;
-    const entry = sections.get(key) ?? { kind: rule.kind, tokens: [] };
     if (drop && drop.section === rule.section && drop.token === rule.token) {
       continue;
     }
-    entry.tokens.push(rule.token);
-    sections.set(key, entry);
+    let entries = bySection.get(rule.section);
+    if (!entries) {
+      entries = [];
+      bySection.set(rule.section, entries);
+      kindIndex.set(rule.section, new Map());
+    }
+    const idx = kindIndex.get(rule.section)!;
+    let at = idx.get(rule.kind);
+    if (at === undefined) {
+      at = entries.length;
+      entries.push({ kind: rule.kind, tokens: [] });
+      idx.set(rule.kind, at);
+    }
+    entries[at]!.tokens.push(rule.token);
   }
   const parts: string[] = [];
-  for (const [key, entry] of sections) {
-    const [section, kind] = key.split("#");
-    const body = entry.tokens.map((token) => `Rule carrying ${token} in voice.`).join("\n");
-    const inner = kind ? `<kind id="${kind}">\n${body}\n</kind>` : body;
-    parts.push(`<${section}>\n${inner}\n</${section}>`);
+  for (const [section, entries] of bySection) {
+    const innerParts = entries.map((entry) => {
+      const body = entry.tokens.map((token) => `Rule carrying ${token} in voice.`).join("\n");
+      return entry.kind ? `<kind id="${entry.kind}">\n${body}\n</kind>` : body;
+    });
+    parts.push(`<${section}>\n${innerParts.join("\n")}\n</${section}>`);
   }
   return `${parts.join("\n")}\n`;
 }
@@ -1020,6 +1047,43 @@ const NEW_NEEDLES_C6 = [
 
 describe("C-TEACH-CLOSE-DRIVES-PINS-1-B0BC7FBD red directions", () => {
   for (const needle of NEW_NEEDLES_C6) {
+    it("returns non-zero naming the file, section and token when " + needle.token + " is deleted from one tree", () => {
+      const root = isolatedRoot();
+      plantTaughtSkills(root, {
+        relative: "skills/ngrace/" + needle.skill + "/SKILL.md",
+        body: taughtSkillBody(needle.skill, { section: needle.section, token: needle.token }),
+      });
+      const { code, output } = captureStderr(() => checkTaughtRules(root));
+      expect(code).not.toBe(0);
+      expect(output).toContain(needle.token);
+    });
+  }
+});
+
+// C-TEACHING-CLOSE-PATH-1-3E91B69F T-001/T-002/T-003/T-004: one red-direction case per
+// newly added needle, grown one needle per pair as each needle lands.
+const NEW_NEEDLES_CTCP = [
+  { skill: "ngrace-spec", section: "shape_sources", token: "overwriting the minted skeleton" },
+  { skill: "ngrace-spec", section: "shape_sources", token: "carried verbatim" },
+  { skill: "ngrace-spec", section: "acceptance_criteria_anchors", token: "predecessor's archive arrival" },
+  { skill: "ngrace-plan", section: "approved_plan_immutability", token: "status reset to draft" },
+  { skill: "ngrace-plan", section: "must_do", token: ".git/info/exclude" },
+  { skill: "ngrace-plan", section: "validation", token: "does not require an open epoch" },
+  { skill: "ngrace-execute", section: "assertion_commands", token: "exits non-zero" },
+  { skill: "ngrace-execute", section: "assertion_commands", token: "does not require an open epoch" },
+  { skill: "ngrace-execute", section: "assertion_commands", token: "selected-baseline lint" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "gate.apply.no-verdict" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "does not open a fresh epoch" },
+  { skill: "ngrace-execute", section: "execution_rules", token: "hidden by the default severity" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "review.attempt-pair-unpaired-pass" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "namespace import" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "opens a new epoch" },
+  { skill: "ngrace-execute", section: "cursor_kinds", kind: "terminal", token: "stays on the last task" },
+  { skill: "ngrace-reviewer", section: "review_judgment", token: "silently under-counts" },
+];
+
+describe("C-TEACHING-CLOSE-PATH-1-3E91B69F red directions", () => {
+  for (const needle of NEW_NEEDLES_CTCP) {
     it("returns non-zero naming the file, section and token when " + needle.token + " is deleted from one tree", () => {
       const root = isolatedRoot();
       plantTaughtSkills(root, {
