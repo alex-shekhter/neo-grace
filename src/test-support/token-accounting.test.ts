@@ -36,7 +36,7 @@ describe("token-accounting (D15)", () => {
     // C-TAUGHT-RULES T-003: the twenty-seven taught rules landed in the four
     // skills, both trees (measured): 832 → 861 lines and 64155 → 71505 bytes.
     const measured = skillTextLines();
-    expect(measured.total).toBe(873);
+    expect(measured.total).toBe(875);
     expect(measured.perSkill["ngrace-fix"]).toBe(32);
     expect(Object.keys(measured.perSkill).length).toBe(16);
     // Sanity: known skills present
@@ -102,8 +102,8 @@ describe("token-accounting (D15)", () => {
     // ngrace-reviewer, both trees (measured): 871 → 873 lines and
     // 81285 → 85595 bytes.
     const measured = skillTextLines();
-    expect(measured.total).toBe(873);
-    expect(measured.totalBytes).toBe(85595);
+    expect(measured.total).toBe(875);
+    expect(measured.totalBytes).toBe(88664);
     const sumBytes = Object.values(measured.perSkillBytes).reduce((a, b) => a + b, 0);
     expect(sumBytes).toBe(measured.totalBytes);
     expect(Object.keys(measured.perSkillBytes).length).toBe(16);

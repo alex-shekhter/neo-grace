@@ -458,4 +458,10 @@
     <Pays>F304 F305</Pays>
     <StatusText>Two findings paid: a stray or misspelled section is named at lint time, and the flush verb's codify-only path stops demanding a value it never uses.</StatusText>
   </Row>
+  <Row name="C-TEACHING-CLOSE-PATH-1-3E91B69F" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug TEACHING-CLOSE-PATH. Author half: the supersede path taught in ngrace-spec and ngrace-plan, the close path corrected in ngrace-execute and ngrace-plan, and the reviewer's shipped-parser census; every sentence driven before it was written.</Charter>
+    <Pays>F306 F311</Pays>
+    <StatusText>Two findings paid: the supersede and close paths are taught as measured, and the instrument no longer pins a false precondition.</StatusText>
+  </Row>
 </Registry>

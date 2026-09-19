@@ -5425,4 +5425,22 @@ Owner: a lint-grammar increment; not `C-TEACHING-INCREMENT`'s. Stays staged.
 Owner: the next flush-verb touch. Stays staged.
 </Body>
   </Finding>
+  <Finding id="f306" token="F306" status="retired">
+    <PaidBy>C-TEACHING-CLOSE-PATH-1-3E91B69F</PaidBy>
+    <Title>### F306 — the supersede path is untaught: neither `ngrace-spec` nor `ngrace-plan` says the successor is authored by overwriting the minted skeleton from the archived predecessor with its status reset and `Replacement` dropped, that the mint-search printed at mint is carried verbatim, or that the predecessor's archive arrival joins the archive-edit exclude. **[verified]**</Title>
+    <Body>
+**Reported by the executor across three dispatches on 2026-09-18** (the supersede of `C-TEACHING-INCREMENT-1-B9D139EA`, its successor's plan, and the implementation), each under `SKILL GAPS`; the authority re-measured the first three items against `skills/ngrace/ngrace-spec/SKILL.md` (`shape_sources`, &quot;Lineage path&quot;) and `skills/ngrace/ngrace-plan/SKILL.md` (`approved_plan_immutability`) at `55bae41`: neither passage says (1) that `spec new --supersedes` mints a throwaway skeleton the author overwrites from the archived predecessor's bytes, resetting `status` to `draft` and dropping the verb-inserted `Replacement` child; (2) that the `mint-search` line printed at mint — with the predecessor still active and counted — is the value the close's flush carries, never re-derived after the move; (3) that the supersede's own tree effect, the predecessor's archive arrival, must join every archive-edit criterion's exclude or the successor is red by construction at close. Items reported by the executor and **not** independently re-measured by the authority: (4) `--assertions final` without `--run-commands` exits 1 with `assertion.command-not-evaluated`; (5) `gate apply` refuses `gate.apply.no-verdict` before a recorded verdict, which rule 9 does not state; (6) a faithful post-close copy must carry `.git` or every `git diff` `CloseEvidence` command fails to evaluate; (7) when every `AC-*` is close-bound no task may carry `Satisfies`, which `ngrace-plan` states only by implication.
+
+Owner: a teaching increment on `ngrace-spec`, `ngrace-plan` and `ngrace-execute`. Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f311" token="F311" status="retired">
+    <PaidBy>C-TEACHING-CLOSE-PATH-1-3E91B69F</PaidBy>
+    <Title>### F311 — `ngrace-execute` misdescribes two mechanics the executor met on every bundle today: `--run-commands` does not need an open epoch (a declared task in scope suffices), and the final `--run-commands` does not &quot;open a fresh epoch&quot; but writes allocation-less `command-run` events the next fold covers by synthesis. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18** across `C-TEACHING-INCREMENT-2`, `C-EVENT-LOCK-ATOMIC-1` and `C-EPOCH-OPEN-DEFAULT-1`: the mandated end-state runs `ngrace lint --assertions final --run-commands` immediately after a fold with no open epoch and exits 0, writing one loose `command-run` (`appendCommandRunEvent`, `src/lint/core.ts:510`); `assertion_commands` says &quot;`--run-commands` needs an open epoch on a declared task&quot; and rule 7 says &quot;final run-commands opens a fresh epoch and leaves loose events&quot;. Both sentences sent the authority's brief and the executor's reading in the wrong direction (the brief claimed the final run reaches the `from = 1` default; it does not — only an explicit `cursor advance --open-epoch` did, F308). Two more teaching debts collected the same day: the `MODULE_MAP` check in post-write verification is the selected-baseline lint, because current mode is banned there; and a pass-only task's attempt surfaces as an info-level `review.attempt-pair-unpaired-pass` that the default severity hides while the audit line still counts it (`F287`'s shape, on the executor's side).
+
+Owner: the next teaching increment, with `F306`. Stays staged.
+</Body>
+  </Finding>
 </Findings>
