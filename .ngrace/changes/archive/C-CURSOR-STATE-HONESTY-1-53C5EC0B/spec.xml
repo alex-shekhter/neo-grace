@@ -1,0 +1,596 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-CURSOR-STATE-HONESTY-1-53C5EC0B>
+    <Summary>
+      One `src/` bundle that pays the two staged cursor findings `F309` and
+      `F310`, confined to `src/grace-cursor.ts` and its test. `F310`: after the
+      mandated end-state sequence (terminal, fold, `--assertions final
+      --run-commands`, terminal, fold) `run/` is empty and `gate archive`
+      permits, yet `ngrace cursor show` prints `State: in-progress`. The
+      fold's synthesized covering `opened` is written above the terminal it
+      covers — `writeCoveringOpened` takes its id from `nextEventId`
+      (`src/grace-cursor.ts:782`), `maybeAutoOpenCoveringAllocation` (`:804`)
+      appends it at fold (`:1209`), and the ledger tail on every bundle closed
+      this week is `terminal, command-run, terminal, opened` — while the state
+      derivation reads the last event (`deriveStateFromEvents`, `:465`). The
+      remedy is shape (B): the position's state is derived from the current
+      range's closer, not the last event, so a range that contains a
+      `terminal` (or `discarded`) reads that closer's state even when a
+      synthesized `opened` follows it. `F309`: with the covering allocation
+      `missing` and a hole inside the loose range (a lost event),
+      `cursor recover --fix` writes a covering `opened`, prints
+      `Fix applied: yes`, and on the same diagnosis prints
+      `Fold: blocked (range hole at &lt;id&gt;)`; the fold then refuses. The
+      "yes" is true of the write and false of the repair. The remedy: `--fix`
+      declines to write when the post-write fold would still be blocked by a
+      hole inside the loose range, prints `Fix applied: no` with the hole
+      named, leaves the stream byte-unchanged, and the executor stops and
+      reports the lost event (`D41`). The F308 controls are unchanged: a
+      present covering with a leading hole re-homes; a present covering with a
+      mid-range hole declines; a dense loose range with a missing covering
+      still gets the covering `opened` and folds.
+    </Summary>
+    <Goals>
+      <Goal>
+        **`F310` — a folded stream reads its range's closer.** In
+        `src/grace-cursor.ts`, the shared state projection (`deriveStateFromEvents`
+        at `:465`, and its call sites in `positionProjectionFromBundle` at
+        `:526`, `derivePosition` at `:1422`/`:1537`) becomes range-aware: when
+        the **current range** contains a range-closing event (`terminal` or
+        `discarded`), the position's state is that closer's state; when the
+        range contains no closer, the existing last-event-wins rule is
+        unchanged. The current range is the loose `run/` epoch when any loose
+        event exists, else the last folded ledger epoch; escalation and
+        circuit precedence stay whole-stream and per-task (they are not
+        scoped). A synthesized covering `opened` written above the terminal it
+        covers therefore no longer supersedes that terminal, and the mandated
+        end-state fold reads `complete` in both `ngrace cursor show` and the
+        `run.xml` the fold writes. The synthesized `opened` itself is
+        unchanged: same id (`nextEventId`), same file name, same
+        `max(requirement, openedId + 98)` ceiling.
+      </Goal>
+      <Goal>
+        **`F309` — `recover --fix` refuses to fabricate a covering over a lost
+        event.** In `recoverCursor` (`src/grace-cursor.ts:628`), the shipped
+        skip at `:704` (decline when the covering is `present` and not
+        leading-holed) is joined by the missing-covering case: when
+        `coveringAllocation === "missing"` and the loose range `[from, to]`
+        is **not dense** — an id inside the range is absent from `run/` — no
+        covering `opened` is written. `--fix` returns `fixApplied: false`,
+        the rendered diagnosis reads `Fix applied: no`, the first absent id is
+        named as `range hole at &lt;id&gt;` (`D41`: a lost event no verb may
+        fabricate), and the stream is byte-unchanged; `cursor fold` still
+        exits 1. When the loose range is dense and the covering is missing,
+        `--fix` writes the covering `opened` through the shipped
+        `writeCoveringOpened` exactly as today. A present covering with a
+        leading hole still re-homes; a present covering with a mid-range hole
+        still declines. The executor's next act on the refusal is to stop and
+        report the lost event, never to hand-write a `run/` file.
+      </Goal>
+      <Goal>
+        **The guards — deterministic reds on the base commit, greens after.**
+        Add guards to `src/grace-cursor.test.ts` (no new test file), red on
+        `efae7553e46be6bd8454bf070e43ee458b02c6ab` and green under this
+        bundle's change, on this platform with no Windows dependency:
+        (i) the end-state sequence — seed, open, progress, terminal, fold,
+        `--assertions final --run-commands` (a loose `command-run`), terminal,
+        fold — leaves `run/` empty and `cursor show` must read `complete`, not
+        `in-progress` (red today: the ledger ends `terminal, opened` and
+        `show` reads `in-progress`); (ii) a missing covering with a mid-range
+        hole — `recover --fix`'s rendered output must not say `yes` beside a
+        blocked fold, and must leave the loose `run/` set byte-unchanged (red
+        today: `Fix applied: yes`, `Fold: blocked (range hole at 28 for w0)`,
+        a stray `opened` written); (iii) the F308 controls stay green — a
+        present covering with a leading hole re-homes and folds, a present
+        covering with a mid-range hole declines with `Fix applied: no` and
+        byte-unchanged, and a dense loose range with a missing covering writes
+        and folds. Keep `AC-FORCED-COLLISION`, `AC-UNIQUE-CONCURRENT` and
+        `AC-NO-SILENT-OVERWRITE` green.
+      </Goal>
+      <Goal>
+        **The row and the payment.** At the close the authority's `--flush`
+        lands `F309` and `F310` and mints this bundle's chartered row into
+        `registry.xml`: `&lt;Row name="C-CURSOR-STATE-HONESTY-1-53C5EC0B"
+        status="live" kind="chartered"&gt;` with an empty `&lt;Number&gt;`, a
+        `&lt;Charter&gt;` carrying the searched-before-minting statement over
+        the archive and both registry layers, no `F` token and no bundle token
+        other than this one, `&lt;Pays&gt;` naming exactly `F309 F310`, and a
+        `&lt;StatusText&gt;` naming no `F` token. The plan carries the
+        non-empty `&lt;Pays&gt;F309 F310&lt;/Pays&gt;`; the plan extends the
+        shipped payer-derivation baseline `bundleMinted`
+        (`scripts/validate-record-retirement.test.ts`) with `F309` and `F310`
+        mapped to `C-CURSOR-STATE-HONESTY-1-53C5EC0B`. The move retires the
+        two findings.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T1** (module change: one module-ownable file plus its
+        test, the payer-map fixture, and the governed record the close
+        writes). Roadmap: `RM-GOVERNED-PATH`. Binding: **`F309`** and
+        **`F310`** — this bundle is the cursor-state increment both name as
+        owner, and the two remedies are the deliverable, not follow-ups;
+        `D41` — no verb may fabricate a lost event, so `--fix` declines rather
+        than writes; `D11` — nothing is deferred without a dependency or a
+        conflict; `D30` — no hard `Constraint` below transcribes a scalar
+        count of a file this bundle writes, and every count lives in
+        `Assumptions` and expires; `D5.5` — `CHANGELOG.md` is generated and is
+        not edited; `F136.1` — every file this spec forces into scope has its
+        owner confirmed against every module list this spec carries, and the
+        write scope is enumerated exactly once, in the write-scope Constraint;
+        `F227` — the forced-file set is derived from the Goals and every
+        byte-invariance criterion excludes every file the Goals make
+        inevitable; `F285`/`F293` — the close's write set is enumerated from
+        the verb, charged to the plan's `ObservedWriteScope`, and permitted by
+        every byte-invariance pathspec; `F43` — markup is escaped as character
+        data in every artifact this bundle writes, never paraphrased away.
+      </Constraint>
+      <Constraint>
+        **The state-derivation shape, and the shape chosen.** Two shapes were
+        weighed and one chosen. **Shape (B), chosen:** the position's state is
+        derived from the current range's closer rather than the last event. It
+        makes a folded stream read `complete` because the range that contains
+        the fold's synthesized covering `opened` also contains the terminal it
+        covers. **Shape (A), rejected: not producible.** Allocating the
+        synthesized covering `opened` at the first loose id it covers is
+        impossible under the shipped allocator: `nextEventId`
+        (`src/grace-cursor.ts:3494`) returns
+        `max(floor, looseMax + 1, ledgerMax + 1)`, and `writeEventFile`
+        (`:3407`) renumbers a colliding id above the contested one — the
+        behaviour `AC-FORCED-COLLISION` (`src/grace-cursor.test.ts:4106`) pins.
+        The first loose id is always occupied by a real event (a range of one
+        event is that event, the terminal), so an `opened` targeted there
+        lands above the terminal and `F310` recurs; implementing (A) would
+        require writing a colliding id or rewriting a recorded event, both
+        forbidden by `D41`. (A) would also move the id and file name of every
+        fold-synthesized `opened` and the ceiling pins that read
+        `opened.id + 98` (`src/grace-cursor.test.ts:2734`, the `to="102"` pin
+        at `:2822`, `:2891`, `:4342`). **What (B) moves, measured:** the only
+        state change is a current range that contains a closer and a later
+        non-closer. The measured cases are the end-state fold (red today) and
+        a live epoch with a stray terminal (terminal then progress), which
+        today reads `in-progress` while the same stream's `fold` applies
+        (`Fold applied, Events: 4`) because
+        `validateEventsAgainstAllocations` accepts any closer in the range
+        (`:2874`–`:2876`); under (B) it reads `complete`, which is what `fold`
+        already decides, and continuing after a closer requires a new `opened`
+        epoch. Current-range scoping keeps a bounded re-open over a prior
+        epoch's terminal `in-progress` (measured at the base commit:
+        `advance --open-epoch --from 1 --to 99` after a fold reads
+        `in-progress`), which a merged-stream form of (B) would break.
+      </Constraint>
+      <Constraint>
+        **The `recover --fix` contract, and the ruling it amends.** The
+        shipped skip is `if (pre.coveringAllocation === "present" &amp;&amp;
+        !hasLeadingHole(pre)) return { ...pre, fixApplied: false };`
+        (`src/grace-cursor.ts:704`), introduced by `C-RECOVER-FOLDABLE` /
+        `F13` so a healthy open epoch is not re-homed, and extended by
+        `C-EPOCH-OPEN-DEFAULT` / `F308` so a leading hole is re-homed. This
+        bundle amends neither ruling; it extends the missing-covering case
+        with the same principle `F308` stated for the present-covering case: a
+        hole inside the loose range is a genuinely lost event no verb may
+        fabricate. `--fix` writes a covering `opened` only when the loose
+        range is dense; otherwise it declines with `Fix applied: no`, names
+        the first absent id, and leaves the stream byte-unchanged. The
+        `missing` covering diagnosis names the range hole beside
+        `missing valid covering allocation`, so the refusal is not a bare
+        `no`. Multi-worker still refuses before write (`D8.2`); the write
+        remains append-only (`D9`), last-writer-wins per worker (`D9.1`), and
+        terminal-free (`A29.2` / `F12`).
+      </Constraint>
+      <Constraint>
+        Write scope, anchors, and enumeration — stated once (`F136.1`'s
+        rule). Files the Goals force into write scope:
+        `src/grace-cursor.ts` (the range-aware state projection and the
+        missing-covering density check in `recoverCursor`; module-ownable,
+        `LINKS: M-CURSOR`); `src/grace-cursor.test.ts` (the three guards; a
+        `.test.ts` under `src/` that `isModuleOwnableWritePath` does not own,
+        so it carries no `LINKS:` anchor); `scripts/validate-record-retirement.test.ts`
+        (the `bundleMinted` extension; not module-ownable); and the record
+        files the close writes — `docs/plans/active/RM-GOVERNED-PATH/findings.xml`,
+        `findings-retired.xml`, `rulings.xml`, `rulings-retired.xml`,
+        `registry.xml`, `registry-retired.xml`, `decisions.xml` — listed as
+        the authority's close acts so the close is coverable, plus the archive
+        arrival `.ngrace/changes/archive/C-CURSOR-STATE-HONESTY-1-53C5EC0B/`.
+        The only module-ownable path written is `src/grace-cursor.ts`, owned by
+        `M-CURSOR`; the module list this spec carries is `AffectedAreas` below
+        and the `M-CURSOR` anchor here, and they agree. No new export is
+        added, so `MODULE_MAP` does not move. Do **not** add this bundle's own
+        `spec.xml`, `plan.xml` or `design-context.xml` to
+        `ObservedWriteScope`; the review skips them by identity. Do not mint a
+        synthetic module. Do not add a lint issue code.
+      </Constraint>
+      <Constraint>
+        Evidence hygiene, the rules this branch teaches, applied to this
+        bundle's own criteria. Every byte-invariance baseline is this spec's
+        base commit `efae7553e46be6bd8454bf070e43ee458b02c6ab` — the
+        base-less form cannot fail; the window is this bundle's own diff; the
+        diff sees tracked paths only. The record files the close writes, the
+        payer-map fixture `scripts/validate-record-retirement.test.ts`, and
+        this bundle's own archive arrival are excluded from every
+        byte-invariance criterion, each with its reason, and covered by the
+        parse-based and verb-based criteria instead. The archive criterion
+        excludes this bundle's own later arrival with its reason (the close
+        renames this bundle's directory into the archive). Every probe is run
+        in both directions on a throwaway copy before the spec is written;
+        probes mutate copies, never the production record. Structural claims
+        come from the shipped parser or `xmllint --xpath` after reading the
+        element's shape, never `grep -c`, and exit codes are read directly,
+        never through a pipe. No criterion pins a named finding
+        `status="live"`, pins a ceiling to a number, or asserts an artifact
+        the shipped engine will not produce; no criterion requires a change
+        another criterion forbids, and no criterion forbids the write the
+        close's `Pays` requires. The `CloseEvidence` criteria are evaluated in
+        the applied-archive state, after the close's own move has run, and
+        each names the narrow instrument for its subject; the full
+        CI-equivalent verification is close-time only.
+      </Constraint>
+      <Constraint>
+        Criterion mapping, stated on its face. Every `AC-*` below is
+        close-bound by its own `CloseEvidence` child, so a task `Satisfies`
+        naming any of them is the shipped error. There is no
+        `Satisfies`-mapped criterion in this spec, because every criterion is
+        evaluated against the post-close state; the production row mint, the
+        `bundleMinted` extension and the close's two verbs are named in
+        `VerificationIntent` as the authority's close act and a task write
+        respectively.
+      </Constraint>
+      <Constraint>
+        Stop and re-spec rather than touching: the write lock
+        (`withEventWriteLock`, `EVENT_WRITE_LOCK*`) and the id-collision
+        renumber (`nextEventId`'s probe, `writeEventFile`'s allocation loop,
+        `setEventIdAllocationProbeForTests`) — this bundle changes the state
+        derivation and the `--fix` refuse path, and must not alter the lock,
+        the allocator, or the synthesized `opened`'s id; the synthesized
+        `opened`'s placement, file name and ceiling; `src/artifact/**`,
+        `src/gates/**`, `src/review/**` production, `src/grace-*.ts` other
+        than `src/grace-cursor.ts`, `scripts/` other than the named payer-map
+        fixture, the published skills and their mirrors, `examples/**`,
+        `README.md`, the `docs/plans/**` tree outside the seven record files
+        this bundle's close writes, `docs/plans/archive/`, tracked paths under
+        `.ngrace/changes/archive/` except this bundle's own later arrival,
+        `CHANGELOG.md`, any version surface, `package.json`, `bun.lock`,
+        `.ngrace-lint.json`, `.claude-plugin/**`,
+        `plugins/ngrace/.claude-plugin/**`, `openpackage.yml`,
+        `docs/schema-reference.md`, `test-metrics.json` (no new test file),
+        and the staged buffer `.ngrace/scratch/staged-findings.md` (read,
+        never written, and nothing in this bundle prunes it).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` unchanged; no user-visible surface. The change is engine
+        behaviour on an internal verb, no CLI token, flag or message format
+        changes, and no README measurement cell moves. Owner: unchanged; no
+        user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        `examples/` unchanged; no user-visible surface there and no polyglot
+        evidence rebalance. The nested `examples/polyglot` project lints under
+        `validate:examples`, not here. Owner: unchanged; no user-visible
+        surface.
+      </NonGoal>
+      <NonGoal>
+        Any new CLI verb, lint issue code, grammar section, record schema
+        change, version bump, or `docs/schema-reference.md` regeneration; and
+        any change to the published skills or their mirrors. The new surface
+        is the state projection and the `--fix` refuse path inside one
+        function set. Owner: unchanged; no user-visible CLI token change.
+      </NonGoal>
+      <NonGoal>
+        Teaching the new derivation or the `--fix` refusal in any skill, or
+        editing the synthesized `opened`'s placement, file name or ceiling.
+        The engine becomes honest on its own; no skill sentence and no ledger
+        fixture moves. Owner: unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        Flushing the buffer, pruning `staged-findings.md`, or rendering any
+        other staged entry into the record; and running any `ngrace review`,
+        gate or cursor verb from this spec-authoring step. Owner: the close
+        (flush) and the authority (gates); this step writes only `spec.xml`.
+      </NonGoal>
+      <NonGoal>
+        Regenerating `test-metrics.json`; no test file is added, so its
+        internal sums stay consistent and `scripts/test-metrics.test.ts` stays
+        green without a regeneration that would run the whole suite. Owner:
+        unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        Rewriting any archived bundle's ledger, including the synthesized
+        covering `opened` on every bundle closed before this change. Shape (B)
+        changes future readings only; `docs/plans/archive/` and
+        `.ngrace/changes/archive/` are untouched. Owner: unchanged; history is
+        not rewritten (`D41`).
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-END-STATE-READS-COMPLETE>
+        After the mandated end-state sequence — seed, open, progress,
+        terminal, fold, `--assertions final --run-commands` (a loose
+        `command-run`), terminal, fold — `run/` is empty and `cursor show`
+        reads `complete`, and the `run.xml` the fold writes records
+        `complete`. The synthesized covering `opened` keeps its id, file name
+        and `max(requirement, openedId + 98)` ceiling. Red direction, on the
+        base commit: the same sequence's ledger ends `terminal, opened` and
+        `cursor show` exits 0 printing `State: in-progress`; the discriminating
+        pair is the same bundle before the second fold (`State: complete`,
+        after the loose terminal) and after it (`State: in-progress`) with
+        `run/` empty. Green direction: `cursor show` prints `State: complete`
+        and the fold's `run.xml` carries `complete`. A live current range with
+        no closer still reads `in-progress`; a current range that contains a
+        closer reads that closer's state, which is the same test the fold
+        applies. Instrument: `bun test --timeout=0 src/grace-cursor.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </CloseEvidence>
+      </AC-END-STATE-READS-COMPLETE>
+      <AC-FIX-REFUSES-LOST-EVENT>
+        With the covering allocation `missing` and a hole inside the loose
+        range, `cursor recover --fix` does not claim a repair: it prints
+        `Fix applied: no`, names the first absent id as
+        `range hole at &lt;id&gt;`, leaves the loose `run/` set byte-unchanged,
+        and `cursor fold` still exits 1. Red direction, on the base commit: a
+        stream of loose ids `27, 29, 30` with the covering removed prints
+        `Fix applied: yes` and `Fold: blocked (range hole at 28 for w0)`,
+        writes a stray `opened`, and the fold exits 1. Green direction: the
+        refusal writes nothing and the hole is named. The F308 controls stay
+        green: a present covering with a leading hole re-homes and folds; a
+        present covering with a mid-range hole declines with `Fix applied: no`
+        and byte-unchanged; a dense loose range with a missing covering writes
+        the covering `opened` and folds. Instrument: `bun test --timeout=0
+        src/grace-cursor.test.ts`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </CloseEvidence>
+      </AC-FIX-REFUSES-LOST-EVENT>
+      <AC-NO-SRC-OTHER>
+        No file under `src/` or `scripts/` changes relative to this spec's
+        base commit except the files the Goals force, named here and in the
+        command's excludes: `src/grace-cursor.ts` (the range-aware state
+        projection and the `recoverCursor` missing-covering density check),
+        `src/grace-cursor.test.ts` (the three guards), and
+        `scripts/validate-record-retirement.test.ts` (the `bundleMinted`
+        extension, the payment fixture the close's `Pays F309 F310` requires).
+        Prose and command name the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code efae7553e46be6bd8454bf070e43ee458b02c6ab -- src/ scripts/ ':(exclude)src/grace-cursor.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)scripts/validate-record-retirement.test.ts'</Command>
+        </CloseEvidence>
+      </AC-NO-SRC-OTHER>
+      <AC-RECORD-SIBLINGS-UNMOVED>
+        The files under the record directory the close provably does not
+        change are byte-identical to this spec's base commit:
+        `docs/plans/active/RM-GOVERNED-PATH/decisions.md` (the stub),
+        `record-inventory.json`, `plan.md`, `review.md`,
+        `brownfield-findings.md`, `brownfield-run4-findings.md`,
+        `p0-calibration-derivation.md`, `p0-cursor-derivation.md`,
+        `p0-derivation.md`, `p0-report-honesty-derivation.md`, and the
+        `sources/` subtree. The seven record files the close writes —
+        `findings.xml`, `findings-retired.xml`, `rulings.xml`,
+        `rulings-retired.xml`, `registry.xml`, `registry-retired.xml`,
+        `decisions.xml` — are deliberately absent from this criterion and are
+        covered by the close's own verdict. The window is this bundle's own
+        diff, over tracked paths only.
+        <CloseEvidence>
+          <Command>git diff --exit-code efae7553e46be6bd8454bf070e43ee458b02c6ab -- docs/plans/active/RM-GOVERNED-PATH/decisions.md docs/plans/active/RM-GOVERNED-PATH/record-inventory.json docs/plans/active/RM-GOVERNED-PATH/plan.md docs/plans/active/RM-GOVERNED-PATH/review.md docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md docs/plans/active/RM-GOVERNED-PATH/brownfield-run4-findings.md docs/plans/active/RM-GOVERNED-PATH/p0-calibration-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-cursor-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-derivation.md docs/plans/active/RM-GOVERNED-PATH/p0-report-honesty-derivation.md docs/plans/active/RM-GOVERNED-PATH/sources/</Command>
+        </CloseEvidence>
+      </AC-RECORD-SIBLINGS-UNMOVED>
+      <AC-NO-ARCHIVE-EDIT>
+        Tracked paths under `docs/plans/archive/` and
+        `.ngrace/changes/archive/` are not modified; this bundle's own later
+        arrival under
+        `.ngrace/changes/archive/C-CURSOR-STATE-HONESTY-1-53C5EC0B/` is not a
+        modification — the close itself renames this bundle's directory into
+        the archive, and the pathspec excludes that arrival so the close's own
+        rename cannot redden the criterion. This bundle supersedes nothing, so
+        no predecessor's arrival is added and the exclusion is no wider than
+        this bundle's own directory. The prose claims tracked paths only.
+        Probed in the post-close state.
+        <CloseEvidence>
+          <Command>git diff --exit-code efae7553e46be6bd8454bf070e43ee458b02c6ab -- docs/plans/archive/ .ngrace/changes/archive/ ':(exclude).ngrace/changes/archive/C-CURSOR-STATE-HONESTY-1-53C5EC0B'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-SURFACES-UNMOVED>
+        Every surface this bundle does not write is byte-identical to this
+        spec's base commit: `examples/`, `CLAUDE.md`, `CONTRIBUTING.md`,
+        `docs/plans/README.md`, `docs/schema-reference.md`, `package.json`,
+        `bun.lock`, `CHANGELOG.md`, `.ngrace-lint.json`, `openpackage.yml`,
+        `test-metrics.json`, `.claude-plugin/`,
+        `plugins/ngrace/.claude-plugin/`, `skills/ngrace/`,
+        `plugins/ngrace/skills/ngrace/`, and `README.md`. No skill text moves,
+        so no footprint pin or `README.md` cell moves. Prose and command name
+        the same pathset.
+        <CloseEvidence>
+          <Command>git diff --exit-code efae7553e46be6bd8454bf070e43ee458b02c6ab -- examples/ CLAUDE.md CONTRIBUTING.md docs/plans/README.md docs/schema-reference.md package.json bun.lock CHANGELOG.md .ngrace-lint.json openpackage.yml test-metrics.json .claude-plugin/ plugins/ngrace/.claude-plugin/ skills/ngrace/ plugins/ngrace/skills/ngrace/ README.md</Command>
+        </CloseEvidence>
+      </AC-SURFACES-UNMOVED>
+      <AC-CLOSE-LINT>
+        Post-archive lint 0/0. This is the only place current-mode lint of
+        this root appears.
+        <CloseEvidence>
+          <Command>bun ./src/grace.ts lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CURSOR />
+      `M-CURSOR` owns `src/grace-cursor.ts`, the module-ownable file this
+      bundle rewrites; the two test files it also writes
+      (`src/grace-cursor.test.ts` and
+      `scripts/validate-record-retirement.test.ts`) are not module-ownable
+      (`isModuleOwnableWritePath` is false for every `*.test.ts` under `src/`
+      and for `scripts/`), so they link to no module. `M-CURSOR` is the module
+      enumeration; the write-scope Constraint names no other. Do not mint a
+      synthetic module.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 src/grace-cursor.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/validate-record-retirement.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun ./scripts/validate-record-retirement.ts</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun ./src/grace.ts lint --path .</ExpectedCommand>
+      <ExpectedEvidence>
+        Integration (T1): the mandated end-state fold reads `complete` in
+        `cursor show` and in the written `run.xml`; `recover --fix` declines a
+        missing covering over a lost event and keeps the F308 controls green;
+        `AC-FORCED-COLLISION`, `AC-UNIQUE-CONCURRENT` and
+        `AC-NO-SILENT-OVERWRITE` stay green; every `CloseEvidence` command and
+        the full `validate:ci` run green inside a faithful copy of the
+        post-close state — a copy carrying untracked files, a stand-in plan at
+        `applied` beside the archived spec, the bundle archived, and the
+        close's `--flush` and `--retire` run — with both directions driven on
+        a throwaway copy and every exit code read directly. **The authority's
+        close acts, named here and deliberately not written as criteria:** the
+        `--flush --change C-CURSOR-STATE-HONESTY-1-53C5EC0B --finding F309
+        --finding F310 --pays "F309 F310" --mint-search "0 active, 0 archive"`
+        that lands the two findings and mints the row, and the `--retire`
+        whose move reports `F309`, `F310` and the row; and the plan's
+        `bundleMinted[F309]` and `bundleMinted[F310]` extension, a task write
+        that keeps the post-close payer walk green. **Expected evidence this
+        bundle cannot close-bound:** none — every subject here has a
+        deterministic on-platform instrument. The reds are ledger-recorded
+        fail/pass pairs, not claims.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      `F310`: after the mandated end state, `cursor show` reads
+      `in-progress` on a fully folded, archivable stream. Measured
+      identically on `C-EPOCH-OPEN-DEFAULT-1-CE010A4C` and the archived
+      `C-EVENT-LOCK-ATOMIC-1-9711E83D`, and re-measured by the authority on a
+      throwaway copy at the base commit: after `--assertions final
+      --run-commands` a loose `command-run` sits with no allocation, the
+      terminal is emitted, and `cursor fold` folds it; the fold's
+      `maybeAutoOpenCoveringAllocation` (`src/grace-cursor.ts:804`, invoked at
+      `:1209`) writes the synthesized covering `opened` at `nextEventId`
+      above the terminal (`writeCoveringOpened`, `:778`–`:790`), `run/` is
+      empty, and `gate archive` permits — but `ngrace cursor show` prints
+      `State: in-progress`. The ledger's last four events are
+      `terminal, command-run, terminal, opened`; the fold's own termination
+      test (a closer anywhere in the range, `:2874`–`:2876`) and `show`'s
+      last-event derivation (`deriveStateFromEvents`, `:465`; used by
+      `derivePosition` at `:1537` and the fold's shared projection
+      `positionProjectionFromBundle` at `:526`) disagree. `F309`: with the
+      covering allocation `missing` and a hole inside the loose range,
+      `cursor recover --fix` writes a covering `opened`, prints `Fix applied:
+      yes`, and on the same diagnosis prints `Fold: blocked (range hole at
+      &lt;id&gt;)`; the fold then refuses. Measured by the authority at the
+      base commit on a copy: an epoch of five loose events with the `opened`
+      and one middle `progress` removed — `recover` reports
+      `Valid covering allocation: missing`, `Fold: blocked (missing valid
+      covering allocation)`; `recover --fix` writes
+      `31-T-001-opened.xml`, prints `Fix applied: yes` and, on the same
+      diagnosis, `Fold: blocked (range hole at 28 for w0)`; `cursor fold`
+      then exits 1. The verb's "yes" answers "did I write a covering
+      allocation", not "can the stream fold now", and the reader takes it as
+      the second. The two defects share a root: the engine reports its own
+      bookkeeping rather than the range's honest state.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        **Authoring commit
+        `efae7553e46be6bd8454bf070e43ee458b02c6ab`, branch
+        `c-cursor-state-honesty`, from `main`, 2026-09-19.** Re-measured at
+        authoring: `bun run ngrace lint --path .` 0 errors / 0 warnings over
+        510 XML artifacts with this bundle's spec present (509 before it);
+        `bun ./scripts/validate-record-retirement.ts` exit 0; archive 132
+        directories; `.ngrace/changes/active` held only `.gitkeep` before this
+        bundle; `grep -n 'LINKS:' src/grace-cursor.ts` → `M-CURSOR`. The base
+        commit is the full hash above for every byte-invariance criterion.
+        Every count expires; the implementation re-measures and pins nothing
+        (`D30`).
+      </Assumption>
+      <Assumption>
+        **The derivation, the auto-open and the `--fix` skip, measured at the
+        base commit.** `deriveStateFromEvents` at `src/grace-cursor.ts:465`;
+        its call sites at `:526` (`positionProjectionFromBundle`), `:1422` and
+        `:1537` (`derivePosition`); `writeCoveringOpened` at `:778` with
+        `const openedId = nextEventId(bundlePath);` at `:782`;
+        `maybeAutoOpenCoveringAllocation` at `:804` and its fold call at
+        `:1209`; the `--fix` skip at `:704`; `validateEventsAgainstAllocations`
+        at `:2836` with `range hole at` at `:2866` and `unterminated range` at
+        `:2876`; `nextEventId` at `:3494`; `writeEventFile` at `:3407`. All
+        inside the file this bundle rewrites.
+      </Assumption>
+      <Assumption>
+        **The guard directions, driven on throwaway copies 2026-09-19 at the
+        base commit.** Guard (i), the discriminating pair: open `--from 1
+        --to 20`, progress, terminal, fold (`Fold applied`, `Epoch: 1`,
+        `Events: 3`), `--assertions final --run-commands` (exit 0, one
+        `command-run`), terminal (`show` → `State: complete`), fold
+        (`Fold applied`, `Epoch: 2`, `Events: 3`), `show` → `State:
+        in-progress` with `run/` empty and ledger tail `5:terminal
+        6:opened`. Guard (ii): loose ids `27, 29, 30` with the covering
+        removed — `recover` → `Fix applied: no`, `Valid covering allocation:
+        missing`, `Fold: blocked (missing valid covering allocation)`;
+        `recover --fix` → exit 0, `Fix applied: yes`, `Fold: blocked (range
+        hole at 28 for w0)`, a stray `31-T-001-opened.xml`; `fold` → exit 1,
+        `range hole at 28 for w0`. Guard (iii) controls: leading hole
+        (present covering `w0:1-20`, loose ids `12, 13, 14` with terminal 14)
+        — `recover --fix` → `Fix applied: yes`, `Fold: ok`, `fold` → `Fold
+        applied`, `Epoch: 1`, `Events: 4`; present mid-range hole (covering
+        `w0:1-10`, loose ids `1, 2, 4`) — `recover --fix` → `Fix applied:
+        no`, stream unchanged, `fold` → `range hole at 3 for w0`, exit 1;
+        dense missing covering (loose ids `1, 2, 3` with terminal 3, no
+        allocation) — `recover --fix` → `Fix applied: yes`, `w0:1-102`,
+        `fold` → `Fold applied`, `Events: 4`. Shape (B) risk probe: open
+        `--from 1 --to 20`, progress, terminal, progress — `show` → `State:
+        in-progress` today, `fold` → `Fold applied`, `Events: 4`; under (B)
+        the same stream reads `complete`, the state `fold` already decides.
+        Bounded re-open: fold epoch 1 (`opened`/`terminal`), then `--open-epoch
+        --from 1 --to 99` — `show` → `State: in-progress`; (B) must preserve
+        this by current-range scoping.
+      </Assumption>
+      <Assumption>
+        **The pin census, measured at the base commit.** The synthesized
+        `opened`'s id and ceiling are pinned by
+        `src/grace-cursor.test.ts:2734` (`to &gt;= openedId + 98`), `:2822`
+        (`to="102"`), `:2891` (`max(20, newOpened.id + 98)`), `:4342`
+        (`allocation.to === opened.id + 98`); `AC-FORCED-COLLISION` at `:4106`
+        pins the allocator's renumber; `AC-UNIQUE-CONCURRENT` and
+        `AC-NO-SILENT-OVERWRITE` pass explicit bounds. A scan of the three
+        test files that call `foldEpoch` (`src/grace-cursor.test.ts`,
+        `src/calibration/report.test.ts`, `src/gates/core.test.ts`) for a
+        `terminal` followed within the same block by a `progress`/`attempt`/
+        `resume` finds no test that asserts the resulting state, so (B)'s only
+        measured state change has no shipped pin. The four ceiling pins stay
+        green because the synthesized `opened`'s id, file name and ceiling are
+        unchanged. The `--fix` refuse path is pinned by
+        `AC-RECOVER-FIX-REHOMES-LEADING-HOLE` (`:4353`–`:4389`), which drives
+        the present-leading and present-mid cases and is unaffected.
+      </Assumption>
+      <Assumption>
+        **The close's write set, read from the verb at the base commit.**
+        `--flush` writes `findings.xml`, `rulings.xml`, `decisions.xml`,
+        `registry.xml` (`flushRecord`, unconditional `writeRecordXml` over the
+        four next-documents). `--retire` writes all seven record files
+        unconditionally, including `rulings-retired.xml` with zero moved
+        decisions. `ngrace apply` renames the bundle directory into
+        `.ngrace/changes/archive/`. The seven files, the `bundleMinted`
+        extension and the archive arrival are named in the write-scope
+        Constraint, and `AC-NO-SRC-OTHER` excludes the fixture with its
+        reason.
+      </Assumption>
+      <Assumption>
+        **Mint search, measured at mint.** Zero prior bundles share the slug
+        `CURSOR-STATE-HONESTY` in either the active directory or the archive:
+        `mint-search: 0 active, 0 archive prior bundle(s) share slug
+        CURSOR-STATE-HONESTY`. The mint is
+        `C-CURSOR-STATE-HONESTY-1-53C5EC0B` from
+        `ngrace spec new CURSOR-STATE-HONESTY --timestamp 2026-09-19T03:35:54Z`
+        (the clock read with `date -u +%Y-%m-%dT%H:%M:%SZ`). The close's flush
+        carries `--mint-search "0 active, 0 archive"`.
+      </Assumption>
+      <Assumption>
+        **The buffer, measured 2026-09-19.** The staged buffer holds eleven
+        entries — `F280 F284 F287 F292 F294 F295 F297 F299 F309 F310 F312`.
+        The two this bundle pays — `F309` and `F310` — are both present and
+        both name this increment as their owner. The buffer is read, never
+        written, and is not pruned by this bundle.
+      </Assumption>
+      <Assumption>
+        **F43 escape, applied.** Every artifact this bundle writes names an
+        angle-bracketed token as character data with entities; the plan's
+        tests assert emitted bytes, never artifact prose.
+      </Assumption>
+    </Assumptions>
+  </C-CURSOR-STATE-HONESTY-1-53C5EC0B>
+</NgraceChangeSpec>

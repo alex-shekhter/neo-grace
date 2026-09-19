@@ -464,4 +464,10 @@
     <Pays>F306 F311</Pays>
     <StatusText>Two findings paid: the supersede and close paths are taught as measured, and the instrument no longer pins a false precondition.</StatusText>
   </Row>
+  <Row name="C-CURSOR-STATE-HONESTY-1-53C5EC0B" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug CURSOR-STATE-HONESTY. Author half: the cursor's state projection reads the current range's closer so a folded stream reads complete, and recover --fix declines to fabricate a covering over a lost event.</Charter>
+    <Pays>F309 F310</Pays>
+    <StatusText>Two findings paid: a folded stream reads what it is, and a repair verb no longer says yes beside a fold it left blocked.</StatusText>
+  </Row>
 </Registry>

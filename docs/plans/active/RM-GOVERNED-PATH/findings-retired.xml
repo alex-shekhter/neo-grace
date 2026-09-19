@@ -5443,4 +5443,24 @@ Owner: a teaching increment on `ngrace-spec`, `ngrace-plan` and `ngrace-execute`
 Owner: the next teaching increment, with `F306`. Stays staged.
 </Body>
   </Finding>
+  <Finding id="f309" token="F309" status="retired">
+    <PaidBy>C-CURSOR-STATE-HONESTY-1-53C5EC0B</PaidBy>
+    <Title>### F309 — `cursor recover --fix` reports `Fix applied: yes` after writing a covering allocation over a stream whose covering was `missing`, while the fold stays blocked on a mid-range hole the fix cannot close. **[verified]**</Title>
+    <Body>
+**Reported by the executor 2026-09-18 while authoring `C-EPOCH-OPEN-DEFAULT-1-CE010A4C`'s spec**, probed on a throwaway copy: an `opened` allocation `w0:1-10` with loose ids `1, 2, 4` and the covering allocation diagnosed `missing`; `ngrace cursor recover --fix` wrote a covering `opened` and printed `Fix applied: yes`, and the very next diagnosis printed `Fold: blocked (range hole at 3 for w0)`. The verb's &quot;yes&quot; answers &quot;did I write a covering allocation&quot;, not &quot;can the stream fold now&quot; — the reader of the line takes it as the second. Distinct from [F308](docs/plans/active/RM-GOVERNED-PATH/decisions.md): a mid-range hole is a lost event, which no verb may fabricate, so the honest line is `Fix applied: no` with the hole named, or `Fix applied: partial` — never a bare `yes` beside a blocked fold. **Re-measured by the authority 2026-09-19 at `efae755`** on a copy: an epoch of five loose events (`26 opened`, `27–29 progress`, `30 terminal`) with the `opened` and one middle `progress` removed — `recover` reports `Valid covering allocation: missing`, `Fold: blocked (missing valid covering allocation)`; `recover --fix` writes `31-T-005-opened.xml`, prints `Fix applied: yes` and, on the same diagnosis, `Fold: blocked (range hole at 28 for w0)`; `cursor fold` then exits 1 `range hole at 28 for w0`. The &quot;yes&quot; is true of the write and false of the repair.
+
+Owner: the cursor-recovery surface, after `C-EPOCH-OPEN-DEFAULT` lands. Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f310" token="F310" status="retired">
+    <PaidBy>C-CURSOR-STATE-HONESTY-1-53C5EC0B</PaidBy>
+    <Title>### F310 — after the end-state fold, `cursor show` reports `State: in-progress` on a fully folded, archivable stream: the fold's auto-open writes its covering `opened` at an id above the terminal it covers, and the last-event state derivation reads the `opened`. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 at `36a98ab`** on `C-EPOCH-OPEN-DEFAULT-1-CE010A4C` and, identically, on the archived `C-EVENT-LOCK-ATOMIC-1-9711E83D`. After `--assertions final --run-commands`, `run/` held one `command-run` event (id 14) with no allocation; the mandated terminal (id 15) and `cursor fold` folded it, and the fold's `maybeAutoOpenCoveringAllocation` wrote the synthesized covering `opened` as id **16** — above the terminal. `run/` is empty and `gate archive` permits (`no-open-epoch` checks loose events), so nothing blocks; but `ngrace cursor show` prints `State: in-progress, Epoch: 4, Task: T-003`, and every report contract that asks for &quot;cursor state&quot; makes the executor explain a discrepancy the engine created. The ledger's last four events: `13 terminal`, `14 command-run`, `15 terminal`, `16 opened`. The fold's own termination test (a closer anywhere in the range) and `show`'s derivation (the last event) disagree.
+
+**Remedy.** The synthesized covering `opened` is allocated at the *first* loose id it covers, or `show` derives state from the range's closer rather than the last event; either makes a folded stream read `complete`.
+
+Owner: a cursor-state bundle beside `F309`'s. Stays staged.
+</Body>
+  </Finding>
 </Findings>

@@ -506,6 +506,79 @@ export function deriveStateFromEvents(
   return lastNonSticky ?? { state: "idle" };
 }
 
+/** Range-closing kinds that close the current open range (A29.2; used by fold). */
+function isRangeClosingEventKind(kind: string): boolean {
+  return (RANGE_CLOSING_KINDS as readonly string[]).includes(kind);
+}
+
+/**
+ * The current open range: loose `run/` events when any exist, else the last
+ * folded ledger epoch's events. Escalation/circuit stay whole-stream (see
+ * derivePositionState); only the base state is scoped here (F310).
+ */
+function currentRangeEvents(bundlePath: string): LooseEvent[] {
+  const loose = listLooseEvents(bundlePath);
+  if (loose.length > 0) return loose;
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (!existsSync(ledgerPath)) return [];
+  const artifact = readGraceXmlArtifact(ledgerPath);
+  if (!artifact.root) return [];
+  for (const wrapper of artifact.root.children) {
+    const epochs = wrapper.children.filter((child) => EPOCH_SECTION_PATTERN.test(child.tag));
+    const last = epochs[epochs.length - 1];
+    if (!last) continue;
+    const events: LooseEvent[] = [];
+    for (const child of last.children) {
+      if (child.tag !== "Event") continue;
+      const id = Number(child.attributes.id);
+      const task = (child.attributes.task ?? "").trim();
+      const kind = (child.attributes.kind ?? "").trim();
+      if (!Number.isInteger(id) || !task || !kind) continue;
+      events.push({
+        id,
+        task,
+        kind,
+        file: ledgerPath,
+        attributes: { ...child.attributes },
+        children: child.children.map(cloneXmlNode),
+      });
+    }
+    if (events.length > 0) return events.sort((a, b) => a.id - b.id);
+  }
+  return [];
+}
+
+/** Last range-closer state in the current range, or undefined when it has none (F310). */
+function currentRangeCloserState(bundlePath: string): CursorState | undefined {
+  const ordered = [...currentRangeEvents(bundlePath)].sort((a, b) => a.id - b.id);
+  for (let index = ordered.length - 1; index >= 0; index -= 1) {
+    const event = ordered[index]!;
+    if (!isRangeClosingEventKind(event.kind)) continue;
+    const mapped = cursorStateForEventKind(event.kind);
+    if ("state" in mapped) return mapped.state;
+  }
+  return undefined;
+}
+
+/**
+ * Shared range-aware state projection (F310). Escalation and circuit precedence
+ * come from the whole accounting stream; the base state is the current range's
+ * closer when it has one, else the last-event-wins result. `show` on a folded
+ * stream therefore reads `complete` even though the fold's synthesized covering
+ * `opened` is allocated above the terminal it covers.
+ */
+function derivePositionState(
+  bundlePath: string,
+): { state: CursorState } | { unknown: true; degradation: AbsenceValue } {
+  const mapped = deriveStateFromEvents(listAccountingEvents(bundlePath));
+  if (!("state" in mapped)) return mapped;
+  if (mapped.state === "paused-pending-approval" || mapped.state === "paused-pending-supersede") {
+    return mapped;
+  }
+  const closer = currentRangeCloserState(bundlePath);
+  return { state: closer ?? mapped.state };
+}
+
 /**
  * Shared projection for every write/read path (A22.3 / A23.1).
  * When escalatedTasks is non-empty, task is drawn from that set so the pair does not lie.
@@ -523,7 +596,7 @@ function positionProjectionFromBundle(
   const stream = listAccountingEvents(bundlePath);
   const circuitTrippedTasks = listUnresolvedCircuitTrippedTasks(stream);
   const escalatedTasks = listUnresolvedEscalatedTasks(stream);
-  const mapped = deriveStateFromEvents(stream);
+  const mapped = derivePositionState(bundlePath);
   const fallback = options.preferredTask ?? options.lastEventTask;
   const stuck = circuitTrippedTasks.length > 0 ? circuitTrippedTasks : escalatedTasks;
   const task =
@@ -614,6 +687,19 @@ function hasLeadingHole(diagnosis: RecoverDiagnosis): boolean {
     && holeId < diagnosis.looseEventRange.from;
 }
 
+/** First id in the loose `[from, to]` range absent from the loose set, or undefined (F309). */
+function firstLooseRangeHoleId(
+  range: { from: number; to: number } | null,
+  ids: readonly number[],
+): number | undefined {
+  if (!range) return undefined;
+  const set = new Set(ids);
+  for (let id = range.from; id <= range.to; id += 1) {
+    if (!set.has(id)) return id;
+  }
+  return undefined;
+}
+
 /**
  * Diagnose (default) or repair (fix) a change's open epoch inventory.
  *
@@ -649,6 +735,7 @@ export function recoverCursor(
         ? "present"
         : "missing";
     const reasons: string[] = [];
+    const workers = collectDistinctWorkers(bundlePath, events);
     if (events.length === 0) {
       reasons.push(
         orphans.length > 0
@@ -657,6 +744,10 @@ export function recoverCursor(
       );
     } else if (validAllocations.length === 0) {
       reasons.push("missing valid covering allocation");
+      const hole = firstLooseRangeHoleId(looseEventRange, looseEventIds);
+      if (hole !== undefined) {
+        reasons.push(`range hole at ${hole} for ${workers[0] ?? "w0"}`);
+      }
     } else {
       reasons.push(...validateEventsAgainstAllocations(events, validAllocations));
     }
@@ -669,7 +760,7 @@ export function recoverCursor(
       coveringAllocation,
       foldBlocked: reasons.length > 0,
       foldBlockReasons: reasons,
-      workers: collectDistinctWorkers(bundlePath, events),
+      workers,
       fixApplied,
       coveringOpenedFile,
     };
@@ -702,6 +793,12 @@ export function recoverCursor(
   // loose range is a genuinely lost event; no verb may fabricate it, so --fix
   // declines and leaves the stream unchanged.
   if (pre.coveringAllocation === "present" && !hasLeadingHole(pre)) {
+    return { ...pre, fixApplied: false };
+  }
+  // A missing covering whose loose range has a hole inside it is a lost event:
+  // no verb may fabricate it (D41), so --fix declines rather than writing a
+  // covering opened over it and reporting a repair it did not make (F309).
+  if (pre.coveringAllocation === "missing" && firstRangeHoleId(pre.foldBlockReasons) !== undefined) {
     return { ...pre, fixApplied: false };
   }
 
@@ -1419,7 +1516,7 @@ export function derivePosition(
         const stream = listAccountingEvents(bundlePath);
         const escalatedTasks = listUnresolvedEscalatedTasks(stream);
         const circuitTrippedTasks = listUnresolvedCircuitTrippedTasks(stream);
-        const mapped = deriveStateFromEvents(stream);
+        const mapped = derivePositionState(bundlePath);
         const streamState = "state" in mapped ? mapped.state : undefined;
         const streamStateSource: PositionSource =
           stream.length > 0 ? (events.length > 0 ? "events" : "ledger") : "ledger";
@@ -1534,7 +1631,7 @@ export function derivePosition(
     let state: CursorState | undefined = "idle";
     let kindDegradation: AbsenceValue | undefined;
     if (stream.length > 0) {
-      const mapped = deriveStateFromEvents(stream);
+      const mapped = derivePositionState(bundlePath);
       if ("state" in mapped) {
         state = mapped.state;
       } else {
