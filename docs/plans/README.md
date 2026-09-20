@@ -12,6 +12,7 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 | `RM-VERIFIED-APPROVAL` | Verified approval: making ratification something the agent cannot assert | `draft` | — | — | _not written_ — see [review.md](./active/RM-VERIFIED-APPROVAL/review.md) |
 | `RM-DESIGN-EVIDENCE` | Design evidence an agent can actually use: visual references, recordings, and the behaviour text that carries them | `draft` | — | — | _not written_ — see [review.md](./active/RM-DESIGN-EVIDENCE/review.md) |
 | `RM-PILOT-APPROVAL` | Pilot approval: a ratified artifact that may be amended a bounded number of times | `draft` | — | — | _not written_ — see [review.md](./active/RM-PILOT-APPROVAL/review.md) |
+| `RM-COMMITTED-STAGE-BOUNDARIES` | Committed stage boundaries: make each approved or implemented stage the next stage's baseline | `draft` | — | — | _not written_ — see [review.md](./active/RM-COMMITTED-STAGE-BOUNDARIES/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
@@ -51,6 +52,23 @@ and implementation bundles. See the archive row for links.
 Recorded, not scheduled. Each has an explanatory `review.md` and **no `plan.md`** — per rule 6 that
 means exploration, not a commitment. They are independent of each other and of one another's
 sequencing; nothing here is blocked by anything else on this page.
+
+### `RM-COMMITTED-STAGE-BOUNDARIES` — recorded 2026-09-20
+
+An approved spec was left outside git while plan work advanced, so the repository did not carry the
+approved contract as a stable baseline. The governing rule is now explicit: **commit every approved
+or implemented stage before beginning the next stage.** The boundary covers approved specs,
+approved plans, completed implementation tasks or waves, and the completed apply/archive transition.
+Each commit contains only the stage being closed; draft or next-stage work does not enter it.
+
+The current skills teach one copy-specific instance — commit an approved plan before opening a
+prototype epoch — but do not state the production lifecycle rule across spec, plan, execute, and
+close. The queued work will update the canonical skills and packaged mirrors together and decide how
+the CLI refuses a dirty prior-stage boundary without making the CLI create commits. Gitless operation
+must retain an explicit typed-absence path rather than pretending the boundary was verified.
+
+**Not scheduled.** The policy is decided; the implementation shape and enforcement belong to a
+separate governed bundle after the active supersede-membership bundle closes.
 
 ### `RM-VERIFIED-APPROVAL` — recorded 2026-08-14
 
