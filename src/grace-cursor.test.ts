@@ -4669,6 +4669,39 @@ describe("candidate lock primitive", () => {
     const paths = evidence.available ? evidence.files.map((file) => file.path) : [];
     expect(paths.some((file) => file.includes(".candidate-C-LOCK-EVIDENCE.lock"))).toBe(false);
   });
+
+  it("AC-EVIDENCE-FILTER-CANONICAL-ONLY: the exact canonical lock is filtered and every near miss stays visible", () => {
+    const root = createProject();
+    for (const dir of [
+      path.join(root, ARTIFACT_DIR, "changes", "active"),
+      path.join(root, ARTIFACT_DIR, "changes", "active", "sub"),
+      path.join(root, ARTIFACT_DIR, "changes", "archive"),
+      path.join(root, "src"),
+      path.join(root, "other"),
+    ]) {
+      mkdirSync(dir, { recursive: true });
+    }
+    writeFileSync(path.join(root, "seed.txt"), "seed\n");
+    initGitBaseline(root);
+    const canonical = ".ngrace/changes/active/.candidate-C-LOCK-EVIDENCE.lock";
+    const nearMisses = [
+      ".ngrace/changes/archive/.candidate-C-LOCK-EVIDENCE.lock",
+      ".ngrace/changes/active/sub/.candidate-C-LOCK-EVIDENCE.lock",
+      "src/.candidate-C-LOCK-EVIDENCE.lock",
+      "other/.candidate-C-LOCK-EVIDENCE.lock",
+      ".ngrace/changes/active/.candidate-not-a-change.lock",
+    ];
+    for (const relative of [canonical, ...nearMisses]) {
+      writeFileSync(path.join(root, relative), `1\n${Date.now()}\ntok\n`, { flag: "wx" });
+    }
+    const evidence = graceCursorModule.snapshotWriteEvidence(root);
+    expect(evidence.available).toBe(true);
+    const paths = evidence.available ? evidence.files.map((file) => file.path) : [];
+    expect(paths).not.toContain(canonical);
+    for (const nearMiss of nearMisses) {
+      expect(paths, nearMiss).toContain(nearMiss);
+    }
+  });
 });
 
 // C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8 T-002: candidate-lock cooperation.
