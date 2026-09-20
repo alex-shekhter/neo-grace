@@ -51,6 +51,26 @@ function runCursorAdvanceCli(args: string[]) {
   });
 }
 
+/**
+ * Deterministic, byte-complete recursive path/type/SHA-256 snapshot of a directory
+ * tree; "" when absent. Shared by every validate-before-fold refusal row so the
+ * invariance claim covers `spec.xml`, `plan.xml`, `run/`, and `run-ledger.xml`.
+ */
+function recursiveSnapshot(dir: string): string {
+  if (!existsSync(dir)) return "";
+  const lines: string[] = [];
+  const walk = (abs: string, rel: string): void => {
+    const stat = statSync(abs);
+    if (stat.isDirectory()) {
+      for (const name of readdirSync(abs).sort()) walk(path.join(abs, name), rel ? `${rel}/${name}` : name);
+      return;
+    }
+    lines.push(`${rel}\tfile\t${createHash("sha256").update(readFileSync(abs)).digest("hex")}`);
+  };
+  walk(dir, "");
+  return lines.sort().join("\n");
+}
+
 describe("C-SUPERSEDE-COMMAND T-002", () => {
   it("pack-allowlist: PACK_ALLOWED_EXACT contains src/grace-supersede.ts", () => {
     const source = readFileSync(path.resolve(import.meta.dir, "../scripts/release-check.ts"), "utf8");
@@ -594,12 +614,8 @@ describe("supersede validate before fold", () => {
     return bundle;
   }
 
-  function invariantSnapshot(bundle: string): { run: string[]; ledger: string | undefined } {
-    const ledgerPath = path.join(bundle, "run-ledger.xml");
-    return {
-      run: readdirSync(path.join(bundle, "run")).sort(),
-      ledger: existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : undefined,
-    };
+  function invariantSnapshot(bundle: string): string {
+    return recursiveSnapshot(bundle);
   }
 
   it("(a) an existing implicit successor under active/ refuses before any discarded write", () => {
@@ -789,9 +805,8 @@ describe("supersede validate-before-fold rows", () => {
     advanceCursor(root, id, { task: "T-001", openEpoch: true, from: 1, to: 10 });
     return bundle;
   }
-  function snapshot(bundle: string): { run: string[]; ledger: string | undefined } {
-    const ledgerPath = path.join(bundle, "run-ledger.xml");
-    return { run: readdirSync(path.join(bundle, "run")).sort(), ledger: existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : undefined };
+  function snapshot(bundle: string): string {
+    return recursiveSnapshot(bundle);
   }
 
   it("(d) an archive-destination conflict refuses before any discarded write", () => {
@@ -938,21 +953,6 @@ describe("explicit replacement validation", () => {
     const bundle = path.join(activeDir(root), id);
     advanceCursor(root, id, { task: "T-001", openEpoch: true, from: 1, to: 10 });
     return bundle;
-  }
-  /** Recursive path/type/SHA-256 snapshot of a directory tree; "" when absent. */
-  function recursiveSnapshot(dir: string): string {
-    if (!existsSync(dir)) return "";
-    const lines: string[] = [];
-    const walk = (abs: string, rel: string): void => {
-      const stat = statSync(abs);
-      if (stat.isDirectory()) {
-        for (const name of readdirSync(abs).sort()) walk(path.join(abs, name), rel ? `${rel}/${name}` : name);
-        return;
-      }
-      lines.push(`${rel}\tfile\t${createHash("sha256").update(readFileSync(abs)).digest("hex")}`);
-    };
-    walk(dir, "");
-    return lines.sort().join("\n");
   }
   function snapshot(bundle: string): string {
     return recursiveSnapshot(bundle);

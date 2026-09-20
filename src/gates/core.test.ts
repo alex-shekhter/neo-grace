@@ -1751,6 +1751,22 @@ function writeCloseEvidenceSpec(specPath: string, command: string): void {
   writeFileSync(specPath, spec);
 }
 
+/** Deterministic, byte-complete recursive path/type/SHA-256 snapshot; "" when absent. */
+function recursiveBundleSnapshot(dir: string): string {
+  if (!existsSync(dir)) return "";
+  const lines: string[] = [];
+  const walk = (abs: string, rel: string): void => {
+    const stat = statSync(abs);
+    if (stat.isDirectory()) {
+      for (const name of readdirSync(abs).sort()) walk(path.join(abs, name), rel ? `${rel}/${name}` : name);
+      return;
+    }
+    lines.push(`${rel}\tfile\t${createHash("sha256").update(readFileSync(abs)).digest("hex")}`);
+  };
+  walk(dir, "");
+  return lines.sort().join("\n");
+}
+
 describe("CloseEvidence gate verdict evaluator", () => {
   it("evaluate-on-archive: applied archive records AC-* Exit 0 Result pass", () => {
     const root = tempProject();
@@ -2890,29 +2906,45 @@ describe("review verdict three-phase identity and location", () => {
     return { root, bundle, specPath: path.join(bundle, "spec.xml"), ledgerPath: path.join(bundle, "run-ledger.xml") };
   }
 
-  it("(c) a same-path directory replacement with byte-identical prerequisites (identity-only) refuses", () => {
-    const { root, bundle, specPath } = appliedArchive("C-3PH-IDENT");
+  it("(c) a same-path directory replacement with byte-identical prerequisites (identity-only) refuses and preserves the replacement with no ledger write", () => {
+    const { root, bundle, specPath, ledgerPath } = appliedArchive("C-3PH-IDENT");
     const tmp = `${bundle}.swap`;
     writeCloseEvidenceSpec(specPath, `mv ${bundle} ${tmp}; cp -a ${tmp} ${bundle}; rm -rf ${tmp}`);
+    const bytesBeforeCommand = recursiveBundleSnapshot(bundle);
+    const inoBefore = statSync(bundle).ino;
+    const ledgerBefore = existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : null;
     const result = runGateCli(
       ["verdict", "--change", "C-3PH-IDENT", "--outcome", "pass", "--path", root, ...ackFindingCliArgs(root, "C-3PH-IDENT")],
       root,
     );
     expect(result.status).not.toBe(0);
     expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toMatch(/identity|stale snapshot/i);
+    // The command's replacement is byte-identical but a distinct inode; it survives the refusal.
+    expect(recursiveBundleSnapshot(bundle)).toBe(bytesBeforeCommand);
+    const inoAfter = statSync(bundle).ino;
+    expect(inoAfter).not.toBe(inoBefore);
+    expect(statSync(bundle).ino).toBe(inoAfter);
+    // The gate added no ledger bytes after detecting the stale snapshot.
+    expect(existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : null).toBe(ledgerBefore);
   });
 
-  it("(d) an active/archive relocation (location-only) refuses", () => {
-    const { root, bundle, specPath } = appliedArchive("C-3PH-LOC");
+  it("(d) an active/archive relocation (location-only) refuses, leaves the archive path absent, and preserves the active arrival with no ledger write", () => {
+    const { root, bundle, specPath, ledgerPath } = appliedArchive("C-3PH-LOC");
     const active = path.join(root, ARTIFACT_DIR, "changes", "active", "C-3PH-LOC");
     mkdirSync(path.dirname(active), { recursive: true });
     writeCloseEvidenceSpec(specPath, `mv ${bundle} ${active}`);
+    const bytesBeforeCommand = recursiveBundleSnapshot(bundle);
+    const ledgerBefore = existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : null;
     const result = runGateCli(
       ["verdict", "--change", "C-3PH-LOC", "--outcome", "pass", "--path", root, ...ackFindingCliArgs(root, "C-3PH-LOC")],
       root,
     );
     expect(result.status).not.toBe(0);
     expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toMatch(/location|stale snapshot/i);
+    expect(existsSync(bundle), "the archive path stays absent").toBe(false);
+    expect(recursiveBundleSnapshot(active), "the active arrival is the command's preserved tree").toBe(bytesBeforeCommand);
+    const activeLedger = path.join(active, "run-ledger.xml");
+    expect(existsSync(activeLedger) ? readFileSync(activeLedger, "utf8") : null, "no gate-added ledger bytes").toBe(ledgerBefore);
   });
 });
 

@@ -6916,6 +6916,53 @@ describe("C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92 T-004 payer ratchet", () => {
   });
 });
 
+// C-SUPERSEDE-MEMBERSHIP-4-20941257 T-005: the payer-map ratchet for F314.
+// The archived successor row carrying `Pays F314` is the durable route. The
+// ignored staged buffer is not a payer source, so a staged owner-line edit alone
+// cannot derive or green F314. Absent and stale `bundleMinted` expectations red
+// the shipped walk; only the current successor pin is equal.
+describe("C-SUPERSEDE-MEMBERSHIP-4-20941257 T-005 payer ratchet", () => {
+  it("F314 derives only from the archived successor row; absent and stale pins red the walk and a staged-only edit cannot green it", () => {
+    const root = isolatedRoot();
+    mkdirSync(path.join(root, ".ngrace", "changes", "archive", "C-SUPERSEDE-MEMBERSHIP-4-20941257"), { recursive: true });
+    const row = { name: "C-SUPERSEDE-MEMBERSHIP-4-20941257", pays: "F314", statusText: "" };
+    const derived = derivePayerMap(root, [row]);
+    expect(derived.get("F314"), "the derivation mints F314 from the archived successor row").toBe("C-SUPERSEDE-MEMBERSHIP-4-20941257");
+
+    const baseline: Record<string, string> = JSON.parse(
+      readFileSync(path.join(import.meta.dir, "fixtures", "record-parse", "baseline-probes.json"), "utf8"),
+    ).payerMapBaseline.map;
+    expect(baseline["F314"], "the recorded clean baseline carries no F314 route").toBeUndefined();
+    const expectation = (minted: string | undefined): string | undefined => baseline["F314"] ?? minted;
+    expect(derived.get("F314") === expectation(undefined), "an absent entry reds the walk").toBe(false);
+    expect(
+      derived.get("F314") === expectation("C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8"),
+      "a stale predecessor id reds the walk",
+    ).toBe(false);
+    expect(
+      derived.get("F314") === expectation("C-SUPERSEDE-MEMBERSHIP-4-20941257"),
+      "only the current successor entry greens the walk",
+    ).toBe(true);
+    expect(bundleMinted["F314"], "the map names the successor").toBe("C-SUPERSEDE-MEMBERSHIP-4-20941257");
+    expect(derivePayerMap(root, [{ ...row, pays: "D41" }]).has("D41"), "a D token is not minted").toBe(false);
+
+    // A staged-buffer-only owner-line edit is not a durable payer source: without
+    // the archived row, F314 does not derive and cannot green the walk.
+    const stagedRoot = isolatedRoot();
+    plant(
+      stagedRoot,
+      ".ngrace/scratch/staged-findings.md",
+      "Owner: `C-SUPERSEDE-MEMBERSHIP-4-20941257` (draft spec), `src/grace-generate.ts`. Stays staged.\n",
+    );
+    const stagedOnly = derivePayerMap(stagedRoot, [row]);
+    expect(stagedOnly.has("F314"), "the staged buffer alone derives no F314 route").toBe(false);
+    expect(
+      stagedOnly.get("F314") === expectation("C-SUPERSEDE-MEMBERSHIP-4-20941257"),
+      "a staged-only edit cannot green F314",
+    ).toBe(false);
+  });
+});
+
 // C-INSPECTION-SURFACE-1-2628AA2B T-006: the payer-map ratchet for F270 and F291.
 // Once this bundle's row is an archive directory carrying `Pays F270 F291`,
 // `derivePayerMap` mints both and the production walk at :2226 expects

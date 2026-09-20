@@ -379,13 +379,18 @@ const SCOPE_GUARD_PREDECESSOR_FILES = new Set([
  * the archive destinations and the guard never observes the contracted active
  * deletions (correction 1). One definition, shared with the direct evidence test.
  */
-const SCOPE_GUARD_TRACKED_DIFF_ARGS = ["diff", "--name-only", "--no-renames", SCOPE_GUARD_BASE];
+const SCOPE_GUARD_TRACKED_DIFF_ARGS = scopeGuardTrackedDiffArgs(SCOPE_GUARD_BASE);
 const SCOPE_GUARD_PREDECESSOR_ID = "C-SUPERSEDE-MEMBERSHIP-3-66400CCC";
 
 const SCOPE_GUARD_ALLOWED_PREFIXES = [
   `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/`,
   `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/`,
 ];
+
+/** The tracked-diff argument list for a given base; rename detection stays disabled. */
+function scopeGuardTrackedDiffArgs(base: string): string[] {
+  return ["diff", "--name-only", "--no-renames", base];
+}
 
 function gitLines(root: string, args: string[]): string[] {
   const result = Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "pipe", stderr: "pipe" });
@@ -405,8 +410,8 @@ function gitEvidence(root: string, args: string[]): { available: boolean; lines:
 }
 
 /** Files changed against the recorded base outside the closed allowed set. Refuses when git evidence is unavailable. */
-function scopeGuardOffenders(root: string): string[] {
-  const tracked = gitEvidence(root, SCOPE_GUARD_TRACKED_DIFF_ARGS);
+function scopeGuardOffenders(root: string, base = SCOPE_GUARD_BASE): string[] {
+  const tracked = gitEvidence(root, scopeGuardTrackedDiffArgs(base));
   const untracked = gitEvidence(root, ["ls-files", "--others", "--exclude-standard"]);
   if (!tracked.available || !untracked.available) {
     throw new Error("scope guard: git evidence unavailable; refusing rather than reporting clean");
@@ -423,6 +428,22 @@ function scopeGuardOffenders(root: string): string[] {
   });
 }
 
+/**
+ * The guard's conditional entry. It is dormant — no evidence collected and no
+ * offenders — unless the requested switch is exactly the successor id. The live
+ * activated test and the dormant fixture both run this same path.
+ */
+function evaluateCloseTimeGuard(
+  root: string,
+  requestedSwitch: string,
+  base = SCOPE_GUARD_BASE,
+): { activated: boolean; offenders: string[] } {
+  if (requestedSwitch !== SCOPE_GUARD_CHANGE) {
+    return { activated: false, offenders: [] };
+  }
+  return { activated: true, offenders: scopeGuardOffenders(root, base) };
+}
+
 describe("close-time write guard", () => {
   const repoRoot = path.resolve(import.meta.dir, "..", "..");
   const requested = (process.env.NGRACE_SCOPE_GUARD_CHANGE ?? "").trim();
@@ -433,12 +454,44 @@ describe("close-time write guard", () => {
   });
 
   it("activates exactly on the successor switch and is verifiably dormant otherwise", () => {
-    expect(activated).toBe(requested === SCOPE_GUARD_CHANGE);
-    if (!activated) {
+    const decision = evaluateCloseTimeGuard(repoRoot, requested);
+    expect(decision.activated).toBe(requested === SCOPE_GUARD_CHANGE);
+    if (decision.activated) {
+      expect(decision.offenders).toEqual([]);
+    } else {
+      expect(decision.offenders, "dormant contributes no offenders").toEqual([]);
       expect(typeof collectActiveChangeScopes).toBe("function");
       expect(typeof observedWriteScopeContains).toBe("function");
-    } else {
-      expect(scopeGuardOffenders(repoRoot)).toEqual([]);
+    }
+  });
+
+  it("stays dormant on a later unrelated write without the exact switch, and the same fixture reddens when activated", () => {
+    const fixture = mkdtempSync(path.join(os.tmpdir(), "scope-guard-dormant-"));
+    try {
+      const git = (args: string[]) =>
+        Bun.spawnSync({ cmd: ["git", "-C", fixture, ...args], stdout: "pipe", stderr: "pipe" });
+      mkdirSync(path.join(fixture, "docs"), { recursive: true });
+      writeFileSync(path.join(fixture, "seed.txt"), "seed\n");
+      expect(git(["init"]).exitCode).toBe(0);
+      expect(git(["config", "user.email", "guard@example.test"]).exitCode).toBe(0);
+      expect(git(["config", "user.name", "Guard Test"]).exitCode).toBe(0);
+      expect(git(["add", "."]).exitCode).toBe(0);
+      expect(git(["commit", "-m", "baseline"]).exitCode).toBe(0);
+      const base = Buffer.from(git(["rev-parse", "HEAD"]).stdout).toString("utf8").trim();
+      // A later unrelated write of the same kind as a forbidden ordinary path.
+      writeFileSync(path.join(fixture, "docs", "guard-probe.md"), "probe\n");
+      // The raw offender collector sees it against this fixture's own base.
+      expect(scopeGuardOffenders(fixture, base)).toContain("docs/guard-probe.md");
+      // Without the exact switch the shared conditional path is dormant and does not fail.
+      const dormant = evaluateCloseTimeGuard(fixture, "", base);
+      expect(dormant.activated).toBe(false);
+      expect(dormant.offenders).toEqual([]);
+      // The exact successor switch against the same fixture fails on that planted path.
+      const active = evaluateCloseTimeGuard(fixture, SCOPE_GUARD_CHANGE, base);
+      expect(active.activated).toBe(true);
+      expect(active.offenders).toContain("docs/guard-probe.md");
+    } finally {
+      rmSync(fixture, { recursive: true, force: true });
     }
   });
 

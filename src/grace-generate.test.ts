@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -564,6 +564,38 @@ describe("candidate exclusive acquisition and bounded cleanup", () => {
     expect(result.removed).toBe(false);
     expect(result.diagnostic).toMatch(/foreign entry sentinel.txt/);
     expect(readFileSync(path.join(candidateDir(root, id), "sentinel.txt"), "utf8")).toBe("foreign");
+  });
+
+  it("(e1) the real nonrecursive mkdir on an existing leaf returns EEXIST and leaves its contents", () => {
+    const root = createTempProject("cand-eexist-");
+    const dir = candidateDir(root, "C-CAND-EEXIST-1-ABCDEF12");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, "content.txt"), "kept");
+    let caught: unknown;
+    try {
+      mkdirSync(dir);
+    } catch (error) {
+      caught = error;
+    }
+    expect((caught as { code?: string } | undefined)?.code, "the real leaf mkdir EEXIST is the acquisition refusal").toBe("EEXIST");
+    expect(readFileSync(path.join(dir, "content.txt"), "utf8")).toBe("kept");
+    expect(readdirSync(dir)).toEqual(["content.txt"]);
+  });
+
+  it("(e2) the real nonrecursive rmdir on a foreign-entry directory returns ENOTEMPTY and removes nothing", () => {
+    const root = createTempProject("cand-enotempty-");
+    const dir = candidateDir(root, "C-CAND-ENOTEMPTY-1-ABCDEF12");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, "sentinel.txt"), "foreign");
+    let caught: unknown;
+    try {
+      rmdirSync(dir);
+    } catch (error) {
+      caught = error;
+    }
+    expect((caught as { code?: string } | undefined)?.code, "the real rmdir ENOTEMPTY is why cleanup preserves residue").toBe("ENOTEMPTY");
+    expect(existsSync(dir)).toBe(true);
+    expect(readFileSync(path.join(dir, "sentinel.txt"), "utf8")).toBe("foreign");
   });
 
   it("(f) an identity-capture failure preserves the empty leaf and names it", () => {
