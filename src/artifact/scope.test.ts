@@ -373,6 +373,15 @@ const SCOPE_GUARD_PREDECESSOR_FILES = new Set([
   ".ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/run-ledger.xml",
 ]);
 
+/**
+ * The tracked-diff evidence the guard consumes. Rename detection MUST stay disabled:
+ * with it on, git collapses the active predecessor `spec.xml`/`run-ledger.xml` into
+ * the archive destinations and the guard never observes the contracted active
+ * deletions (correction 1). One definition, shared with the direct evidence test.
+ */
+const SCOPE_GUARD_TRACKED_DIFF_ARGS = ["diff", "--name-only", "--no-renames", SCOPE_GUARD_BASE];
+const SCOPE_GUARD_PREDECESSOR_ID = "C-SUPERSEDE-MEMBERSHIP-3-66400CCC";
+
 const SCOPE_GUARD_ALLOWED_PREFIXES = [
   `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/`,
   `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/`,
@@ -397,7 +406,7 @@ function gitEvidence(root: string, args: string[]): { available: boolean; lines:
 
 /** Files changed against the recorded base outside the closed allowed set. Refuses when git evidence is unavailable. */
 function scopeGuardOffenders(root: string): string[] {
-  const tracked = gitEvidence(root, ["diff", "--name-only", SCOPE_GUARD_BASE]);
+  const tracked = gitEvidence(root, SCOPE_GUARD_TRACKED_DIFF_ARGS);
   const untracked = gitEvidence(root, ["ls-files", "--others", "--exclude-standard"]);
   if (!tracked.available || !untracked.available) {
     throw new Error("scope guard: git evidence unavailable; refusing rather than reporting clean");
@@ -436,6 +445,24 @@ describe("close-time write guard", () => {
   it("confines the tracked-and-untracked change set to the closed allowed set when activated", () => {
     if (!activated) return;
     expect(scopeGuardOffenders(repoRoot)).toEqual([]);
+  });
+
+  it("consumes the exact five predecessor paths with rename detection disabled", () => {
+    // Uses the same git-evidence helper and the same argument list as the guard, so
+    // dropping `--no-renames` reds this test and the guard together.
+    const evidence = gitEvidence(repoRoot, SCOPE_GUARD_TRACKED_DIFF_ARGS);
+    expect(evidence.available).toBe(true);
+    const predecessor = evidence.lines
+      .filter((line) => line.includes(SCOPE_GUARD_PREDECESSOR_ID))
+      .sort();
+    expect(predecessor).toEqual([
+      `.ngrace/changes/active/${SCOPE_GUARD_PREDECESSOR_ID}/run-ledger.xml`,
+      `.ngrace/changes/active/${SCOPE_GUARD_PREDECESSOR_ID}/spec.xml`,
+      `.ngrace/changes/archive/${SCOPE_GUARD_PREDECESSOR_ID}/plan.xml`,
+      `.ngrace/changes/archive/${SCOPE_GUARD_PREDECESSOR_ID}/run-ledger.xml`,
+      `.ngrace/changes/archive/${SCOPE_GUARD_PREDECESSOR_ID}/spec.xml`,
+    ]);
+    expect(predecessor).not.toContain(`.ngrace/changes/active/${SCOPE_GUARD_PREDECESSOR_ID}/plan.xml`);
   });
 
   it("reddens on a planted forbidden write when activated", () => {

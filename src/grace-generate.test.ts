@@ -642,6 +642,29 @@ describe("candidate exclusive acquisition and bounded cleanup", () => {
     expect(() => mintResolvedBundle(root, resolvedFor(id))).toThrow();
     expect(readdirSync(activeDirFor(root)).filter((name) => name === id)).toHaveLength(1);
   });
+
+  it("(j) a new-timestamp retry resolves a new id and mints it beside the retained residue", () => {
+    const root = createTempProject("cand-retry-timestamp-");
+    const resolvedA = resolveSpecMint({ slug: "RETRY", timestamp: TIMESTAMP_A, branch: BRANCH }, root);
+    mkdirSync(candidateDir(root, resolvedA.id), { recursive: true });
+    const sentinel = path.join(candidateDir(root, resolvedA.id), "sentinel.txt");
+    writeFileSync(sentinel, "foreign-residue");
+    // Timestamp-A mint refuses against the retained residue, twice, with no change.
+    expect(() => mintResolvedBundle(root, resolvedA)).toThrow(/already exists/i);
+    expect(readFileSync(sentinel, "utf8")).toBe("foreign-residue");
+    expect(readdirSync(activeDirFor(root)).filter((name) => name === resolvedA.id)).toHaveLength(1);
+    expect(() => mintResolvedBundle(root, resolvedA)).toThrow(/already exists/i);
+    expect(readdirSync(activeDirFor(root)).filter((name) => name === resolvedA.id)).toHaveLength(1);
+    // The same slug and branch with a new timestamp resolves a distinct id.
+    const resolvedB = resolveSpecMint({ slug: "RETRY", timestamp: TIMESTAMP_B, branch: BRANCH }, root);
+    expect(resolvedB.id).not.toBe(resolvedA.id);
+    const minted = mintResolvedBundle(root, resolvedB);
+    expect(minted.id).toBe(resolvedB.id);
+    expect(minted.relative).toBe(`${ARTIFACT_DIR}/changes/active/${resolvedB.id}/spec.xml`);
+    expect(existsSync(path.join(root, minted.relative))).toBe(true);
+    expect(existsSync(sentinel)).toBe(true);
+    expect(readdirSync(activeDirFor(root)).sort()).toEqual([resolvedA.id, resolvedB.id].sort());
+  });
 });
 
 // C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-001: the public cleanup acquires the lock itself.
