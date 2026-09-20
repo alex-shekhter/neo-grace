@@ -1,0 +1,467 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-SUPERSEDE-MEMBERSHIP-4-20941257>
+    <IntentSummary>
+      This T2 plan converts the approved `C-SUPERSEDE-MEMBERSHIP-4-20941257` spec into five
+      sequential tasks. It is the replacement B1 slice of the maintainer-directed split of the
+      monolithic `C-SUPERSEDE-MEMBERSHIP-2-C459A20C`; it pays exactly one finding, `F314`
+      (non-exclusive candidate mint acquisition), and it must be independently implementable and
+      verifiable with B2/B3 code absent.
+
+      **T-001 — exclusive acquisition and bounded cleanup:** a non-recursive leaf `mkdir` whose
+      `EEXIST` refuses, so losing the existence-check-to-create race writes nothing; a bounded,
+      identity-and-byte-checked cleanup that removes only an invocation-created, invocation-owned
+      leaf and preserves every residue it did not create; the exported self-locking
+      `cleanupCandidate`. **T-002 — candidate-lock cooperation and entry/future-snapshot
+      boundaries:** the tripartite stale-lock reclamation rule, `recordAttempt` snapshot under the
+      lock, the canonical-only future-snapshot WriteEvidence filter, `writePlanNew` live-publisher
+      wait and crash-marker refusal, and `regenerateCursor({apply:true})` entry locking.
+      **T-003 — durable WriteEvidence-audit compatibility seam:** a dedicated exact predicate
+      reached only by `auditWriteEvidenceOutsideScope`, so already-immutable historical
+      WriteEvidence for `.ngrace/changes/active/.candidate-&lt;valid C-ID&gt;.lock` no longer reddens
+      the dynamic archive ratchet, while `isCliLifecyclePath` is never widened and every near miss
+      keeps raising. It is the only task that touches `M-REVIEW` and the only task read against the
+      immutable archive, so it is not folded into T-002. **T-004 — supersede/review transaction
+      safety and complete writer cooperation:** validate-before-fold for every
+      successor/existence/lineage and predecessor/status/archive/replacement class, rollback and
+      cleanup composition, the three-phase review-verdict snapshot, and the candidate-lock
+      cooperation boundary for the whole covered outer-writer population. **T-005 — operational
+      successor identity and close ratchets:** the scope guard re-authored to the replacement id
+      and its byte-invariance base, the `F314` `bundleMinted` pin introduced naming the replacement,
+      and the single staged `F314` `Owner:` line re-homed.
+
+      **Payment and record writes.** The plan grammar has no `&lt;Pays&gt;` element: the payment
+      semantics live in this `IntentSummary` and in the spec, are carried structurally by the
+      successor-named `registry.xml` charter row's `&lt;Pays&gt;` child (written by the close's
+      `--flush`), are pinned by the `bundleMinted` fixture in
+      `scripts/validate-record-retirement.test.ts` (written by T-005), and are stamped as the
+      derived `&lt;PaidBy&gt;` on the retired Finding carrier in `findings-retired.xml` (written by
+      the close's `--retire` after this bundle's archive arrival). `--flush` writes the four live
+      record XML files; an eligible `--retire` writes all seven XML files; neither writer writes
+      `docs/plans/active/RM-GOVERNED-PATH/decisions.md`, so this plan omits it. The exact
+      non-lifecycle source, test, scratch, predecessor-transition, and record paths are enumerated
+      in `ObservedWriteScope`; the close's writes are in the plan because the spec assigns them to
+      the close, not to a task.
+
+      **Baselines.** Two bases have distinct roles and must not be conflated.
+      `13e60c68b326e437ccfe6bc2f2090ae4e148da1a` is the approved spec's whole-bundle
+      byte-invariance and scope-guard base: it deliberately predates replacement-spec approval and
+      the committed predecessor transition, so the activated close-time scope guard compares
+      against it and the git-derived predecessor population is two observable active deletions plus
+      three archive arrivals. `f0521c546e2e28f672f4d993b7a8e16802ce52ff` is the clean
+      plan-authoring and implementation starting point: the replacement spec and its approval
+      ledger are committed, the predecessor transition is committed, and a fresh implementation
+      worktree begins here. No task measures against `13e60c6`; only the close-time guard does.
+
+      **Gates.** Every task runs its narrow instrument; the full CI-equivalent
+      `bun run validate:ci` is the plan's single `TargetAssertions` `MustPassCommand` and the outer
+      final gate, never a per-task command. The four spec `CloseEvidence` criteria
+      (`AC-NO-UNFORCED-WRITES`, `AC-CLOSE-PAYER`, `AC-CLOSE-LINT`, `AC-CLOSE-TESTS`) are evaluated
+      by the close in the applied-archive state and are deliberately absent from every task's
+      `Satisfies`.
+
+      **Known predecessor-plan defects corrected here.** (1) The ignored
+      `.ngrace/scratch/staged-findings.md` is a separately audited transient input, never a
+      git-observable scope-guard allowlist entry. (2) `cleanupCandidate` carries three reachable
+      discriminator classes — nested cleanup; standalone cleanup while another process holds the
+      lock; and the foreign-token/content/identity/`ENOTEMPTY` refusal family — not two. (3) The
+      task that changes `writePlanNew` in `src/grace-generate.ts` authors and runs
+      `src/grace-generate.test.ts`; a cursor-only command is insufficient. (4) The physical
+      predecessor transition is six explicit plan-scope paths, while the git-derived guard
+      population is two active deletions plus three archive arrivals. (5) The superseded predecessor
+      plan was never approved and is provenance only, never a ratified template.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>V-M-CLI</Value></MustExist>
+      <MustExist><Value>V-M-GATES</Value></MustExist>
+      <MustExist><Value>V-M-CURSOR</Value></MustExist>
+      <MustExist><Value>V-M-REVIEW</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/plan.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/run-ledger.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry.xml</Value></MustExist>
+      <MustExist><Value>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/scratch/staged-findings.md</Value></MustExist>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>V-M-CLI</Value></MustExist>
+      <MustExist><Value>V-M-GATES</Value></MustExist>
+      <MustExist><Value>V-M-CURSOR</Value></MustExist>
+      <MustExist><Value>V-M-REVIEW</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/grace-supersede.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-generate.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/scope.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/validate-record-retirement.test.ts</Value></MustExist>
+      <MustContain><File>scripts/validate-record-retirement.test.ts</File><Text>F314: "C-SUPERSEDE-MEMBERSHIP-4-20941257"</Text></MustContain>
+      <MustContain><File>src/artifact/scope.test.ts</File><Text>C-SUPERSEDE-MEMBERSHIP-4-20941257</Text></MustContain>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-GATES />
+        <M-CURSOR />
+        <M-REVIEW />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-GATES />
+        <V-M-CURSOR />
+        <V-M-REVIEW />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-supersede.ts</File>
+      <File>src/grace-generate.ts</File>
+      <File>src/gates/ledger.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/review/core.ts</File>
+      <File>src/grace-supersede.test.ts</File>
+      <File>src/grace-generate.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/artifact/scope.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>.ngrace/scratch/staged-findings.md</File>
+      <File>.ngrace/changes/active/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/spec.xml</File>
+      <File>.ngrace/changes/active/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/plan.xml</File>
+      <File>.ngrace/changes/active/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/run-ledger.xml</File>
+      <File>.ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/spec.xml</File>
+      <File>.ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/plan.xml</File>
+      <File>.ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/run-ledger.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Exclusive candidate acquisition and bounded cleanup (F314)</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Make candidate acquisition exclusive for both `ngrace spec new` and the implicit mint
+            inside `ngrace supersede`: replace the `existsSync`-then-recursive-`mkdirSync` window in
+            `src/grace-generate.ts` (`writeSpecNew`/`publishSpecNew` and the creation-and-publication
+            transaction the wrappers `mintResolvedBundle`/`mintBundle` share) with a non-recursive
+            leaf `mkdir` whose `EEXIST` refuses. Losing the existence-check-to-create race must write
+            nothing: a competitor's `spec.xml` and any foreign file are preserved byte-for-byte.
+            Pre-existing candidates under both `active/` and `archive/` refuse. Both directions of
+            `AC-MINT-EXCLUSIVE` are driven on isolated fixtures, including the baseline control that
+            reproduces the pre-repair overwrite on a pre-repair copy.
+          </Criterion>
+          <Criterion>
+            Implement bounded cleanup in `src/grace-generate.ts`: remove a candidate directory only
+            when this invocation created it and it holds no artifact this invocation did not write
+            at the moment of removal; validate before the first delete, so a foreign marker or any
+            failed ownership check leaves `spec.xml`, the marker, and the directory byte-identical
+            with `removed=false`. The exact handled boundary is identity mismatch, changed own bytes,
+            foreign entries, an ordinary removal I/O failure, and `rmdir` `ENOTEMPTY`: each
+            preserves the residue and emits exactly one diagnostic naming the directory. A
+            non-cooperating replacement of this invocation's own file between the byte comparison
+            and the `unlink`, and the uncatchable SIGKILL/power-loss window, are outside the
+            supported model and are not asserted safe. The `AC-CLEANUP-BOUNDED` interleavings
+            (a)–(f) and the repetition/new-timestamp rows are driven with the actual
+            `mkdir`/`rmdir`/`stat` primitives, and `AC-CLEANUP-VALIDATE-FIRST` is driven as a
+            standalone row.
+          </Criterion>
+          <Criterion>
+            Export `cleanupCandidate` as the self-locking destructive boundary: it acquires the
+            documented reentrant candidate lock itself so no caller can invoke it unlocked, and
+            nested calls reuse the reentrancy depth (`AC-CLEANUP-LOCK-API`). Land the
+            red-first/green test groups in `src/grace-generate.test.ts`; the criterion is met only
+            when both the pre-repair overwrite control reddens and the repaired exclusive-acquisition
+            and cleanup directions green. This task does not touch the fold or membership surfaces.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-MINT-EXCLUSIVE />
+          <AC-CLEANUP-BOUNDED />
+          <AC-CLEANUP-VALIDATE-FIRST />
+          <AC-CLEANUP-LOCK-API />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Candidate-lock cooperation, attempt snapshot, future-snapshot filter, and entry boundaries</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Implement the tripartite candidate-lock reclamation rule in `src/grace-cursor.ts`: a
+            parseable known-live holder is never stolen for age (wait for release); a parseable
+            known-dead holder is reclaimed immediately; an empty/unparseable/unknown holder waits
+            for `CANDIDATE_LOCK_TTL_MS`; a token-mismatched release is a no-op that preserves the
+            current holder's bytes. Drive `AC-CANDIDATE-RECLAIM-EXCLUSIVE` through the fired
+            seam/barrier: contender B observes the stale token, A reclaims and acquires the
+            replacement lock, then B attempts reclamation from its stale snapshot; assert the
+            callbacks never overlap, A's token and lock bytes survive while A still holds the lock,
+            and B is pending or aborts without removing A's file. Add the mismatched-token no-op
+            control, the own-lock removal control, and the successor-lock preservation control,
+            driven on the real exported boundary with recursive byte snapshots.
+          </Criterion>
+          <Criterion>
+            Acquire the candidate lock at the approved public entry of `recordAttempt` and snapshot
+            WriteEvidence under it, so a file changed while waiting for a live publisher is included
+            (`AC-ATTEMPT-SNAPSHOT-UNDER-LOCK`). Narrow the **future-snapshot** WriteEvidence filter
+            that `snapshotWriteEvidence` records to the exact canonical engine path
+            `.ngrace/changes/active/.candidate-&lt;valid C-ID&gt;.lock` and keep every near miss
+            visible, each changing exactly one dimension from the valid control id
+            `C-LOCK-EVIDENCE` (`AC-EVIDENCE-FILTER-CANONICAL-ONLY`): the archive-only
+            `.ngrace/changes/archive/.candidate-C-LOCK-EVIDENCE.lock`; the nested-active-only
+            `.ngrace/changes/active/sub/.candidate-C-LOCK-EVIDENCE.lock`; the source-location-only
+            `src/.candidate-C-LOCK-EVIDENCE.lock`; and the other-top-level-only
+            `other/.candidate-C-LOCK-EVIDENCE.lock`. The malformed-id-only control
+            `.ngrace/changes/active/.candidate-not-a-change.lock` is the only row with an invalid
+            `C-*` id. This criterion governs the future snapshot only; the durable read is T-003.
+          </Criterion>
+          <Criterion>
+            Make `writePlanNew` in `src/grace-generate.ts` wait and revalidate for a live publisher
+            and refuse crash marker residue before its first write, with the two reachable rows of
+            `AC-PLAN-NEW-MARKER-REFUSAL`: (a) a real `ngrace spec new` paused after the `spec.xml`
+            write, where `plan new` stays pending and byte-invariant while the publisher holds the
+            lock, then refuses on the draft-spec prerequisite after release, and a retry after
+            approval creates the plan; (b) an approved `spec.xml` beside a stale marker with no live
+            publisher, refused before any `plan.xml` or ledger write. Make
+            `regenerateCursor({apply:true})` in `src/grace-cursor.ts` acquire at public entry before
+            resolving or reading, driven with the default `allowDirty:false` so the post-lock dirty
+            refusal fires (`AC-REGEN-ENTRY-LOCK`). Because this task changes `writePlanNew` in
+            `src/grace-generate.ts`, it authors and runs the matching `src/grace-generate.test.ts`
+            coverage as well as `src/grace-cursor.test.ts`; the fold-recovery semantics of
+            `foldEpoch`, `recoverCursor`, and `discardAndFoldEpoch` remain B2's and are not asserted
+            here.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts src/grace-generate.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-CANDIDATE-RECLAIM-EXCLUSIVE />
+          <AC-ATTEMPT-SNAPSHOT-UNDER-LOCK />
+          <AC-EVIDENCE-FILTER-CANONICAL-ONLY />
+          <AC-PLAN-NEW-MARKER-REFUSAL />
+          <AC-REGEN-ENTRY-LOCK />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>Durable WriteEvidence-audit canonical candidate-lock compatibility seam</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            In `src/review/core.ts`, add a dedicated exact predicate reached only from
+            `auditWriteEvidenceOutsideScope` that filters exactly the canonical engine candidate-lock
+            path `.ngrace/changes/active/.candidate-&lt;valid C-ID&gt;.lock` when that audit reads
+            already-immutable durable historical WriteEvidence. `isCliLifecyclePath` is not modified:
+            its byte-semantics stay restricted to `run.xml`, `run-ledger.xml`, and `run/**`, and its
+            matched-set pin in `src/review/core.test.ts` continues to hold.
+          </Criterion>
+          <Criterion>
+            Bind both directions of `AC-EVIDENCE-AUDIT-CANONICAL-ONLY`. The filtered control is
+            `.ngrace/changes/active/.candidate-C-LOCK-EVIDENCE.lock`; each candidate-lock near miss
+            changes exactly one dimension with the valid id `C-LOCK-EVIDENCE` held constant and is
+            asserted present in the durable read and therefore a
+            `review.write-evidence-outside-scope` finding: the archive-only
+            `.ngrace/changes/archive/.candidate-C-LOCK-EVIDENCE.lock`; the nested-active-only
+            `.ngrace/changes/active/sub/.candidate-C-LOCK-EVIDENCE.lock`; the source-location-only
+            `src/.candidate-C-LOCK-EVIDENCE.lock`; and the other-top-level-only
+            `other/.candidate-C-LOCK-EVIDENCE.lock`. The malformed-id-only control
+            `.ngrace/changes/active/.candidate-not-a-change.lock` is the only row with an invalid
+            `C-*` id. Labelled separately as non-lock bundle-artifact controls, `.ngrace/changes/active/&lt;C-ID&gt;/spec.xml`
+            and `.ngrace/changes/active/&lt;C-ID&gt;/plan.xml` continue to raise, because the
+            `C-SCOPE-AUDIT-ATTRIBUTION` charter requires the WriteEvidence audit to keep raising on
+            them.
+          </Criterion>
+          <Criterion>
+            Drive the live archived case: the `review.write-evidence-outside-scope` finding for
+            `.ngrace/changes/active/.candidate-C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8.lock` is absent
+            while a recursive byte snapshot of `.ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8/`
+            taken before and after the review is identical, proving the repair is reader-side and not
+            an archived-byte edit (`RM-GOVERNED-PATH D41`). The dynamic archive ratchet returns to
+            exactly zero non-lifecycle `.ngrace/` findings **without editing its expected value**,
+            retaining its exact product-pair multiset (`WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET`); a
+            test that merely changes the ratchet's expected non-lifecycle count from zero to one
+            does not satisfy this criterion. Land the tests in `src/review/core.test.ts`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/review/core.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-EVIDENCE-AUDIT-CANONICAL-ONLY />
+        </Satisfies>
+      </T-003>
+      <T-004>
+        <Title>Supersede/review transaction safety and complete outer-writer cooperation</Title>
+        <DependsOn>
+          <Task>T-003</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Establish validate-before-fold in `src/gates/ledger.ts`'s `supersedeChangeBundle` and
+            the explicit/implicit replacement handling moved into the transaction boundary in
+            `src/grace-supersede.ts`: all successor existence/location and lineage validation, and
+            predecessor status/archive/replacement validation, run before `discardAndFoldEpoch` and
+            before every other write. Drive the full `AC-SUPERSEDE-VALIDATE-BEFORE-FOLD` matrix
+            (a)–(h) plus the explicit `--replacement` rows (i) and (j) on disposable projects with
+            recursive SHA-256 snapshots and a direct exit, each leaving the ledger byte-identical
+            and every loose file present. `AC-REFUSE-PRESERVES-CANDIDATES` is driven for a
+            pre-existing target directory and for an explicit `--replacement` target.
+          </Criterion>
+          <Criterion>
+            Compose rollback and cleanup on every post-mint failure: attempt successor cleanup once,
+            record the outcome always, surface the residual-state diagnostic exactly once only when
+            cleanup preserved residue, and never recurse. Drive the exact
+            `AC-SUPERSEDE-ROLLBACK-CLEANUP` red sequence — spec status write succeeds, plan status
+            write fails, spec rollback write fails persistently — and assert the composition of the
+            original failure with the rollback residue, the single cleanup diagnostic, and the
+            predecessor's last-successfully-written state.
+          </Criterion>
+          <Criterion>
+            Give `recordReviewVerdict` the approved three-phase snapshot: snapshot bundle location,
+            directory identity, and exact prerequisite `spec.xml`/ledger bytes; evaluate
+            CloseEvidence outside the lock; reacquire and compare all of them before rebuilding from
+            fresh ledger state and writing. Drive the four `AC-REVIEW-VERDICT-THREE-PHASE` cases —
+            spec-byte mutation, ledger-byte mutation, same-path directory replacement with
+            byte-identical prerequisites, and active/archive relocation — each refusing with no
+            verdict/ledger write, plus a clean unchanged prerequisite that writes successfully.
+          </Criterion>
+          <Criterion>
+            Cover the candidate-lock cooperation boundary for the whole outer-writer population
+            named by `AC-COOPERATING-WRITER-COVERAGE`, including the `pauseCursor`/`resumeCursor`
+            aliases and the `mintResolvedBundle`/`mintBundle` wrappers, with the **three** carved-out
+            reachable discriminators for `cleanupCandidate`: (i) nested cleanup during a handled mint
+            failure, proving reentrant lock use and the validated delete order; (ii) standalone
+            cleanup of a returned, published `AcquiredCandidate` while another process holds that
+            candidate lock, proving it waits, revalidates, and removes only bytes it still owns; and
+            (iii) the foreign-token/content/identity/`ENOTEMPTY` refusal cases of
+            `AC-CLEANUP-BOUNDED`/`AC-CLEANUP-VALIDATE-FIRST`. The fold/recovery writers are covered
+            only at the candidate-lock cooperation boundary; the fold-recovery semantics of
+            `foldEpoch`, `recoverCursor`, and `discardAndFoldEpoch` are B2's and are not asserted
+            here. Land the red-first/green test groups in `src/grace-supersede.test.ts`,
+            `src/gates/core.test.ts`, and `src/grace-generate.test.ts` — the last carrying the
+            `cleanupCandidate`, `mintResolvedBundle`, and `mintBundle` cooperation groups
+            (published-candidate wait/revalidation and wrapper routing), so the criterion is not
+            claimed by the supersede/cursor files alone.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-supersede.test.ts src/gates/core.test.ts src/grace-generate.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-REFUSE-PRESERVES-CANDIDATES />
+          <AC-SUPERSEDE-VALIDATE-BEFORE-FOLD />
+          <AC-SUPERSEDE-ROLLBACK-CLEANUP />
+          <AC-REVIEW-VERDICT-THREE-PHASE />
+          <AC-COOPERATING-WRITER-COVERAGE />
+        </Satisfies>
+      </T-004>
+      <T-005>
+        <Title>Operational successor identity, scope guard, and F314 payer pin</Title>
+        <DependsOn>
+          <Task>T-004</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Carry `C-SUPERSEDE-MEMBERSHIP-4-20941257` on the operational identity surfaces named by
+            `AC-SUCCESSOR-ID-DATA`: the successor wrapper and path, the successor plan's assertions
+            and commands, the scope guard identity and activation switch, the payer pins and their
+            tests, and the registry row `name`. Historical predecessor lineage and the exact
+            archived predecessor paths remain permitted history; source/test attribution comments
+            assert the current contract as successor ownership and record a measurement as
+            predecessor history. The relation is made mechanically testable, never a blanket textual
+            absence assertion.
+          </Criterion>
+          <Criterion>
+            Re-author the activated close-time scope guard in `src/artifact/scope.test.ts` to the
+            replacement identity `NGRACE_SCOPE_GUARD_CHANGE=C-SUPERSEDE-MEMBERSHIP-4-20941257` and
+            byte-invariance base `13e60c68b326e437ccfe6bc2f2090ae4e148da1a`. Its git-derived allowed
+            set is the five forced source files, the seven forced test/ratchet files, the six exact
+            predecessor-transition paths, the seven record XML files, and the bundle's own active
+            and archive arrival — zero globs and no catch-all record-directory prefix, so a planted
+            non-XML file inside `docs/plans/active/RM-GOVERNED-PATH/` reddens. The exact
+            `.ngrace/scratch/staged-findings.md` path is **excluded** from that git-derived
+            allowlist: it is an ignored transient pre-flush input, separately audited, that
+            `git diff` and `git ls-files --others` cannot observe, so it appears in
+            `ObservedWriteScope` and `BaselineAssertions` and in the payment prose but never in the
+            guard's allowed population. The git-derived observable population is
+            exactly two active deletions plus three archive arrivals: the untracked active
+            `plan.xml` is absent from the base commit, so its disappearance is not counted as a git
+            deletion. Drive all six fixtures of `AC-NO-UNFORCED-WRITES`: clean applied archive
+            passes; a forbidden ordinary path reddens; a planted unlisted file inside the governed
+            record directory reddens; unavailable git evidence refuses rather than reporting clean;
+            the exact predecessor transition is allowed; and without activation a later unrelated
+            change of the same kind does not fail.
+          </Criterion>
+          <Criterion>
+            Introduce the single `F314` `bundleMinted` pin in
+            `scripts/validate-record-retirement.test.ts` naming
+            `C-SUPERSEDE-MEMBERSHIP-4-20941257` (the clean base has zero `F314` occurrences), and
+            change exactly the single staged `F314` `Owner:` line in
+            `.ngrace/scratch/staged-findings.md` from its measured lineage-1 provenance owner
+            `C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8` to the replacement id, changing no other staged owner
+            line. The payer ratchet must be red in the applied-archive fixture when the pin is absent
+            or stale and green only when it names the replacement; the test reads the durable XML
+            result the flush produces and never the ignored staged buffer, so a staged-buffer edit
+            alone cannot green it. The payment set remains exactly `{F314}`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts src/artifact/scope.test.ts</Command>
+          <Command>NGRACE_SCOPE_GUARD_CHANGE=C-SUPERSEDE-MEMBERSHIP-4-20941257 bun test --timeout=0 src/artifact/scope.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SUCCESSOR-ID-DATA />
+        </Satisfies>
+      </T-005>
+    </ImplementationPlan>
+  </C-SUPERSEDE-MEMBERSHIP-4-20941257>
+</NgraceChangePlan>
