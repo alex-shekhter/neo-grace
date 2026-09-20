@@ -5543,4 +5543,17 @@ artifact without re-running the suite (the freshness guard reads only the file l
 `ms`). Stays staged.
 </Body>
   </Finding>
+  <Finding id="f314" token="F314" status="retired">
+    <PaidBy>C-SUPERSEDE-MEMBERSHIP-4-20941257</PaidBy>
+    <Title>### F314 — `ngrace spec new` acquires its candidate directory non-exclusively: a competing candidate created between the existence check and `mkdir` is overwritten. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-19 at `6dd1d953652775f3dc25095e4f249b37876b9cb6`** (branch `c-supersede-membership`), by running `/private/tmp/ngrace-spec-authority-review/mint-race.ts` from the repository root. `writeSpecNew` (`src/grace-generate.ts:91`) calls `refuseExistingBundle` (`existsSync`, `:74`), then `mkdirSync(dir, { recursive: true })` — which does not fail when the directory already exists — then `writeFileSync(specPath)`. The isolated preload created a competing candidate between the existence check and the `mkdir`; `ngrace spec new OWNERSHIP` **exited 0**, minted `C-OWNERSHIP-1-…`, reported `candidateSpecPreserved: false` (the competitor's `spec.xml` was overwritten) and `otherWriterBytes: OTHER-WRITER-EVIDENCE` (the competitor's unrelated file survived).
+
+**This violates the originating contract.** `.ngrace/changes/archive/C-HASHED-BUNDLE-IDS-2/spec.xml:87-105` promises *&quot;Refusal writes nothing — no directory, no file&quot;*, with the refusal set pinned at `:189-198` and `AC-MINT-REFUSALS` at `:417-425`; its `design-context.xml:38-43` closes the mint-collision class by refusal-on-existing-directory. A controlled interleaving demonstrates the race, not its frequency.
+
+**Scope.** The same non-exclusive window exists for the implicit mint inside `ngrace supersede` (`src/grace-supersede.ts` → `mintBundle`). F292's refusal-residue defect is a separate finding; this one is about acquisition, not residue.
+
+Owner: `C-SUPERSEDE-MEMBERSHIP-4-20941257` (draft spec), `src/grace-generate.ts` (`LINKS: M-CLI`). Stays staged.
+</Body>
+  </Finding>
 </Findings>

@@ -476,4 +476,10 @@
     <Pays>F284 F297 F299</Pays>
     <StatusText>Three findings paid: CI now lints the governance surfaces honestly, a declared-but-absent file warns instead of erring, and the suite runs once at the close.</StatusText>
   </Row>
+  <Row name="C-SUPERSEDE-MEMBERSHIP-4-20941257" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 1 active, 2 archive prior bundle(s) share slug SUPERSEDE-MEMBERSHIP. </Charter>
+    <Pays>F314</Pays>
+    <StatusText></StatusText>
+  </Row>
 </Registry>
