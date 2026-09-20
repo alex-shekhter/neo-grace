@@ -159,7 +159,6 @@ import {
   serializeCalibrationContextAttributes,
   type CalibrationContextClass,
 } from "./calibration/context";
-import { isGitWorktreeDirty } from "./grace-graph";
 import { lintGraceProject } from "./lint/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
 import type { FailureSignature } from "./artifact/types";
