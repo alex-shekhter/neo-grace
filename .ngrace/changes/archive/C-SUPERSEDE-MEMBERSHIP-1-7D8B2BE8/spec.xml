@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8><Replacement>C-SUPERSEDE-MEMBERSHIP-2-C459A20C</Replacement>
     <Summary>Repair the governed-path integrity defects this draft measured: (a) a refused `ngrace supersede` must not leave a successor minted by that invocation except under the bounded cleanup policy below, where unremovable or foreign bytes are preserved and named rather than silently orphaned, and `ngrace spec new` must acquire its candidate exclusively rather than overwrite a competitor; (b) an interrupted fold must recover against the durable ledger — resuming a partially deleted verified set without duplicating the epoch or synthesizing an auto-open — and must refuse only on genuinely conflicting payloads; (c) loose-event membership and the parallel orphan inventory must tolerate an entry that vanishes between enumeration and read, without fabricating an event, swallowing unreadable input, or pretending the loss is observable where the engine's own auto-open covers it. Ceremony tier T2 (multi-module slice).</Summary>
     <Goals>
       <Goal>
