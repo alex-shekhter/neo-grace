@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import type { GraceXmlNode } from "./artifact/xml";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -563,13 +564,15 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
       .map((line) => line.trim())
       .filter(Boolean);
     // Import lines plus call sites: fold delete, ledger post-write rollback (A31.5), dart temp,
-    // review scorer temp-project cleanup (Phase 6 corpus scoring).
+    // review scorer temp-project cleanup (Phase 6 corpus scoring), and the
+    // C-SUPERSEDE-MEMBERSHIP candidate cleanup + lock surface in grace-generate/grace-cursor.
     for (const line of lines) {
       expect(
         line.startsWith("src/grace-cursor.ts:")
           || line.startsWith("src/gates/ledger.ts:")
           || line.startsWith("src/lint/adapters/dart.ts:")
-          || line.startsWith("src/review/scorer.ts:"),
+          || line.startsWith("src/review/scorer.ts:")
+          || line.startsWith("src/grace-generate.ts:"),
       ).toBe(true);
     }
     const callSites = lines.filter((line) => /(?:unlinkSync|rmSync|rmdirSync)\s*\(/.test(line)).sort();
@@ -582,16 +585,18 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
     const ledgerUnlink = callSites.find((line) => line.startsWith("src/gates/ledger.ts:"));
     const dartRm = callSites.find((line) => line.startsWith("src/lint/adapters/dart.ts:"));
     const scorerRm = callSites.find((line) => line.startsWith("src/review/scorer.ts:"));
-    // F288 adds the loose-event writer lock: two unlinkSync(lockPath) sites (stale-holder
-    // steal and finally release) beside the two contained-path deletes (fold delete and the
-    // writer's renumber of the file it just created).
+    // F288 adds the loose-event writer lock (stale-holder steal and finally release);
+    // B1 (C-SUPERSEDE-MEMBERSHIP-4-20941257) adds the candidate lock reclaim and
+    // release in grace-cursor, and the candidate cleanup surface in grace-generate.
+    // The lock sites name `lockPath`; the contained-path sites are the fold delete
+    // and the writer's own-file renumber. T-006 residue deletes are B2, not here.
     expect(cursorContained).toHaveLength(2);
-    expect(cursorLock).toHaveLength(2);
+    expect(cursorLock).toHaveLength(4);
     expect(ledgerUnlink).toMatch(/^src\/gates\/ledger\.ts:\d+:\s*unlinkSync\(ledgerPath\);$/);
     expect(dartRm).toMatch(/^src\/lint\/adapters\/dart\.ts:\d+:\s*rmSync\(temporaryDirectory, \{ recursive: true, force: true \}\);$/);
     expect(scorerRm).toMatch(/^src\/review\/scorer\.ts:\d+:\s*rmSync\(root, \{ recursive: true, force: true \}\);$/);
-    expect(callSites).toHaveLength(7);
-    expect(lines.some((line) => line.includes("rmdirSync"))).toBe(false);
+    expect(callSites).toHaveLength(9);
+    expect(lines.some((line) => line.includes("rmdirSync"))).toBe(true);
   });
 });
 
@@ -4530,5 +4535,570 @@ describe("C-CURSOR-STATE-HONESTY-1-53C5EC0B: recover --fix refuses a lost event 
     expect(fixed.fixApplied).toBe(false);
     expect(listLooseEvents(bundle).map((event) => event.file).sort()).toEqual(before);
     expect(() => foldEpoch(root, "C-MIDPRESENT")).toThrow(/range hole at 3/);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8 T-001: candidate coordination primitives.
+describe("candidate lock primitive", () => {
+  const lockDirFor = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
+  const lockPathFor = (root: string, id: string) => path.join(lockDirFor(root), `.candidate-${id}.lock`);
+
+  function candidateRoot(label: string): string {
+    const root = mkdtempSync(path.join(os.tmpdir(), `grace-candidate-lock-${label}-`));
+    mkdirSync(lockDirFor(root), { recursive: true });
+    return root;
+  }
+
+  it("exports withCandidateLock and setCandidateLockTtlForTests", () => {
+    expect(typeof graceCursorModule.withCandidateLock).toBe("function");
+    expect(typeof graceCursorModule.setCandidateLockTtlForTests).toBe("function");
+  });
+
+  it("acquires, runs, and releases its own lock", () => {
+    const root = candidateRoot("basic");
+    const lock = lockPathFor(root, "C-LOCK-BASIC");
+    let inside = false;
+    graceCursorModule.withCandidateLock(root, "C-LOCK-BASIC", () => {
+      inside = existsSync(lock);
+    });
+    expect(inside).toBe(true);
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  it("reclaims a dead fresh holder immediately", () => {
+    const root = candidateRoot("dead");
+    const lock = lockPathFor(root, "C-LOCK-DEAD");
+    writeFileSync(lock, `2147483647\n${Date.now()}\ndead-token\n`, { flag: "wx" });
+    let ran = false;
+    graceCursorModule.withCandidateLock(root, "C-LOCK-DEAD", () => {
+      ran = true;
+    });
+    expect(ran).toBe(true);
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  it("waits out then reclaims an unknown holder bounded by the TTL", () => {
+    const root = candidateRoot("unknown");
+    const lock = lockPathFor(root, "C-LOCK-UNKNOWN");
+    writeFileSync(lock, "not-a-pid\nnot-a-stamp\n", { flag: "wx" });
+    graceCursorModule.setCandidateLockTtlForTests(1);
+    try {
+      let ran = false;
+      graceCursorModule.withCandidateLock(root, "C-LOCK-UNKNOWN", () => {
+        ran = true;
+      });
+      expect(ran).toBe(true);
+    } finally {
+      graceCursorModule.setCandidateLockTtlForTests(null);
+    }
+  });
+
+  it("never steals a known-live holder for age (waits for release)", async () => {
+    const root = candidateRoot("live");
+    const lock = lockPathFor(root, "C-LOCK-LIVE");
+    const lockLiteral = JSON.stringify(lock);
+    const body =
+      "const fs=require('node:fs');"
+      + `fs.writeFileSync(${lockLiteral}, String(process.pid) + '\\n' + String(Date.now() - 31000) + '\\nlive-token\\n', {flag:'wx'});`
+      + "await Bun.sleep(400);"
+      + `try { fs.unlinkSync(${lockLiteral}); } catch {}`;
+    const child = Bun.spawn({ cmd: [process.execPath, "-e", body], stdout: "pipe", stderr: "pipe" });
+    for (let i = 0; i < 200 && !existsSync(lock); i += 1) await Bun.sleep(5);
+    expect(existsSync(lock)).toBe(true);
+    graceCursorModule.setCandidateLockTtlForTests(1);
+    const started = Date.now();
+    try {
+      let ran = false;
+      graceCursorModule.withCandidateLock(root, "C-LOCK-LIVE", () => {
+        ran = true;
+      });
+      expect(ran).toBe(true);
+    } finally {
+      graceCursorModule.setCandidateLockTtlForTests(null);
+    }
+    const elapsed = Date.now() - started;
+    await child.exited;
+    // A live-but-old holder may not be stolen by the 1ms TTL: acquisition waits
+    // for the holder to release at ~400ms.
+    expect(elapsed).toBeGreaterThanOrEqual(250);
+  });
+
+  it("releases on throw", () => {
+    const root = candidateRoot("throw");
+    const lock = lockPathFor(root, "C-LOCK-THROW");
+    expect(() =>
+      graceCursorModule.withCandidateLock(root, "C-LOCK-THROW", () => {
+        throw new Error("boom");
+      }),
+    ).toThrow(/boom/);
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  it("a token-mismatched release preserves a successor's lock", () => {
+    const root = candidateRoot("token");
+    const lock = lockPathFor(root, "C-LOCK-TOKEN");
+    graceCursorModule.withCandidateLock(root, "C-LOCK-TOKEN", () => {
+      writeFileSync(lock, `999999\n${Date.now()}\nsuccessor-token\n`);
+    });
+    expect(existsSync(lock)).toBe(true);
+    expect(readFileSync(lock, "utf8")).toContain("successor-token");
+  });
+
+  it("is reentrant per (root, changeId) without re-opening or re-removing", () => {
+    const root = candidateRoot("reentrant");
+    const lock = lockPathFor(root, "C-LOCK-REENTRANT");
+    let innerSawLock = false;
+    graceCursorModule.withCandidateLock(root, "C-LOCK-REENTRANT", () => {
+      graceCursorModule.withCandidateLock(root, "C-LOCK-REENTRANT", () => {
+        innerSawLock = existsSync(lock);
+      });
+      expect(existsSync(lock)).toBe(true);
+    });
+    expect(innerSawLock).toBe(true);
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  it("is never captured as WriteEvidence", () => {
+    const root = createProject();
+    mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+    writeFileSync(path.join(root, "seed.txt"), "seed\n");
+    initGitBaseline(root);
+    writeFileSync(lockPathFor(root, "C-LOCK-EVIDENCE"), `99999\n${Date.now()}\ntok\n`, { flag: "wx" });
+    const evidence = graceCursorModule.snapshotWriteEvidence(root);
+    expect(evidence.available).toBe(true);
+    const paths = evidence.available ? evidence.files.map((file) => file.path) : [];
+    expect(paths.some((file) => file.includes(".candidate-C-LOCK-EVIDENCE.lock"))).toBe(false);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8 T-002: candidate-lock cooperation.
+describe("candidate-lock cooperation", () => {
+  const markerOf = (bundle: string) => path.join(bundle, ".ngrace-mint-owner");
+  const repoRoot = path.resolve(import.meta.dir, "..");
+  const graceBin = path.join(repoRoot, "src", "grace.ts");
+
+  function openedBundle(root: string, id: string): string {
+    const bundle = seedBundle(root, id);
+    advanceCursor(root, id, { task: "T-001", openEpoch: true, from: 1, to: 10 });
+    advanceCursor(root, id, { task: "T-001", kind: "progress" });
+    advanceCursor(root, id, { task: "T-001", kind: "terminal" });
+    return bundle;
+  }
+
+  it("foldEpoch refuses an unpublished candidate before any write", () => {
+    const root = createProject();
+    const bundle = openedBundle(root, "C-UNPUB");
+    const ledger = path.join(bundle, "run-ledger.xml");
+    const runBefore = readdirSync(path.join(bundle, "run")).sort();
+    const ledgerBefore = existsSync(ledger) ? readFileSync(ledger, "utf8") : "";
+    writeFileSync(markerOf(bundle), "token\n");
+    expect(() => foldEpoch(root, "C-UNPUB")).toThrow(/unpublished candidate/i);
+    expect(readdirSync(path.join(bundle, "run")).sort()).toEqual(runBefore);
+    expect(existsSync(ledger) ? readFileSync(ledger, "utf8") : "").toBe(ledgerBefore);
+  });
+
+  it("advanceCursor refuses an unpublished candidate before creating run/", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-UNPUB2");
+    writeFileSync(markerOf(bundle), "token\n");
+    expect(() =>
+      advanceCursor(root, "C-UNPUB2", { task: "T-001", openEpoch: true, from: 1, to: 10 }),
+    ).toThrow(/unpublished candidate/i);
+    expect(existsSync(path.join(bundle, "run"))).toBe(false);
+  });
+
+  it("recordAttempt refuses an unpublished candidate", () => {
+    const root = createProject();
+    const bundle = openedBundle(root, "C-UNPUB3");
+    writeFileSync(markerOf(bundle), "token\n");
+    expect(() => recordAttempt(root, "C-UNPUB3", { task: "T-001", outcome: "pass" })).toThrow(
+      /unpublished candidate/i,
+    );
+    expect(readdirSync(path.join(bundle, "run")).sort()).toEqual([
+      "1-T-001-opened.xml",
+      "2-T-001-progress.xml",
+      "3-T-001-terminal.xml",
+    ]);
+  });
+
+  it("a live publisher is waited on, then the contender proceeds", async () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+    const pauseFile = path.join(root, "release-candidate");
+    const env = { ...process.env, NGRACE_PAUSE_CANDIDATE_FILE: pauseFile };
+    const publisher = Bun.spawn({
+      cmd: [
+        process.execPath,
+        graceBin,
+        "spec",
+        "new",
+        "T002-LIVE",
+        "--timestamp",
+        "2026-09-19T00:00:00Z",
+        "--branch",
+        "probe",
+        "--path",
+        root,
+      ],
+      cwd: repoRoot,
+      env,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    // Wait until the publisher has written its exclusive spec.xml (paused before publish).
+    const activeDir = path.join(root, ARTIFACT_DIR, "changes", "active");
+    let bundle: string | undefined;
+    for (let i = 0; i < 400 && !bundle; i += 1) {
+      const found = existsSync(activeDir)
+        ? readdirSync(activeDir).find((name) => name.startsWith("C-T002-LIVE-1-"))
+        : undefined;
+      if (found && existsSync(path.join(activeDir, found, "spec.xml"))) bundle = path.join(activeDir, found);
+      if (!bundle) await Bun.sleep(5);
+    }
+    expect(bundle).toBeDefined();
+    const changeId = path.basename(bundle!);
+    // Contender: open an epoch. Must wait on the held candidate lock.
+    const contender = Bun.spawn({
+      cmd: [process.execPath, graceBin, "cursor", "advance", "--change", changeId, "--task", "T-001", "--open-epoch", "--path", root],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    await Bun.sleep(250);
+    const exitedWhileHeld = await Promise.race([contender.exited, Bun.sleep(1).then(() => null)]);
+    expect(exitedWhileHeld).toBeNull();
+    expect(existsSync(path.join(bundle!, "run"))).toBe(false);
+    // Release the publisher; it publishes, the contender then acquires and proceeds.
+    writeFileSync(pauseFile, "go");
+    const pubExit = await publisher.exited;
+    const conExit = await contender.exited;
+    expect(pubExit).toBe(0);
+    expect(conExit).toBe(0);
+    expect(existsSync(markerOf(bundle!))).toBe(false);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-002: under-lock attempt snapshot.
+describe("attempt snapshot placement", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+  const graceBin = path.join(repoRoot, "src", "grace.ts");
+
+  it("AC-ATTEMPT-SNAPSHOT-UNDER-LOCK: a file changed while the attempt waits is recorded", async () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+    initGitBaseline(root);
+    const pauseFile = path.join(root, "release-publisher");
+    const env = { ...process.env, NGRACE_PAUSE_CANDIDATE_FILE: pauseFile };
+    const publisher = Bun.spawn({
+      cmd: [process.execPath, graceBin, "spec", "new", "SNAP", "--timestamp", "2026-09-19T00:00:00Z", "--branch", "probe", "--path", root],
+      cwd: repoRoot,
+      env,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const activeDir = path.join(root, ARTIFACT_DIR, "changes", "active");
+    let id: string | undefined;
+    for (let i = 0; i < 400 && !id; i += 1) {
+      const found = existsSync(activeDir) ? readdirSync(activeDir).find((name) => name.startsWith("C-SNAP-1-")) : undefined;
+      if (found && existsSync(path.join(activeDir, found, "spec.xml"))) id = found;
+      if (!id) await Bun.sleep(5);
+    }
+    expect(id).toBeDefined();
+    const bundle = path.join(activeDir, id!);
+    const contender = Bun.spawn({
+      cmd: [process.execPath, graceBin, "cursor", "attempt", "--change", id!, "--task", "T-001", "--outcome", "pass", "--path", root],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    await Bun.sleep(300);
+    // Pending while the publisher holds the lock: no attempt event written yet.
+    expect(listLooseEvents(bundle).some((event) => event.kind === "attempt")).toBe(false);
+    // Written only AFTER the contender queued on the held lock: a pre-lock snapshot
+    // cannot have seen it.
+    writeFileSync(path.join(root, "wait-marker.txt"), "changed during wait\n");
+    writeFileSync(pauseFile, "go\n");
+    await publisher.exited;
+    const code = await contender.exited;
+    expect(code).toBe(0);
+    const attempt = listLooseEvents(bundle).find((event) => event.kind === "attempt");
+    expect(attempt).toBeDefined();
+    const payload = readAttemptPayload(attempt!);
+    const evidence = payload.writeEvidence;
+    const paths = evidence && evidence.available ? evidence.files.map((file) => file.path) : [];
+    expect(paths).toContain("wait-marker.txt");
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-002: token/identity-checked reclaim scheduling.
+describe("candidate reclaim exclusivity", () => {
+  const lockDirFor = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
+  const lockPathFor = (root: string, id: string) => path.join(lockDirFor(root), `.candidate-${id}.lock`);
+
+  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE: a stale observer cannot unlink a replacement holder (B/A/B)", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-race-"));
+    mkdirSync(lockDirFor(root), { recursive: true });
+    const lockPath = lockPathFor(root, "C-RACE");
+    writeFileSync(lockPath, `2147483647\n${Date.now()}\ndead-token\n`, { flag: "wx" });
+    const bObserved = path.join(root, "b-observed");
+    const bRelease = path.join(root, "b-release");
+    const bBeforeUnlink = path.join(root, "b-before-unlink");
+    const bAcquired = path.join(root, "b-acquired");
+    const bDone = path.join(root, "b-done");
+    const body = `
+      const fs = require('node:fs');
+      const mod = await import(${JSON.stringify(path.join(import.meta.dir, "grace-cursor.ts"))});
+      mod.setCandidateReclaimProbeForTests((phase, lockPath, observedRaw) => {
+        if (phase === 'observed') {
+          fs.writeFileSync(${JSON.stringify(bObserved)}, '1');
+          while (!fs.existsSync(${JSON.stringify(bRelease)})) Bun.sleep(5);
+        } else {
+          fs.writeFileSync(${JSON.stringify(bBeforeUnlink)}, observedRaw);
+        }
+      });
+      mod.withCandidateLock(${JSON.stringify(root)}, 'C-RACE', () => { fs.writeFileSync(${JSON.stringify(bAcquired)}, '1'); });
+      fs.writeFileSync(${JSON.stringify(bDone)}, '1');
+    `;
+    const b = Bun.spawn({ cmd: [process.execPath, "-e", body], stdout: "pipe", stderr: "pipe" });
+    for (let i = 0; i < 400 && !existsSync(bObserved); i += 1) await Bun.sleep(5);
+    expect(existsSync(bObserved)).toBe(true);
+
+    let heldBytes = "";
+    graceCursorModule.withCandidateLock(root, "C-RACE", () => {
+      heldBytes = readFileSync(lockPath, "utf8");
+      // Let B resume from its stale observation and attempt to reclaim.
+      writeFileSync(bRelease, "go");
+      Bun.sleepSync(500);
+      // B observed the dead bytes; A replaced them. B must not unlink A's bytes.
+      expect(existsSync(lockPath)).toBe(true);
+      expect(readFileSync(lockPath, "utf8")).toBe(heldBytes);
+      expect(existsSync(bBeforeUnlink)).toBe(false);
+      expect(existsSync(bAcquired)).toBe(false);
+    });
+    // A released: B acquires on its own retry and removes only its own lock.
+    for (let i = 0; i < 1000 && !existsSync(bDone); i += 1) await Bun.sleep(5);
+    expect(existsSync(bDone)).toBe(true);
+    expect(existsSync(bAcquired)).toBe(true);
+    expect(existsSync(lockPath)).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+    await b.exited;
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-002: regenerate entry locking and alias mapping.
+describe("regenerate entry lock", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+  const graceBin = path.join(repoRoot, "src", "grace.ts");
+
+  it("AC-REGEN-ENTRY-LOCK: pending under a live publisher, then post-lock dirty refusal with default allowDirty:false", async () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+    initGitBaseline(root);
+    const pauseFile = path.join(root, "release-publisher");
+    const env = { ...process.env, NGRACE_PAUSE_CANDIDATE_FILE: pauseFile };
+    const publisher = Bun.spawn({
+      cmd: [process.execPath, graceBin, "spec", "new", "REGEN", "--timestamp", "2026-09-19T00:00:00Z", "--branch", "probe", "--path", root],
+      cwd: repoRoot,
+      env,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const activeDir = path.join(root, ARTIFACT_DIR, "changes", "active");
+    let id: string | undefined;
+    for (let i = 0; i < 400 && !id; i += 1) {
+      const found = existsSync(activeDir) ? readdirSync(activeDir).find((name) => name.startsWith("C-REGEN-1-")) : undefined;
+      if (found && existsSync(path.join(activeDir, found, "spec.xml"))) id = found;
+      if (!id) await Bun.sleep(5);
+    }
+    expect(id).toBeDefined();
+    const bundle = path.join(activeDir, id!);
+    const cursorPath = path.join(bundle, "run.xml");
+    // Dirt created while the publisher holds the lock.
+    writeFileSync(path.join(root, "regen-dirt.txt"), "dirty\n");
+    const contender = Bun.spawn({
+      cmd: [process.execPath, graceBin, "cursor", "regenerate", "--change", id!, "--apply", "--path", root],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    await Bun.sleep(300);
+    // Pending and byte-invariant: no run.xml written while the lock is held.
+    expect(existsSync(cursorPath)).toBe(false);
+    writeFileSync(pauseFile, "go\n");
+    await publisher.exited;
+    const code = await contender.exited;
+    expect(code).not.toBe(0);
+    // Post-lock dirty refusal, not the pre-lock one; no write.
+    expect(existsSync(cursorPath)).toBe(false);
+  });
+
+  it("AC-REGEN-ENTRY-LOCK controls: clean tree writes; allowDirty:true writes over dirt", () => {
+    const clean = createProject();
+    writeMinimalNgraceProject(clean);
+    seedBundle(clean, "C-REGEN-CLEAN");
+    initGitBaseline(clean);
+    const applied = graceCursorModule.regenerateCursor(clean, "C-REGEN-CLEAN", { apply: true });
+    expect(applied.applied).toBe(true);
+    expect(existsSync(path.join(clean, ARTIFACT_DIR, "changes", "active", "C-REGEN-CLEAN", "run.xml"))).toBe(true);
+
+    const dirty = createProject();
+    writeMinimalNgraceProject(dirty);
+    seedBundle(dirty, "C-REGEN-DIRTY");
+    initGitBaseline(dirty);
+    writeFileSync(path.join(dirty, "dirt.txt"), "dirty\n");
+    const allowed = graceCursorModule.regenerateCursor(dirty, "C-REGEN-DIRTY", { apply: true, allowDirty: true });
+    expect(allowed.applied).toBe(true);
+  });
+});
+
+describe("pause/resume alias mapping", () => {
+  it("AC-ALIAS-MAPPING: pauseCursor and resumeCursor are exported and delegate to advanceCursor", () => {
+    const src = readFileSync(path.join(import.meta.dir, "grace-cursor.ts"), "utf8");
+    expect(typeof graceCursorModule.pauseCursor).toBe("function");
+    expect(typeof graceCursorModule.resumeCursor).toBe("function");
+    expect(src).toMatch(/export function pauseCursor\([\s\S]*?return advanceCursor\(projectRoot, changeId, \{ task, kind: "pause" \}\);/);
+    expect(src).toMatch(/export function resumeCursor\([\s\S]*?return advanceCursor\(projectRoot, changeId, \{[\s\S]*?kind: "resume"/);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-002: filesystem-identity reclaim control.
+describe("candidate reclaim identity", () => {
+  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE: a same-bytes replacement inode is not unlinked", async () => {
+    const lockDirFor = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
+    const lockPathFor = (root: string, id: string) => path.join(lockDirFor(root), `.candidate-${id}.lock`);
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-ident-"));
+    mkdirSync(lockDirFor(root), { recursive: true });
+    const lockPath = lockPathFor(root, "C-IDENT");
+    const stale = `2147483647\n${Date.now()}\ndead-token\n`;
+    writeFileSync(lockPath, stale, { flag: "wx" });
+    const bReplaced = path.join(root, "b-replaced");
+    const bSecond = path.join(root, "b-second-observed");
+    const bAcquired = path.join(root, "b-acquired");
+    const body = `
+      const fs = require('node:fs');
+      const mod = await import(${JSON.stringify(path.join(import.meta.dir, "grace-cursor.ts"))});
+      let observed = 0;
+      let replaced = false;
+      mod.setCandidateReclaimProbeForTests((phase, lockPath) => {
+        if (phase === 'observed') {
+          observed += 1;
+          if (observed >= 2) { fs.writeFileSync(${JSON.stringify(bSecond)}, '1'); while (true) Bun.sleep(50); }
+        } else if (!replaced) {
+          replaced = true;
+          const bytes = fs.readFileSync(lockPath, 'utf8');
+          fs.unlinkSync(lockPath);
+          fs.writeFileSync(lockPath, bytes, { flag: 'wx' });
+          fs.writeFileSync(${JSON.stringify(bReplaced)}, String(fs.statSync(lockPath).ino));
+        }
+      });
+      mod.withCandidateLock(${JSON.stringify(root)}, 'C-IDENT', () => { fs.writeFileSync(${JSON.stringify(bAcquired)}, '1'); });
+    `;
+    const b = Bun.spawn({ cmd: [process.execPath, "-e", body], stdout: "pipe", stderr: "pipe" });
+    for (let i = 0; i < 400 && !existsSync(bReplaced); i += 1) await Bun.sleep(5);
+    expect(existsSync(bReplaced)).toBe(true);
+    const replacementIno = Number(readFileSync(bReplaced, "utf8"));
+    for (let i = 0; i < 800 && !existsSync(bSecond); i += 1) await Bun.sleep(5);
+    expect(existsSync(bSecond), "B retried and observed the replacement").toBe(true);
+    expect(existsSync(bAcquired), "B never acquired by unlinking the replacement inode").toBe(false);
+    expect(statSync(lockPath).ino, "the replacement inode survives").toBe(replacementIno);
+    expect(readFileSync(lockPath, "utf8")).toBe(stale);
+    b.kill();
+    await b.exited;
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-002: the exact-path dirty filter.
+describe("dirty filter exact path", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+
+  function dirtyFixture(changeId: string, nearRel: string): string {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    seedBundle(root, changeId);
+    // Track the near-miss so its full path (not a collapsed untracked directory) is
+    // what git status reports, then modify it so the tree is dirty.
+    const near = path.join(root, nearRel);
+    mkdirSync(path.dirname(near), { recursive: true });
+    writeFileSync(near, "committed\n");
+    initGitBaseline(root);
+    writeFileSync(near, "modified\n");
+    return root;
+  }
+
+  it("AC-REGEN-ENTRY-LOCK: a tracked nested near-miss lock basename keeps the tree dirty", () => {
+    const changeId = "C-REGEN-MISS";
+    const root = dirtyFixture(changeId, path.join("nested", ".ngrace", "changes", "active", `.candidate-${changeId}.lock`));
+    const cursorPath = path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run.xml");
+    expect(() => graceCursorModule.regenerateCursor(root, changeId, { apply: true })).toThrow(/dirty/i);
+    expect(existsSync(cursorPath)).toBe(false);
+  });
+
+  it("AC-REGEN-ENTRY-LOCK: a quoted path with a space still counts as dirt", () => {
+    const changeId = "C-REGEN-QUOTED";
+    const root = dirtyFixture(changeId, path.join("nested dir", "user note.txt"));
+    const cursorPath = path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run.xml");
+    expect(() => graceCursorModule.regenerateCursor(root, changeId, { apply: true })).toThrow(/dirty/i);
+    expect(existsSync(cursorPath)).toBe(false);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-006: exact epoch payload preservation.
+describe("epoch payload preservation", () => {
+  function canonicalNode(node: GraceXmlNode): unknown {
+    const attrs = Object.fromEntries(Object.entries(node.attributes ?? {}).sort(([a], [b]) => a.localeCompare(b)));
+    return { tag: node.tag, attrs, text: node.text ?? "", children: (node.children ?? []).map(canonicalNode) };
+  }
+  const canonicalChildren = (children: GraceXmlNode[]): string => JSON.stringify(children.map(canonicalNode));
+
+  it("each folded event matches its loose event under expectedLedgerEventAttributes plus complete child subtrees", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-PAYLOAD");
+    advanceCursor(root, "C-PAYLOAD", { task: "T-001", openEpoch: true, from: 1, to: 10 });
+    recordAttempt(root, "C-PAYLOAD", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "compile", key: "T-001" },
+      writeEvidence: { available: true, files: [{ path: "src/example.ts", kind: "content", digest: "digest-abc" }] },
+    });
+    advanceCursor(root, "C-PAYLOAD", { task: "T-001", kind: "terminal" });
+    const loose = listLooseEvents(bundle);
+    expect(loose.some((event) => event.children.length > 0), "fixture has nontrivial children").toBe(true);
+    foldEpoch(root, "C-PAYLOAD");
+    const folded = listLedgerEvents(bundle);
+    expect(folded).toHaveLength(loose.length);
+    for (const event of loose) {
+      const written = folded.find((candidate) => candidate.id === event.id);
+      expect(written, `event ${event.id} folded`).toBeDefined();
+      expect(expectedLedgerEventAttributes(written!)).toEqual(expectedLedgerEventAttributes(event));
+      expect(canonicalChildren(written!.children), `event ${event.id} child subtrees`).toBe(canonicalChildren(event.children));
+    }
+    expect(folded.filter((event) => event.id === 1)).toHaveLength(1);
+    // Non-vacuity: the comparator detects a mutated child attribute (the fold's own
+    // verify already rejects such a write, so this proves the test layer too).
+    const withChild = loose.find((event) => event.children.length > 0)!;
+    const mutated = withChild.children.map((child) => ({ ...child, attributes: { ...child.attributes, to: "999" } }));
+    expect(canonicalChildren(mutated as GraceXmlNode[])).not.toBe(canonicalChildren(withChild.children));
+  });
+
+  it("negative controls: the comparator detects attribute, text-whitespace, order, and nested-descendant changes", () => {
+    const node = (tag: string, attributes: Record<string, string>, text: string, children: GraceXmlNode[] = []): GraceXmlNode =>
+      ({ tag, attributes, text, children });
+    const childA = node("Note", { key: "a" }, "A");
+    const childB = node("Note", { key: "b" }, "B");
+    const base = node("Allocation", { worker: "w0", from: "1", to: "10" }, "", [childA, childB]);
+    const reversed = node("Allocation", { worker: "w0", from: "1", to: "10" }, "", [childB, childA]);
+    const extra = node("Allocation", { worker: "w0", from: "1", to: "10" }, "", [childA, childB, node("Note", { key: "c" }, "C")]);
+    const changedAttr = node("Allocation", { worker: "w0", from: "1", to: "999" }, "", [childA, childB]);
+    const changedTextWhitespace = node("Allocation", { worker: "w0", from: "1", to: "10" }, "", [childA, node("Note", { key: "b" }, " B ")]);
+    const nested = node("Allocation", { worker: "w0", from: "1", to: "10" }, "", [childA, node("Note", { key: "b" }, "B", [node("Deep", {}, "d")])]);
+    expect(canonicalChildren([reversed]), "same two children reversed").not.toBe(canonicalChildren([base]));
+    expect(canonicalChildren([extra]), "one extra child").not.toBe(canonicalChildren([base]));
+    expect(canonicalChildren([changedAttr]), "attribute change").not.toBe(canonicalChildren([base]));
+    expect(canonicalChildren([changedTextWhitespace]), "leading/trailing whitespace change").not.toBe(canonicalChildren([base]));
+    expect(canonicalChildren([nested]), "nested descendant").not.toBe(canonicalChildren([base]));
   });
 });

@@ -65,6 +65,12 @@ const bundleMinted: Record<string, string> = {
   // state.
   F304: "C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9",
   F305: "C-SECTION-REGISTRY-AND-FLUSH-1-766B2DF9",
+  // C-SUPERSEDE-MEMBERSHIP-4-20941257: the single token this bundle pays at
+  // its close (Pays F314). The extension is consulted only for tokens the
+  // derivation actually mints, so the walk is green with the charter row live as
+  // an active bundle and green in the applied-archive state. A stale id reds the
+  // same walk.
+  F314: "C-SUPERSEDE-MEMBERSHIP-4-20941257",
   // C-INSPECTION-SURFACE-1-2628AA2B T-006: the chartered row's two minted tokens.
   // The extension is consulted only for tokens the derivation actually mints, so
   // the walk is green with the row live (nothing minted — the row's name is not an

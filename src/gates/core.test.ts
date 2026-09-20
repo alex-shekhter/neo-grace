@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -30,13 +30,16 @@ import {
   readPermittingDecision,
   recordGateDecision,
   recordReviewVerdict,
+  supersedeChangeBundle,
   stampApproveArtifact,
+  applyChangeBundle,
   computeVerdictSnapshotDigest,
   readAmendmentInstrument,
   type ReviewVerdictRecord,
 } from "./ledger";
 import { GraceCommandError } from "../query/errors";
-import { advanceCursor, foldEpoch, listLooseEvents, recordAttempt, resumeCursor, showCursor } from "../grace-cursor";
+import { advanceCursor, appendCommandRunEvent, discardAndFoldEpoch, foldEpoch, listLooseEvents, pauseCursor, recordAttempt, recordCalibrationRestatement, recordVerificationUnavailable, recoverCursor, regenerateCursor, resumeCursor, showCursor, withCandidateLock } from "../grace-cursor";
+import { mintResolvedBundle, pauseCandidatePublicationForTests, resolveSpecMint, type ResolvedSpecMint } from "../grace-generate";
 import { formatGateEvaluation, gateCommand } from "./command";
 import { runReview } from "../review/core";
 
@@ -2818,5 +2821,363 @@ describe("C-TEST-TIME-BUDGET-2-3EC1F016 predecessor memo invalidation", () => {
     __resetPredecessorCache();
     expect(readAmendmentInstrument(root, "C-TARGET").supersedeChainDepth).toBe(0);
     expect(__predecessorMemoStats.builds).toBe(1);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-003: the three-phase review-verdict snapshot.
+describe("review verdict three-phase", () => {
+  function appliedArchive(changeId: string): { root: string; bundle: string; specPath: string; ledgerPath: string } {
+    const root = tempProject();
+    writeChangeBundleFixture(root, {
+      changeId,
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", changeId);
+    return { root, bundle, specPath: path.join(bundle, "spec.xml"), ledgerPath: path.join(bundle, "run-ledger.xml") };
+  }
+
+  it("(a) a spec-byte mutation between snapshot and write refuses and preserves the mutated bytes", () => {
+    const { root, specPath, ledgerPath } = appliedArchive("C-3PH-SPEC");
+    writeCloseEvidenceSpec(specPath, `printf '\\n<!--spec-mutated-->' >> ${specPath}`);
+    const ledgerBefore = existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : null;
+    const result = runGateCli(
+      ["verdict", "--change", "C-3PH-SPEC", "--outcome", "pass", "--path", root, ...ackFindingCliArgs(root, "C-3PH-SPEC")],
+      root,
+    );
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toMatch(/stale snapshot/i);
+    expect(readFileSync(specPath, "utf8")).toContain("spec-mutated");
+    expect(existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : null).toBe(ledgerBefore);
+  });
+
+  it("(b) a ledger-byte mutation between snapshot and write refuses", () => {
+    const { root, specPath, ledgerPath } = appliedArchive("C-3PH-LEDGER");
+    writeCloseEvidenceSpec(specPath, `printf ' ' >> ${ledgerPath}`);
+    const result = runGateCli(
+      ["verdict", "--change", "C-3PH-LEDGER", "--outcome", "pass", "--path", root, ...ackFindingCliArgs(root, "C-3PH-LEDGER")],
+      root,
+    );
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toMatch(/stale snapshot/i);
+    expect(readFileSync(ledgerPath, "utf8").endsWith(" ")).toBe(true);
+  });
+
+  it("clean prerequisite: an unchanged applied archive records the verdict", () => {
+    const { root, specPath, ledgerPath } = appliedArchive("C-3PH-CLEAN");
+    writeCloseEvidenceSpec(specPath, "true");
+    const result = runGateCli(
+      ["verdict", "--change", "C-3PH-CLEAN", "--outcome", "pass", "--path", root, ...ackFindingCliArgs(root, "C-3PH-CLEAN")],
+      root,
+    );
+    expect(result.status).toBe(0);
+    expect(readFileSync(ledgerPath, "utf8")).toContain('outcome="pass"');
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-003: identity-only and location-only verdict cases.
+describe("review verdict three-phase identity and location", () => {
+  function appliedArchive(changeId: string): { root: string; bundle: string; specPath: string; ledgerPath: string } {
+    const root = tempProject();
+    writeChangeBundleFixture(root, {
+      changeId,
+      location: "archive",
+      specStatus: "applied",
+      planStatus: "applied",
+    });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", changeId);
+    return { root, bundle, specPath: path.join(bundle, "spec.xml"), ledgerPath: path.join(bundle, "run-ledger.xml") };
+  }
+
+  it("(c) a same-path directory replacement with byte-identical prerequisites (identity-only) refuses", () => {
+    const { root, bundle, specPath } = appliedArchive("C-3PH-IDENT");
+    const tmp = `${bundle}.swap`;
+    writeCloseEvidenceSpec(specPath, `mv ${bundle} ${tmp}; cp -a ${tmp} ${bundle}; rm -rf ${tmp}`);
+    const result = runGateCli(
+      ["verdict", "--change", "C-3PH-IDENT", "--outcome", "pass", "--path", root, ...ackFindingCliArgs(root, "C-3PH-IDENT")],
+      root,
+    );
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toMatch(/identity|stale snapshot/i);
+  });
+
+  it("(d) an active/archive relocation (location-only) refuses", () => {
+    const { root, bundle, specPath } = appliedArchive("C-3PH-LOC");
+    const active = path.join(root, ARTIFACT_DIR, "changes", "active", "C-3PH-LOC");
+    mkdirSync(path.dirname(active), { recursive: true });
+    writeCloseEvidenceSpec(specPath, `mv ${bundle} ${active}`);
+    const result = runGateCli(
+      ["verdict", "--change", "C-3PH-LOC", "--outcome", "pass", "--path", root, ...ackFindingCliArgs(root, "C-3PH-LOC")],
+      root,
+    );
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toMatch(/location|stale snapshot/i);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-003: the covered outer-mutation-writer population.
+describe("cooperating writer population", () => {
+  const ACTIVE = path.join(ARTIFACT_DIR, "changes", "active");
+  const REPO = path.resolve(import.meta.dir, "../..");
+  const CURSOR_MODULE = path.join(REPO, "src", "grace-cursor.ts");
+
+  function recursiveSnapshot(dir: string): string {
+    if (!existsSync(dir)) return "";
+    const lines: string[] = [];
+    const walk = (abs: string, rel: string): void => {
+      const stat = statSync(abs);
+      if (stat.isDirectory()) {
+        for (const name of readdirSync(abs).sort()) walk(path.join(abs, name), rel ? `${rel}/${name}` : name);
+        return;
+      }
+      lines.push(`${rel}\t${readFileSync(abs, "utf8").length}\t${createHash("sha256").update(readFileSync(abs)).digest("hex")}`);
+    };
+    walk(dir, "");
+    return lines.sort().join("\n");
+  }
+
+  function initGit(root: string): void {
+    for (const args of [["init"], ["config", "user.email", "a@b.c"], ["config", "user.name", "T"], ["add", "."], ["commit", "-m", "baseline"]]) {
+      const result = Bun.spawnSync({ cmd: ["git", ...args], cwd: root, stdout: "pipe", stderr: "pipe" });
+      if (result.exitCode !== 0) throw new Error(Buffer.from(result.stderr).toString("utf8"));
+    }
+  }
+
+  type LiveExpectation = { ok: true } | { ok: false; message: RegExp };
+  type LiveRow = {
+    /** Module that exports the writer, or the CLI for the `plan new` row. */
+    module?: string;
+    entry?: string;
+    cliArgs?: (changeId: string) => string[];
+    args?: (root: string, changeId: string) => unknown[];
+    prepare?: (root: string, changeId: string) => void;
+    expect: LiveExpectation;
+  };
+  type WriterRow = {
+    name: string;
+    specStatus?: string;
+    planStatus?: string;
+    prepare?: (root: string, bundle: string, changeId: string) => void;
+    invoke: (root: string, changeId: string, bundle: string) => unknown;
+    live: LiveRow;
+  };
+
+  const LEDGER_MODULE = path.join(REPO, "src", "gates", "ledger.ts");
+  /** A writer runner used by the live-publisher rows, so a writer can block on the lock. */
+  const WRITER_RUNNER = [
+    'import { readFileSync, writeFileSync } from "node:fs";',
+    'const s = JSON.parse(readFileSync(process.argv[2], "utf8"));',
+    'try { const mod = await import(s.module); await mod[s.entry](...s.args); writeFileSync(s.result, JSON.stringify({ ok: true })); }',
+    'catch (e) { writeFileSync(s.result, JSON.stringify({ ok: false, message: String((e && e.message) || e) })); }',
+    "",
+  ].join("\n");
+
+  /** The lineage successor of a live-publisher candidate id. */
+  function lineageSuccessor(changeId: string): string {
+    return changeId.replace(/-1-([0-9A-F]{8})$/, "-2-$1");
+  }
+
+  const rows: WriterRow[] = [
+    {
+      name: "writePlanNew",
+      invoke: (root, changeId) => {
+        const result = Bun.spawnSync({ cmd: ["bun", "run", path.join(REPO, "src/grace.ts"), "plan", "new", changeId, "--path", root], cwd: REPO, stdout: "pipe", stderr: "pipe" });
+        if (result.exitCode !== 0) {
+          throw new GraceCommandError("invalid-arguments", Buffer.from(result.stderr).toString("utf8"));
+        }
+        return result;
+      },
+      live: { cliArgs: (changeId) => ["plan", "new", changeId], expect: { ok: false, message: /not approved/i } },
+    },
+    {
+      name: "stampApproveArtifact",
+      specStatus: "draft",
+      invoke: (root, changeId) => stampApproveArtifact(root, changeId, "spec"),
+      live: { module: LEDGER_MODULE, entry: "stampApproveArtifact", args: (root, changeId) => [root, changeId, "spec"], expect: { ok: true } },
+    },
+    {
+      name: "regenerateCursor",
+      prepare: (root) => initGit(root),
+      invoke: (root, changeId) => regenerateCursor(root, changeId, { apply: true, allowDirty: true }),
+      live: { module: CURSOR_MODULE, entry: "regenerateCursor", prepare: (root) => initGit(root), args: (root, changeId) => [root, changeId, { apply: true, allowDirty: true }], expect: { ok: true } },
+    },
+    { name: "advanceCursor", invoke: (root, changeId) => advanceCursor(root, changeId, { task: "T-001", openEpoch: true, from: 1, to: 10 }), live: { module: CURSOR_MODULE, entry: "advanceCursor", args: (root, changeId) => [root, changeId, { task: "T-001", openEpoch: true, from: 1, to: 10 }], expect: { ok: true } } },
+    { name: "pauseCursor", invoke: (root, changeId) => pauseCursor(root, changeId, "T-001"), live: { module: CURSOR_MODULE, entry: "pauseCursor", args: (root, changeId) => [root, changeId, "T-001"], expect: { ok: true } } },
+    { name: "resumeCursor", invoke: (root, changeId) => resumeCursor(root, changeId, "T-001"), live: { module: CURSOR_MODULE, entry: "resumeCursor", args: (root, changeId) => [root, changeId, "T-001"], expect: { ok: true } } },
+    { name: "recordAttempt", invoke: (root, changeId) => recordAttempt(root, changeId, { task: "T-001", outcome: "pass" }), live: { module: CURSOR_MODULE, entry: "recordAttempt", args: (root, changeId) => [root, changeId, { task: "T-001", outcome: "pass" }], expect: { ok: true } } },
+    { name: "recordVerificationUnavailable", invoke: (root, changeId) => recordVerificationUnavailable(root, changeId, { task: "T-001", absence: { verdict: "unable-to-determine", reason: "test" } }), live: { module: CURSOR_MODULE, entry: "recordVerificationUnavailable", args: (root, changeId) => [root, changeId, { task: "T-001", absence: { verdict: "unable-to-determine", reason: "test" } }], expect: { ok: true } } },
+    { name: "foldEpoch", invoke: (root, changeId) => foldEpoch(root, changeId), live: { module: CURSOR_MODULE, entry: "foldEpoch", args: (root, changeId) => [root, changeId], expect: { ok: false, message: /No loose run\/ events to fold/ } } },
+    { name: "recoverCursor", invoke: (root, changeId) => recoverCursor(root, changeId, { fix: true }), live: { module: CURSOR_MODULE, entry: "recoverCursor", args: (root, changeId) => [root, changeId, { fix: true }], expect: { ok: false, message: /no valid loose integer events/ } } },
+    { name: "appendCommandRunEvent", invoke: (root, changeId) => appendCommandRunEvent(root, changeId, { command: "bun test", exitCode: 0, assertionPassed: true, assertionKind: "MustPassCommand", source: "test" }, { task: "T-001" }), live: { module: CURSOR_MODULE, entry: "appendCommandRunEvent", args: (root, changeId) => [root, changeId, { command: "bun test", exitCode: 0, assertionPassed: true, assertionKind: "MustPassCommand", source: "test" }, { task: "T-001" }], expect: { ok: false, message: /no declared task is in scope/ } } },
+    { name: "recordReviewVerdict", invoke: (root, changeId) => recordReviewVerdict(root, changeId, { outcome: "fail", reason: "test" }), live: { module: LEDGER_MODULE, entry: "recordReviewVerdict", args: (root, changeId) => [root, changeId, { outcome: "fail", reason: "test" }], expect: { ok: true } } },
+    { name: "recordGateDecision", invoke: (root, changeId) => recordGateDecision(root, changeId, { gate: "apply", decision: "refuse", requirements: [] }), live: { module: LEDGER_MODULE, entry: "recordGateDecision", args: (root, changeId) => [root, changeId, { gate: "apply", decision: "refuse", requirements: [] }], expect: { ok: true } } },
+    { name: "discardAndFoldEpoch", invoke: (root, changeId) => discardAndFoldEpoch(root, changeId), live: { module: CURSOR_MODULE, entry: "discardAndFoldEpoch", args: (root, changeId) => [root, changeId], expect: { ok: true } } },
+    { name: "recordCalibrationRestatement", invoke: (root, changeId) => recordCalibrationRestatement(root, changeId, { changeId, epoch: 1, adjudicatedAt: "backfill", reason: "test" }), live: { module: CURSOR_MODULE, entry: "recordCalibrationRestatement", args: (root, changeId) => [root, changeId, { changeId, epoch: 1, adjudicatedAt: "backfill", reason: "test" }], expect: { ok: false, message: /has no run-ledger\.xml/ } } },
+    {
+      name: "supersedeChangeBundle",
+      prepare: (root, bundle, changeId) => {
+        writeChangeBundleFixture(root, { changeId: "C-WRITER-SUCC-2-ABCDEF12", location: "active", specStatus: "draft", planStatus: "draft" });
+        void bundle;
+        void changeId;
+      },
+      invoke: (root, changeId) => supersedeChangeBundle(root, changeId, { kind: "explicit", id: "C-WRITER-SUCC-2-ABCDEF12" }),
+      live: {
+        module: LEDGER_MODULE,
+        entry: "supersedeChangeBundle",
+        prepare: (root, changeId) => {
+          writeChangeBundleFixture(root, { changeId: lineageSuccessor(changeId), location: "active", specStatus: "draft", planStatus: "draft" });
+        },
+        args: (root, changeId) => [root, changeId, { kind: "explicit", id: lineageSuccessor(changeId) }],
+        expect: { ok: true },
+      },
+    },
+  ];
+  const LIVE_IDS = rows.map((_, index) => `C-WLIVE-${String(index).padStart(2, "0")}-1-ABCDEF${String(index).padStart(2, "0")}`);
+
+  for (const row of rows) {
+    it(`AC-COOPERATING-WRITER-COVERAGE ${row.name}: crash-marker residue refuses before any write`, () => {
+      const root = tempProject();
+      const changeId = "C-WRITER-SUCC-1";
+      writeChangeBundleFixture(root, { changeId, location: "active", specStatus: row.specStatus ?? "approved", planStatus: row.planStatus ?? "approved" });
+      const bundle = path.join(root, ACTIVE, changeId);
+      row.prepare?.(root, bundle, changeId);
+      writeFileSync(path.join(bundle, ".ngrace-mint-owner"), "stale-token\n");
+      const before = recursiveSnapshot(bundle);
+      expect(() => row.invoke(root, changeId, bundle)).toThrow(/unpublished candidate/i);
+      expect(recursiveSnapshot(bundle), "no write under a stale marker").toBe(before);
+    });
+
+    it(`AC-COOPERATING-WRITER-COVERAGE ${row.name}: bare candidate-lock primitive is respected by a distinct lock holder (not the live-publisher half)`, async () => {
+      const root = tempProject();
+      const changeId = "C-WRITER-SUCC-1";
+      writeChangeBundleFixture(root, { changeId, location: "active", specStatus: row.specStatus ?? "approved", planStatus: row.planStatus ?? "approved" });
+      const bundle = path.join(root, ACTIVE, changeId);
+      row.prepare?.(root, bundle, changeId);
+      const lockPath = path.join(root, ACTIVE, `.candidate-${changeId}.lock`);
+      const body = `
+        const mod = await import(${JSON.stringify(CURSOR_MODULE)});
+        mod.withCandidateLock(${JSON.stringify(root)}, ${JSON.stringify(changeId)}, () => { Bun.sleepSync(400); });
+      `;
+      const holder = Bun.spawn({ cmd: [process.execPath, "-e", body], stdout: "pipe", stderr: "pipe" });
+      for (let i = 0; i < 400 && !existsSync(lockPath); i += 1) await Bun.sleep(5);
+      expect(existsSync(lockPath)).toBe(true);
+      const started = Date.now();
+      let caught: unknown;
+      try {
+        row.invoke(root, changeId, bundle);
+      } catch (error) {
+        caught = error;
+      }
+      const elapsed = Date.now() - started;
+      await holder.exited;
+      expect(elapsed, "the writer waited for the bare lock holder").toBeGreaterThanOrEqual(150);
+      expect(String((caught as Error)?.message ?? ""), "never the unpublished-candidate refusal").not.toMatch(/unpublished candidate/i);
+    });
+
+    it(`AC-COOPERATING-WRITER-COVERAGE ${row.name}: waits for a real paused publisher, then ${row.live.expect.ok ? "proceeds" : "refuses on its own prerequisite"}`, async () => {
+      const index = rows.indexOf(row);
+      const changeId = LIVE_IDS[index]!;
+      const root = tempProject();
+      row.live.prepare?.(root, changeId);
+      const bundle = path.join(root, ACTIVE, changeId);
+      const payloadFile = path.join(root, "payload.json");
+      const resultFile = path.join(root, "result.json");
+      const runnerFile = path.join(root, "writer-runner.js");
+      writeFileSync(runnerFile, WRITER_RUNNER);
+      const resolved: ResolvedSpecMint = { id: changeId, slug: "WLIVE", lineage: 1, hash: "ABCDEF12", branch: "probe", timestamp: "2026-09-19T00:00:00.000Z" };
+      let child: Bun.Subprocess | undefined;
+      let markerSeen = false;
+      let lockSeen = false;
+      let pending = false;
+      let invariant = false;
+      const startedAt = Date.now();
+      pauseCandidatePublicationForTests(() => {
+        const before = recursiveSnapshot(bundle);
+        markerSeen = existsSync(path.join(bundle, ".ngrace-mint-owner"));
+        lockSeen = existsSync(path.join(root, ACTIVE, `.candidate-${changeId}.lock`));
+        if (row.live.cliArgs) {
+          child = Bun.spawn({ cmd: [process.execPath, GRACE_BIN, ...row.live.cliArgs(changeId), "--path", root], cwd: REPO_ROOT, stdout: "pipe", stderr: "pipe" });
+        } else {
+          writeFileSync(payloadFile, JSON.stringify({ module: row.live.module, entry: row.live.entry, args: row.live.args!(root, changeId), result: resultFile }));
+          child = Bun.spawn({ cmd: [process.execPath, runnerFile, payloadFile], stdout: "pipe", stderr: "pipe" });
+        }
+        Bun.sleepSync(350);
+        pending = child.exitCode === null;
+        invariant = recursiveSnapshot(bundle) === before;
+      });
+      let publisherError: unknown;
+      try {
+        mintResolvedBundle(root, resolved);
+      } catch (error) {
+        publisherError = error;
+      } finally {
+        pauseCandidatePublicationForTests(null);
+      }
+      expect(publisherError, "the paused publisher's direct exit is success").toBeUndefined();
+      expect(markerSeen, "the publisher reached the paused marker-bearing state").toBe(true);
+      expect(lockSeen, "the publisher held the sibling candidate lock").toBe(true);
+      expect(pending, "the contender is pending during the publication state").toBe(true);
+      expect(invariant, "the contender is byte-invariant during the publication state").toBe(true);
+      const code = await child!.exited;
+      expect(Date.now() - startedAt, "the contender waited for the publisher").toBeGreaterThanOrEqual(150);
+      if (row.live.cliArgs) {
+        expect(code).toBe(row.live.expect.ok ? 0 : 1);
+        if (!row.live.expect.ok) {
+          const stderr = Buffer.from(await new Response(child!.stderr as ReadableStream).arrayBuffer()).toString("utf8");
+          expect(stderr, `${row.name} refuses on its own prerequisite`).toMatch(row.live.expect.message);
+        }
+      } else {
+        expect(existsSync(resultFile), "the writer reported an outcome").toBe(true);
+        const reported = JSON.parse(readFileSync(resultFile, "utf8")) as { ok: boolean; message?: string };
+        if (row.live.expect.ok) {
+          expect(reported.ok, `${row.name} succeeds after the wait: ${reported.message ?? ""}`).toBe(true);
+        } else {
+          expect(reported.ok, `${row.name} refuses on its own prerequisite`).toBe(false);
+          expect(reported.message ?? "", `${row.name} refuses on its own prerequisite`).toMatch(row.live.expect.message);
+        }
+        expect(code, "the writer process exits cleanly even when its function refuses").toBe(0);
+      }
+    });
+  }
+
+  it("AC-COOPERATING-WRITER-COVERAGE writeEventFile is the reentrant event fallback used by a public cursor path", () => {
+    // Source pin: writeEventFile wraps its event write in the per-bundle event lock.
+    const src = readFileSync(path.join(REPO, "src", "grace-cursor.ts"), "utf8");
+    expect(src).toMatch(/function writeEventFile\([\s\S]*?withEventWriteLock\(bundlePath/);
+    const root = tempProject();
+    const changeId = "C-WRITER-EVENT-1";
+    writeChangeBundleFixture(root, { changeId, location: "active", specStatus: "approved", planStatus: "approved" });
+    const bundle = path.join(root, ACTIVE, changeId);
+    // A wider transaction already holds the candidate lock; the public cursor path
+    // reenters that boundary and still writes through writeEventFile's event lock.
+    const position = withCandidateLock(root, changeId, () =>
+      advanceCursor(root, changeId, { task: "T-001", openEpoch: true, from: 1, to: 10 }),
+    );
+    expect(position, "the reentrant public path completes").toBeDefined();
+    const runDir = path.join(bundle, "run");
+    expect(
+      readdirSync(runDir).some((name) => name.includes("-T-001-opened")),
+      "the event was written through writeEventFile while the wider transaction held the candidate lock",
+    ).toBe(true);
+    expect(existsSync(path.join(bundle, ".run-write.lock")), "the event lock is released").toBe(false);
+  });
+
+  it("AC-COOPERATING-WRITER-COVERAGE applyChangeBundle is unreachable for an unpublished candidate and reachable for a published closeable one", () => {
+    const root = tempProject();
+    // Unpublished candidate: ownership marker present, draft spec, no plan.xml.
+    const unpublishedId = "C-WRITER-APPLY-1";
+    const unpublished = path.join(root, ACTIVE, unpublishedId);
+    mkdirSync(unpublished, { recursive: true });
+    writeChangeBundleFixture(root, { changeId: unpublishedId, location: "active", specStatus: "draft" });
+    writeFileSync(path.join(unpublished, ".ngrace-mint-owner"), "stale\n");
+    const before = recursiveSnapshot(unpublished);
+    expect(() => applyChangeBundle(root, unpublishedId)).toThrow(/plan\.xml is required/);
+    expect(recursiveSnapshot(unpublished), "apply mutates nothing on an unpublished candidate").toBe(before);
+    // Published closeable bundle: the next refusal is the apply permit prerequisite,
+    // which proves the production path is reachable for a published, closeable state.
+    const publishedId = "C-WRITER-APPLY-2";
+    writeChangeBundleFixture(root, { changeId: publishedId, location: "active", specStatus: "approved", planStatus: "approved" });
+    expect(() => applyChangeBundle(root, publishedId)).toThrow(/Apply permit missing/);
   });
 });

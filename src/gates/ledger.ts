@@ -33,6 +33,7 @@
 //   classifyApprovedArtifact
 //   stampApproveArtifact
 //   supersedeChangeBundle
+//   SupersedeReplacement
 //   AmendmentInstrument
 //   ApprovedArtifactClassification
 //   ApprovedArtifactName
@@ -62,16 +63,17 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { spawnShellCommand } from "../artifact/assertions";
 import { collectCloseEvidenceEvaluations, isCloseBoundCriterion, validateRunLedgerArtifact } from "../artifact/grammar";
 import { ARTIFACT_DIR } from "../artifact/paths";
-import { ANCHOR_PATTERNS, ARTIFACT_TAG_PREFIX, NGRACE_ARTIFACT_VERSION } from "../artifact/types";
+import { ANCHOR_PATTERNS, ARTIFACT_TAG_PREFIX, nextBundleLineage, NGRACE_ARTIFACT_VERSION, parseBundleId } from "../artifact/types";
 import { cloneXmlNode, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "../artifact/xml";
 import { serializeGraceXmlDocument } from "../artifact/xml-serialize";
-import { discardAndFoldEpoch, resolveChangeBundle } from "../grace-cursor";
+import { assertCandidatePublished, discardAndFoldEpoch, resolveChangeBundle, withCandidateLock } from "../grace-cursor";
+import { cleanupCandidate, type AcquiredCandidate } from "../grace-generate";
 import { GraceCommandError } from "../query/errors";
 
 export type ReviewVerdictOutcome = "pass" | "fail" | "unable-to-determine";
@@ -432,8 +434,21 @@ export function recordReviewVerdict(
     }
   }
 
-  const bundlePath = resolveChangeBundle(projectRoot, changeId);
-  const closeChildren = evaluateCloseEvidenceChildren(projectRoot, bundlePath);
+  const snapshot = withCandidateLock(projectRoot, changeId, () => {
+    const bundlePath = resolveChangeBundle(projectRoot, changeId);
+    assertCandidatePublished(bundlePath, changeId);
+    const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+    const specPath = path.join(bundlePath, "spec.xml");
+    const identity = statSync(bundlePath);
+    return {
+      bundlePath,
+      dev: identity.dev,
+      ino: identity.ino,
+      specBytes: existsSync(specPath) ? readFileSync(specPath, "utf8") : null,
+      ledgerBytes: existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : null,
+    };
+  });
+  const closeChildren = evaluateCloseEvidenceChildren(projectRoot, snapshot.bundlePath);
   if (
     verdict.outcome === "pass"
     && closeChildren.some((child) =>
@@ -442,6 +457,35 @@ export function recordReviewVerdict(
     throw new GraceCommandError(
       "invalid-arguments",
       "CloseEvidence Command exited non-zero; refuse to record outcome pass.",
+    );
+  }
+  return withCandidateLock(projectRoot, changeId, () => {
+  const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  assertCandidatePublished(bundlePath, changeId);
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  const specPath = path.join(bundlePath, "spec.xml");
+  const currentBytes = existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : null;
+  const currentSpecBytes = existsSync(specPath) ? readFileSync(specPath, "utf8") : null;
+  let currentIdentity: { dev: number; ino: number } | undefined;
+  try {
+    const stat = statSync(bundlePath);
+    currentIdentity = { dev: stat.dev, ino: stat.ino };
+  } catch {
+    currentIdentity = undefined;
+  }
+  // Three-phase: refuse a verdict written against a stale location, directory
+  // identity, spec bytes, or ledger bytes (AC-REVIEW-VERDICT-THREE-PHASE).
+  if (
+    bundlePath !== snapshot.bundlePath
+    || currentBytes !== snapshot.ledgerBytes
+    || currentSpecBytes !== snapshot.specBytes
+    || currentIdentity === undefined
+    || currentIdentity.dev !== snapshot.dev
+    || currentIdentity.ino !== snapshot.ino
+  ) {
+    throw new GraceCommandError(
+      "invalid-project",
+      "bundle location, identity, spec.xml, or run-ledger.xml changed during verdict evaluation; refusing to record a verdict against a stale snapshot.",
     );
   }
   const root = loadOrCreateLedgerRoot(bundlePath, changeId);
@@ -491,6 +535,7 @@ export function recordReviewVerdict(
   });
   writeAndVerifyLedger(bundlePath, root);
   return stored;
+  });
 }
 
 function isAppliedArchiveBundle(bundlePath: string, specStatus: string | undefined): boolean {
@@ -544,7 +589,9 @@ export function recordGateDecision(
   changeId: string,
   decision: GateDecisionRecord,
 ): GateDecisionRecord {
+  return withCandidateLock(projectRoot, changeId, () => {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
+  assertCandidatePublished(bundlePath, changeId);
   const root = loadOrCreateLedgerRoot(bundlePath, changeId);
   const wrapper = ensureWrapper(root, changeId);
   const section = ensureSection(wrapper, "Decisions");
@@ -591,6 +638,7 @@ export function recordGateDecision(
   });
   writeAndVerifyLedger(bundlePath, root);
   return decision;
+  });
 }
 
 /**
@@ -1469,12 +1517,42 @@ function isExdev(error: unknown): boolean {
  * shipped with this module because the write surface is one file, and kept so the rollback
  * ordering stays mechanically testable without a second test-only package.
  */
+/** The lineage successor of a supersede: an existing id or a to-be-minted one. */
+export type SupersedeReplacement =
+  | { kind: "explicit"; id: string }
+  | { kind: "mint"; id: string; mint: () => AcquiredCandidate };
+
+/** The replacement must be the predecessor's lineage successor: same slug, next lineage (D38). */
+function requireLineageSuccessor(changeId: string, replacementId: string): void {
+  const predecessor = parseBundleId(changeId);
+  const successor = parseBundleId(replacementId);
+  if (successor.slug !== predecessor.slug || successor.lineage !== nextBundleLineage(changeId)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Replacement ${replacementId} is not the lineage successor of ${changeId} (same slug, lineage ${nextBundleLineage(changeId)}).`,
+    );
+  }
+}
+
 export function supersedeChangeBundle(
   projectRoot: string,
   changeId: string,
-  replacementId: string,
-  io: { renameSync?: typeof renameSync } = {},
+  replacement: SupersedeReplacement,
+  io: {
+    renameSync?: typeof renameSync;
+    writeFileSync?: typeof writeFileSync;
+    unlinkSync?: typeof unlinkSync;
+    rmdirSync?: typeof rmdirSync;
+    /** Test-only: fires after the initial explicit-replacement validation so a
+     * relocation/appearance/disappearance can be driven before the under-lock
+     * revalidation (AC-SUPERSEDE-VALIDATE-BEFORE-FOLD row (j)). */
+    afterReplacementValidationForTests?: () => void;
+    /** Test-only: observes each production cleanup invocation and its outcome,
+     * invoked exactly once on every post-mint failure (AC-SUPERSEDE-ROLLBACK-CLEANUP). */
+    observeCleanupForTests?: (outcome: { removed: boolean; diagnostic?: string }) => void;
+  } = {},
 ): void {
+  const replacementId = replacement.id;
   if (!ANCHOR_PATTERNS.change.test(changeId)) {
     throw new GraceCommandError(
       "invalid-arguments",
@@ -1493,80 +1571,201 @@ export function supersedeChangeBundle(
       `Replacement ${replacementId} equals the change being superseded.`,
     );
   }
-  const activeDir = changeLocationDir(projectRoot, "active", changeId);
-  const archiveDir = changeLocationDir(projectRoot, "archive", changeId);
-  const replacementActive = changeLocationDir(projectRoot, "active", replacementId);
-  const replacementArchive = changeLocationDir(projectRoot, "archive", replacementId);
-  if (!existsSync(replacementActive) && !existsSync(replacementArchive)) {
-    throw new GraceCommandError(
-      "invalid-arguments",
-      `Replacement ${replacementId} is missing as a directory under active/ or archive/.`,
-    );
-  }
-  if (existsSync(archiveDir) && !existsSync(activeDir)) {
-    throw new GraceCommandError(
-      "invalid-arguments",
-      `Change ${changeId} is already under archive/ and not under active/; supersede only moves an active bundle.`,
-    );
-  }
-  if (!existsSync(activeDir) || !statSync(activeDir).isDirectory()) {
-    throw new GraceCommandError(
-      "not-found",
-      `Change ${changeId} is not a directory under active/.`,
-    );
-  }
-  if (existsSync(archiveDir)) {
-    throw new GraceCommandError(
-      "invalid-arguments",
-      `Archive destination already exists for ${changeId}.`,
-    );
-  }
-  const specPath = path.join(activeDir, "spec.xml");
-  const planPath = path.join(activeDir, "plan.xml");
-  if (!existsSync(specPath)) {
-    throw new GraceCommandError("not-found", `spec.xml not found in ${changeId}.`);
-  }
-  discardAndFoldEpoch(projectRoot, changeId);
-  const specBefore = readFileSync(specPath, "utf8");
-  const planExists = existsSync(planPath);
-  const planBefore = planExists ? readFileSync(planPath, "utf8") : undefined;
-  const nextSpec = nextSupersededArtifactBytes(specPath, replacementId);
-  const nextPlan = planExists ? nextSupersededArtifactBytes(planPath, replacementId) : undefined;
-  let wroteSpec = false;
-  let wrotePlan = false;
-  try {
-    if (nextSpec !== specBefore) {
-      writeFileSync(specPath, nextSpec);
-      wroteSpec = true;
-    }
-    if (planExists && nextPlan !== undefined && nextPlan !== planBefore) {
-      writeFileSync(planPath, nextPlan);
-      wrotePlan = true;
-    }
-    const archiveParent = path.dirname(archiveDir);
-    if (!existsSync(archiveParent)) {
-      mkdirSync(archiveParent, { recursive: true });
-    }
-    (io.renameSync ?? renameSync)(activeDir, archiveDir);
-  } catch (error) {
-    if (wrotePlan && planBefore !== undefined && existsSync(planPath)) {
-      writeFileSync(planPath, planBefore);
-    }
-    if (wroteSpec && existsSync(specPath)) {
-      writeFileSync(specPath, specBefore);
-    }
-    if (isExdev(error)) {
-      throw new GraceCommandError(
-        "invalid-project",
-        `Cross-device rename (EXDEV) is refused after rollback for ${changeId}.`,
-      );
-    }
-    if (error instanceof GraceCommandError) throw error;
-    throw new GraceCommandError(
-      "invalid-project",
-      `Supersede failed after rollback: ${error instanceof Error ? error.message : String(error)}.`,
-    );
-  }
+  const [low, high] = changeId < replacementId ? [changeId, replacementId] : [replacementId, changeId];
+  withCandidateLock(projectRoot, low, () =>
+    withCandidateLock(projectRoot, high, () => {
+      const activeDir = changeLocationDir(projectRoot, "active", changeId);
+      const archiveDir = changeLocationDir(projectRoot, "archive", changeId);
+      const replacementActive = changeLocationDir(projectRoot, "active", replacementId);
+      const replacementArchive = changeLocationDir(projectRoot, "archive", replacementId);
+      if (existsSync(activeDir)) assertCandidatePublished(activeDir, changeId);
+      if (existsSync(replacementActive)) assertCandidatePublished(replacementActive, replacementId);
+      // Explicit replacement: capture the initially validated state under the sorted
+      // locks — location, mutual exclusivity, directory type, and identity — so the
+      // post-seam revalidation compares against it instead of selecting a moved or
+      // newly duplicated location afresh (AC-SUPERSEDE-VALIDATE-BEFORE-FOLD row (j)).
+      type ReplacementState = { location: "active" | "archive"; dev: number; ino: number };
+      const captureReplacementState = (): ReplacementState | undefined => {
+        if (replacement.kind !== "explicit") return undefined;
+        const activeExists = existsSync(replacementActive);
+        const archiveExists = existsSync(replacementArchive);
+        if (activeExists && archiveExists) {
+          throw new GraceCommandError(
+            "invalid-arguments",
+            `Replacement ${replacementId} exists under both active/ and archive/; ambiguous, refusing before any fold or write.`,
+          );
+        }
+        if (!activeExists && !archiveExists) {
+          throw new GraceCommandError(
+            "invalid-arguments",
+            `Replacement ${replacementId} is missing as a directory under active/ or archive/.`,
+          );
+        }
+        const located = activeExists ? replacementActive : replacementArchive;
+        const identity = statSync(located);
+        if (!identity.isDirectory()) {
+          throw new GraceCommandError(
+            "invalid-arguments",
+            `Replacement ${replacementId} exists under ${activeExists ? "active/" : "archive/"} but is not a directory; refusing before any fold or write.`,
+          );
+        }
+        return { location: activeExists ? "active" : "archive", dev: identity.dev, ino: identity.ino };
+      };
+      const initialReplacementState = captureReplacementState();
+      // All successor existence/location and predecessor status validation must
+      // precede discardAndFoldEpoch and every other write (C-SUPERSEDE-MEMBERSHIP T-003).
+      if (replacement.kind === "mint" && (existsSync(replacementActive) || existsSync(replacementArchive))) {
+        throw new GraceCommandError(
+          "invalid-arguments",
+          `Successor ${replacementId} already exists under active/ or archive/; refusing before any fold or write.`,
+        );
+      }
+      if (existsSync(archiveDir) && !existsSync(activeDir)) {
+        throw new GraceCommandError(
+          "invalid-arguments",
+          `Change ${changeId} is already under archive/ and not under active/; supersede only moves an active bundle.`,
+        );
+      }
+      if (!existsSync(activeDir) || !statSync(activeDir).isDirectory()) {
+        throw new GraceCommandError("not-found", `Change ${changeId} is not a directory under active/.`);
+      }
+      if (existsSync(archiveDir)) {
+        throw new GraceCommandError(
+          "invalid-arguments",
+          `Archive destination already exists for ${changeId}.`,
+        );
+      }
+      const specPath = path.join(activeDir, "spec.xml");
+      const planPath = path.join(activeDir, "plan.xml");
+      if (!existsSync(specPath)) {
+        throw new GraceCommandError("not-found", `spec.xml not found in ${changeId}.`);
+      }
+      const supersedableStatuses = new Set(["draft", "approved", "superseded"]);
+      const predecessorSpecStatus = rootStatusFromFile(specPath);
+      if (predecessorSpecStatus === undefined || !supersedableStatuses.has(predecessorSpecStatus)) {
+        throw new GraceCommandError(
+          "invalid-arguments",
+          `Cannot supersede ${changeId}: spec.xml status ${predecessorSpecStatus ?? "unreadable"} is not supersedable; refusing before any fold or write.`,
+        );
+      }
+      if (existsSync(planPath)) {
+        const predecessorPlanStatus = rootStatusFromFile(planPath);
+        if (predecessorPlanStatus === undefined || !supersedableStatuses.has(predecessorPlanStatus)) {
+          throw new GraceCommandError(
+            "invalid-arguments",
+            `Cannot supersede ${changeId}: plan.xml status ${predecessorPlanStatus ?? "unreadable"} is not supersedable; refusing before any fold or write.`,
+          );
+        }
+      }
+      requireLineageSuccessor(changeId, replacementId);
+      // Row (j): the seam fires under the sorted locks; the post-seam revalidation
+      // compares against the captured state and refuses any relocation, second
+      // location, disappearance, or same-path identity change before discard/fold.
+      io.afterReplacementValidationForTests?.();
+      if (replacement.kind === "explicit") {
+        const current = captureReplacementState();
+        if (
+          initialReplacementState === undefined
+          || current === undefined
+          || current.location !== initialReplacementState.location
+          || current.dev !== initialReplacementState.dev
+          || current.ino !== initialReplacementState.ino
+        ) {
+          throw new GraceCommandError(
+            "invalid-arguments",
+            `Replacement ${replacementId} changed location or identity under the lock; refusing before any fold or write.`,
+          );
+        }
+      }
+      discardAndFoldEpoch(projectRoot, changeId);
+      const writeFile = io.writeFileSync ?? writeFileSync;
+      const specBefore = readFileSync(specPath, "utf8");
+      const planExists = existsSync(planPath);
+      const planBefore = planExists ? readFileSync(planPath, "utf8") : undefined;
+      const nextSpec = nextSupersededArtifactBytes(specPath, replacementId);
+      const nextPlan = planExists ? nextSupersededArtifactBytes(planPath, replacementId) : undefined;
+      let acquired: AcquiredCandidate | undefined;
+      let wroteSpec = false;
+      let wrotePlan = false;
+      try {
+        // The implicit mint runs inside the transaction's failure boundary, so a
+        // post-fold mint failure attempts cleanup through the same exactly-once path
+        // as a governance failure (AC-SUPERSEDE-ROLLBACK-CLEANUP). A prepublication
+        // mint failure is cleaned by its own publisher; a post-publication failure is
+        // owned by the outer attempt below.
+        acquired = replacement.kind === "mint" ? replacement.mint() : undefined;
+        if (nextSpec !== specBefore) {
+          writeFile(specPath, nextSpec);
+          wroteSpec = true;
+        }
+        if (planExists && nextPlan !== undefined && nextPlan !== planBefore) {
+          writeFile(planPath, nextPlan);
+          wrotePlan = true;
+        }
+        const archiveParent = path.dirname(archiveDir);
+        if (!existsSync(archiveParent)) {
+          mkdirSync(archiveParent, { recursive: true });
+        }
+        (io.renameSync ?? renameSync)(activeDir, archiveDir);
+      } catch (error) {
+        // Each rollback write is attempted once; a persistent rollback failure is
+        // recorded and composed, never allowed to skip successor cleanup or recurse
+        // (AC-SUPERSEDE-ROLLBACK-CLEANUP).
+        const rollbackFailures: string[] = [];
+        if (wrotePlan && planBefore !== undefined && existsSync(planPath)) {
+          try {
+            writeFile(planPath, planBefore);
+          } catch (rollbackError) {
+            rollbackFailures.push(`plan rollback failed: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`);
+          }
+        }
+        if (wroteSpec && existsSync(specPath)) {
+          try {
+            writeFile(specPath, specBefore);
+          } catch (rollbackError) {
+            rollbackFailures.push(`spec rollback failed: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`);
+          }
+        }
+        const rollbackNote = rollbackFailures.length > 0
+          ? ` Predecessor left in its last-successfully-written state; rollback residue: ${rollbackFailures.join("; ")}.`
+          : "";
+        let residual = "";
+        if (acquired) {
+          const result = cleanupCandidate(acquired, io);
+          // The outcome is observed exactly once on every post-mint failure, whether
+          // cleanup removed the candidate or preserved residue.
+          io.observeCleanupForTests?.(result);
+          if (!result.removed && result.diagnostic) {
+            residual = ` Residual state preserved: ${result.diagnostic}`;
+          }
+        } else if (replacement.kind === "mint") {
+          // A mint that failed after publishing leaves no returned ownership record;
+          // name the retained successor rather than silently orphaning it. When the
+          // inner publisher already composed its own residual diagnostic, do not
+          // append a second one: at most one residual diagnostic is surfaced.
+          const publishedDir = changeLocationDir(projectRoot, "active", replacementId);
+          const originalMessage = error instanceof Error ? error.message : String(error);
+          if (existsSync(publishedDir) && !/Residual state preserved/.test(originalMessage)) {
+            residual = ` Residual state preserved: successor candidate ${replacementId} remains at ${path.relative(projectRoot, publishedDir)} (published without a returned ownership record).`;
+          }
+        }
+        if (isExdev(error)) {
+          throw new GraceCommandError(
+            "invalid-project",
+            `Cross-device rename (EXDEV) is refused after rollback for ${changeId}.${rollbackNote}${residual}`,
+          );
+        }
+        if (error instanceof GraceCommandError) {
+          if (residual || rollbackNote) throw new GraceCommandError(error.code, `${error.message}${rollbackNote}${residual}`);
+          throw error;
+        }
+        throw new GraceCommandError(
+          "invalid-project",
+          `Supersede failed after rollback: ${error instanceof Error ? error.message : String(error)}.${rollbackNote}${residual}`,
+        );
+      }
+    }),
+  );
 }
 
 function selectApproveTarget(
@@ -1609,12 +1808,16 @@ export function stampApproveArtifact(
   changeId: string,
   artifact?: ApprovedArtifactName,
 ): { artifact: ApprovedArtifactName; fingerprint: string } {
-  const target = selectApproveTarget(resolveChangeBundle(projectRoot, changeId), artifact);
-  writeDraftRootToApproved(target.filePath);
-  return {
-    artifact: target.artifact,
-    fingerprint: createHash("sha256").update(readFileSync(target.filePath)).digest("hex"),
-  };
+  return withCandidateLock(projectRoot, changeId, () => {
+    const bundlePath = resolveChangeBundle(projectRoot, changeId);
+    assertCandidatePublished(bundlePath, changeId);
+    const target = selectApproveTarget(bundlePath, artifact);
+    writeDraftRootToApproved(target.filePath);
+    return {
+      artifact: target.artifact,
+      fingerprint: createHash("sha256").update(readFileSync(target.filePath)).digest("hex"),
+    };
+  });
 }
 
 /** Options for the sanctioned applied close (C-APPLY-VERB / F224). */

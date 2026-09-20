@@ -1,4 +1,5 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -333,5 +334,139 @@ describe("C-GRAMMAR-SEAM T-003 OptionalContext bucket", () => {
     });
     const scope = collectActiveChangeScopes(resolveNgracePaths(root)).find((entry) => entry.changeId === "C-OPT-DIRECT");
     expect(scope?.issues.some((issue) => issue.code === "scope.invalid-context-artifact")).toBe(true);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-009: the activated close-time write guard.
+const SCOPE_GUARD_CHANGE = "C-SUPERSEDE-MEMBERSHIP-4-20941257";
+const SCOPE_GUARD_BASE = "13e60c68b326e437ccfe6bc2f2090ae4e148da1a";
+const SCOPE_GUARD_RECORD_DIR = "docs/plans/active/RM-GOVERNED-PATH/";
+const SCOPE_GUARD_RECORD_FILES = new Set([
+  `${SCOPE_GUARD_RECORD_DIR}decisions.xml`,
+  `${SCOPE_GUARD_RECORD_DIR}findings.xml`,
+  `${SCOPE_GUARD_RECORD_DIR}findings-retired.xml`,
+  `${SCOPE_GUARD_RECORD_DIR}rulings.xml`,
+  `${SCOPE_GUARD_RECORD_DIR}rulings-retired.xml`,
+  `${SCOPE_GUARD_RECORD_DIR}registry.xml`,
+  `${SCOPE_GUARD_RECORD_DIR}registry-retired.xml`,
+]);
+const SCOPE_GUARD_ALLOWED_FILES = new Set([
+  "src/grace-supersede.ts",
+  "src/grace-generate.ts",
+  "src/gates/ledger.ts",
+  "src/grace-cursor.ts",
+  "src/review/core.ts",
+  "src/grace-supersede.test.ts",
+  "src/grace-generate.test.ts",
+  "src/grace-cursor.test.ts",
+  "src/gates/core.test.ts",
+  "src/review/core.test.ts",
+  "src/artifact/scope.test.ts",
+  "scripts/validate-record-retirement.test.ts",
+  ...SCOPE_GUARD_RECORD_FILES,
+]);
+const SCOPE_GUARD_PREDECESSOR_FILES = new Set([
+  ".ngrace/changes/active/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/spec.xml",
+  ".ngrace/changes/active/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/plan.xml",
+  ".ngrace/changes/active/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/run-ledger.xml",
+  ".ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/spec.xml",
+  ".ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/plan.xml",
+  ".ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/run-ledger.xml",
+]);
+
+const SCOPE_GUARD_ALLOWED_PREFIXES = [
+  `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/`,
+  `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/`,
+];
+
+function gitLines(root: string, args: string[]): string[] {
+  const result = Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "pipe", stderr: "pipe" });
+  return Buffer.from(result.stdout)
+    .toString("utf8")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function gitEvidence(root: string, args: string[]): { available: boolean; lines: string[] } {
+  const result = Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "pipe", stderr: "pipe" });
+  if (result.exitCode !== 0) {
+    return { available: false, lines: [] };
+  }
+  return { available: true, lines: gitLines(root, args) };
+}
+
+/** Files changed against the recorded base outside the closed allowed set. Refuses when git evidence is unavailable. */
+function scopeGuardOffenders(root: string): string[] {
+  const tracked = gitEvidence(root, ["diff", "--name-only", SCOPE_GUARD_BASE]);
+  const untracked = gitEvidence(root, ["ls-files", "--others", "--exclude-standard"]);
+  if (!tracked.available || !untracked.available) {
+    throw new Error("scope guard: git evidence unavailable; refusing rather than reporting clean");
+  }
+  const changed = [...new Set([...tracked.lines, ...untracked.lines])];
+  return changed.filter((file) => {
+    if (file.startsWith(SCOPE_GUARD_RECORD_DIR)) {
+      return !SCOPE_GUARD_RECORD_FILES.has(file);
+    }
+    if (SCOPE_GUARD_ALLOWED_PREFIXES.some((prefix) => file.startsWith(prefix))) {
+      return false;
+    }
+    return !SCOPE_GUARD_ALLOWED_FILES.has(file) && !SCOPE_GUARD_PREDECESSOR_FILES.has(file);
+  });
+}
+
+describe("close-time write guard", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..", "..");
+  const requested = (process.env.NGRACE_SCOPE_GUARD_CHANGE ?? "").trim();
+  const activated = requested === SCOPE_GUARD_CHANGE;
+
+  it("refuses an activation switch that names a different change id", () => {
+    expect(requested === "" || requested === SCOPE_GUARD_CHANGE).toBe(true);
+  });
+
+  it("activates exactly on the successor switch and is verifiably dormant otherwise", () => {
+    expect(activated).toBe(requested === SCOPE_GUARD_CHANGE);
+    if (!activated) {
+      expect(typeof collectActiveChangeScopes).toBe("function");
+      expect(typeof observedWriteScopeContains).toBe("function");
+    } else {
+      expect(scopeGuardOffenders(repoRoot)).toEqual([]);
+    }
+  });
+
+  it("confines the tracked-and-untracked change set to the closed allowed set when activated", () => {
+    if (!activated) return;
+    expect(scopeGuardOffenders(repoRoot)).toEqual([]);
+  });
+
+  it("reddens on a planted forbidden write when activated", () => {
+    if (!activated) return;
+    const probe = path.join(repoRoot, "docs", "guard-probe.md");
+    writeFileSync(probe, "probe\n");
+    try {
+      expect(scopeGuardOffenders(repoRoot)).toContain("docs/guard-probe.md");
+    } finally {
+      rmSync(probe, { force: true });
+    }
+  });
+
+  it("reddens on a planted non-record file inside the governed directory when activated", () => {
+    if (!activated) return;
+    const probe = path.join(repoRoot, "docs", "plans", "active", "RM-GOVERNED-PATH", "guard-probe.md");
+    writeFileSync(probe, "probe\n");
+    try {
+      expect(scopeGuardOffenders(repoRoot)).toContain("docs/plans/active/RM-GOVERNED-PATH/guard-probe.md");
+    } finally {
+      rmSync(probe, { force: true });
+    }
+  });
+
+  it("refuses rather than reporting clean when git evidence is unavailable", () => {
+    const tmp = mkdtempSync(path.join(os.tmpdir(), "scope-guard-"));
+    try {
+      expect(() => scopeGuardOffenders(tmp)).toThrow(/git evidence unavailable/);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });

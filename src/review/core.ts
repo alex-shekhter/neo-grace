@@ -1115,6 +1115,25 @@ function isDocsPlansPath(rel: string): boolean {
   return n === "docs/plans" || n.startsWith("docs/plans/");
 }
 
+/**
+ * The exact canonical engine candidate-lock path: the sibling of a bundle leaf
+ * under `active/`, `.candidate-<C-ID>.lock` for a valid canonical C-* id. Reached
+ * only from `auditWriteEvidenceOutsideScope`; deliberately NOT part of
+ * `isCliLifecyclePath`, whose byte-semantics stay restricted to `run.xml`,
+ * `run-ledger.xml`, and `run/**` (C-SCOPE-AUDIT-ATTRIBUTION). Every near miss —
+ * archive location, extra nesting, another top-level directory, or a malformed id
+ * — still raises (AC-EVIDENCE-AUDIT-CANONICAL-ONLY).
+ */
+function isCanonicalEngineCandidateLockPath(rel: string): boolean {
+  const n = normalizeRel(rel);
+  const prefix = `${ARTIFACT_DIR}/changes/active/.candidate-`;
+  const suffix = ".lock";
+  if (!n.startsWith(prefix) || !n.endsWith(suffix)) return false;
+  const id = n.slice(prefix.length, n.length - suffix.length);
+  if (id.includes("/")) return false;
+  return ANCHOR_PATTERNS.change.test(id);
+}
+
 export type WriteEvidenceScopeAuditInput = {
   changeId: string;
   /** Union of WriteEvidence content paths (already normalized preferred). */
@@ -1150,6 +1169,10 @@ export function auditWriteEvidenceOutsideScope(
     if (isCliLifecyclePath(changed)) continue;
     // F27.1: authority concurrent roadmap — hole named on isDocsPlansPath.
     if (isDocsPlansPath(changed)) continue;
+    // Durable historical WriteEvidence may name the exact canonical engine
+    // candidate lock; that is transient coordination evidence, not a breach.
+    // Local to this audit — isCliLifecyclePath is never widened.
+    if (isCanonicalEngineCandidateLockPath(changed)) continue;
     if (fileSet.has(changed)) continue;
     const globHit = observedWriteScopeContains({ files: [], globs: expandedGlobs }, changed);
     if (globHit) continue;

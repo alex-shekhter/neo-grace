@@ -8,18 +8,28 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
+//   AcquiredCandidate
+//   CandidateIo
+//   CandidateStage
+//   ResolvedSpecMint
+//   cleanupCandidate
+//   setCandidateCleanupObserverForTests
 //   mintBundle
+//   mintResolvedBundle
+//   pauseCandidatePublicationForTests
 //   planCommand
+//   resolveSpecMint
 //   scaffoldCommand
 //   specCommand
 // END_MODULE_MAP
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { defineCommand } from "citty";
 
 import { resolveNgracePaths } from "./artifact/project";
+import { withCandidateLock } from "./grace-cursor";
 import { buildGraphProjection } from "./artifact/projections";
 import { renderChangePlan, renderChangeSpec } from "./artifact/skeletons";
 import { ARTIFACT_DIR } from "./artifact/paths";
@@ -88,18 +98,256 @@ function refuseExistingBundle(root: string, changeId: string): void {
   }
 }
 
-function writeSpecNew(root: string, changeId: string): string {
-  refuseExistingBundle(root, changeId);
-  const specPath = path.join(activeDir(root, changeId), "spec.xml");
-  if (existsSync(specPath)) {
+export type CandidateStage =
+  | "identity-pending"
+  | "acquired"
+  | "marker-written"
+  | "spec-written"
+  | "published";
+
+/** Identity-complete acquisition record for an exclusively acquired candidate leaf. */
+export type AcquiredCandidate = {
+  path: string;
+  markerPath: string;
+  specPath: string;
+  token: string;
+  expectedSpecBytes: string;
+  stage: CandidateStage;
+  dev?: number;
+  ino?: number;
+};
+
+/** Bounded I/O seam: injected at the real stat/write/unlink/rmdir boundaries. */
+export type CandidateIo = {
+  statSync?: typeof statSync;
+  writeFileSync?: typeof writeFileSync;
+  unlinkSync?: typeof unlinkSync;
+  rmdirSync?: typeof rmdirSync;
+};
+
+const CANDIDATE_MARKER = ".ngrace-mint-owner";
+
+let candidatePublicationHook: (() => void) | null = null;
+
+/** Test-only: run a hook after the exclusive spec.xml write, before marker unlink. */
+export function pauseCandidatePublicationForTests(hook: (() => void) | null): void {
+  candidatePublicationHook = hook;
+}
+
+function candidateRefusal(root: string, changeId: string): never {
+  throw new GraceCommandError(
+    "invalid-arguments",
+    `Change ${changeId} already exists at ${projectRelative(root, activeDir(root, changeId))}.`,
+  );
+}
+
+/**
+ * Acquire the leaf exclusively: parents recursively, the leaf with a
+ * non-recursive mkdir (EEXIST refuses), then an identity-pending record.
+ * Identity is captured at the real statSync boundary; a failed or
+ * non-directory identity preserves the leaf and names it without deleting.
+ */
+function acquireCandidate(root: string, changeId: string, io: CandidateIo): AcquiredCandidate {
+  const bundlePath = activeDir(root, changeId);
+  const markerPath = path.join(bundlePath, CANDIDATE_MARKER);
+  const specPath = path.join(bundlePath, "spec.xml");
+  const token = randomBytes(16).toString("hex");
+  const expectedSpecBytes = renderChangeSpec(changeId);
+  mkdirSync(path.dirname(bundlePath), { recursive: true });
+  try {
+    mkdirSync(bundlePath);
+  } catch (error) {
+    if ((error as { code?: string }).code === "EEXIST") candidateRefusal(root, changeId);
+    throw error;
+  }
+  const candidate: AcquiredCandidate = {
+    path: bundlePath,
+    markerPath,
+    specPath,
+    token,
+    expectedSpecBytes,
+    stage: "identity-pending",
+  };
+  let identity: ReturnType<typeof statSync>;
+  try {
+    identity = (io.statSync ?? statSync)(bundlePath);
+  } catch (error) {
     throw new GraceCommandError(
-      "invalid-arguments",
-      `Spec already exists at ${projectRelative(root, specPath)}.`,
+      "invalid-project",
+      `Candidate ${projectRelative(root, bundlePath)} identity capture failed (${(error as Error).message}); preserved.`,
     );
   }
-  mkdirSync(path.dirname(specPath), { recursive: true });
-  writeFileSync(specPath, renderChangeSpec(changeId));
-  return projectRelative(root, specPath);
+  if (!identity.isDirectory()) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `Candidate ${projectRelative(root, bundlePath)} identity capture returned a non-directory; preserved.`,
+    );
+  }
+  candidate.dev = identity.dev;
+  candidate.ino = identity.ino;
+  candidate.stage = "acquired";
+  return candidate;
+}
+
+/**
+ * Lock coordinates for an acquired candidate leaf: `<root>/.ngrace/changes/active/<C-ID>`.
+ * The lock is the sibling `active/.candidate-<C-ID>.lock`, so the four parent
+ * hops recover exactly the root the caller locked.
+ */
+function candidateLockCoordinates(acquired: AcquiredCandidate): { root: string; changeId: string } {
+  const changeId = path.basename(acquired.path);
+  const root = path.dirname(path.dirname(path.dirname(path.dirname(acquired.path))));
+  return { root, changeId };
+}
+
+/**
+ * Bounded cleanup: only identity-complete records; deletes own files in a frozen
+ * order that never leaves bytes mistakable for publication, then rmdir.
+ * Callers must already hold the candidate lock (see the exported wrapper).
+ */
+function cleanupCandidateLocked(
+  acquired: AcquiredCandidate,
+  io: CandidateIo = {},
+): { removed: boolean; diagnostic?: string } {
+  const rel = acquired.path;
+  if (acquired.dev === undefined || acquired.ino === undefined) {
+    return { removed: false, diagnostic: `candidate ${rel}: identity-pending record is not safely removable; preserved` };
+  }
+  let identity: ReturnType<typeof statSync>;
+  try {
+    identity = (io.statSync ?? statSync)(acquired.path);
+  } catch (error) {
+    return { removed: false, diagnostic: `candidate ${rel}: identity check failed (${(error as Error).message}); preserved` };
+  }
+  if (identity.dev !== acquired.dev || identity.ino !== acquired.ino) {
+    return { removed: false, diagnostic: `candidate ${rel}: identity changed; preserved` };
+  }
+  const markerName = path.basename(acquired.markerPath);
+  const specName = path.basename(acquired.specPath);
+  let entries: string[];
+  try {
+    entries = readdirSync(acquired.path);
+  } catch (error) {
+    return { removed: false, diagnostic: `candidate ${rel}: enumeration failed (${(error as Error).message}); preserved` };
+  }
+  for (const name of entries) {
+    if (name !== markerName && name !== specName) {
+      return { removed: false, diagnostic: `candidate ${rel}: foreign entry ${name}; preserved` };
+    }
+  }
+  const hasSpec = entries.includes(specName);
+  const hasMarker = entries.includes(markerName);
+  // Validate-first: every ownership/content check runs before the first unlink, so a
+  // foreign marker token leaves the spec, marker, and directory byte-identical
+  // (AC-CLEANUP-VALIDATE-FIRST).
+  if (hasSpec) {
+    let bytes: string;
+    try {
+      bytes = readFileSync(acquired.specPath, "utf8");
+    } catch (error) {
+      return { removed: false, diagnostic: `candidate ${rel}: spec read failed (${(error as Error).message}); preserved` };
+    }
+    if (bytes !== acquired.expectedSpecBytes) {
+      return { removed: false, diagnostic: `candidate ${rel}: spec bytes changed; preserved` };
+    }
+  }
+  if (hasMarker) {
+    let markerBytes: string;
+    try {
+      markerBytes = readFileSync(acquired.markerPath, "utf8");
+    } catch (error) {
+      return { removed: false, diagnostic: `candidate ${rel}: marker read failed (${(error as Error).message}); preserved` };
+    }
+    if (markerBytes.trim() !== acquired.token) {
+      return { removed: false, diagnostic: `candidate ${rel}: marker token changed; preserved` };
+    }
+  }
+  // All validation passed: the destructive phase begins here.
+  const unlink = io.unlinkSync ?? unlinkSync;
+  const rmdir = io.rmdirSync ?? rmdirSync;
+  try {
+    if (hasSpec) {
+      unlink(acquired.specPath);
+    }
+    if (hasMarker) {
+      unlink(acquired.markerPath);
+    }
+    rmdir(acquired.path);
+  } catch (error) {
+    return { removed: false, diagnostic: `candidate ${rel}: cleanup failed (${(error as Error).message}); preserved` };
+  }
+  return { removed: true };
+}
+
+let candidateCleanupObserverForTests:
+  | ((outcome: { removed: boolean; diagnostic?: string }) => void)
+  | undefined;
+
+/** Test-only: observes every production candidate cleanup invocation and outcome. */
+export function setCandidateCleanupObserverForTests(
+  observer: ((outcome: { removed: boolean; diagnostic?: string }) => void) | undefined,
+): void {
+  candidateCleanupObserverForTests = observer;
+}
+
+/**
+ * Public bounded cleanup. Acquires the documented reentrant candidate lock itself
+ * (AC-CLEANUP-LOCK-API), so no caller can delete a candidate without holding it;
+ * a nested call reuses the reentrancy depth.
+ */
+export function cleanupCandidate(
+  acquired: AcquiredCandidate,
+  io: CandidateIo = {},
+): { removed: boolean; diagnostic?: string } {
+  const { root, changeId } = candidateLockCoordinates(acquired);
+  const result = withCandidateLock(root, changeId, () => cleanupCandidateLocked(acquired, io));
+  candidateCleanupObserverForTests?.(result);
+  return result;
+}
+
+function pauseForTestsIfRequested(): void {
+  candidatePublicationHook?.();
+  const pauseFile = process.env.NGRACE_PAUSE_CANDIDATE_FILE;
+  if (!pauseFile) return;
+  for (let i = 0; i < 5000 && !existsSync(pauseFile); i += 1) Bun.sleepSync(5);
+}
+
+/**
+ * Standalone `spec new` lifecycle: acquire, marker, exclusive spec.xml, publish,
+ * bounded cleanup on failure.
+ */
+function publishSpecNew(
+  root: string,
+  changeId: string,
+  io: CandidateIo = {},
+): { relative: string; acquired: AcquiredCandidate } {
+  return withCandidateLock(root, changeId, () => {
+    refuseExistingBundle(root, changeId);
+    const candidate = acquireCandidate(root, changeId, io);
+    try {
+      (io.writeFileSync ?? writeFileSync)(candidate.markerPath, `${candidate.token}\n`, { flag: "wx" });
+      candidate.stage = "marker-written";
+      (io.writeFileSync ?? writeFileSync)(candidate.specPath, candidate.expectedSpecBytes, { flag: "wx" });
+      candidate.stage = "spec-written";
+      pauseForTestsIfRequested();
+      (io.unlinkSync ?? unlinkSync)(candidate.markerPath);
+      candidate.stage = "published";
+      return { relative: projectRelative(root, candidate.specPath), acquired: candidate };
+    } catch (error) {
+      const result = cleanupCandidate(candidate, io);
+      if (!result.removed && result.diagnostic) {
+        throw new GraceCommandError(
+          "invalid-project",
+          `${(error as Error).message} Residual state preserved: ${result.diagnostic}`,
+        );
+      }
+      throw error;
+    }
+  });
+}
+
+function writeSpecNew(root: string, changeId: string): string {
+  return publishSpecNew(root, changeId).relative;
 }
 
 /** A bare human slug for a first mint; a `C-` prefixed argument is a hand-typed id. */
@@ -188,7 +436,7 @@ function countPriorSlug(root: string, location: "active" | "archive", slug: stri
   ).length;
 }
 
-type SpecMint = {
+export type ResolvedSpecMint = {
   id: string;
   slug: string;
   lineage: number;
@@ -198,7 +446,7 @@ type SpecMint = {
 };
 
 /** Resolve the minted id from exactly one of the bare slug or a predecessor; never guesses. */
-function resolveSpecMint(args: { slug?: unknown; supersedes?: unknown; timestamp?: unknown; branch?: unknown }, root: string): SpecMint {
+export function resolveSpecMint(args: { slug?: unknown; supersedes?: unknown; timestamp?: unknown; branch?: unknown }, root: string): ResolvedSpecMint {
   const rawSlug = String(args.slug ?? "").trim();
   const rawSupersedes = String(args.supersedes ?? "").trim();
   if ((rawSlug === "") === (rawSupersedes === "")) {
@@ -236,16 +484,28 @@ function resolveSpecMint(args: { slug?: unknown; supersedes?: unknown; timestamp
 }
 
 /**
+ * Write a pre-resolved mint without re-resolving it: the id written to the leaf
+ * is exactly the id the caller locked. Exported so `supersede` holds one id.
+ */
+export function mintResolvedBundle(
+  root: string,
+  resolved: ResolvedSpecMint,
+  io: CandidateIo = {},
+): ResolvedSpecMint & { relative: string; acquired: AcquiredCandidate } {
+  const published = publishSpecNew(root, resolved.id, io);
+  return { ...resolved, relative: published.relative, acquired: published.acquired };
+}
+
+/**
  * Mint a bundle skeleton and return the resolved id. Exported so `supersede` mints its
  * successor through the same routine rather than a second implementation.
  */
 export function mintBundle(
   root: string,
   input: { slug?: unknown; supersedes?: unknown; timestamp?: unknown; branch?: unknown },
-): SpecMint & { relative: string } {
+): ResolvedSpecMint & { relative: string; acquired: AcquiredCandidate } {
   const mint = resolveSpecMint(input, root);
-  const relative = writeSpecNew(root, mint.id);
-  return { ...mint, relative };
+  return mintResolvedBundle(root, mint);
 }
 
 function approvedSpecXml(root: string, changeId: string): string {
@@ -269,11 +529,22 @@ function approvedSpecXml(root: string, changeId: string): string {
 }
 
 function writePlanNew(root: string, changeId: string): string {
+  return withCandidateLock(root, changeId, () => {
   const archive = archiveDir(root, changeId);
   if (existsSync(archive) && !existsSync(activeDir(root, changeId))) {
     throw new GraceCommandError(
       "invalid-arguments",
       `Change ${changeId} already exists at ${projectRelative(root, archive)}.`,
+    );
+  }
+  // AC-PLAN-NEW-MARKER-REFUSAL (b): a stale ownership marker is crash residue.
+  // Approved status does not prove marker absence, so this check precedes the
+  // approved-spec prerequisite and the first write.
+  const markerPath = path.join(activeDir(root, changeId), CANDIDATE_MARKER);
+  if (existsSync(markerPath)) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Change ${changeId} is an unpublished candidate (ownership marker ${projectRelative(root, markerPath)} present); refusing to write a plan.`,
     );
   }
   const specXml = approvedSpecXml(root, changeId);
@@ -286,6 +557,7 @@ function writePlanNew(root: string, changeId: string): string {
   }
   writeFileSync(planPath, renderChangePlan(changeId, specXml));
   return projectRelative(root, planPath);
+  });
 }
 
 const planNewArgs = {
