@@ -13,6 +13,7 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 | `RM-DESIGN-EVIDENCE` | Design evidence an agent can actually use: visual references, recordings, and the behaviour text that carries them | `draft` | — | — | _not written_ — see [review.md](./active/RM-DESIGN-EVIDENCE/review.md) |
 | `RM-PILOT-APPROVAL` | Pilot approval: a ratified artifact that may be amended a bounded number of times | `draft` | — | — | _not written_ — see [review.md](./active/RM-PILOT-APPROVAL/review.md) |
 | `RM-COMMITTED-STAGE-BOUNDARIES` | Committed stage boundaries: make each approved or implemented stage the next stage's baseline | `draft` | — | — | _not written_ — see [review.md](./active/RM-COMMITTED-STAGE-BOUNDARIES/review.md) |
+| `RM-ADAPTIVE-BUNDLE-SIZING` | Adaptive bundle sizing: use structural pressure and corrective turns to revisit bundle boundaries | `draft` | — | — | _not written_ — see [review.md](./active/RM-ADAPTIVE-BUNDLE-SIZING/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
@@ -52,6 +53,25 @@ and implementation bundles. See the archive row for links.
 Recorded, not scheduled. Each has an explanatory `review.md` and **no `plan.md`** — per rule 6 that
 means exploration, not a commitment. They are independent of each other and of one another's
 sequencing; nothing here is blocked by anything else on this page.
+
+### `RM-ADAPTIVE-BUNDLE-SIZING` — recorded 2026-09-20
+
+`C-SUPERSEDE-MEMBERSHIP-2-C459A20C` reached 41 acceptance criteria, 10 serial tasks,
+46 task verification commands, 31 exact scope files, and twelve corrective review turns
+while T-006 through T-008 and the close rehearsal were still open. Against the archive,
+its criteria exceed the prior maximum of 22; its task and command counts tie the maxima.
+
+The queued discussion treats **corrective turns as a valid dynamic sizing signal** beside
+static structure. The recommended direction is a hybrid skill rule: structural outliers
+trigger a keep-or-split review before approval, and repeated material corrections reopen
+that decision during draft planning or prototyping. No threshold or runtime gate is
+approved. The future work must define what counts as a corrective turn, preserve an
+exception for indivisible atomic mechanisms, and partition criteria and finding payments
+without turning a split into deferred debt.
+
+**Not scheduled.** The measurement and variants are recorded in
+[review.md](./active/RM-ADAPTIVE-BUNDLE-SIZING/review.md). Implementation belongs in the
+canonical skills and packaged mirrors under a separate governed bundle.
 
 ### `RM-COMMITTED-STAGE-BOUNDARIES` — recorded 2026-09-20
 
