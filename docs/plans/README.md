@@ -63,9 +63,11 @@ Each commit contains only the stage being closed; draft or next-stage work does 
 
 The current skills teach one copy-specific instance — commit an approved plan before opening a
 prototype epoch — but do not state the production lifecycle rule across spec, plan, execute, and
-close. The queued work will update the canonical skills and packaged mirrors together and decide how
-the CLI refuses a dirty prior-stage boundary without making the CLI create commits. Gitless operation
-must retain an explicit typed-absence path rather than pretending the boundary was verified.
+close. The queued work will update the canonical skills and packaged mirrors with a VCS-neutral
+stage-checkpoint rule. Use the project's native VCS when one exists; without VCS, require an existing
+restorable snapshot mechanism and record its digest. When neither exists, the skill reports that the
+boundary cannot be verified and does not claim a commit occurred. No new CLI control surface is
+proposed.
 
 **Not scheduled.** The policy is decided; the implementation shape and enforcement belong to a
 separate governed bundle after the active supersede-membership bundle closes.
