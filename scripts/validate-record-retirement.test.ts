@@ -241,6 +241,13 @@ const bundleMinted: Record<string, string> = {
   // the bundle is active) and green in the applied-archive state (the close's mint).
   F300: "C-PER-BUNDLE-READERS-1-58BB7AB1",
   F301: "C-PER-BUNDLE-READERS-1-58BB7AB1",
+  // C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5 T-003: the chartered row's two minted
+  // tokens (F295 and F295.1). The extension is consulted only for tokens the
+  // derivation actually mints, so the walk is green with the row live (nothing
+  // minted while the bundle is active) and green in the applied-archive state (the
+  // close's mint). A stale predecessor id reds the same walk.
+  F295: "C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5",
+  "F295.1": "C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5",
 };
 
 
@@ -6994,5 +7001,101 @@ describe("C-INSPECTION-SURFACE-1-2628AA2B T-006 payer ratchet", () => {
       expect(bundleMinted[token], `${token} is pinned to this bundle`).toBe("C-INSPECTION-SURFACE-1-2628AA2B");
     }
     expect(derivePayerMap(root, [{ ...row, pays: "D41" }]).has("D41"), "a D token is not minted").toBe(false);
+  });
+});
+
+// C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5 T-003: the two-token payer ratchet. Once
+// this bundle's charter row is an archive directory carrying `Pays F295 F295.1`,
+// `derivePayerMap` mints both tokens and the production walk expects
+// `baseline[token] ?? bundleMinted[token]`; the entries are the deliberate ratchet.
+describe("C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5 T-003 payer ratchet", () => {
+  const change = "C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5";
+
+  it("mints exactly F295 and F295.1 from the archived successor row and the map pins them", () => {
+    const root = isolatedRoot();
+    mkdirSync(path.join(root, ".ngrace", "changes", "archive", change), { recursive: true });
+    const derived = derivePayerMap(root, [{ name: change, pays: "F295 F295.1", statusText: "" }]);
+    expect(derived.get("F295"), "the archived successor row mints F295").toBe(change);
+    expect(derived.get("F295.1"), "the archived successor row mints F295.1").toBe(change);
+    expect(bundleMinted["F295"], "a stale id would red the same walk").toBe(change);
+    expect(bundleMinted["F295.1"], "a stale id would red the same walk").toBe(change);
+    for (const token of ["F292", "F292.1", "F313", "F315", "F158"] as const) {
+      expect(bundleMinted[token], `this bundle writes no later-bundle token ${token}`).not.toBe(change);
+    }
+  });
+
+  it("red direction: a live row mints nothing, and a stale predecessor pin reds the walk", () => {
+    const root = isolatedRoot();
+    expect(
+      derivePayerMap(root, [{ name: change, pays: "F295 F295.1", statusText: "" }]).has("F295"),
+      "the row live (not an archive directory) mints nothing",
+    ).toBe(false);
+    const stale: Record<string, string> = {
+      F295: "C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1",
+      "F295.1": "C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1",
+    };
+    const baseline: Record<string, string> = JSON.parse(
+      readFileSync(path.join(import.meta.dir, "fixtures", "record-parse", "baseline-probes.json"), "utf8"),
+    ).payerMapBaseline.map;
+    expect(baseline["F295"] ?? stale["F295"], "a stale F295 predecessor reds the walk").not.toBe(change);
+    expect(baseline["F295.1"] ?? stale["F295.1"], "a stale F295.1 predecessor reds the walk").not.toBe(change);
+  });
+
+  it("a staged-buffer-only owner line cannot mint; only the archived durable row does", () => {
+    const root = isolatedRoot();
+    writeFileSync(path.join(root, "staged-findings.md"), `Owner: ${change}\n`);
+    expect(derivePayerMap(root, []).has("F295"), "the ignored staged buffer is not a durable route").toBe(false);
+    mkdirSync(path.join(root, ".ngrace", "changes", "archive", change), { recursive: true });
+    expect(derivePayerMap(root, [{ name: change, pays: "F295 F295.1", statusText: "" }]).get("F295")).toBe(change);
+  });
+});
+
+// C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5 T-003: the applied-archive payer routes.
+// Keyed on the bundle's archive arrival so it is green in the execution tree (the
+// close, not a task, mints the durable routes) and discriminating in the
+// applied-archive state: absent durable routes red the CloseEvidence command until
+// the flush and retire name this bundle.
+describe("C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5 T-003 applied-archive payer routes", () => {
+  const change = "C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5";
+  const archived = existsSync(path.join(REPO_ROOT, ".ngrace", "changes", "archive", change));
+
+  it("when archived, both F295 findings and the charter row name this bundle", () => {
+    if (!archived) return;
+    const recordDir = path.join(REPO_ROOT, RECORD_REL);
+    const findingsRetired = parseGraceXmlArtifact(
+      "findings-retired.xml",
+      readFileSync(path.join(recordDir, "findings-retired.xml"), "utf8"),
+    ).root;
+    expect(findingsRetired).not.toBeNull();
+    const paid = [...walkNodes(findingsRetired!)]
+      .filter((node) => node.tag === "Finding" && ["F295", "F295.1"].includes(node.attributes.token ?? ""))
+      .sort((a, b) => (a.attributes.token ?? "").localeCompare(b.attributes.token ?? ""));
+    expect(paid.map((node) => node.attributes.token), "both paid findings are retired").toEqual(["F295", "F295.1"]);
+    for (const finding of paid) {
+      expect(childText(finding, "PaidBy"), `${finding.attributes.token} names this bundle`).toBe(change);
+      expect(finding.attributes.status, `${finding.attributes.token} is retired`).toBe("retired");
+    }
+
+    const registryRetired = parseGraceXmlArtifact(
+      "registry-retired.xml",
+      readFileSync(path.join(recordDir, "registry-retired.xml"), "utf8"),
+    ).root;
+    expect(registryRetired).not.toBeNull();
+    const row = [...walkNodes(registryRetired!)].find((node) => node.tag === "Row" && node.attributes.name === change);
+    expect(row, "the charter row is retired with this bundle's name").toBeDefined();
+    expect(childText(row!, "Pays"), "the retired row pays exactly the two tokens").toBe("F295 F295.1");
+
+    const index = parseGraceXmlArtifact(
+      "decisions.xml",
+      readFileSync(path.join(recordDir, "decisions.xml"), "utf8"),
+    ).root;
+    expect(index).not.toBeNull();
+    const entries = [...walkNodes(index!)].filter(
+      (node) => node.tag === "Entry" && ["F295", "F295.1"].includes(node.attributes.token ?? ""),
+    );
+    expect(entries.map((node) => node.attributes.layer), "the index entries flipped to retired").toEqual([
+      "retired",
+      "retired",
+    ]);
   });
 });

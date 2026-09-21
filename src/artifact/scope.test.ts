@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -336,9 +336,9 @@ describe("C-GRAMMAR-SEAM T-003 OptionalContext bucket", () => {
   });
 });
 
-// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-009: the activated close-time write guard.
-const SCOPE_GUARD_CHANGE = "C-SUPERSEDE-MEMBERSHIP-4-20941257";
-const SCOPE_GUARD_BASE = "13e60c68b326e437ccfe6bc2f2090ae4e148da1a";
+// C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5 T-003: the activated close-time write guard.
+const SCOPE_GUARD_CHANGE = "C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5";
+const SCOPE_GUARD_BASE = "e0a9868916412977fd3b7aa7615b67615fa2a93b";
 const SCOPE_GUARD_RECORD_DIR = "docs/plans/active/RM-GOVERNED-PATH/";
 const SCOPE_GUARD_RECORD_FILES = new Set([
   `${SCOPE_GUARD_RECORD_DIR}decisions.xml`,
@@ -350,27 +350,20 @@ const SCOPE_GUARD_RECORD_FILES = new Set([
   `${SCOPE_GUARD_RECORD_DIR}registry-retired.xml`,
 ]);
 const SCOPE_GUARD_ALLOWED_FILES = new Set([
-  "src/grace-supersede.ts",
-  "src/grace-generate.ts",
-  "src/gates/ledger.ts",
-  "src/grace-cursor.ts",
-  "src/review/core.ts",
-  "src/grace-supersede.test.ts",
-  "src/grace-generate.test.ts",
+  "src/artifact/run-membership.ts",
+  "src/artifact/run-membership.test.ts",
   "src/grace-cursor.test.ts",
-  "src/gates/core.test.ts",
-  "src/review/core.test.ts",
   "src/artifact/scope.test.ts",
   "scripts/validate-record-retirement.test.ts",
   ...SCOPE_GUARD_RECORD_FILES,
 ]);
 const SCOPE_GUARD_PREDECESSOR_FILES = new Set([
-  ".ngrace/changes/active/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/spec.xml",
-  ".ngrace/changes/active/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/plan.xml",
-  ".ngrace/changes/active/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/run-ledger.xml",
-  ".ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/spec.xml",
-  ".ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/plan.xml",
-  ".ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-3-66400CCC/run-ledger.xml",
+  ".ngrace/changes/active/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/spec.xml",
+  ".ngrace/changes/active/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/plan.xml",
+  ".ngrace/changes/active/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/run-ledger.xml",
+  ".ngrace/changes/archive/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/spec.xml",
+  ".ngrace/changes/archive/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/plan.xml",
+  ".ngrace/changes/archive/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/run-ledger.xml",
 ]);
 
 /**
@@ -380,11 +373,22 @@ const SCOPE_GUARD_PREDECESSOR_FILES = new Set([
  * deletions (correction 1). One definition, shared with the direct evidence test.
  */
 const SCOPE_GUARD_TRACKED_DIFF_ARGS = scopeGuardTrackedDiffArgs(SCOPE_GUARD_BASE);
-const SCOPE_GUARD_PREDECESSOR_ID = "C-SUPERSEDE-MEMBERSHIP-3-66400CCC";
+const SCOPE_GUARD_PREDECESSOR_ID = "C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1";
 
-const SCOPE_GUARD_ALLOWED_PREFIXES = [
-  `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/`,
-  `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/`,
+/** The bundle's own lifecycle identities, recognized by exact id — never a blanket prefix. */
+const SCOPE_GUARD_LIFECYCLE_FILES = new Set([
+  `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/spec.xml`,
+  `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/plan.xml`,
+  `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/run-ledger.xml`,
+  `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/run.xml`,
+  `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/spec.xml`,
+  `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/plan.xml`,
+  `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/run-ledger.xml`,
+  `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/run.xml`,
+]);
+const SCOPE_GUARD_RUN_PREFIXES = [
+  `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/run/`,
+  `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/run/`,
 ];
 
 /** The tracked-diff argument list for a given base; rename detection stays disabled. */
@@ -421,7 +425,10 @@ function scopeGuardOffenders(root: string, base = SCOPE_GUARD_BASE): string[] {
     if (file.startsWith(SCOPE_GUARD_RECORD_DIR)) {
       return !SCOPE_GUARD_RECORD_FILES.has(file);
     }
-    if (SCOPE_GUARD_ALLOWED_PREFIXES.some((prefix) => file.startsWith(prefix))) {
+    if (SCOPE_GUARD_LIFECYCLE_FILES.has(file)) {
+      return false;
+    }
+    if (SCOPE_GUARD_RUN_PREFIXES.some((prefix) => file.startsWith(prefix) && file.endsWith(".xml"))) {
       return false;
     }
     return !SCOPE_GUARD_ALLOWED_FILES.has(file) && !SCOPE_GUARD_PREDECESSOR_FILES.has(file);
@@ -501,21 +508,33 @@ describe("close-time write guard", () => {
   });
 
   it("consumes the exact five predecessor paths with rename detection disabled", () => {
-    // Uses the same git-evidence helper and the same argument list as the guard, so
-    // dropping `--no-renames` reds this test and the guard together.
-    const evidence = gitEvidence(repoRoot, SCOPE_GUARD_TRACKED_DIFF_ARGS);
-    expect(evidence.available).toBe(true);
-    const predecessor = evidence.lines
+    // Uses the same git-evidence helper and the same argument list as the guard.
+    // The transition is uncommitted: the two active deletions are tracked-diff
+    // entries, and the three archive arrivals are untracked entries, so the
+    // guard's combined population is exactly five. `--no-renames` keeps the two
+    // active deletions observable rather than collapsing them into destinations.
+    const tracked = gitEvidence(repoRoot, SCOPE_GUARD_TRACKED_DIFF_ARGS);
+    expect(tracked.available).toBe(true);
+    const activeDeletions = tracked.lines
+      .filter((line) => line.includes(`/active/${SCOPE_GUARD_PREDECESSOR_ID}/`))
+      .sort();
+    expect(activeDeletions).toEqual([
+      `.ngrace/changes/active/${SCOPE_GUARD_PREDECESSOR_ID}/run-ledger.xml`,
+      `.ngrace/changes/active/${SCOPE_GUARD_PREDECESSOR_ID}/spec.xml`,
+    ]);
+    const untracked = gitEvidence(repoRoot, ["ls-files", "--others", "--exclude-standard"]);
+    expect(untracked.available).toBe(true);
+    const combined = [...new Set([...tracked.lines, ...untracked.lines])]
       .filter((line) => line.includes(SCOPE_GUARD_PREDECESSOR_ID))
       .sort();
-    expect(predecessor).toEqual([
+    expect(combined).toEqual([
       `.ngrace/changes/active/${SCOPE_GUARD_PREDECESSOR_ID}/run-ledger.xml`,
       `.ngrace/changes/active/${SCOPE_GUARD_PREDECESSOR_ID}/spec.xml`,
       `.ngrace/changes/archive/${SCOPE_GUARD_PREDECESSOR_ID}/plan.xml`,
       `.ngrace/changes/archive/${SCOPE_GUARD_PREDECESSOR_ID}/run-ledger.xml`,
       `.ngrace/changes/archive/${SCOPE_GUARD_PREDECESSOR_ID}/spec.xml`,
     ]);
-    expect(predecessor).not.toContain(`.ngrace/changes/active/${SCOPE_GUARD_PREDECESSOR_ID}/plan.xml`);
+    expect(combined).not.toContain(`.ngrace/changes/active/${SCOPE_GUARD_PREDECESSOR_ID}/plan.xml`);
   });
 
   it("reddens on a planted forbidden write when activated", () => {
@@ -535,6 +554,21 @@ describe("close-time write guard", () => {
     writeFileSync(probe, "probe\n");
     try {
       expect(scopeGuardOffenders(repoRoot)).toContain("docs/plans/active/RM-GOVERNED-PATH/guard-probe.md");
+    } finally {
+      rmSync(probe, { force: true });
+    }
+  });
+
+  it("reddens on a planted non-lifecycle file inside the successor's own directory when activated", () => {
+    if (!activated) return;
+    const activeDir = path.join(repoRoot, ".ngrace", "changes", "active", SCOPE_GUARD_CHANGE);
+    const archiveDir = path.join(repoRoot, ".ngrace", "changes", "archive", SCOPE_GUARD_CHANGE);
+    const bundleDir = existsSync(activeDir) ? activeDir : archiveDir;
+    const bundleLayer = existsSync(activeDir) ? "active" : "archive";
+    const probe = path.join(bundleDir, "planted.md");
+    writeFileSync(probe, "probe\n");
+    try {
+      expect(scopeGuardOffenders(repoRoot)).toContain(`.ngrace/changes/${bundleLayer}/${SCOPE_GUARD_CHANGE}/planted.md`);
     } finally {
       rmSync(probe, { force: true });
     }

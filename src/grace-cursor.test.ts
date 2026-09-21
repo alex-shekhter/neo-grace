@@ -5135,3 +5135,147 @@ describe("epoch payload preservation", () => {
     expect(canonicalChildren([nested]), "nested descendant").not.toBe(canonicalChildren([base]));
   });
 });
+
+// ---------------------------------------------------------------------------
+// F295 fold consequences (C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5 T-002)
+// ---------------------------------------------------------------------------
+
+const FOLD_REPO_ROOT = path.resolve(import.meta.dir, "..");
+const FOLD_INSTRUMENT_DIR = mkdtempSync(path.join(os.tmpdir(), "fold-instrument-"));
+const FOLD_LATE_PRELOAD = path.join(FOLD_INSTRUMENT_DIR, "late-preload.ts");
+writeFileSync(
+  FOLD_LATE_PRELOAD,
+  [
+    'import fs from "node:fs";',
+    'import { mock } from "bun:test";',
+    "let fired = false;",
+    "const realExists = fs.existsSync;",
+    "const realRead = fs.readFileSync;",
+    "const target = process.env.LATE_TARGET!;",
+    "const instrumented = function (file: any, ...args: any[]) {",
+    "  if (!fired && String(file) === target && realExists(target)) {",
+    "    fired = true;",
+    '    fs.rmSync(target, { force: true });',
+    '    process.stderr.write("LATE_FIRED\\n");',
+    "  }",
+    "  return realRead.call(fs, file, ...args);",
+    "};",
+    'mock.module("node:fs", () => ({ ...fs, readFileSync: instrumented }));',
+    'process.on("exit", () => { if (!fired) { process.stderr.write("LATE_NOT_FIRED\\n"); process.exitCode = 97; } });',
+  ].join("\n"),
+);
+
+function foldGrace(
+  root: string,
+  args: string[],
+  options: { preload?: string; env?: Record<string, string> } = {},
+): { exit: number; stdout: string; stderr: string; fired: boolean } {
+  const cmd = [
+    process.execPath,
+    ...(options.preload ? ["--preload", options.preload] : []),
+    "./src/grace.ts",
+    ...args,
+    "--path",
+    root,
+  ];
+  const result = Bun.spawnSync({
+    cmd,
+    cwd: FOLD_REPO_ROOT,
+    stdout: "pipe",
+    stderr: "pipe",
+    env: { ...process.env, ...options.env },
+  });
+  const stdout = Buffer.from(result.stdout).toString("utf8");
+  const stderr = Buffer.from(result.stderr).toString("utf8");
+  return { exit: result.exitCode, stdout, stderr, fired: stderr.includes("LATE_FIRED") };
+}
+
+/** Recursive snapshot of run/ that records directory entries as well as file bytes. */
+function snapshotRun(run: string): Record<string, string> {
+  const acc: Record<string, string> = {};
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      const rel = path.relative(run, full);
+      if (entry.isDirectory()) {
+        acc[rel] = "DIR";
+        walk(full);
+      } else if (entry.isFile()) {
+        acc[rel] = readFileSync(full, "utf8");
+      } else {
+        acc[rel] = "OTHER";
+      }
+    }
+  };
+  walk(run);
+  return acc;
+}
+
+const foldOpened = (id: number) =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="opened"><Allocation worker="w0" from="${id}" to="99"/></NgraceRunEvent>`;
+const foldEvent = (id: number, kind: string) =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="${kind}"/>`;
+
+describe("F295 fold consequences (AC-MEMBER-FOLD-CONSEQUENCES)", () => {
+  it("(a) an interior hole refuses with a byte-identical run/ listing and no ledger", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-HOLE");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "3-T-001-terminal.xml"), foldEvent(3, "terminal"));
+    const before = snapshotRun(run);
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-HOLE"]);
+    expect(fold.exit).not.toBe(0);
+    expect(fold.stdout + fold.stderr).toMatch(/range hole at 2 for w0/);
+    expect(snapshotRun(run)).toEqual(before);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("(b) a trailing event removed in the true late window folds the survivors with no ghost", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-TRAIL");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), foldEvent(2, "progress"));
+    writeFileSync(path.join(run, "3-T-001-terminal.xml"), foldEvent(3, "terminal"));
+    const target = path.join(run, "4-T-001-progress.xml");
+    writeFileSync(target, foldEvent(4, "progress"));
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-TRAIL"], {
+      preload: FOLD_LATE_PRELOAD,
+      env: { LATE_TARGET: target },
+    });
+    expect(fold.fired, "the after-existsSync interceptor must report it fired").toBe(true);
+    expect(fold.exit).toBe(0);
+    expect(readdirSync(run)).toEqual([]);
+    const ledger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(ledger).toContain('Event id="1" task="T-001" kind="opened"');
+    expect(ledger).toContain('Event id="2" task="T-001" kind="progress"');
+    expect(ledger).toContain('Event id="3" task="T-001" kind="terminal"');
+    expect(ledger).not.toContain('Event id="4"');
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("(c) a vanished opened folds with only one fresh covering opened", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-VANISH");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), foldEvent(2, "progress"));
+    writeFileSync(path.join(run, "3-T-001-terminal.xml"), foldEvent(3, "terminal"));
+    rmSync(path.join(run, "1-T-001-opened.xml"), { force: true });
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-VANISH"]);
+    expect(fold.exit).toBe(0);
+    const ledger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(ledger).toContain('Event id="2" task="T-001" kind="progress"');
+    expect(ledger).toContain('Event id="3" task="T-001" kind="terminal"');
+    expect(ledger).not.toContain('Event id="1"');
+    const openedIds = [...ledger.matchAll(/Event id="(\d+)"[^>]*kind="opened"/g)].map((match) => Number(match[1]));
+    expect(openedIds).toHaveLength(1);
+    expect(openedIds[0]).toBeGreaterThanOrEqual(4);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
