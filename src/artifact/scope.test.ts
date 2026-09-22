@@ -443,8 +443,8 @@ describe("close-time write guard", () => {
   const requested = (process.env.NGRACE_SCOPE_GUARD_CHANGE ?? "").trim();
   const activated = requested === SCOPE_GUARD_CHANGE;
 
-  it("refuses an activation switch that names a different change id", () => {
-    expect(requested === "" || requested === SCOPE_GUARD_CHANGE).toBe(true);
+  it("remains dormant when the switch names another change", () => {
+    expect(evaluateCloseTimeGuard(repoRoot, "C-UNRELATED")).toEqual({ activated: false, offenders: [] });
   });
 
   it("activates exactly on the successor switch and is verifiably dormant otherwise", () => {

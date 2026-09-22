@@ -7426,7 +7426,7 @@ describe("C-DISCARD-PREFLIGHT-1-5087B21A T-002 payer ratchet", () => {
     expect(derivePayerMap(live, [{ name: change, pays, statusText: "" }]).has("F292")).toBe(false);
   });
 
-  it("the shipped --retire writer moves a live PaidBy finding and the charter row into the durable state the assertion reads", () => {
+  it("the shipped --retire writer stamps PaidBy on a live finding and moves the charter row into the durable state the assertion reads", () => {
     const root = isolatedRoot();
     writeHappy(root, {
       // The live finding carries no PaidBy: the retire writer derives and stamps it
