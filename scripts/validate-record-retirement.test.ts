@@ -7457,3 +7457,61 @@ describe("C-DISCARD-PREFLIGHT-1-5087B21A T-002 payer ratchet", () => {
     expect(durableRouteViolations(REPO_ROOT)).toEqual([]);
   });
 });
+
+// C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC T-007: empty-Pays durable row relation.
+const B3_ROW_NAME = "C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC";
+function expectB3CarrierAndRowRelations(recordDir: string): void {
+  const hits = (["registry.xml", "registry-retired.xml"] as const).flatMap((file) => {
+    const parsed = parseGraceXmlArtifact(file, readFileSync(path.join(recordDir, file), "utf8"));
+    expect(parsed.root, `${file} parses`).not.toBeNull();
+    return childNodes(parsed.root!, "Row").filter((row) => row.attributes.name === B3_ROW_NAME).map((row) => ({ file, node: row }));
+  });
+  expect(hits.length, `${B3_ROW_NAME}: exactly one Row across the registry layers (got ${hits.length})`).toBe(1);
+  const hit = hits[0]!;
+  const holding = hit.file === "registry.xml" ? "live" : "retired";
+  expect(hit.node.attributes.status, `${B3_ROW_NAME}: status agrees with the holding file`).toBe(holding);
+  expect(hit.node.attributes.kind, `${B3_ROW_NAME}: kind`).toBe("chartered");
+  const paysTokens = (childText(hit.node, "Pays") ?? "").trim().split(/\s+/).filter(Boolean);
+  expect(paysTokens, `${B3_ROW_NAME}: Pays is empty`).toHaveLength(0);
+  const statusText = childText(hit.node, "StatusText") ?? "";
+  for (const token of statusText.match(/F[0-9]+/g) ?? []) {
+    expect(paysTokens, `${B3_ROW_NAME}: StatusText names no F token outside Pays (${token})`).toContain(token);
+  }
+}
+function b3RowFixture(rowFile: "registry.xml" | "registry-retired.xml", status: string, pays: string, statusText: string): string {
+  const root = isolatedRoot();
+  const row = `  <Row name="${B3_ROW_NAME}" status="${status}" kind="chartered"><Number></Number><Charter>charter</Charter><Pays>${pays}</Pays><StatusText>${statusText}</StatusText></Row>\n`;
+  plant(root, `${RECORD_REL}/registry.xml`, rowFile === "registry.xml" ? `<Registry>\n${row}</Registry>\n` : `<Registry>\n</Registry>\n`);
+  plant(root, `${RECORD_REL}/registry-retired.xml`, rowFile === "registry-retired.xml" ? `<Registry>\n${row}</Registry>\n` : `<Registry>\n</Registry>\n`);
+  return path.join(root, RECORD_REL);
+}
+describe("C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC empty-Pays ratchet", () => {
+  it("green: exactly-once retired chartered row with an empty Pays and no F token in StatusText", () => {
+    expectB3CarrierAndRowRelations(b3RowFixture("registry-retired.xml", "retired", "", "Ordered."));
+  });
+  it("red: duplicate row, out-of-Pays StatusText, and wrong holding status", () => {
+    const dup = b3RowFixture("registry-retired.xml", "retired", "", "Ordered.");
+    const held = readFileSync(path.join(dup, "registry-retired.xml"), "utf8");
+    writeFileSync(path.join(dup, "registry-retired.xml"), held.replace("</Registry>", `  <Row name="${B3_ROW_NAME}" status="live" kind="chartered"><Pays></Pays></Row>\n</Registry>`));
+    expect(() => expectB3CarrierAndRowRelations(dup)).toThrow(/exactly one Row across the registry layers/);
+    expect(() => expectB3CarrierAndRowRelations(b3RowFixture("registry-retired.xml", "retired", "", "Paid by F999."))).toThrow(/names no F token outside Pays/);
+    expect(() => expectB3CarrierAndRowRelations(b3RowFixture("registry.xml", "retired", "", "Ordered."))).toThrow(/status agrees with the holding file/);
+  });
+  it("shipped --flush mints the empty-Pays row live and the eligible --retire moves it retired", () => {
+    const root = isolatedRoot();
+    writeHappy(root);
+    mkdirSync(path.join(root, ".ngrace", "changes", "active", B3_ROW_NAME), { recursive: true });
+    plant(root, ".ngrace/scratch/staged-findings.md", "staged\n");
+    const recordDir = path.join(root, RECORD_REL);
+    expect(() => expectB3CarrierAndRowRelations(recordDir)).toThrow(/exactly one Row across the registry layers/);
+    const flush = runValidatorInProcess(root, ["--flush", "--change", B3_ROW_NAME, "--pays", "", "--mint-search", "0 active, 0 archive", "--charter", "Integrated supersede matrix and governed close.", "--status-text", "Ordered."]);
+    expect(flush.status, flush.stdout + flush.stderr).toBe(0);
+    expectB3CarrierAndRowRelations(recordDir);
+    mkdirSync(path.join(root, ".ngrace", "changes", "archive", B3_ROW_NAME), { recursive: true });
+    const retire = runValidatorInProcess(root, ["--retire"]);
+    expect(retire.status, retire.stdout + retire.stderr).toBe(0);
+    expectB3CarrierAndRowRelations(recordDir);
+    expect(readFileSync(path.join(recordDir, "registry.xml"), "utf8")).not.toContain(B3_ROW_NAME);
+    expect(readFileSync(path.join(recordDir, "registry-retired.xml"), "utf8")).toContain(B3_ROW_NAME);
+  });
+});

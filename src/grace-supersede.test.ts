@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -1292,5 +1292,300 @@ describe("implicit mint transaction", () => {
     expect(existsSync(path.join(activeDir(root), "C-MINT-FAIL-2-ABCDEF12"))).toBe(false);
     expect(existsSync(path.join(archiveDir(root), "C-MINT-FAIL-1"))).toBe(false);
     expect(cleanups, "no candidate was acquired to clean").toHaveLength(0);
+  });
+});
+
+// --- C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC plan rehearsal rows (T-002..T-004) ---
+const B3_ACTIVE = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
+const B3_ARCHIVE = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "archive");
+
+function b3GitProject(): string {
+  const root = tempProject();
+  const g = (args: string[]) => Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "ignore", stderr: "ignore" });
+  g(["init"]);
+  g(["config", "user.email", "b3@example.test"]);
+  g(["config", "user.name", "B3 Rehearsal"]);
+  g(["config", "commit.gpgsign", "false"]);
+  g(["add", "."]);
+  g(["commit", "-m", "baseline"]);
+  return root;
+}
+function b3RunSupersedeEnv(root: string, args: string[], env: Record<string, string>) {
+  return spawnSync("bun", ["run", GRACE_BIN, "supersede", ...args, "--path", root], { cwd: REPO_ROOT, encoding: "utf8", env: { ...process.env, ...env } });
+}
+function b3Snap(root: string): Map<string, string> {
+  const out = new Map<string, string>();
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, entry.name);
+      const rel = path.relative(root, abs).replaceAll("\\", "/");
+      const st = lstatSync(abs);
+      if (st.isSymbolicLink()) out.set(rel, `SYMLINK:${readlinkSync(abs)}`);
+      else if (st.isDirectory()) { out.set(rel, "DIR"); walk(abs); }
+      else out.set(rel, `FILE:${createHash("sha256").update(readFileSync(abs)).digest("hex")}`);
+    }
+  };
+  walk(root);
+  return out;
+}
+function b3Delta(before: Map<string, string>, after: Map<string, string>): string[] {
+  const keys = [...new Set([...before.keys(), ...after.keys()])].sort();
+  const d: string[] = [];
+  for (const k of keys) {
+    const b = before.get(k); const a = after.get(k);
+    if (b === a) continue;
+    d.push(b === undefined ? `ADDED ${k}` : a === undefined ? `DELETED ${k}` : `CHANGED ${k}`);
+  }
+  return d;
+}
+function b3CanonChildren(children: GraceXmlNode[]): unknown {
+  return children.map((c) => ({ tag: c.tag, attrs: Object.entries(c.attributes).sort(), text: c.text, children: b3CanonChildren(c.children) }));
+}
+function b3Projection(events: Array<{ id: number; kind: string; task: string; file: string; attributes: Record<string, string>; children: GraceXmlNode[] }>): string {
+  return JSON.stringify(events.map((e) => ({
+    attrs: Object.entries(expectedLedgerEventAttributes(e)).sort(),
+    children: b3CanonChildren(e.children),
+  })));
+}
+
+describe("AC-SUCCESS-PATH-PRESERVED integrated (C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC)", () => {
+  it("AC-SUCCESS-PATH-PRESERVED integrated: explicit replacement archives with the complete loose-to-ledger projection", () => {
+    const root = b3GitProject();
+    writeChangeBundleFixture(root, { changeId: "C-B3-OLD", location: "active", specStatus: "draft", planStatus: "draft" });
+    writeChangeBundleFixture(root, { changeId: "C-B3-OLD-2", location: "active", specStatus: "draft", planStatus: "draft" });
+    const bundle = path.join(B3_ACTIVE(root), "C-B3-OLD");
+    const example = path.join(root, "src", "example.ts");
+    writeFileSync(example, "export const example = 1;\n");
+    advanceCursor(root, "C-B3-OLD", { task: "T-001", openEpoch: true, from: 1, to: 10 });
+    advanceCursor(root, "C-B3-OLD", { task: "T-001", kind: "progress" });
+    const looseBefore = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(looseBefore.map((e) => `${e.id}:${e.kind}`)).toEqual(["1:opened", "2:progress"]);
+    const discardedId = Math.max(...looseBefore.map((e) => e.id)) + 1;
+    const expected = b3Projection([
+      ...looseBefore,
+      { id: discardedId, task: looseBefore.at(-1)!.task, kind: "discarded", file: "", attributes: {}, children: [] as GraceXmlNode[] },
+    ].sort((a, b) => a.id - b.id));
+    const result = runSupersedeCli(["--change", "C-B3-OLD", "--replacement", "C-B3-OLD-2", "--path", root]);
+    expect(result.status).toBe(0);
+    const archived = path.join(B3_ARCHIVE(root), "C-B3-OLD");
+    expect(existsSync(bundle)).toBe(false);
+    expect(readFileSync(path.join(archived, "spec.xml"), "utf8")).toMatch(/<Replacement>C-B3-OLD-2<\/Replacement>/);
+    expect(readFileSync(path.join(archived, "plan.xml"), "utf8")).toMatch(/<Replacement>C-B3-OLD-2<\/Replacement>/);
+    expect(b3Projection(listLedgerEvents(archived).sort((a, b) => a.id - b.id))).toBe(expected);
+    const ledger = readFileSync(path.join(archived, "run-ledger.xml"), "utf8");
+    expect((ledger.match(/<Epoch-1\b/g) ?? []).length).toBe(1);
+    expect(ledger).not.toContain('kind="terminal"');
+    expect(readdirSync(path.join(archived, "run"))).toEqual([]);
+    expect(readFileSync(example, "utf8")).toBe("export const example = 1;\n");
+    expect(result.stdout.trim()).toBe(path.join(ARTIFACT_DIR, "changes", "archive", "C-B3-OLD").replaceAll(path.sep, "/"));
+    expect(readAmendmentInstrument(root, "C-B3-OLD").supersedeChainDepth).toBe(0);
+    expect(readAmendmentInstrument(root, "C-B3-OLD-2").supersedeChainDepth).toBe(1);
+  });
+
+  it("AC-SUCCESS-PATH-PRESERVED integrated: a twelve-event predecessor folds to one epoch before archiving", () => {
+    const root = b3GitProject();
+    writeChangeBundleFixture(root, { changeId: "C-B3-BIG", location: "active", specStatus: "draft", planStatus: "draft" });
+    writeChangeBundleFixture(root, { changeId: "C-B3-BIG-2", location: "active", specStatus: "draft", planStatus: "draft" });
+    advanceCursor(root, "C-B3-BIG", { task: "T-001", openEpoch: true, from: 1, to: 199 });
+    for (let i = 0; i < 12; i += 1) advanceCursor(root, "C-B3-BIG", { task: `T-${String(i + 2).padStart(3, "0")}` });
+    expect(listLooseEvents(path.join(B3_ACTIVE(root), "C-B3-BIG"))).toHaveLength(13);
+    const result = runSupersedeCli(["--change", "C-B3-BIG", "--replacement", "C-B3-BIG-2", "--path", root]);
+    expect(result.status).toBe(0);
+    const archived = path.join(B3_ARCHIVE(root), "C-B3-BIG");
+    const ledger = readFileSync(path.join(archived, "run-ledger.xml"), "utf8");
+    expect((ledger.match(/<Epoch-1\b/g) ?? []).length).toBe(1);
+    expect((ledger.match(/kind="discarded"/g) ?? []).length).toBe(1);
+    expect(listLooseEvents(archived)).toHaveLength(0);
+    expect(listLedgerEvents(archived).length).toBe(14);
+  });
+});
+
+describe("AC-REFUSED-NO-SUCCESSOR matrix (C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC)", () => {
+  it("AC-REFUSED-NO-SUCCESSOR matrix: implicit and explicit refusals leave a union-key byte-identical tree", () => {
+    {
+      const root = b3GitProject();
+      writeChangeBundleFixture(root, { changeId: "C-B3-R1", location: "active", specStatus: "draft", planStatus: "draft" });
+      const resolved = resolveSpecMint({ supersedes: "C-B3-R1", timestamp: "2026-09-19T00:00:00Z", branch: "b" }, root);
+      mkdirSync(path.join(B3_ACTIVE(root), resolved.id), { recursive: true });
+      writeFileSync(path.join(B3_ACTIVE(root), resolved.id, "spec.xml"), "<competitor/>");
+      const before = b3Snap(root);
+      const r = runSupersedeCli(["--change", "C-B3-R1", "--timestamp", "2026-09-19T00:00:00Z", "--branch", "b", "--path", root]);
+      expect(r.status).not.toBe(0);
+      expect(b3Delta(before, b3Snap(root))).toEqual([]);
+    }
+    {
+      const root = b3GitProject();
+      writeChangeBundleFixture(root, { changeId: "C-B3-R2", location: "active", specStatus: "draft", planStatus: "draft" });
+      writeChangeBundleFixture(root, { changeId: "C-B3-R2-2", location: "active", specStatus: "draft", planStatus: "draft" });
+      writeChangeBundleFixture(root, { changeId: "C-B3-R2", location: "archive", specStatus: "superseded", planStatus: "superseded" });
+      const before = b3Snap(root);
+      const r = runSupersedeCli(["--change", "C-B3-R2", "--replacement", "C-B3-R2-2", "--path", root]);
+      expect(r.status).not.toBe(0);
+      expect(r.stdout + r.stderr).toMatch(/Archive destination already exists|already under archive/);
+      expect(b3Delta(before, b3Snap(root))).toEqual([]);
+    }
+    {
+      const root = b3GitProject();
+      writeChangeBundleFixture(root, { changeId: "C-B3-R3", location: "active", specStatus: "draft", planStatus: "draft" });
+      const before = b3Snap(root);
+      const r = runSupersedeCli(["--change", "C-B3-R3", "--replacement", "C-B3-MISSING-2", "--path", root]);
+      expect(r.status).not.toBe(0);
+      expect(b3Delta(before, b3Snap(root))).toEqual([]);
+    }
+  });
+
+  it("AC-REFUSED-NO-SUCCESSOR matrix: cleaned same-id refusal repeats without growth", () => {
+    const root = b3GitProject();
+    writeChangeBundleFixture(root, { changeId: "C-B3-CLEAN", location: "active", specStatus: "draft", planStatus: "draft" });
+    const resolved = resolveSpecMint({ supersedes: "C-B3-CLEAN", timestamp: "2026-09-19T00:00:00Z", branch: "b" }, root);
+    const before = readdirSync(B3_ACTIVE(root)).sort();
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      let writes = 0;
+      const cleanups: Array<{ removed: boolean }> = [];
+      expect(() =>
+        supersedeChangeBundle(root, "C-B3-CLEAN", { kind: "mint", id: resolved.id, mint: () => mintResolvedBundle(root, resolved).acquired }, {
+          writeFileSync: ((...a: Parameters<typeof writeFileSync>) => { writes += 1; if (writes === 1) throw new Error("injected governance write failure"); return writeFileSync(...a); }) as typeof writeFileSync,
+          observeCleanupForTests: (o) => cleanups.push(o),
+        }),
+      ).toThrow(/injected governance write failure/);
+      expect(cleanups).toHaveLength(1);
+      expect(cleanups[0]!.removed).toBe(true);
+      expect(existsSync(path.join(B3_ACTIVE(root), resolved.id))).toBe(false);
+      expect(readdirSync(B3_ACTIVE(root)).sort()).toEqual(before);
+    }
+  });
+
+  it("AC-REFUSED-NO-SUCCESSOR matrix: retained residue and a refused cleanup are named once with no same-id growth", () => {
+    const root = b3GitProject();
+    writeChangeBundleFixture(root, { changeId: "C-B3-RESID", location: "active", specStatus: "draft", planStatus: "draft" });
+    const resolved = resolveSpecMint({ supersedes: "C-B3-RESID", timestamp: "2026-09-19T00:00:00Z", branch: "b" }, root);
+    let message = "";
+    const cleanups: Array<{ removed: boolean }> = [];
+    try {
+      supersedeChangeBundle(root, "C-B3-RESID", {
+        kind: "mint", id: resolved.id,
+        mint: () => { const a = mintResolvedBundle(root, resolved).acquired; writeFileSync(path.join(B3_ACTIVE(root), resolved.id, "foreign.txt"), "FOREIGN"); return a; },
+      }, {
+        writeFileSync: (() => { throw new Error("injected governance write failure"); }) as typeof writeFileSync,
+        observeCleanupForTests: (o) => cleanups.push(o),
+      });
+    } catch (e) { message = (e as Error).message; }
+    expect(cleanups).toHaveLength(1);
+    expect(cleanups[0]!.removed).toBe(false);
+    expect((message.match(/Residual state preserved/g) ?? [])).toHaveLength(1);
+    expect(readFileSync(path.join(B3_ACTIVE(root), resolved.id, "foreign.txt"), "utf8")).toBe("FOREIGN");
+    expect(readdirSync(B3_ACTIVE(root)).filter((n) => n === resolved.id)).toHaveLength(1);
+    expect(() => supersedeChangeBundle(root, "C-B3-RESID", { kind: "mint", id: resolved.id, mint: () => mintResolvedBundle(root, resolved).acquired }, {})).toThrow(/already exists/);
+    expect(readdirSync(B3_ACTIVE(root)).filter((n) => n === resolved.id)).toHaveLength(1);
+  });
+
+  it("AC-POST-FOLD-FAILURES: governance write failure composes rollback with one cleanup and the exact tree delta", () => {
+    const root = b3GitProject();
+    writeChangeBundleFixture(root, { changeId: "C-B3-PF", location: "active", specStatus: "draft", planStatus: "draft" });
+    advanceCursor(root, "C-B3-PF", { task: "T-001", openEpoch: true, from: 1, to: 10 });
+    advanceCursor(root, "C-B3-PF", { task: "T-001", kind: "progress" });
+    const resolved = resolveSpecMint({ supersedes: "C-B3-PF", timestamp: "2026-09-19T00:00:00Z", branch: "b" }, root);
+    const bundle = path.join(B3_ACTIVE(root), "C-B3-PF");
+    const specBefore = readFileSync(path.join(bundle, "spec.xml"), "utf8");
+    const before = b3Snap(bundle);
+    let writes = 0;
+    const cleanups: Array<{ removed: boolean }> = [];
+    expect(() =>
+      supersedeChangeBundle(root, "C-B3-PF", { kind: "mint", id: resolved.id, mint: () => mintResolvedBundle(root, resolved).acquired }, {
+        writeFileSync: ((...a: Parameters<typeof writeFileSync>) => { writes += 1; if (writes === 2) throw new Error("injected plan status write failure"); return writeFileSync(...a); }) as typeof writeFileSync,
+        observeCleanupForTests: (o) => cleanups.push(o),
+      }),
+    ).toThrow(/injected plan status write failure/);
+    expect(cleanups).toHaveLength(1);
+    expect(cleanups[0]!.removed).toBe(true);
+    expect(readFileSync(path.join(bundle, "spec.xml"), "utf8")).toBe(specBefore);
+    expect(existsSync(path.join(B3_ACTIVE(root), resolved.id))).toBe(false);
+    expect(existsSync(path.join(B3_ARCHIVE(root), "C-B3-PF"))).toBe(false);
+    const delta = b3Delta(before, b3Snap(bundle));
+    const unexpected = delta.filter((d) => {
+      const key = d.replace(/^(ADDED|DELETED|CHANGED) /, "");
+      return !/run-ledger\.xml$/.test(key) && !/(^|\/)run\//.test(key) && !/run\.xml$/.test(key);
+    });
+    expect(unexpected, `predecessor tree delta: ${delta.join(", ")}`).toEqual([]);
+    expect(listLedgerEvents(bundle).some((e) => e.kind === "discarded")).toBe(true);
+  });
+
+  it("AC-POST-FOLD-FAILURES: EXDEV rename refuses after rollback with one cleanup and the exact tree delta", () => {
+    const root = b3GitProject();
+    writeChangeBundleFixture(root, { changeId: "C-B3-EXDEV", location: "active", specStatus: "draft", planStatus: "draft" });
+    const resolved = resolveSpecMint({ supersedes: "C-B3-EXDEV", timestamp: "2026-09-19T00:00:00Z", branch: "b" }, root);
+    const bundle = path.join(B3_ACTIVE(root), "C-B3-EXDEV");
+    const specBefore = readFileSync(path.join(bundle, "spec.xml"), "utf8");
+    const cleanups: Array<{ removed: boolean }> = [];
+    expect(() =>
+      supersedeChangeBundle(root, "C-B3-EXDEV", { kind: "mint", id: resolved.id, mint: () => mintResolvedBundle(root, resolved).acquired }, {
+        renameSync: (() => { throw Object.assign(new Error("cross-device link"), { code: "EXDEV" }); }) as typeof renameSync,
+        observeCleanupForTests: (o) => cleanups.push(o),
+      }),
+    ).toThrow(/EXDEV|cross-device/i);
+    expect(cleanups).toHaveLength(1);
+    expect(cleanups[0]!.removed).toBe(true);
+    expect(readFileSync(path.join(bundle, "spec.xml"), "utf8")).toBe(specBefore);
+    expect(existsSync(path.join(B3_ACTIVE(root), resolved.id))).toBe(false);
+  });
+});
+
+describe("AC-SUPERSEDE-MATRIX-COMPLETE item11 (C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC)", () => {
+  it("AC-SUPERSEDE-MATRIX-COMPLETE item11: branch/timestamp drift at the under-lock seam keeps the pre-resolved successor id", () => {
+    const root = b3GitProject();
+    writeChangeBundleFixture(root, { changeId: "C-B3-DRIFT", location: "active", specStatus: "draft", planStatus: "draft" });
+    const locked = resolveSpecMint({ supersedes: "C-B3-DRIFT", timestamp: "2026-09-19T05:00:00Z", branch: "feature-x" }, root);
+    const lockPath = path.join(B3_ACTIVE(root), `.candidate-${locked.id}.lock`);
+    let seamFired = false;
+    let lockHeldAtSeam = false;
+    const priorTimestamp = process.env.NGRACE_SPEC_TIMESTAMP;
+    const priorBranch = process.env.NGRACE_SPEC_BRANCH;
+    try {
+      supersedeChangeBundle(root, "C-B3-DRIFT", { kind: "mint", id: locked.id, mint: () => mintResolvedBundle(root, locked).acquired }, {
+        afterReplacementValidationForTests: () => {
+          seamFired = true;
+          lockHeldAtSeam = existsSync(lockPath);
+          // Drift the id sources at the under-lock seam: after resolution, before mint.
+          process.env.NGRACE_SPEC_TIMESTAMP = "2026-09-19T23:00:00Z";
+          process.env.NGRACE_SPEC_BRANCH = "conflicting-branch";
+        },
+      });
+    } finally {
+      if (priorTimestamp === undefined) delete process.env.NGRACE_SPEC_TIMESTAMP; else process.env.NGRACE_SPEC_TIMESTAMP = priorTimestamp;
+      if (priorBranch === undefined) delete process.env.NGRACE_SPEC_BRANCH; else process.env.NGRACE_SPEC_BRANCH = priorBranch;
+    }
+    expect(seamFired, "the under-lock seam fired").toBe(true);
+    expect(lockHeldAtSeam, `the held successor lock named ${locked.id}`).toBe(true);
+    expect(readdirSync(B3_ACTIVE(root))).toEqual([locked.id]);
+    expect(existsSync(path.join(B3_ACTIVE(root), locked.id, "spec.xml"))).toBe(true);
+  });
+
+  it("AC-SUPERSEDE-MATRIX-COMPLETE item11: explicit replacement relocation under the fired seam refuses", () => {
+    const root = b3GitProject();
+    writeChangeBundleFixture(root, { changeId: "C-B3-LOC", location: "active", specStatus: "draft", planStatus: "draft" });
+    writeChangeBundleFixture(root, { changeId: "C-B3-LOC-2", location: "active", specStatus: "draft", planStatus: "draft" });
+    mkdirSync(B3_ARCHIVE(root), { recursive: true });
+    const before = readFileSync(path.join(B3_ACTIVE(root), "C-B3-LOC", "spec.xml"), "utf8");
+    expect(() =>
+      supersedeChangeBundle(root, "C-B3-LOC", { kind: "explicit", id: "C-B3-LOC-2" }, {
+        afterReplacementValidationForTests: () => { renameSync(path.join(B3_ACTIVE(root), "C-B3-LOC-2"), path.join(B3_ARCHIVE(root), "C-B3-LOC-2")); },
+      }),
+    ).toThrow(/changed location or identity/);
+    expect(readFileSync(path.join(B3_ACTIVE(root), "C-B3-LOC", "spec.xml"), "utf8")).toBe(before);
+    expect(existsSync(path.join(B3_ACTIVE(root), "C-B3-LOC"))).toBe(true);
+  });
+
+  it("AC-SUPERSEDE-MATRIX-COMPLETE item11: five-step chain leaves one active successor each step", () => {
+    const root = b3GitProject();
+    writeChangeBundleFixture(root, { changeId: "C-B3-CHAIN-1", location: "active", specStatus: "draft", planStatus: "draft" });
+    let current = "C-B3-CHAIN-1";
+    for (let step = 1; step <= 5; step += 1) {
+      const r = runSupersedeCli(["--change", current, "--timestamp", `2026-09-19T0${step}:00:00Z`, "--branch", "b", "--path", root]);
+      expect(r.status).toBe(0);
+      const active = readdirSync(B3_ACTIVE(root)).filter((n) => n.startsWith("C-B3-CHAIN-"));
+      expect(active).toHaveLength(1);
+      expect(active[0]!.startsWith(`C-B3-CHAIN-${step + 1}-`)).toBe(true);
+      current = active[0]!;
+    }
   });
 });

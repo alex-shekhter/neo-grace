@@ -337,8 +337,8 @@ describe("C-GRAMMAR-SEAM T-003 OptionalContext bucket", () => {
 });
 
 // C-DISCARD-PREFLIGHT-1-5087B21A T-002: the activated close-time write guard.
-const SCOPE_GUARD_CHANGE = "C-DISCARD-PREFLIGHT-1-5087B21A";
-const SCOPE_GUARD_BASE = "406049618506877cb4c3aebba0d707733563f334";
+const SCOPE_GUARD_CHANGE = "C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC";
+const SCOPE_GUARD_BASE = "73044f83c3f4eaaaa5c5b7648a8a31c115337c39";
 const SCOPE_GUARD_RECORD_DIR = "docs/plans/active/RM-GOVERNED-PATH/";
 // Paid close: the allowed non-lifecycle set is exactly the eleven observable literal
 // paths — the one forced source, the three forced tests/ratchet, and the seven
@@ -347,8 +347,9 @@ const SCOPE_GUARD_RECORD_DIR = "docs/plans/active/RM-GOVERNED-PATH/";
 // rehearsal's before/after bytes), and `decisions.md` is excluded, so a planted
 // non-record write under the record directory still reddens.
 const SCOPE_GUARD_ALLOWED_FILES = new Set([
-  "src/grace-cursor.ts",
+  "src/grace-supersede.test.ts",
   "src/grace-cursor.test.ts",
+  "src/gates/core.test.ts",
   "src/artifact/scope.test.ts",
   "scripts/validate-record-retirement.test.ts",
   `${SCOPE_GUARD_RECORD_DIR}decisions.xml`,
@@ -497,20 +498,23 @@ describe("close-time write guard", () => {
     expect(scopeGuardOffenders(repoRoot)).toEqual([]);
   });
 
-  it("has no predecessor supersede transition and recognizes only this bundle's lifecycle identities", () => {
-    // Fresh slug: the git-derived population carries no other C-* bundle path, and
-    // the bundle's own spec/plan/run identities are allowed by exact identity while
-    // a planted non-lifecycle file under the same directory still reddens below.
-    const tracked = gitEvidence(repoRoot, SCOPE_GUARD_TRACKED_DIFF_ARGS);
-    expect(tracked.available).toBe(true);
-    const untracked = gitEvidence(repoRoot, ["ls-files", "--others", "--exclude-standard"]);
-    expect(untracked.available).toBe(true);
-    const changed = [...new Set([...tracked.lines, ...untracked.lines])];
-    const foreignBundles = changed.filter(
-      (file) => /^\.ngrace\/changes\/(active|archive)\/C-/.test(file) && !file.includes(SCOPE_GUARD_CHANGE),
-    );
-    expect(foreignBundles).toEqual([]);
+  it("remains dormant on a sibling bundle and, when activated, recognizes only this bundle's lifecycle identities", () => {
+    // Dormant: no evidence collected, and no inspection or failure on a future sibling bundle.
+    if (!activated) return;
+    // Activated: this bundle's own lifecycle files are exempt; a foreign sibling is out of scope.
     expect(scopeGuardOffenders(repoRoot)).toEqual([]);
+  });
+
+  it("reddens on a foreign sibling non-allowed write when activated, without a blanket exemption", () => {
+    if (!activated) return;
+    const sibling = path.join(repoRoot, ".ngrace", "changes", "active", "C-OTHER-1-DEADBEEF");
+    mkdirSync(sibling, { recursive: true });
+    writeFileSync(path.join(sibling, "spec.xml"), "<other/>\n");
+    try {
+      expect(scopeGuardOffenders(repoRoot)).toContain(".ngrace/changes/active/C-OTHER-1-DEADBEEF/spec.xml");
+    } finally {
+      rmSync(sibling, { recursive: true, force: true });
+    }
   });
 
   it("reddens on a planted forbidden write when activated", () => {

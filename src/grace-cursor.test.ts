@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import type { GraceXmlNode } from "./artifact/xml";
 import os from "node:os";
@@ -10,6 +10,7 @@ import {
   writeChangeBundleFixture,
   writeMinimalNgraceProject,
 } from "./artifact/test-fixtures";
+import { setLooseEventReadProbeForTests } from "./artifact/run-membership";
 import { RANGE_CLOSING_KINDS, validateNgraceProject } from "./artifact/grammar";
 import { snapshotProjectTree } from "./test-support/fixtures";
 import {
@@ -6193,5 +6194,166 @@ describe("C-DISCARD-PREFLIGHT recovery preservation through the changed caller (
     expect(existsSync(archived)).toBe(true);
     expect(b5Projection(listLedgerEvents(archived).sort((a, b) => a.id - b.id))).toBe(expected);
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+// --- C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC plan rehearsal rows (T-005..T-006) ---
+function b3cGitInit(root: string): void {
+  const g = (args: string[]) => Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "ignore", stderr: "ignore" });
+  g(["init"]);
+  g(["config", "user.email", "b3@example.test"]);
+  g(["config", "user.name", "B3 Rehearsal"]);
+  g(["config", "commit.gpgsign", "false"]);
+  g(["add", "."]);
+  g(["commit", "-m", "baseline"]);
+}
+function b3cSnap(root: string): Map<string, string> {
+  const out = new Map<string, string>();
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, entry.name);
+      const rel = path.relative(root, abs).replaceAll("\\", "/");
+      const st = lstatSync(abs);
+      if (st.isSymbolicLink()) out.set(rel, `SYMLINK:${readlinkSync(abs)}`);
+      else if (st.isDirectory()) { out.set(rel, "DIR"); walk(abs); }
+      else out.set(rel, `FILE:${createHash("sha256").update(readFileSync(abs)).digest("hex")}`);
+    }
+  };
+  walk(root);
+  return out;
+}
+function b3cDelta(before: Map<string, string>, after: Map<string, string>): string[] {
+  const keys = [...new Set([...before.keys(), ...after.keys()])].sort();
+  const d: string[] = [];
+  for (const k of keys) {
+    const b = before.get(k); const a = after.get(k);
+    if (b === a) continue;
+    d.push(b === undefined ? `ADDED ${k}` : a === undefined ? `DELETED ${k}` : `CHANGED ${k}`);
+  }
+  return d;
+}
+function b3cCanon(children: GraceXmlNode[]): unknown {
+  return children.map((c) => ({ tag: c.tag, attrs: Object.entries(c.attributes).sort(), text: c.text, children: b3cCanon(c.children) }));
+}
+function b3cProjection(events: Array<{ id: number; kind: string; task: string; file: string; attributes: Record<string, string>; children: GraceXmlNode[] }>): string {
+  return JSON.stringify(events.sort((a, b) => a.id - b.id).map((e) => ({ attrs: Object.entries(expectedLedgerEventAttributes(e)).sort(), children: b3cCanon(e.children) })));
+}
+
+describe("AC-LOCK-AND-ALLOCATOR-KEPT (C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC)", () => {
+  it("AC-LOCK-AND-ALLOCATOR-KEPT: structural pin keeps the event lock, uniqueness scan, and own-file unlink in src/grace-cursor.ts", () => {
+    const src = readFileSync(path.join(FOLD_REPO_ROOT, "src", "grace-cursor.ts"), "utf8");
+    expect(src).toContain("const EVENT_WRITE_LOCK = \".run-write.lock\";");
+    expect(src).toContain("function withEventWriteLock");
+    expect(src).toContain("const existing = listLooseEvents(bundlePath)");
+    expect(src).toContain("unlinkSync(contained.absolutePath)");
+  });
+
+  it("AC-LOCK-AND-ALLOCATOR-KEPT: twelve concurrent real-CLI writers then an explicit-replacement supersede exit 0", async () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-B3-LOCK");
+    writeChangeBundleFixture(root, { changeId: "C-B3-LOCK-2", location: "active", specStatus: "draft", planStatus: "draft" });
+    advanceCursor(root, "C-B3-LOCK", { task: "T-001", openEpoch: true, from: 1, to: 199 });
+    b3cGitInit(root);
+    const tasks = Array.from({ length: 12 }, (_, i) => `T-${String(i + 2).padStart(3, "0")}`);
+    const procs = tasks.map((task) =>
+      Bun.spawn({ cmd: [process.execPath, "./src/grace.ts", "cursor", "advance", "--change", "C-B3-LOCK", "--task", task, "--path", root], cwd: FOLD_REPO_ROOT, stdout: "ignore", stderr: "ignore" }),
+    );
+    const codes = await Promise.all(procs.map((p) => p.exited));
+    expect(codes.every((code: number) => code === 0)).toBe(true);
+    const events = listLooseEvents(bundle);
+    expect(events).toHaveLength(13);
+    expect(new Set(events.map((e) => e.id)).size).toBe(13);
+    expect(events.map((e) => e.id).sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+    const r = foldGrace(root, ["supersede", "--change", "C-B3-LOCK", "--replacement", "C-B3-LOCK-2"]);
+    expect(r.exit, r.stdout + r.stderr).toBe(0);
+    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "archive", "C-B3-LOCK"))).toBe(true);
+  });
+});
+
+describe("AC-MEMBER-MATRIX-COMPLETE item17 (C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC)", () => {
+  it("AC-MEMBER-MATRIX-COMPLETE item17: an early-vanished entry is omitted without fabricating an event", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-B3-VAN");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="99"/></NgraceRunEvent>`);
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="progress"/>`);
+    b3cGitInit(root);
+    rmSync(path.join(run, "2-T-001-progress.xml"), { force: true });
+    const direct = listLooseEvents(bundle);
+    expect(direct.map((e) => e.id)).toEqual([1]);
+    expect(direct.some((e) => e.id === 2)).toBe(false);
+    const r = foldGrace(root, ["cursor", "show", "--change", "C-B3-VAN"]);
+    expect(r.exit, r.stdout + r.stderr).toBe(0);
+  });
+
+  it("AC-MEMBER-MATRIX-COMPLETE item17: a late ENOENT between enumeration and read is tolerated with the probe fired", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-B3-LATE");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    const victim = path.join(run, "2-T-001-progress.xml");
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="99"/></NgraceRunEvent>`);
+    writeFileSync(victim, `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="progress"/>`);
+    b3cGitInit(root);
+    let fired = false;
+    setLooseEventReadProbeForTests((file) => {
+      if (file === victim) { fired = true; rmSync(victim, { force: true }); }
+    });
+    try {
+      const direct = listLooseEvents(bundle);
+      expect(fired, "the read-boundary probe fired on the victim").toBe(true);
+      expect(direct.map((e) => e.id)).toEqual([1]);
+    } finally {
+      setLooseEventReadProbeForTests(undefined);
+    }
+  });
+
+  it("AC-MEMBER-MATRIX-COMPLETE item17: a malformed closer refuses fold with a union-key byte-identical tree", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-B3-MAL");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="99"/></NgraceRunEvent>`);
+    writeFileSync(path.join(run, "2-T-001-terminal.xml"), "<broken");
+    b3cGitInit(root);
+    const before = b3cSnap(bundle);
+    const r = foldGrace(root, ["cursor", "fold", "--change", "C-B3-MAL"]);
+    expect(r.exit).not.toBe(0);
+    expect(r.stdout + r.stderr).toMatch(/xml\.parse|not parseable|Cannot fold or abandon/);
+    expect(b3cDelta(before, b3cSnap(bundle))).toEqual([]);
+  });
+
+  it("AC-MEMBER-MATRIX-COMPLETE item17: mixed residue-plus-fresh recovery writes the complete expected epoch", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-B3-MIXED");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="2"/></NgraceRunEvent>`);
+    writeFileSync(path.join(run, "2-T-001-terminal.xml"), `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="terminal"/>`);
+    expect(() => foldEpoch(root, "C-B3-MIXED", { injectFailureAfterWrite: true })).toThrow();
+    const epoch1 = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(epoch1.map((e) => `${e.id}:${e.kind}`)).toEqual(["1:opened", "2:terminal"]);
+    b3cGitInit(root);
+    rmSync(path.join(run, "1-T-001-opened.xml"), { force: true });
+    expect(foldGrace(root, ["cursor", "advance", "--change", "C-B3-MIXED", "--task", "T-001"]).exit).toBe(0);
+    expect(foldGrace(root, ["cursor", "advance", "--change", "C-B3-MIXED", "--task", "T-001", "--kind", "terminal"]).exit).toBe(0);
+    const looseBefore = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(looseBefore.map((e) => `${e.id}:${e.kind}`)).toEqual(["2:terminal", "3:progress", "4:terminal"]);
+    const fresh = looseBefore.filter((e) => e.id !== 2);
+    const discardedId = Math.max(...looseBefore.map((e) => e.id)) + 1;
+    const openedId = discardedId + 1;
+    const allocFrom = Math.min(Math.min(...fresh.map((e) => e.id)), openedId);
+    const allocTo = Math.max(Math.max(...looseBefore.map((e) => e.id), openedId), openedId + 98);
+    const expected = b3cProjection([
+      ...epoch1,
+      ...fresh,
+      { id: discardedId, task: "T-001", kind: "discarded", file: "", attributes: {}, children: [] as never },
+      { id: openedId, task: "T-001", kind: "opened", file: "", attributes: {}, children: [{ tag: "Allocation", attributes: { worker: "w0", from: String(allocFrom), to: String(allocTo) }, children: [], text: "" }] },
+    ]);
+    const result = discardAndFoldEpoch(root, "C-B3-MIXED") as { applied?: boolean };
+    expect(result.applied).toBe(true);
+    expect(readdirSync(run)).toEqual([]);
+    expect(b3cProjection(listLedgerEvents(bundle))).toBe(expected);
   });
 });
