@@ -386,6 +386,21 @@ ngrace gate verdict --change C-ID --outcome pass|fail|unable-to-determine [--rea
 for an open PR accumulate on that branch; never create a branch per bundle, stage, or queue item.
 After the PR completes, delete its feature branch and create the next one from refreshed `main`.
 
+### Authority–executor operating contract
+
+- **`continue` means act:** the authority performs the next lifecycle step, writes the executor brief,
+  and returns its path without a confirmation pause unless blocked.
+- **Ownership is fixed:** the authority owns mint/supersede, approval, independent validation, close,
+  and lifecycle commits; the executor owns authoring, rehearsal, implementation, and its evidence report.
+  The executor stops before authority-owned gates unless explicitly directed otherwise.
+- **Infer instead of asking:** use the approved plan's execution mode; default to sequential and ask only
+  when the plan is genuinely ambiguous. Preserve the latest explicit WARM/COLD executor temperature.
+- **Brief first:** every dispatch names the brief path, worktree, branch, HEAD, artifact and stage,
+  permitted writes, and stopping boundary.
+- **Reports stay compact:** status, deviations, empirical evidence, discrimination, problems, and wrong
+  claims. The authority independently validates and closes automatically when the evidence holds.
+- **Briefs live at one stable location:** `/private/tmp/neo-grace-executor-briefs/`, one named brief per stage.
+
 ```bash
 bun run test
 bun run ./scripts/validate-marketplace.ts
