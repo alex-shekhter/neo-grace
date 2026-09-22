@@ -1,0 +1,266 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC>
+    <IntentSummary>
+      **This T2 plan converts the approved `C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC` spec (B3 of the three-bundle split of the superseded `C-SUPERSEDE-MEMBERSHIP-2-C459A20C`) into seven sequential executable tasks plus the close.** The durable modules are exactly `M-CLI`, `M-GATES`, `M-CURSOR`, and `M-ARTIFACT-TYPES`; the verification anchors are their `V-M-*` entries. The deliverable is **test-only plus the close**: production source files are contextual integration anchors, **not forced edits**, so no `src/**` non-test file is in the write scope. `ObservedWriteScope` is exactly the spec's twelve literal non-lifecycle paths — the five forced tests/ratchet (`src/grace-supersede.test.ts`, `src/grace-cursor.test.ts`, `src/gates/core.test.ts`, `src/artifact/scope.test.ts`, `scripts/validate-record-retirement.test.ts`) and the seven RM-GOVERNED-PATH record XML files the shipped close writers touch (`decisions.xml`, `findings.xml`, `findings-retired.xml`, `rulings.xml`, `rulings-retired.xml`, `registry.xml`, `registry-retired.xml`) — with zero globs, no `decisions.md`, no `.ngrace/scratch/staged-findings.md`, and no bundle lifecycle path. `src/artifact/run-membership.test.ts` is an **unchanged read-only command input**, not an observed write.
+
+      **Execution is sequential; the machine DAG encodes it: T-001 → T-002 → T-003 → T-004 → T-005 → T-006 → T-007.** T-001 re-authors the close-time scope guard in `src/artifact/scope.test.ts` for this bundle's exact id `C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC` and base `73044f83c3f4eaaaa5c5b7648a8a31c115337c39`, and fixes the committed B5 defect: the unconditional mint-time foreign-bundle assertion runs with no switch, so `bun run validate:ci` is red while this bundle exists; the re-authored guard must be **dormant** without its exact switch (collecting no evidence and not inspecting or failing on a future sibling bundle) and **activated** must recognize only this bundle's own lifecycle files while rejecting a foreign sibling, a forbidden ordinary path, a non-record file in the record directory, and a non-lifecycle file in its own bundle directory. No blanket sibling exemption is granted. T-002 through T-004 extend `src/grace-supersede.test.ts` (and `src/gates/core.test.ts`) with the integrated success path, the refusal matrix, post-fold failures, and the complete supersede matrix. T-005 pins the lock/allocator contract structurally and behaviorally in `src/grace-cursor.test.ts` (twelve concurrent real-CLI writers then an explicit-replacement supersede). T-006 integrates the membership/fold/discard matrix in `src/grace-cursor.test.ts`, re-driving the read-only `src/artifact/run-membership.test.ts`. T-007 re-authors the empty-`Pays` durable row ratchet in `scripts/validate-record-retirement.test.ts` and rehearses the shipped `--flush`/`--retire` transition on a disposable clone. T-007 satisfies no ordinary criterion: `AC-CLOSE-PAYER` is a close-bound criterion evaluated by the close, never a task `Satisfies` target.
+
+      **Mapping and close.** All eight ordinary criteria are mapped exactly once: `AC-SCOPE-GUARD-FINITE-FILES` and `AC-SCOPE-GUARD-GIT-STATUS` to T-001; `AC-SUCCESS-PATH-PRESERVED` to T-002; `AC-REFUSED-NO-SUCCESSOR` and `AC-POST-FOLD-FAILURES` to T-003; `AC-SUPERSEDE-MATRIX-COMPLETE` to T-004; `AC-LOCK-AND-ALLOCATOR-KEPT` to T-005; `AC-MEMBER-MATRIX-COMPLETE` to T-006. The four close-bound criteria (`AC-NO-UNFORCED-WRITES`, `AC-CLOSE-PAYER`, `AC-CLOSE-LINT`, `AC-CLOSE-TESTS`) are deliberately absent from every `Satisfies`. The full CI-equivalent verification is the single `TargetAssertions` `MustPassCommand` `bun run validate:ci`, run close-time under `--assertions target --run-commands` and `--assertions final --run-commands`, never a per-task command.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-CLI</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-GATES</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-ARTIFACT-TYPES</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-supersede.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/gates/core.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/scope.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/run-membership.test.ts</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>M-CLI</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-GATES</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-ARTIFACT-TYPES</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-supersede.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/gates/core.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/scope.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/run-membership.test.ts</Value>
+      </MustExist>
+      <MustVerify>
+        <Module>M-CLI</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-GATES</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-CURSOR</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-ARTIFACT-TYPES</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/artifact/scope.test.ts</File>
+        <Text>C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.test.ts</File>
+        <Text>73044f83c3f4eaaaa5c5b7648a8a31c115337c39</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-supersede.test.ts</File>
+        <Text>AC-SUCCESS-PATH-PRESERVED integrated: explicit replacement</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-supersede.test.ts</File>
+        <Text>AC-REFUSED-NO-SUCCESSOR matrix: cleaned same-id refusal</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-supersede.test.ts</File>
+        <Text>AC-POST-FOLD-FAILURES: governance write failure composes rollback</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-supersede.test.ts</File>
+        <Text>AC-SUPERSEDE-MATRIX-COMPLETE item11: branch/timestamp drift</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>AC-LOCK-AND-ALLOCATOR-KEPT: structural pin keeps the event lock</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.test.ts</File>
+        <Text>AC-MEMBER-MATRIX-COMPLETE item17: mixed residue-plus-fresh recovery</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-GATES />
+        <M-CURSOR />
+        <M-ARTIFACT-TYPES />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-GATES />
+        <V-M-CURSOR />
+        <V-M-ARTIFACT-TYPES />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-supersede.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/artifact/scope.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Re-author the close-time scope guard and fix the dormancy defect</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/artifact/scope.test.ts` is re-authored to this bundle's exact id `C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC` and base `73044f83c3f4eaaaa5c5b7648a8a31c115337c39`, with an allowed observable set of exactly the twelve literal non-lifecycle paths (zero globs) and identity-exact lifecycle recognition for this bundle only. The committed B5 defect is fixed: the unconditional mint-time foreign-bundle assertion that runs with no switch and fails on a future sibling bundle is removed or restricted, so the guard is **dormant** without its exact switch — it collects no evidence, computes no offenders, and does not inspect or fail on a sibling bundle. **Activated**, it recognizes only this bundle's own lifecycle files and rejects a newly changed foreign sibling path, a planted forbidden ordinary path, a non-record file inside the record directory, and a non-lifecycle file inside its own bundle directory; `decisions.md` is excluded; no blanket sibling exemption exists.
+          </Criterion>
+          <Criterion>
+            Availability and parsed path lines come from one checked git invocation, and a disagreement between a first successful read and a second failing read must not report a false clean; unavailable git evidence refuses rather than reporting clean.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>NGRACE_SCOPE_GUARD_CHANGE=C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC bun test --timeout=0 src/artifact/scope.test.ts</Command>
+          <Command>bun test --timeout=0 src/artifact/scope.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SCOPE-GUARD-FINITE-FILES />
+          <AC-SCOPE-GUARD-GIT-STATUS />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Integrated success-path preservation tests</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/grace-supersede.test.ts` drives `AC-SUCCESS-PATH-PRESERVED` end to end on real-`.git` disposable projects: a supersede of a predecessor with an unterminated open epoch retains the successor lineage, the predecessor `status="superseded"` with a `&lt;Replacement&gt;` child, exactly one new ledger epoch with exactly one `discarded` and no engine-authored `terminal`, deleted loose files with `run/` surviving empty, the predecessor archived, each ledger event matching its loose event under `expectedLedgerEventAttributes` plus its complete child subtrees, `src/example.ts` byte-identical, stdout exactly the archive-relative path, and `supersedeChainDepth` incrementing on the replacement only. The integrated version additionally drives an explicit `--replacement` successor and a spec-only predecessor (no `plan.xml`, no `run/`) with exit 0 and no invented `plan.xml`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-supersede.test.ts -t "AC-SUCCESS-PATH-PRESERVED"</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SUCCESS-PATH-PRESERVED />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>Refusal matrix and post-fold failures</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/grace-supersede.test.ts` and `src/gates/core.test.ts` assemble the complete refusal matrix for both implicit and explicit `--replacement` forms: every refusal class leaves `.ngrace/changes/active/` with no directory the invocation created, except a handled-cleanup refusal that leaves exactly one named residual directory and its reason. Recursive union-key path/type/symlink/file-byte snapshots prove the post-refusal tree, a cleaned fixture repeated with the same resolved id leaves the active-set count and names unchanged, a retained-residue fixture leaves exactly one named invocation-created directory, and a same-id repeat adds none. Post-fold failures are driven as real fixtures: a post-fold governance-status write failure, a rename/`EXDEV` failure, and a cleanup failure, each naming the direct exit, the exact allowed snapshot difference, and the fold evidence that legitimately remains, with rollback composed per the failure taxonomy.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-supersede.test.ts -t "AC-REFUSED-NO-SUCCESSOR"</Command>
+          <Command>bun test --timeout=0 src/grace-supersede.test.ts -t "AC-POST-FOLD-FAILURES"</Command>
+        </Verification>
+        <Satisfies>
+          <AC-REFUSED-NO-SUCCESSOR />
+          <AC-POST-FOLD-FAILURES />
+        </Satisfies>
+      </T-003>
+      <T-004>
+        <Title>Complete supersede matrix</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The complete supersede matrix (item 11) is driven on disposable real-`.git` projects with recursive union-key snapshots: live and stale predecessor and successor; replacement existence and location races under the fired under-lock seam; branch/timestamp drift proving the locked successor id equals the minted leaf id; explicit replacement never cleaned; governance-write and rename/`EXDEV` rollback failures; cleanup-removal failure; and the five-step success chain. The explicit-replacement rows are revalidated under the sorted candidate locks before any fold or write. For implicit-mint drift, change the branch/timestamp environment at the existing under-lock test seam after id resolution but before mint; assert the held successor lock and minted leaf both name the pre-resolved id.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-supersede.test.ts -t "AC-SUPERSEDE-MATRIX-COMPLETE"</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SUPERSEDE-MATRIX-COMPLETE />
+        </Satisfies>
+      </T-004>
+      <T-005>
+        <Title>Lock and allocator structural pin plus twelve-writer supersede</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/grace-cursor.test.ts` pins, structurally and behaviorally, that the per-bundle `.run-write.lock` serialization, the post-write uniqueness scan, and the own-file unlink/retry remain in `src/grace-cursor.ts`, and that allocation/auto-open behavior is unchanged. Behaviorally, twelve concurrent real-CLI `cursor advance` writers against one opened epoch produce thirteen loose events with thirteen unique ids 1–13, every writer exits 0, and an explicit-replacement supersede of that bundle then exits 0; the discard preflight must not refuse the streams this path accepts.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "AC-LOCK-AND-ALLOCATOR-KEPT"</Command>
+        </Verification>
+        <Satisfies>
+          <AC-LOCK-AND-ALLOCATOR-KEPT />
+        </Satisfies>
+      </T-005>
+      <T-006>
+        <Title>Membership, fold, and discard matrix integration</Title>
+        <DependsOn>T-005</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The full T-004 through T-008 matrix (item 17) is integrated and driven on the B2-closed base. Readers and test-only hooks — direct `listLooseEvents`/`listRunOrphans` interception and the fold hooks — are driven at the direct production boundary; named consumer outcomes are driven through the real CLI. The rows cover isolated early/late `ENOENT` interception with a fired seam and an isolated-baseline discriminator; malformed closer and progress through the real `cursor`/`lint`/`fold`/`supersede` surfaces plus valid, absent, omitted-attribute, and `EISDIR` controls with byte snapshots; both original and both new state hooks, repeated interruption, exact single-epoch bytes, first-loop-order partial deletion, mixed valid and bad fresh sets, a matching subset, an older-epoch collision, and a payload conflict; duplicate-id, outside-allocation, and pre-existing-hole refusals with the repaired positive control, the competing-writer seam, and its stage-(ii-a) retry; and real-CLI fold consequences. The direct membership rows are re-driven by the unchanged, read-only `src/artifact/run-membership.test.ts`; the fold/discard hook rows are carried by `src/grace-cursor.test.ts`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+          <Command>bun test --timeout=0 src/artifact/run-membership.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-MEMBER-MATRIX-COMPLETE />
+        </Satisfies>
+      </T-006>
+      <T-007>
+        <Title>Empty-Pays durable row ratchet and close rehearsal</Title>
+        <DependsOn>T-006</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `scripts/validate-record-retirement.test.ts` re-derives, for `C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC`, the exactly-once empty-`Pays` row relation modeled on the shipped `C-HASHED-BUNDLE-IDS-2` relation: the row exists exactly once across `registry.xml` and `registry-retired.xml`, its `status` agrees with the holding layer, `kind="chartered"`, `Pays` is empty, and no `F` token in `StatusText` lies outside `Pays`; the relation reddens on a duplicate row, an out-of-`Pays` `StatusText`, and a status disagreeing with the holding layer, and a staged-buffer-only edit cannot green it. On a disposable clone of the record, the shipped `--flush` (empty `--pays`) mints the live row and the eligible `--retire` moves it retired, with the relation red pre-flush and green post-flush and post-retire. This task satisfies no ordinary or close-bound criterion.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts -t "C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC empty-Pays ratchet"</Command>
+        </Verification>
+      </T-007>
+    </ImplementationPlan>
+  </C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC>
+</NgraceChangePlan>
