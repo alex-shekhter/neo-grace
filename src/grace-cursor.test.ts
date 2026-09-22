@@ -6199,13 +6199,23 @@ describe("C-DISCARD-PREFLIGHT recovery preservation through the changed caller (
 
 // --- C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC plan rehearsal rows (T-005..T-006) ---
 function b3cGitInit(root: string): void {
-  const g = (args: string[]) => Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "ignore", stderr: "ignore" });
+  const g = (args: string[]) => {
+    const result = Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "pipe", stderr: "pipe" });
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `b3c git ${args.join(" ")} failed (exit ${result.exitCode}): ${Buffer.from(result.stderr).toString("utf8").trim()}`,
+      );
+    }
+    return result;
+  };
   g(["init"]);
   g(["config", "user.email", "b3@example.test"]);
   g(["config", "user.name", "B3 Rehearsal"]);
   g(["config", "commit.gpgsign", "false"]);
   g(["add", "."]);
   g(["commit", "-m", "baseline"]);
+  const head = Buffer.from(g(["rev-parse", "HEAD"]).stdout).toString("utf8").trim();
+  expect(head, "real-.git subject fixture has a baseline commit").toMatch(/^[0-9a-f]{40}$/);
 }
 function b3cSnap(root: string): Map<string, string> {
   const out = new Map<string, string>();

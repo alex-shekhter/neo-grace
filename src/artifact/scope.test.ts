@@ -336,16 +336,16 @@ describe("C-GRAMMAR-SEAM T-003 OptionalContext bucket", () => {
   });
 });
 
-// C-DISCARD-PREFLIGHT-1-5087B21A T-002: the activated close-time write guard.
+// C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC T-001: the activated close-time write guard.
 const SCOPE_GUARD_CHANGE = "C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC";
 const SCOPE_GUARD_BASE = "73044f83c3f4eaaaa5c5b7648a8a31c115337c39";
 const SCOPE_GUARD_RECORD_DIR = "docs/plans/active/RM-GOVERNED-PATH/";
-// Paid close: the allowed non-lifecycle set is exactly the eleven observable literal
-// paths — the one forced source, the three forced tests/ratchet, and the seven
-// RM-GOVERNED-PATH record XML files this bundle pays through. The ignored scratch
-// buffer is outside the git-derived allowlist (audited separately by the close
-// rehearsal's before/after bytes), and `decisions.md` is excluded, so a planted
-// non-record write under the record directory still reddens.
+// Empty-paid close: the allowed non-lifecycle set is exactly the twelve observable
+// literal paths — the five forced tests/ratchet and the seven RM-GOVERNED-PATH record
+// XML files this bundle's `--flush`/`--retire` writers touch. No production source file
+// is in the set. The ignored scratch buffer is outside the git-derived allowlist (read
+// by `--flush` but never written by this bundle), and `decisions.md` is excluded, so a
+// planted non-record write under the record directory still reddens.
 const SCOPE_GUARD_ALLOWED_FILES = new Set([
   "src/grace-supersede.test.ts",
   "src/grace-cursor.test.ts",

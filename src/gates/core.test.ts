@@ -38,7 +38,7 @@ import {
   type ReviewVerdictRecord,
 } from "./ledger";
 import { GraceCommandError } from "../query/errors";
-import { advanceCursor, appendCommandRunEvent, discardAndFoldEpoch, foldEpoch, listLooseEvents, pauseCursor, recordAttempt, recordCalibrationRestatement, recordVerificationUnavailable, recoverCursor, regenerateCursor, resumeCursor, showCursor, withCandidateLock } from "../grace-cursor";
+import { advanceCursor, appendCommandRunEvent, discardAndFoldEpoch, foldEpoch, listLedgerEvents, listLooseEvents, pauseCursor, recordAttempt, recordCalibrationRestatement, recordVerificationUnavailable, recoverCursor, regenerateCursor, resumeCursor, showCursor, withCandidateLock } from "../grace-cursor";
 import { mintResolvedBundle, pauseCandidatePublicationForTests, resolveSpecMint, type ResolvedSpecMint } from "../grace-generate";
 import { formatGateEvaluation, gateCommand } from "./command";
 import { runReview } from "../review/core";
@@ -2359,6 +2359,83 @@ describe("C-SUPERSEDE-COMMAND T-004", () => {
     expect(readFileSync(changeArtifactPath(approved, "C-OLD", "spec.xml")!, "utf8")).toMatch(
       /\bstatus="superseded"/,
     );
+  });
+});
+
+describe("C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC T-003 gates transaction/refusal matrix", () => {
+  const ACTIVE_DIR = path.join(ARTIFACT_DIR, "changes", "active");
+  const ARCHIVE_DIR = path.join(ARTIFACT_DIR, "changes", "archive");
+
+  /** Union-key recursive path/byte snapshot of the active set: additions and deletions both surface. */
+  function snapshotTree(dir: string): string {
+    if (!existsSync(dir)) return "";
+    const lines: string[] = [];
+    const walk = (abs: string, rel: string): void => {
+      const stat = statSync(abs);
+      if (stat.isDirectory()) {
+        for (const name of readdirSync(abs).sort()) walk(path.join(abs, name), rel ? `${rel}/${name}` : name);
+        return;
+      }
+      lines.push(`${rel}\t${createHash("sha256").update(readFileSync(abs)).digest("hex")}`);
+    };
+    walk(dir, "");
+    return lines.sort().join("\n");
+  }
+
+  it("positive: the gates transaction archives a predecessor with one discarded and never cleans an explicit replacement", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId: "C-GT-OLD", location: "active", specStatus: "draft", planStatus: "draft" });
+    writeChangeBundleFixture(root, { changeId: "C-GT-OLD-2", location: "active", specStatus: "draft", planStatus: "draft" });
+    const bundle = path.join(root, ACTIVE_DIR, "C-GT-OLD");
+    advanceCursor(root, "C-GT-OLD", { task: "T-001", openEpoch: true, from: 1, to: 10 });
+    advanceCursor(root, "C-GT-OLD", { task: "T-001", kind: "progress" });
+    supersedeChangeBundle(root, "C-GT-OLD", { kind: "explicit", id: "C-GT-OLD-2" });
+    const archived = path.join(root, ARCHIVE_DIR, "C-GT-OLD");
+    expect(existsSync(bundle)).toBe(false);
+    expect(existsSync(archived)).toBe(true);
+    expect(readFileSync(path.join(archived, "spec.xml"), "utf8")).toMatch(/\bstatus="superseded"/);
+    expect(readFileSync(path.join(archived, "spec.xml"), "utf8")).toContain("<Replacement>C-GT-OLD-2</Replacement>");
+    expect(readFileSync(path.join(archived, "plan.xml"), "utf8")).toMatch(/\bstatus="superseded"/);
+    expect(readFileSync(path.join(archived, "plan.xml"), "utf8")).toContain("<Replacement>C-GT-OLD-2</Replacement>");
+    expect(listLedgerEvents(archived).map((event) => `${event.id}:${event.kind}`)).toEqual(["1:opened", "2:progress", "3:discarded"]);
+    expect(readdirSync(path.join(archived, "run"))).toEqual([]);
+    // The explicit replacement is never cleaned: it stays active and unarchived.
+    expect(existsSync(path.join(root, ACTIVE_DIR, "C-GT-OLD-2"))).toBe(true);
+    expect(existsSync(path.join(root, ARCHIVE_DIR, "C-GT-OLD-2"))).toBe(false);
+  });
+
+  it("negative: a missing explicit replacement refuses before any write with a byte-identical active set", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId: "C-GT-REF", location: "active", specStatus: "draft", planStatus: "draft" });
+    const before = snapshotTree(path.join(root, ACTIVE_DIR));
+    expect(() => supersedeChangeBundle(root, "C-GT-REF", { kind: "explicit", id: "C-GT-REF-2" }))
+      .toThrow(/missing as a directory/);
+    expect(snapshotTree(path.join(root, ACTIVE_DIR))).toBe(before);
+  });
+
+  it("negative: an existing implicit successor refuses before any fold and leaves the competitor bytes intact", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId: "C-GT-IMP", location: "active", specStatus: "draft", planStatus: "draft" });
+    const resolved = resolveSpecMint({ supersedes: "C-GT-IMP", timestamp: "2026-09-19T00:00:00Z", branch: "b" }, root);
+    mkdirSync(path.join(root, ACTIVE_DIR, resolved.id), { recursive: true });
+    writeFileSync(path.join(root, ACTIVE_DIR, resolved.id, "spec.xml"), "<competitor/>\n");
+    const before = snapshotTree(path.join(root, ACTIVE_DIR));
+    expect(() =>
+      supersedeChangeBundle(root, "C-GT-IMP", { kind: "mint", id: resolved.id, mint: () => mintResolvedBundle(root, resolved).acquired }),
+    ).toThrow(/already exists/);
+    expect(snapshotTree(path.join(root, ACTIVE_DIR))).toBe(before);
+    expect(readFileSync(path.join(root, ACTIVE_DIR, resolved.id, "spec.xml"), "utf8")).toBe("<competitor/>\n");
+  });
+
+  it("negative: an archive-destination conflict refuses before any fold with a byte-identical active set", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId: "C-GT-CONF", location: "active", specStatus: "draft", planStatus: "draft" });
+    writeChangeBundleFixture(root, { changeId: "C-GT-CONF-2", location: "active", specStatus: "draft", planStatus: "draft" });
+    writeChangeBundleFixture(root, { changeId: "C-GT-CONF", location: "archive", specStatus: "superseded", planStatus: "superseded" });
+    const before = snapshotTree(path.join(root, ACTIVE_DIR));
+    expect(() => supersedeChangeBundle(root, "C-GT-CONF", { kind: "explicit", id: "C-GT-CONF-2" }))
+      .toThrow(/Archive destination already exists/);
+    expect(snapshotTree(path.join(root, ACTIVE_DIR))).toBe(before);
   });
 });
 

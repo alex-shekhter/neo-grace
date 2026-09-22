@@ -1301,13 +1301,23 @@ const B3_ARCHIVE = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "a
 
 function b3GitProject(): string {
   const root = tempProject();
-  const g = (args: string[]) => Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "ignore", stderr: "ignore" });
+  const g = (args: string[]) => {
+    const result = Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "pipe", stderr: "pipe" });
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `b3 git ${args.join(" ")} failed (exit ${result.exitCode}): ${Buffer.from(result.stderr).toString("utf8").trim()}`,
+      );
+    }
+    return result;
+  };
   g(["init"]);
   g(["config", "user.email", "b3@example.test"]);
   g(["config", "user.name", "B3 Rehearsal"]);
   g(["config", "commit.gpgsign", "false"]);
   g(["add", "."]);
   g(["commit", "-m", "baseline"]);
+  const head = Buffer.from(g(["rev-parse", "HEAD"]).stdout).toString("utf8").trim();
+  expect(head, "real-.git subject fixture has a baseline commit").toMatch(/^[0-9a-f]{40}$/);
   return root;
 }
 function b3RunSupersedeEnv(root: string, args: string[], env: Record<string, string>) {
@@ -1486,7 +1496,19 @@ describe("AC-REFUSED-NO-SUCCESSOR matrix (C-SUPERSEDE-INTEGRATION-CLOSE-1-82073A
     advanceCursor(root, "C-B3-PF", { task: "T-001", kind: "progress" });
     const resolved = resolveSpecMint({ supersedes: "C-B3-PF", timestamp: "2026-09-19T00:00:00Z", branch: "b" }, root);
     const bundle = path.join(B3_ACTIVE(root), "C-B3-PF");
-    const specBefore = readFileSync(path.join(bundle, "spec.xml"), "utf8");
+    const specPath = path.join(bundle, "spec.xml");
+    const planPath = path.join(bundle, "plan.xml");
+    const specBefore = readFileSync(specPath);
+    const planBefore = readFileSync(planPath);
+    // Independently derived fold projection: the two loose events plus the
+    // engine-authored discarded (id = max + 1, task = the last loose task) in one epoch.
+    const looseBefore = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(looseBefore.map((e) => `${e.id}:${e.kind}`)).toEqual(["1:opened", "2:progress"]);
+    const discardedId = Math.max(...looseBefore.map((e) => e.id)) + 1;
+    const expectedLedger = b3Projection([
+      ...looseBefore,
+      { id: discardedId, task: looseBefore.at(-1)!.task, kind: "discarded", file: "", attributes: {}, children: [] as GraceXmlNode[] },
+    ].sort((a, b) => a.id - b.id));
     const before = b3Snap(bundle);
     let writes = 0;
     const cleanups: Array<{ removed: boolean }> = [];
@@ -1498,24 +1520,38 @@ describe("AC-REFUSED-NO-SUCCESSOR matrix (C-SUPERSEDE-INTEGRATION-CLOSE-1-82073A
     ).toThrow(/injected plan status write failure/);
     expect(cleanups).toHaveLength(1);
     expect(cleanups[0]!.removed).toBe(true);
-    expect(readFileSync(path.join(bundle, "spec.xml"), "utf8")).toBe(specBefore);
-    expect(existsSync(path.join(B3_ACTIVE(root), resolved.id))).toBe(false);
-    expect(existsSync(path.join(B3_ARCHIVE(root), "C-B3-PF"))).toBe(false);
-    const delta = b3Delta(before, b3Snap(bundle));
-    const unexpected = delta.filter((d) => {
-      const key = d.replace(/^(ADDED|DELETED|CHANGED) /, "");
-      return !/run-ledger\.xml$/.test(key) && !/(^|\/)run\//.test(key) && !/run\.xml$/.test(key);
-    });
-    expect(unexpected, `predecessor tree delta: ${delta.join(", ")}`).toEqual([]);
-    expect(listLedgerEvents(bundle).some((e) => e.kind === "discarded")).toBe(true);
+    // Rollback restores both governance artifacts byte-for-byte. The fold residue is
+    // the only permitted transition, asserted as the exact union-key delta: the newly
+    // written ledger, the derived cursor, and the deleted loose events. No extra or
+    // missing run file, no altered ledger payload, no touched plan.xml.
+    expect(readFileSync(specPath)).toEqual(specBefore);
+    expect(readFileSync(planPath)).toEqual(planBefore);
+    expect(existsSync(path.join(B3_ACTIVE(root), resolved.id)), "the successor is cleaned").toBe(false);
+    expect(existsSync(path.join(B3_ARCHIVE(root), "C-B3-PF")), "the predecessor is not archived").toBe(false);
+    expect(b3Delta(before, b3Snap(bundle))).toEqual([
+      "ADDED run-ledger.xml",
+      "CHANGED run.xml",
+      "DELETED run/1-T-001-opened.xml",
+      "DELETED run/2-T-001-progress.xml",
+    ]);
+    expect(readdirSync(path.join(bundle, "run"))).toEqual([]);
+    expect(b3Projection(listLedgerEvents(bundle).sort((a, b) => a.id - b.id))).toBe(expectedLedger);
+    const ledgerText = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect((ledgerText.match(/<Epoch-1\b/g) ?? []).length).toBe(1);
+    expect(ledgerText).not.toContain('kind="terminal"');
+    expect(readFileSync(path.join(bundle, "run.xml"), "utf8")).toContain("<State>discarded</State>");
   });
 
-  it("AC-POST-FOLD-FAILURES: EXDEV rename refuses after rollback with one cleanup and the exact tree delta", () => {
+  it("AC-POST-FOLD-FAILURES: a no-fold EXDEV rename refuses after rollback with one cleanup and a byte-identical predecessor tree", () => {
     const root = b3GitProject();
     writeChangeBundleFixture(root, { changeId: "C-B3-EXDEV", location: "active", specStatus: "draft", planStatus: "draft" });
     const resolved = resolveSpecMint({ supersedes: "C-B3-EXDEV", timestamp: "2026-09-19T00:00:00Z", branch: "b" }, root);
     const bundle = path.join(B3_ACTIVE(root), "C-B3-EXDEV");
-    const specBefore = readFileSync(path.join(bundle, "spec.xml"), "utf8");
+    const specBefore = readFileSync(path.join(bundle, "spec.xml"));
+    const planBefore = readFileSync(path.join(bundle, "plan.xml"));
+    // No open epoch: the discard/fold is a no-op, so the legitimate residue is empty.
+    expect(listLooseEvents(bundle)).toEqual([]);
+    const before = b3Snap(bundle);
     const cleanups: Array<{ removed: boolean }> = [];
     expect(() =>
       supersedeChangeBundle(root, "C-B3-EXDEV", { kind: "mint", id: resolved.id, mint: () => mintResolvedBundle(root, resolved).acquired }, {
@@ -1525,8 +1561,92 @@ describe("AC-REFUSED-NO-SUCCESSOR matrix (C-SUPERSEDE-INTEGRATION-CLOSE-1-82073A
     ).toThrow(/EXDEV|cross-device/i);
     expect(cleanups).toHaveLength(1);
     expect(cleanups[0]!.removed).toBe(true);
-    expect(readFileSync(path.join(bundle, "spec.xml"), "utf8")).toBe(specBefore);
+    expect(readFileSync(path.join(bundle, "spec.xml"))).toEqual(specBefore);
+    expect(readFileSync(path.join(bundle, "plan.xml"))).toEqual(planBefore);
     expect(existsSync(path.join(B3_ACTIVE(root), resolved.id))).toBe(false);
+    expect(b3Delta(before, b3Snap(bundle)), "a no-fold refusal leaves no fold residue").toEqual([]);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+  });
+
+  it("AC-POST-FOLD-FAILURES: a post-fold EXDEV rename refuses with the same fold residue a governance failure leaves", () => {
+    const root = b3GitProject();
+    writeChangeBundleFixture(root, { changeId: "C-B3-EXDEV-FOLD", location: "active", specStatus: "draft", planStatus: "draft" });
+    advanceCursor(root, "C-B3-EXDEV-FOLD", { task: "T-001", openEpoch: true, from: 1, to: 10 });
+    advanceCursor(root, "C-B3-EXDEV-FOLD", { task: "T-001", kind: "progress" });
+    const resolved = resolveSpecMint({ supersedes: "C-B3-EXDEV-FOLD", timestamp: "2026-09-19T00:00:00Z", branch: "b" }, root);
+    const bundle = path.join(B3_ACTIVE(root), "C-B3-EXDEV-FOLD");
+    const specPath = path.join(bundle, "spec.xml");
+    const planPath = path.join(bundle, "plan.xml");
+    const specBefore = readFileSync(specPath);
+    const planBefore = readFileSync(planPath);
+    const looseBefore = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    const discardedId = Math.max(...looseBefore.map((e) => e.id)) + 1;
+    const expectedLedger = b3Projection([
+      ...looseBefore,
+      { id: discardedId, task: looseBefore.at(-1)!.task, kind: "discarded", file: "", attributes: {}, children: [] as GraceXmlNode[] },
+    ].sort((a, b) => a.id - b.id));
+    const before = b3Snap(bundle);
+    const cleanups: Array<{ removed: boolean }> = [];
+    expect(() =>
+      supersedeChangeBundle(root, "C-B3-EXDEV-FOLD", { kind: "mint", id: resolved.id, mint: () => mintResolvedBundle(root, resolved).acquired }, {
+        renameSync: (() => { throw Object.assign(new Error("cross-device link"), { code: "EXDEV" }); }) as typeof renameSync,
+        observeCleanupForTests: (o) => cleanups.push(o),
+      }),
+    ).toThrow(/EXDEV|cross-device/i);
+    expect(cleanups).toHaveLength(1);
+    expect(cleanups[0]!.removed).toBe(true);
+    expect(readFileSync(specPath)).toEqual(specBefore);
+    expect(readFileSync(planPath)).toEqual(planBefore);
+    expect(existsSync(path.join(B3_ACTIVE(root), resolved.id))).toBe(false);
+    expect(b3Delta(before, b3Snap(bundle))).toEqual([
+      "ADDED run-ledger.xml",
+      "CHANGED run.xml",
+      "DELETED run/1-T-001-opened.xml",
+      "DELETED run/2-T-001-progress.xml",
+    ]);
+    expect(readdirSync(path.join(bundle, "run"))).toEqual([]);
+    expect(b3Projection(listLedgerEvents(bundle).sort((a, b) => a.id - b.id))).toBe(expectedLedger);
+  });
+
+  it("AC-POST-FOLD-FAILURES discrimination: the exact-delta guard reddens on a planted disallowed mutation", () => {
+    const root = b3GitProject();
+    writeChangeBundleFixture(root, { changeId: "C-B3-MUT", location: "active", specStatus: "draft", planStatus: "draft" });
+    advanceCursor(root, "C-B3-MUT", { task: "T-001", openEpoch: true, from: 1, to: 10 });
+    advanceCursor(root, "C-B3-MUT", { task: "T-001", kind: "progress" });
+    const resolved = resolveSpecMint({ supersedes: "C-B3-MUT", timestamp: "2026-09-19T00:00:00Z", branch: "b" }, root);
+    const bundle = path.join(B3_ACTIVE(root), "C-B3-MUT");
+    const looseBefore = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    const discardedId = Math.max(...looseBefore.map((e) => e.id)) + 1;
+    const expectedLedger = b3Projection([
+      ...looseBefore,
+      { id: discardedId, task: looseBefore.at(-1)!.task, kind: "discarded", file: "", attributes: {}, children: [] as GraceXmlNode[] },
+    ].sort((a, b) => a.id - b.id));
+    const before = b3Snap(bundle);
+    expect(() =>
+      supersedeChangeBundle(root, "C-B3-MUT", { kind: "mint", id: resolved.id, mint: () => mintResolvedBundle(root, resolved).acquired }, {
+        writeFileSync: (() => { throw new Error("injected governance write failure"); }) as typeof writeFileSync,
+      }),
+    ).toThrow(/injected governance write failure/);
+    const expectedDelta = [
+      "ADDED run-ledger.xml",
+      "CHANGED run.xml",
+      "DELETED run/1-T-001-opened.xml",
+      "DELETED run/2-T-001-progress.xml",
+    ];
+    // Clean direction: both the exact-delta guard and the ledger projection guard accept
+    // the unmodified engine residue.
+    expect(b3Delta(before, b3Snap(bundle))).toEqual(expectedDelta);
+    expect(b3Projection(listLedgerEvents(bundle).sort((a, b) => a.id - b.id))).toBe(expectedLedger);
+    // Planted disallowed mutations the old run/*-filter admitted must now redden a guard.
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    writeFileSync(path.join(bundle, "run", "9-T-001-orphan.xml"), "<NgraceRunEvent id=\"9\"/>\n");
+    expect(b3Delta(before, b3Snap(bundle)), "an extra run file is outside the exact allowed set").not.toEqual(expectedDelta);
+    rmSync(path.join(bundle, "run", "9-T-001-orphan.xml"), { force: true });
+    const cleanLedger = readFileSync(ledgerPath, "utf8");
+    const mutatedLedger = cleanLedger.replace('task="T-001"', 'task="T-999"');
+    expect(mutatedLedger, "the planted ledger mutation changed bytes").not.toBe(cleanLedger);
+    writeFileSync(ledgerPath, mutatedLedger);
+    expect(b3Projection(listLedgerEvents(bundle).sort((a, b) => a.id - b.id)), "a mutated ledger payload is outside the exact projection").not.toBe(expectedLedger);
   });
 });
 
