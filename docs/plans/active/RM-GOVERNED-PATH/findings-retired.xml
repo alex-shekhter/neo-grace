@@ -5586,4 +5586,24 @@ Owner: C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5, src/artifact/run-membership.ts (`L
 Owner: C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5, src/artifact/run-membership.ts (`LINKS: M-ARTIFACT-TYPES`). Paid by this bundle. Stays staged.
 </Body>
   </Finding>
+  <Finding id="f315" token="F315" status="retired">
+    <PaidBy>C-LOOSE-MALFORMED-FOLD-1-4C18E876</PaidBy>
+    <Title>### F315 — a malformed loose `run/` file is silently folded as a payload-free event with filename-derived identity; a corrupted closer records a completed close. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-19 at `6dd1d953652775f3dc25095e4f249b37876b9cb6`** (branch `c-supersede-membership`) with `/private/tmp/ngrace-spec-authority-review/malformed-closer.ts`. A bundle holds a valid `opened` event (id 1) plus `run/2-T-001-terminal.xml` containing `&lt;broken`. `readGraceXmlArtifact` reports `xml.parse` with `root: null`; `listLooseEvents` still emits the entry from the filename with attributes `{id:&quot;2&quot;, task:&quot;T-001&quot;, kind:&quot;terminal&quot;}` and no children (`src/artifact/run-membership.ts:71-83`; the comment at `:71` reads *&quot;Prefer XML attributes when present (authoritative payload); filename is discovery.&quot;*). `ngrace cursor fold` then exits **0**:
+
+```text
+Fold applied
+Change: C-MAL
+Epoch: 1
+Events: 2
+```
+
+and the ledger records `Event id=2 kind=terminal children=0`. An unparseable *closer* is therefore accepted as a completed close with no payload. Lint does not catch it: the grammar does not walk `run/` (`src/artifact/grammar.ts:1569`). The same fallback on a malformed *progress* event instead yields `unterminated range for w0` (measured separately), so the effect depends on the filename kind.
+
+**Why it is a decision and not an obvious fix.** The fallback is deliberate per that code comment, and the `event-filename` / `invalid-id` orphan classes cover only names and ids, not unparseable payloads. The options are: (a) keep the fallback — status quo; (b) treat an existing-but-unparseable loose file as a hard refusal at the authoritative folding boundary, while preserving the read-only fallback for inventory; (c) classify it as a third orphan class surfaced by `listRunOrphans` and the archive gate. (c) does **not** by itself prevent malformed-terminal acceptance — a diagnostic-only orphan improves visibility but leaves the fold accepting the fabricated event — while **(b), the fold refusal, does prevent it**; and (c) also removes membership, a separate semantic change needing explicit policy. **Selected in revision 3: (b).** The `C-RUN-LEDGER` division (lint does not walk `run/`) and the read-only fallback are preserved; the fold refuses the unparseable file before any discarded/auto-open/ledger write, and a parseable event with omitted attributes keeps the legacy filename fallback.
+
+Owner: C-LOOSE-MALFORMED-FOLD-1-4C18E876, src/artifact/run-membership.ts (`LINKS: M-ARTIFACT-TYPES`) and src/grace-cursor.ts (`LINKS: M-CURSOR`). Paid by this bundle. Stays staged.
+</Body>
+  </Finding>
 </Findings>

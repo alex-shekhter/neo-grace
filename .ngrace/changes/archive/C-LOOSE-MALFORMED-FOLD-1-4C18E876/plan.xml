@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-LOOSE-MALFORMED-FOLD-1-4C18E876>
     <IntentSummary>
       **This T1 plan converts the approved `C-LOOSE-MALFORMED-FOLD-1-4C18E876` spec (bundle 2 of the five-way split of the superseded `C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1`) into two sequential tasks.** The durable modules are exactly `M-ARTIFACT-TYPES` and `M-CURSOR`; their verification anchors are `V-M-ARTIFACT-TYPES` and `V-M-CURSOR`. The bundle's forced production surface is the two files `src/artifact/run-membership.ts` (`LINKS: M-ARTIFACT-TYPES`) and `src/grace-cursor.ts` (`LINKS: M-CURSOR`); `src/artifact/xml.ts` and `src/gates/ledger.ts` are not edited.

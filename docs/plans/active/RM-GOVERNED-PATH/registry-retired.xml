@@ -488,4 +488,10 @@
     <Pays>F295 F295.1</Pays>
     <StatusText>In progress.</StatusText>
   </Row>
+  <Row name="C-LOOSE-MALFORMED-FOLD-1-4C18E876" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug LOOSE-MALFORMED-FOLD. Unparseable loose input is refused at both fold/discard write boundaries.</Charter>
+    <Pays>F315</Pays>
+    <StatusText>In progress.</StatusText>
+  </Row>
 </Registry>
