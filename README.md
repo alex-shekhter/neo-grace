@@ -382,6 +382,10 @@ ngrace gate verdict --change C-ID --outcome pass|fail|unable-to-determine [--rea
 
 ## Development
 
+**One feature branch at a time is the law.** All sequential bundles, stages, and queued roadmap work
+for an open PR accumulate on that branch; never create a branch per bundle, stage, or queue item.
+After the PR completes, delete its feature branch and create the next one from refreshed `main`.
+
 ```bash
 bun run test
 bun run ./scripts/validate-marketplace.ts

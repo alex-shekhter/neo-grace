@@ -642,6 +642,7 @@ The corpus overwhelmingly agrees these are correct (ag1 "what I would not change
 | D4 | Tamper-evident / signed status transitions (ag9 #9) | Real threat model, wrong phase — and the party who would forge a signature is the agent holding the key. The run-ledger plus signed git commits is the honest record today; PKI adds key management to a small CLI | Standalone exploration, modelled on `RM-LANGUAGE-EXTENSIBILITY`'s review-only pattern |
 | D5 | Evidence-strength tiers L0–L3 in doctor (ag2 §4.7) | Goodhart risk: graded evidence invites optimizing the grade. 6.1.0's `claimedConfidence` is deliberately not gate-consumed | Revisit as calibration *information* only, never a gate |
 | D6 | Guided baseline revert, batch gate ops, supersede dry-run preview, `status --visual`, spec/plan show subcommands (ag7 §4.6/4.10, ag10 §4.8/4.11/4.12) | Bundle sprawl and revert confusion are symptoms P0/P3/P4 treat at the cause; these treat them at the keyboard | Re-propose only what still hurts after P3 |
+| D7 | Have `ngrace-execute` inspect the approved plan's declared mode and dependency topology before prompting for `sequential` or `parallel-safe` | Teaching-surface work is outside the current split bundles; a decisive plan should not cost a maintainer turn | The next teaching-surface bundle that opens `ngrace-execute`; prompt only when the plan is genuinely ambiguous |
 
 ---
 
