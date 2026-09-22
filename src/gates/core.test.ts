@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -2366,20 +2366,38 @@ describe("C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC T-003 gates transaction/refus
   const ACTIVE_DIR = path.join(ARTIFACT_DIR, "changes", "active");
   const ARCHIVE_DIR = path.join(ARTIFACT_DIR, "changes", "archive");
 
-  /** Union-key recursive path/byte snapshot of the active set: additions and deletions both surface. */
-  function snapshotTree(dir: string): string {
-    if (!existsSync(dir)) return "";
-    const lines: string[] = [];
+  /**
+   * Union-key recursive path/type/symlink/byte snapshot of the whole disposable
+   * project outside `.git`. Directory entries are recorded as markers so an added
+   * empty directory cannot hide; symlinks record their target via lstat/readlink.
+   */
+  function snapshotProject(root: string): Map<string, string> {
+    const out = new Map<string, string>();
     const walk = (abs: string, rel: string): void => {
-      const stat = statSync(abs);
-      if (stat.isDirectory()) {
-        for (const name of readdirSync(abs).sort()) walk(path.join(abs, name), rel ? `${rel}/${name}` : name);
-        return;
+      for (const entry of readdirSync(abs, { withFileTypes: true })) {
+        if (entry.name === ".git") continue;
+        const childAbs = path.join(abs, entry.name);
+        const childRel = rel ? `${rel}/${entry.name}` : entry.name;
+        const stat = lstatSync(childAbs);
+        if (stat.isSymbolicLink()) out.set(childRel, `SYMLINK:${readlinkSync(childAbs)}`);
+        else if (stat.isDirectory()) { out.set(childRel, "DIR"); walk(childAbs, childRel); }
+        else out.set(childRel, `FILE:${createHash("sha256").update(readFileSync(childAbs)).digest("hex")}`);
       }
-      lines.push(`${rel}\t${createHash("sha256").update(readFileSync(abs)).digest("hex")}`);
     };
-    walk(dir, "");
-    return lines.sort().join("\n");
+    walk(root, "");
+    return out;
+  }
+  /** Compare two snapshots over the union of keys: additions, deletions, and changes all surface. */
+  function projectDelta(before: Map<string, string>, after: Map<string, string>): string[] {
+    const keys = [...new Set([...before.keys(), ...after.keys()])].sort();
+    const delta: string[] = [];
+    for (const key of keys) {
+      const prior = before.get(key);
+      const next = after.get(key);
+      if (prior === next) continue;
+      delta.push(prior === undefined ? `ADDED ${key}` : next === undefined ? `DELETED ${key}` : `CHANGED ${key}`);
+    }
+    return delta;
   }
 
   it("positive: the gates transaction archives a predecessor with one discarded and never cleans an explicit replacement", () => {
@@ -2404,13 +2422,13 @@ describe("C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC T-003 gates transaction/refus
     expect(existsSync(path.join(root, ARCHIVE_DIR, "C-GT-OLD-2"))).toBe(false);
   });
 
-  it("negative: a missing explicit replacement refuses before any write with a byte-identical active set", () => {
+  it("negative: a missing explicit replacement refuses before any write with a byte-identical project tree", () => {
     const root = tempProject();
     writeChangeBundleFixture(root, { changeId: "C-GT-REF", location: "active", specStatus: "draft", planStatus: "draft" });
-    const before = snapshotTree(path.join(root, ACTIVE_DIR));
+    const before = snapshotProject(root);
     expect(() => supersedeChangeBundle(root, "C-GT-REF", { kind: "explicit", id: "C-GT-REF-2" }))
       .toThrow(/missing as a directory/);
-    expect(snapshotTree(path.join(root, ACTIVE_DIR))).toBe(before);
+    expect(projectDelta(before, snapshotProject(root))).toEqual([]);
   });
 
   it("negative: an existing implicit successor refuses before any fold and leaves the competitor bytes intact", () => {
@@ -2419,23 +2437,47 @@ describe("C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC T-003 gates transaction/refus
     const resolved = resolveSpecMint({ supersedes: "C-GT-IMP", timestamp: "2026-09-19T00:00:00Z", branch: "b" }, root);
     mkdirSync(path.join(root, ACTIVE_DIR, resolved.id), { recursive: true });
     writeFileSync(path.join(root, ACTIVE_DIR, resolved.id, "spec.xml"), "<competitor/>\n");
-    const before = snapshotTree(path.join(root, ACTIVE_DIR));
+    const before = snapshotProject(root);
     expect(() =>
       supersedeChangeBundle(root, "C-GT-IMP", { kind: "mint", id: resolved.id, mint: () => mintResolvedBundle(root, resolved).acquired }),
     ).toThrow(/already exists/);
-    expect(snapshotTree(path.join(root, ACTIVE_DIR))).toBe(before);
+    expect(projectDelta(before, snapshotProject(root))).toEqual([]);
     expect(readFileSync(path.join(root, ACTIVE_DIR, resolved.id, "spec.xml"), "utf8")).toBe("<competitor/>\n");
   });
 
-  it("negative: an archive-destination conflict refuses before any fold with a byte-identical active set", () => {
+  it("negative: an archive-destination conflict refuses before any fold with a byte-identical project tree", () => {
     const root = tempProject();
     writeChangeBundleFixture(root, { changeId: "C-GT-CONF", location: "active", specStatus: "draft", planStatus: "draft" });
     writeChangeBundleFixture(root, { changeId: "C-GT-CONF-2", location: "active", specStatus: "draft", planStatus: "draft" });
     writeChangeBundleFixture(root, { changeId: "C-GT-CONF", location: "archive", specStatus: "superseded", planStatus: "superseded" });
-    const before = snapshotTree(path.join(root, ACTIVE_DIR));
+    const before = snapshotProject(root);
     expect(() => supersedeChangeBundle(root, "C-GT-CONF", { kind: "explicit", id: "C-GT-CONF-2" }))
       .toThrow(/Archive destination already exists/);
-    expect(snapshotTree(path.join(root, ACTIVE_DIR))).toBe(before);
+    expect(projectDelta(before, snapshotProject(root))).toEqual([]);
+  });
+
+  it("discrimination: the whole-project union-key snapshot reddens on empty-directory, symlink, and archive-side mutations", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId: "C-GT-MUT", location: "active", specStatus: "draft", planStatus: "draft" });
+    // Green direction: a clean refusal leaves the whole project byte-identical.
+    const before = snapshotProject(root);
+    expect(() => supersedeChangeBundle(root, "C-GT-MUT", { kind: "explicit", id: "C-GT-MUT-2" }))
+      .toThrow(/missing as a directory/);
+    expect(projectDelta(before, snapshotProject(root))).toEqual([]);
+    // A planted empty directory is invisible to a file-only walk that skips directory entries.
+    mkdirSync(path.join(root, "planted-empty-dir"), { recursive: true });
+    expect(projectDelta(before, snapshotProject(root)), "an added empty directory is visible").toEqual(["ADDED planted-empty-dir"]);
+    rmSync(path.join(root, "planted-empty-dir"), { recursive: true, force: true });
+    // A planted symlink is only visible when identity and target come from lstat/readlink.
+    symlinkSync("src/example.ts", path.join(root, "planted-link"));
+    expect(projectDelta(before, snapshotProject(root)), "an added symlink records its target").toEqual(["ADDED planted-link"]);
+    rmSync(path.join(root, "planted-link"), { force: true });
+    // An archive-side write is invisible to a snapshot scoped to active/ alone.
+    mkdirSync(path.join(root, ARCHIVE_DIR), { recursive: true });
+    writeFileSync(path.join(root, ARCHIVE_DIR, "planted-archive.txt"), "planted\n");
+    expect(projectDelta(before, snapshotProject(root)), "an archive-side write is visible").toEqual([
+      `ADDED ${ARCHIVE_DIR}/planted-archive.txt`,
+    ]);
   });
 });
 
