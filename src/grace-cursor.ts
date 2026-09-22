@@ -957,6 +957,50 @@ function maybeAutoOpenCoveringAllocation(
   writeCoveringOpened(bundlePath, { worker, task, from, to });
 }
 
+/**
+ * C-FOLD-MIXED-RECOVERY: the prospective allocation for a fresh set that carries no
+ * explicit Allocation. The covering allocation a single-controller auto-open *would*
+ * synthesize is computed in memory — the same headroom writeCoveringOpened uses — so
+ * the mixed path can validate allocation, density, and closer requirements before any
+ * destructive action, and materialize the covering `opened` only after the residue is
+ * deleted. This helper never writes; a multi-worker refusal happens before the caller's
+ * first delete, exactly as the shipped auto-open refuses.
+ */
+function prospectiveFreshAllocations(
+  bundlePath: string,
+  changeId: string,
+  fresh: LooseEvent[],
+): {
+  allocations: RangeAllocation[];
+  covering?: { worker: string; task: string; from: number; to: number };
+} {
+  const explicit = collectEffectiveAllocations(fresh);
+  if (explicit.length > 0) return { allocations: explicit };
+  if (fresh.length === 0) return { allocations: [] };
+  const workers = collectDistinctWorkers(bundlePath, fresh);
+  if (workers.length > 1) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Cannot fold ${changeId}: no Allocation found, and auto-open refused — multiple workers `
+        + `${JSON.stringify(workers)}. Multi-worker ranges must not be fabricated (D8.2); `
+        + "open an explicit epoch with --worker bounds, or recover --fix after collapsing to one controller.",
+    );
+  }
+  const worker = workers[0] ?? "w0";
+  const ids = fresh.map((event) => event.id);
+  const from = Math.min(...ids);
+  const to = Math.max(...ids);
+  const openedId = nextEventId(bundlePath);
+  const allocationFrom = Math.min(from, openedId);
+  const allocationTo = Math.max(Math.max(to, openedId), openedId + OPEN_EPOCH_DEFAULT_HEADROOM);
+  assertValidEpochBounds(allocationFrom, allocationTo);
+  const task = inheritLooseEventTask(fresh[fresh.length - 1]?.task);
+  return {
+    allocations: [{ worker, from: allocationFrom, to: allocationTo }],
+    covering: { worker, task, from: allocationFrom, to: allocationTo },
+  };
+}
+
 /** Last-loose inherit for recover --fix and auto-open. Refuse rather than invent a task id. */
 export function inheritLooseEventTask(lastLooseTask: string | undefined): string {
   const task = lastLooseTask?.trim();
@@ -1479,6 +1523,17 @@ function foldEpochImpl(
      * Verify must fail and leave every loose file on disk (AC-FOLD-PRESERVES-PAYLOAD).
      */
     injectDropPayload?: boolean;
+    /**
+     * Test-only: throw after the mixed-path residue delete and before any auto-open,
+     * leaving the ledger holding only the prior epoch and loose state exactly F.
+     */
+    injectFailureAfterResidueDelete?: boolean;
+    /**
+     * Test-only: throw after the mixed-path covering `opened` is materialized and
+     * before the ledger write, leaving the ledger holding only the prior epoch and
+     * loose state exactly F ∪ A.
+     */
+    injectFailureAfterAutoOpen?: boolean;
   } = {},
 ): FoldResult {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
@@ -1552,6 +1607,40 @@ function foldEpochImpl(
       dryRun: false,
       applied: true,
     };
+  }
+
+  // C-FOLD-MIXED-RECOVERY: a loose set holding both the recorded epoch's residue and
+  // a fresh set validates the fresh set in full — allocation, density, closer — before
+  // any destructive action. Only then is the already-recorded residue deleted, the
+  // covering `opened` materialized when the fresh set needs one, and the ordinary
+  // write/verify/delete path used to fold exactly F ∪ A. The residue is never
+  // re-folded, so no already-recorded event is duplicated.
+  if (reconciliation && reconciliation.residue.length > 0 && reconciliation.hasFresh) {
+    const residueFiles = new Set(reconciliation.residue.map((event) => event.file));
+    const fresh = events.filter((event) => !residueFiles.has(event.file));
+    const prospective = prospectiveFreshAllocations(bundlePath, changeId, fresh);
+    const prospectiveIssues = validateEventsAgainstAllocations(fresh, prospective.allocations);
+    if (prospectiveIssues.length > 0) {
+      throw new GraceCommandError("invalid-project", prospectiveIssues.join(" "));
+    }
+    for (const event of reconciliation.residue) {
+      const relative = path.relative(bundlePath, event.file).replaceAll("\\", "/");
+      const contained = resolveContainedProjectPath(bundlePath, relative, {
+        mode: "existing",
+        allowedRoot: bundlePath,
+      });
+      unlinkSync(contained.absolutePath);
+    }
+    if (options.injectFailureAfterResidueDelete) {
+      throw new Error("injected failure after residue delete");
+    }
+    if (prospective.covering) {
+      writeCoveringOpened(bundlePath, prospective.covering);
+      if (options.injectFailureAfterAutoOpen) {
+        throw new Error("injected failure after auto-open");
+      }
+    }
+    events = listLooseEvents(bundlePath);
   }
 
   // Effective set only (LWW per worker) — superseded dead ranges do not validate (F13).

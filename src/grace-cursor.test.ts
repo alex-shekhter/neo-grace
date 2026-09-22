@@ -589,16 +589,17 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
     // F288 adds the loose-event writer lock (stale-holder steal and finally release);
     // B1 (C-SUPERSEDE-MEMBERSHIP-4-20941257) adds the candidate lock reclaim and
     // release in grace-cursor, and the candidate cleanup surface in grace-generate.
-    // F313 (C-FOLD-RETRY-CORE) adds one contained-path delete in grace-cursor: the
-    // interrupted-fold resume deletes the residue it just re-verified against the
-    // recorded epoch. The lock sites name `lockPath`; the contained-path sites are
-    // the fold delete, the writer's own-file renumber, and the F313 resume delete.
-    expect(cursorContained).toHaveLength(3);
+    // F313 (C-FOLD-RETRY-CORE) added one contained-path delete in grace-cursor: the
+    // interrupted-fold resume. C-FOLD-MIXED-RECOVERY adds the mixed-path residue
+    // delete. The lock sites name `lockPath`; the contained-path sites are the fold
+    // delete, the writer's own-file renumber, the F313 resume delete, and the
+    // mixed-path residue delete.
+    expect(cursorContained).toHaveLength(4);
     expect(cursorLock).toHaveLength(4);
     expect(ledgerUnlink).toMatch(/^src\/gates\/ledger\.ts:\d+:\s*unlinkSync\(ledgerPath\);$/);
     expect(dartRm).toMatch(/^src\/lint\/adapters\/dart\.ts:\d+:\s*rmSync\(temporaryDirectory, \{ recursive: true, force: true \}\);$/);
     expect(scorerRm).toMatch(/^src\/review\/scorer\.ts:\d+:\s*rmSync\(root, \{ recursive: true, force: true \}\);$/);
-    expect(callSites).toHaveLength(10);
+    expect(callSites).toHaveLength(11);
     expect(lines.some((line) => line.includes("rmdirSync"))).toBe(true);
   });
 });
@@ -5587,4 +5588,223 @@ describe("F313 interrupted-fold recovery (AC-FOLD-RETRY-IDEMPOTENT)", () => {
     expect(listLooseEvents(bundle)).toHaveLength(0);
     rmSync(root, { recursive: true, force: true });
   });
+});
+
+// ---------------------------------------------------------------------------
+// C-FOLD-MIXED-RECOVERY-1-62A1B852 T-001: mixed residue-plus-fresh recovery
+// ---------------------------------------------------------------------------
+
+/**
+ * The two bundle-4 stage hooks are test-only and land with the T-001 mechanism.
+ * The intersection keeps this test file type-compatible with the pre-mechanism
+ * base, so the base red is behavioral rather than a compile error.
+ */
+type FoldInjectionOptions = NonNullable<Parameters<typeof foldEpoch>[2]> & {
+  injectFailureAfterResidueDelete?: boolean;
+  injectFailureAfterAutoOpen?: boolean;
+};
+
+/** Measured fixture opened: Epoch-1 allocation is exactly w0[1,2]. */
+const b4Opened = (id: number) =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="opened"><Allocation worker="w0" from="${id}" to="${id + 1}"/></NgraceRunEvent>`;
+
+/**
+ * The measured mixed fixture, reached through the product path: the initial loose
+ * epoch {1:opened w0[1,2], 2:terminal} is folded and interrupted after the ledger
+ * write, the shipped delete-loop's first delete (1-opened) leaves the matching
+ * residue {2:terminal}, and F is later allocated by the real CLI.
+ */
+function b4MixedFixture(changeId: string) {
+  const root = createProject();
+  const bundle = seedBundle(root, changeId);
+  const run = path.join(bundle, "run");
+  mkdirSync(run, { recursive: true });
+  writeFileSync(path.join(run, "1-T-001-opened.xml"), b4Opened(1));
+  writeFileSync(path.join(run, "2-T-001-terminal.xml"), b3Event(2, "terminal"));
+  expect(() => foldEpoch(root, changeId, { injectFailureAfterWrite: true })).toThrow();
+  expect(b3EpochNumbers(bundle)).toEqual([1]);
+  expect(listLooseEvents(bundle)).toHaveLength(2);
+  rmSync(path.join(run, "1-T-001-opened.xml"), { force: true });
+  expect(listLooseEvents(bundle).map((event) => event.id)).toEqual([2]);
+  return { root, bundle, run };
+}
+
+/** Allocate F={3:progress, 4:terminal} through the real CLI (the allocator, not a direct write). */
+function b4AllocateFresh(root: string, changeId: string): void {
+  expect(foldGrace(root, ["cursor", "advance", "--change", changeId, "--task", "T-001"]).exit).toBe(0);
+  expect(
+    foldGrace(root, ["cursor", "advance", "--change", changeId, "--task", "T-001", "--kind", "terminal"]).exit,
+  ).toBe(0);
+}
+
+/** Epoch Event ids+kinds, parsed from the durable ledger slice. */
+function b4EpochEvents(bundle: string, epoch: number): Array<{ id: number; kind: string }> {
+  return [...b3EpochSlice(bundle, epoch).matchAll(/<Event\b([^>]*?)\/?>/g)].map((match) => ({
+    id: Number(/\bid="(\d+)"/.exec(match[1]!)?.[1] ?? "0"),
+    kind: /\bkind="([^"]*)"/.exec(match[1]!)?.[1] ?? "",
+  }));
+}
+
+/** Byte snapshot of every file in run/, keyed by filename. */
+function b4RunBytes(run: string): Record<string, string> {
+  const acc: Record<string, string> = {};
+  for (const entry of readdirSync(run)) acc[entry] = readFileSync(path.join(run, entry), "utf8");
+  return acc;
+}
+
+/** The captured bytes of F={3:progress, 4:terminal} alone. */
+const b4FBytes = (run: string) => ({
+  "3-T-001-progress.xml": readFileSync(path.join(run, "3-T-001-progress.xml"), "utf8"),
+  "4-T-001-terminal.xml": readFileSync(path.join(run, "4-T-001-terminal.xml"), "utf8"),
+});
+
+describe("C-FOLD-MIXED-RECOVERY mixed residue-plus-fresh (AC-FOLD-MIXED-RECOVERY)", () => {
+  it("real CLI folds exactly F union A once, leaves Epoch-1 byte-identical, and never re-folds the residue", () => {
+    const { root, bundle, run } = b4MixedFixture("C-MIXED");
+    b4AllocateFresh(root, "C-MIXED");
+    expect(listLooseEvents(bundle).map((event) => event.id)).toEqual([2, 3, 4]);
+    const epoch1 = b3EpochSlice(bundle, 1);
+    const looseF = new Map(
+      listLooseEvents(bundle)
+        .filter((event) => event.id === 3 || event.id === 4)
+        .map((event) => [event.id, b3Payload(event)]),
+    );
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-MIXED"]);
+    expect(fold.exit).toBe(0);
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+    expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+    const epoch2 = b4EpochEvents(bundle, 2);
+    // No already-recorded event is duplicated; only the fresh set is folded.
+    expect(epoch2.map((event) => event.id).sort((a, b) => a - b)).toEqual([3, 4, 5]);
+    expect(epoch2.filter((event) => event.id === 1 || event.id === 2)).toEqual([]);
+    // No opened is synthesized for the already-recorded epoch; exactly one fresh A.
+    expect(epoch2.filter((event) => event.kind === "opened").map((event) => event.id)).toEqual([5]);
+    // The measured covering allocation runs from the fresh minimum 3, not the residue id 2.
+    expect(b3EpochSlice(bundle, 2)).toContain('Allocation worker="w0" from="3" to="103"');
+    // Independent payload comparison of F through the recorded ledger, never the writer's transform.
+    for (const event of listLedgerEvents(bundle).filter((entry) => entry.id === 3 || entry.id === 4)) {
+      expect(b3Payload(event)).toBe(looseF.get(event.id)!);
+    }
+    expect(readdirSync(run)).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("progress-only F_bad refuses unterminated range with a byte-complete snapshot and no synthesized opened", () => {
+    const { root, bundle, run } = b4MixedFixture("C-BADFRESH");
+    expect(foldGrace(root, ["cursor", "advance", "--change", "C-BADFRESH", "--task", "T-001"]).exit).toBe(0);
+    expect(listLooseEvents(bundle).map((event) => event.id)).toEqual([2, 3]);
+    const ledgerBefore = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    const before = snapshotTree(root);
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-BADFRESH"]);
+    expect(fold.exit).not.toBe(0);
+    expect(fold.stdout + fold.stderr).toContain("unterminated range for w0");
+    expect(readFileSync(path.join(bundle, "run-ledger.xml"), "utf8")).toBe(ledgerBefore);
+    expect(snapshotTree(root)).toEqual(before);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    expect(readdirSync(run).sort()).toEqual(["2-T-001-terminal.xml", "3-T-001-progress.xml"]);
+    expect(listLooseEvents(bundle).some((event) => event.kind === "opened")).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("injectFailureAfterResidueDelete leaves exactly F, and a real-CLI retry writes Epoch-2 once with no second opened", () => {
+    const { root, bundle, run } = b4MixedFixture("C-RESIDUE");
+    b4AllocateFresh(root, "C-RESIDUE");
+    const epoch1 = b3EpochSlice(bundle, 1);
+    const f = b4FBytes(run);
+    const inject: FoldInjectionOptions = { injectFailureAfterResidueDelete: true };
+    expect(() => foldEpoch(root, "C-RESIDUE", inject)).toThrow();
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    // Hash-exact F: the residue entry is absent and the fresh bytes are unchanged.
+    expect(b4RunBytes(run)).toEqual(f);
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-RESIDUE"]).exit).toBe(0);
+    expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+    const epoch2 = b4EpochEvents(bundle, 2);
+    expect(epoch2.map((event) => event.id).sort((a, b) => a - b)).toEqual([3, 4, 5]);
+    expect(epoch2.filter((event) => event.kind === "opened").map((event) => event.id)).toEqual([5]);
+    expect(readdirSync(run)).toEqual([]);
+    // Second real-CLI retry is idempotent and writes no Epoch-3.
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-RESIDUE"]).exit).toBe(0);
+    expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("injectFailureAfterAutoOpen leaves exactly F union A, and a real-CLI retry reuses A and writes Epoch-2 once", () => {
+    const { root, bundle, run } = b4MixedFixture("C-AUTOOPEN");
+    b4AllocateFresh(root, "C-AUTOOPEN");
+    const epoch1 = b3EpochSlice(bundle, 1);
+    const f = b4FBytes(run);
+    const inject: FoldInjectionOptions = { injectFailureAfterAutoOpen: true };
+    expect(() => foldEpoch(root, "C-AUTOOPEN", inject)).toThrow();
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    // Hash-exact F union A: F bytes preserved, exactly one generated opened.
+    const afterHook = b4RunBytes(run);
+    expect(Object.keys(afterHook).sort()).toEqual([
+      "3-T-001-progress.xml",
+      "4-T-001-terminal.xml",
+      "5-T-001-opened.xml",
+    ]);
+    expect(afterHook["3-T-001-progress.xml"]).toBe(f["3-T-001-progress.xml"]);
+    expect(afterHook["4-T-001-terminal.xml"]).toBe(f["4-T-001-terminal.xml"]);
+    const looseA = listLooseEvents(bundle).find((event) => event.id === 5)!;
+    const aPayload = b3Payload(looseA);
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-AUTOOPEN"]).exit).toBe(0);
+    const epoch2 = b4EpochEvents(bundle, 2);
+    expect(epoch2.map((event) => event.id).sort((a, b) => a - b)).toEqual([3, 4, 5]);
+    expect(epoch2.filter((event) => event.kind === "opened").map((event) => event.id)).toEqual([5]);
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+    expect(readdirSync(run)).toEqual([]);
+    // Independent payload comparison: the generated A is the recorded Epoch-2 event.
+    const recordedA = listLedgerEvents(bundle).find((event) => event.id === 5)!;
+    expect(b3Payload(recordedA)).toBe(aPayload);
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-AUTOOPEN"]).exit).toBe(0);
+    expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  for (const hook of ["injectFailureBeforeVerify", "injectFailureAfterWrite"] as const) {
+    it(`${hook} on the mixed path leaves Epoch-1 unchanged and F union A, then real-CLI retries are idempotent`, () => {
+      const changeId = hook === "injectFailureBeforeVerify" ? "C-MIXED-BV" : "C-MIXED-AW";
+      const { root, bundle, run } = b4MixedFixture(changeId);
+      b4AllocateFresh(root, changeId);
+      const epoch1 = b3EpochSlice(bundle, 1);
+      const f = b4FBytes(run);
+      const inject: FoldInjectionOptions =
+        hook === "injectFailureBeforeVerify"
+          ? { injectFailureBeforeVerify: true }
+          : { injectFailureAfterWrite: true };
+      expect(() => foldEpoch(root, changeId, inject)).toThrow();
+      // Epoch-1 is captured before the injected fold and asserted byte-identical after it.
+      expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+      expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+      const epoch2 = b3EpochSlice(bundle, 2);
+      // The written Epoch-2 holds F union A; F bytes are preserved and A is one generated opened.
+      const afterInjection = b4RunBytes(run);
+      expect(Object.keys(afterInjection).sort()).toEqual([
+        "3-T-001-progress.xml",
+        "4-T-001-terminal.xml",
+        "5-T-001-opened.xml",
+      ]);
+      expect(afterInjection["3-T-001-progress.xml"]).toBe(f["3-T-001-progress.xml"]);
+      expect(afterInjection["4-T-001-terminal.xml"]).toBe(f["4-T-001-terminal.xml"]);
+      const looseA = listLooseEvents(bundle).find((event) => event.id === 5)!;
+      const aPayload = b3Payload(looseA);
+      const recordedA = listLedgerEvents(bundle).find((event) => event.id === 5)!;
+      expect(b3Payload(recordedA)).toBe(aPayload);
+      // First real-CLI retry deletes the matching residue and writes no Epoch-3.
+      expect(foldGrace(root, ["cursor", "fold", "--change", changeId]).exit).toBe(0);
+      expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+      expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+      expect(b3EpochSlice(bundle, 2)).toBe(epoch2);
+      expect(readdirSync(run)).toEqual([]);
+      // Second real-CLI retry is idempotent.
+      expect(foldGrace(root, ["cursor", "fold", "--change", changeId]).exit).toBe(0);
+      expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+      expect(b3EpochSlice(bundle, 2)).toBe(epoch2);
+      expect(readdirSync(run)).toEqual([]);
+      rmSync(root, { recursive: true, force: true });
+    });
+  }
 });

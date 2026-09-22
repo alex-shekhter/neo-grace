@@ -336,25 +336,18 @@ describe("C-GRAMMAR-SEAM T-003 OptionalContext bucket", () => {
   });
 });
 
-// C-FOLD-RETRY-CORE-1-000C564C T-002: the activated close-time write guard.
-const SCOPE_GUARD_CHANGE = "C-FOLD-RETRY-CORE-1-000C564C";
-const SCOPE_GUARD_BASE = "0ad7cb4e49b1bb5d930b27732f2978fa66221371";
+// C-FOLD-MIXED-RECOVERY-1-62A1B852 T-002: the activated close-time write guard.
+const SCOPE_GUARD_CHANGE = "C-FOLD-MIXED-RECOVERY-1-62A1B852";
+const SCOPE_GUARD_BASE = "8d08255775b036b63ef1c74c2ec47ea1fc593d0c";
 const SCOPE_GUARD_RECORD_DIR = "docs/plans/active/RM-GOVERNED-PATH/";
-const SCOPE_GUARD_RECORD_FILES = new Set([
-  `${SCOPE_GUARD_RECORD_DIR}decisions.xml`,
-  `${SCOPE_GUARD_RECORD_DIR}findings.xml`,
-  `${SCOPE_GUARD_RECORD_DIR}findings-retired.xml`,
-  `${SCOPE_GUARD_RECORD_DIR}rulings.xml`,
-  `${SCOPE_GUARD_RECORD_DIR}rulings-retired.xml`,
-  `${SCOPE_GUARD_RECORD_DIR}registry.xml`,
-  `${SCOPE_GUARD_RECORD_DIR}registry-retired.xml`,
-]);
+// Empty-payment close: the one forced source and the two forced tests are the whole
+// allowed non-lifecycle set. Every RM-GOVERNED-PATH record path (all seven XML files
+// and `decisions.md`) and the predecessor's `scripts/validate-record-retirement.test.ts`
+// payer allowance are deliberately outside it, so a planted record write reddens.
 const SCOPE_GUARD_ALLOWED_FILES = new Set([
   "src/grace-cursor.ts",
   "src/grace-cursor.test.ts",
   "src/artifact/scope.test.ts",
-  "scripts/validate-record-retirement.test.ts",
-  ...SCOPE_GUARD_RECORD_FILES,
 ]);
 
 /**
@@ -409,9 +402,6 @@ function scopeGuardOffenders(root: string, base = SCOPE_GUARD_BASE): string[] {
   }
   const changed = [...new Set([...tracked.lines, ...untracked.lines])];
   return changed.filter((file) => {
-    if (file.startsWith(SCOPE_GUARD_RECORD_DIR)) {
-      return !SCOPE_GUARD_RECORD_FILES.has(file);
-    }
     if (SCOPE_GUARD_LIFECYCLE_FILES.has(file)) {
       return false;
     }
@@ -529,6 +519,18 @@ describe("close-time write guard", () => {
       expect(scopeGuardOffenders(repoRoot)).toContain("docs/plans/active/RM-GOVERNED-PATH/guard-probe.md");
     } finally {
       rmSync(probe, { force: true });
+    }
+  });
+
+  it("reddens on a planted modification of an existing record XML when activated", () => {
+    if (!activated) return;
+    const recordXml = path.join(repoRoot, SCOPE_GUARD_RECORD_DIR, "decisions.xml");
+    const original = readFileSync(recordXml);
+    writeFileSync(recordXml, `${original.toString("utf8")}\n<!-- planted record probe -->\n`);
+    try {
+      expect(scopeGuardOffenders(repoRoot)).toContain(`${SCOPE_GUARD_RECORD_DIR}decisions.xml`);
+    } finally {
+      writeFileSync(recordXml, original);
     }
   });
 
