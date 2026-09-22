@@ -500,4 +500,10 @@
     <Pays>F313</Pays>
     <StatusText>In progress.</StatusText>
   </Row>
+  <Row name="C-DISCARD-PREFLIGHT-1-5087B21A" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug DISCARD-PREFLIGHT. Deterministic discard preflight.</Charter>
+    <Pays>F292 F292.1 F158</Pays>
+    <StatusText>In progress.</StatusText>
+  </Row>
 </Registry>

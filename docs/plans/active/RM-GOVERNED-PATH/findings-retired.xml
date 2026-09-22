@@ -5632,4 +5632,63 @@ and the ledger now contains the same two events in **both** `Epoch-1` and `Epoch
 Owner: C-FOLD-RETRY-CORE-1-000C564C, src/grace-cursor.ts (`LINKS: M-CURSOR`). Paid by this bundle.
 </Body>
   </Finding>
+  <Finding id="f158" token="F158" status="retired">
+    <PaidBy>C-DISCARD-PREFLIGHT-1-5087B21A</PaidBy>
+    <Title>### F158 — the supersede verb's contract, measured, and one non-atomic failure path. **[verified]**</Title>
+    <Body>
+Probed **2026-09-04** on a throwaway project against the real CLI, because [D27](#d27) makes this verb the
+only route for a defective approved artifact and the authority had never driven it.
+
+| question | measured |
+|---|---|
+| replacement state required | **only that its directory exists** (`spec new` is enough) — draft status and absent `plan.xml` are both accepted; the verb does not gate on the replacement's ceremony |
+| missing replacement | refuses, exit 1: `Replacement C-PROBE-B is missing as a directory under active/ or archive/.` |
+| abandoned bundle's artifacts | `spec.xml` and `plan.xml` root status → `superseded`, and `&amp;lt;Replacement&amp;gt;ID&amp;lt;/Replacement&amp;gt;` injected as the first child of the bundle element |
+| open epoch | **folded by the verb itself** — loose `run/*.xml` events land in `run-ledger.xml` under `&amp;lt;Epoch-N&amp;gt;`, `run/` is deleted, `run.xml` and `run-ledger.xml` remain. No separate `cursor fold` is needed |
+| directory | moved `active/` → `archive/` |
+| `supersedeChainDepth` | incremented on the **replacement** (0 → 1), **not** on the abandoned bundle (stays 0) |
+| `reRatificationCount` | **untouched on both** — so a re-ratified bundle carries its count into the archive permanently |
+| source code | **never touched** — `supersedeChangeBundle` (`src/gates/ledger.ts:1383-1481`) writes only the two governance files' status plus the rename, and rolls the bytes back on failure. This substantiates the help text's *&quot;Discards governance, never code&quot;* |
+
+**The defect worth naming.** A supersede that **fails** mid-verb can still leave a side effect: with a
+cursor allocation too narrow to cover the events being folded, the fold errored
+(`event 2 outside every allocation … unterminated range`) **after** appending a loose
+`run/N-T-001-discarded.xml` event. The final rename rolls back cleanly, but the fold-then-write boundary
+does not, so a failed supersede is not a no-op. Not on the governed path for a properly allocated epoch,
+and not chartered here; recorded so the next session that sees an orphan `discarded` event knows where it
+came from.
+
+**One incidental confirmation.** The probe ran the CLI from the working tree, which already carries
+`C-SCOPE-AUDIT-ATTRIBUTION`'s unshipped production, so its `review --change` of the archived bundle
+printed `Scope audit: not-run — plan for C-PROBE-A resolved under archive/` — mechanism B working
+end-to-end on a real bundle before it has shipped. Read as evidence for the mechanism, not as shipped
+behaviour.
+</Body>
+  </Finding>
+  <Finding id="f292" token="F292" status="retired">
+    <PaidBy>C-DISCARD-PREFLIGHT-1-5087B21A</PaidBy>
+    <Title>### F292 — `ngrace supersede` mints the successor **before** it folds the open epoch, so a supersede that the fold refuses leaves a stray successor bundle under `active/` that supersedes nothing. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `b6d7aba` on the throwaway `/tmp/race` project (bun 1.4.2), while reproducing `F288`.** With `C-RACE-MINT-1-950B44CC` holding a collided `run/` stream, `bun ./src/grace.ts supersede --path /tmp/race --change C-RACE-MINT-1-950B44CC --timestamp 2026-09-17T01:00:00Z` **exits 1** with `Fold verify failed: event 3 payload mismatch …`, the same refusal `cursor fold` gives. It nonetheless left **two** bundles under `.ngrace/changes/active/`: the original and a freshly minted `C-RACE-MINT-2-FD98E67D` carrying a draft `spec.xml` and no code.
+
+**The cause, read not inferred.** The CLI mints first (`src/grace-supersede.ts:114`, `mintBundle` with `supersedes: changeId`), then calls `supersedeChangeBundle` (`src/grace-supersede.ts:121`), which calls `discardAndFoldEpoch` (`src/gates/ledger.ts:1519`) before it writes `superseded` or moves anything. The mint is therefore not part of the same transaction as the fold, and a fold refusal leaves its side effect behind.
+
+**Why it is its own finding and not `F288`.** `F288`'s stream is now repairable only by a verb that does not exist, so the stray successor compounds the deadlock rather than causing it: with no shipped way to remove an active bundle, the refuse path grows the set of bundles on disk. The successor's `spec.xml` is a draft with no `plan.xml`, so it does not itself block the apply gate, but it is an artifact no act produced and no verb will clean up.
+
+**The shape of the remedy, not the remedy itself.** Either fold (or verify foldability) **before** minting the successor, so a refused supersede writes nothing, or give the refuse path a shipped cleanup for the successor it just minted. The first keeps the existing &quot;supersede discards governance, never code&quot; contract and adds no new surface.
+
+Owner: C-DISCARD-PREFLIGHT-1-5087B21A — the engine-authored `discarded` residue half (`src/grace-cursor.ts`, `LINKS: M-CURSOR`). Paid at this close.
+</Body>
+  </Finding>
+  <Finding id="f292.1" token="F292.1" status="retired">
+    <PaidBy>C-DISCARD-PREFLIGHT-1-5087B21A</PaidBy>
+    <Title>### F292.1 — the F292 matrix re-measured on 2026-09-19: same five rows, a different refusal message, and a discarded residue F292 did not name. **[verified, correction]**</Title>
+    <Body>
+**Measured 2026-09-19 at `6dd1d953652775f3dc25095e4f249b37876b9cb6`** (branch `c-supersede-membership`), by re-running `/private/tmp/ngrace-authority-probes/supersede.ts` from the repository root against complete disposable projects; the instrument imports the production fixtures and drives `src/grace.ts`. All five rows reproduced: no loose events exit 0; open epoch plus progress exit 0; two different events with id 2 exit 1; existing archive destination exit 1 (`Archive destination already exists for C-AUTHORITY-PROBE.`); missing predecessor exit 1 (`Change C-AUTHORITY-PROBE is not a directory under active/.`). Every case preserved `src/example.ts` bytes. F292's historical measurements stand.
+
+**Two corrections.** (1) The refusal F292 quotes — `Fold verify failed: event 3 payload mismatch` — is **historical**. Today the collided stream is refused earlier and named precisely: `duplicate event id 2 appears 2 times; the stream cannot fold until every event id is unique` (`src/grace-cursor.ts:2945`, reached through `validateEventsAgainstAllocations`). Do not pin the old payload-mismatch text. (2) F292 named only the **successor** as the residue; the re-run shows the fold refusal also leaves an engine-authored `run/3-T-002-discarded.xml` on the predecessor — the pre-existing partial-write boundary [F158](docs/plans/active/RM-GOVERNED-PATH/findings.xml) records, here triggered by the deterministic duplicate-id refusal that `discardAndFoldEpoch` (`src/grace-cursor.ts:1448`) writes the discarded event *before* `foldEpoch` re-validates. F158 is not superseded; this correction widens the observed residue set from one artifact to two.
+
+Owner: C-DISCARD-PREFLIGHT-1-5087B21A (`src/grace-cursor.ts`, `LINKS: M-CURSOR`). Paid at this close.
+</Body>
+  </Finding>
 </Findings>

@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-DISCARD-PREFLIGHT-1-5087B21A>
     <IntentSummary>
       **This T1 plan converts the approved `C-DISCARD-PREFLIGHT-1-5087B21A` spec (bundle 5 of the five-way split of the superseded `C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1`) into two sequential tasks.** The durable module is exactly `M-CURSOR`; its verification anchor is `V-M-CURSOR`. The sole forced production file is `src/grace-cursor.ts` (`LINKS: M-CURSOR`); the forced files are the behavior test `src/grace-cursor.test.ts`, the close-time guard `src/artifact/scope.test.ts`, and the retirement payer ratchet `scripts/validate-record-retirement.test.ts`. `src/gates/ledger.ts`, `src/grace-supersede.ts`, `src/artifact/run-membership.ts`, and `src/artifact/xml.ts` are **not** edited. Execution is **sequential**; the machine DAG encodes it: **T-001 → T-002**.
