@@ -914,6 +914,25 @@ function writeCoveringOpened(
  * (same headroom as recover --fix — no carve-out).
  * Refuse when more than one worker appears — multi-worker ranges are never fabricated.
  */
+/**
+ * F315: an existing-but-unparseable loose file is neither a disappearance nor an
+ * event. Both production write entry paths (ordinary fold and the supersede
+ * discard) call this before auto-open, discarded, or ledger writes, naming the
+ * file and the parse error. The read-only inventory fallback (and `cursor show`)
+ * stay unaffected; `listLooseEvents` exposes the parse state instead of turning
+ * inventory into a hard error.
+ */
+function assertNoUnparseableLooseEvents(bundlePath: string, changeId: string, events: LooseEvent[]): void {
+  const unparseable = events.find((event) => event.parseIssue?.code === "xml.parse");
+  if (!unparseable) return;
+  throw new GraceCommandError(
+    "invalid-project",
+    `Cannot fold or abandon ${changeId}: loose event ${unparseable.file} is not parseable `
+      + `(xml.parse${unparseable.parseIssue?.message ? `: ${unparseable.parseIssue.message}` : ""}); `
+      + `fix or remove the file before folding.`,
+  );
+}
+
 function maybeAutoOpenCoveringAllocation(
   bundlePath: string,
   changeId: string,
@@ -1379,6 +1398,7 @@ function foldEpochImpl(
 ): FoldResult {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   let events = listLooseEvents(bundlePath);
+  assertNoUnparseableLooseEvents(bundlePath, changeId, events);
   if (events.length === 0) {
     // Idempotent re-fold: nothing loose → success with last epoch if any.
     const ledgerEpochs = readLedgerEpochNumbers(bundlePath);
@@ -1554,6 +1574,9 @@ export function discardAndFoldEpoch(projectRoot: string, changeId: string): Fold
 function discardAndFoldEpochImpl(projectRoot: string, changeId: string): FoldResult | undefined {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const events = listLooseEvents(bundlePath);
+  // F315: the discard path is the other production entry that can write
+  // `discarded`; refuse unparseable input here too, before hasCloser/writeEventFile.
+  assertNoUnparseableLooseEvents(bundlePath, changeId, events);
   if (events.length === 0) {
     return;
   }

@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import type { GraceXmlNode } from "./artifact/xml";
 import os from "node:os";
 import path from "node:path";
@@ -5276,6 +5277,146 @@ describe("F295 fold consequences (AC-MEMBER-FOLD-CONSEQUENCES)", () => {
     const openedIds = [...ledger.matchAll(/Event id="(\d+)"[^>]*kind="opened"/g)].map((match) => Number(match[1]));
     expect(openedIds).toHaveLength(1);
     expect(openedIds[0]).toBeGreaterThanOrEqual(4);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// F315 malformed/unreadable input at both write boundaries (C-LOOSE-MALFORMED-FOLD-1-4C18E876 T-001)
+// ---------------------------------------------------------------------------
+
+/** Recursive project snapshot: directory entries, symlinks, relative paths, and per-file sha256. */
+function snapshotTree(root: string): Record<string, string> {
+  const acc: Record<string, string> = {};
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const full = path.join(dir, entry.name);
+      const rel = path.relative(root, full);
+      if (entry.isSymbolicLink()) {
+        acc[rel] = "SYMLINK:" + readlinkSync(full);
+      } else if (entry.isDirectory()) {
+        acc[rel] = "DIR";
+        walk(full);
+      } else if (entry.isFile()) {
+        acc[rel] = "FILE:" + createHash("sha256").update(readFileSync(full)).digest("hex");
+      } else {
+        acc[rel] = "OTHER";
+      }
+    }
+  };
+  walk(root);
+  return acc;
+}
+
+describe("F315 fold/discard refusal (AC-MEMBER-MALFORMED-AND-UNREADABLE)", () => {
+  it("ordinary fold refuses a malformed closer before any write, naming the file and xml.parse", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-MALFOLD");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-terminal.xml"), "<broken");
+    const before = snapshotTree(root);
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-MALFOLD"]);
+    expect(fold.exit).not.toBe(0);
+    expect(fold.stdout + fold.stderr).toContain("2-T-001-terminal.xml");
+    expect(fold.stdout + fold.stderr).toContain("xml.parse");
+    expect(snapshotTree(root)).toEqual(before);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("ordinary fold refuses a malformed progress with a valid later terminal before any write", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-MALPROG");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), "<broken");
+    writeFileSync(path.join(run, "3-T-001-terminal.xml"), foldEvent(3, "terminal"));
+    const before = snapshotTree(root);
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-MALPROG"]);
+    expect(fold.exit).not.toBe(0);
+    expect(fold.stdout + fold.stderr).toContain("2-T-001-progress.xml");
+    expect(fold.stdout + fold.stderr).toContain("xml.parse");
+    expect(snapshotTree(root)).toEqual(before);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("valid closer folds successfully (positive control)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-VALID");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-terminal.xml"), foldEvent(2, "terminal"));
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-VALID"]);
+    expect(fold.exit).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a simply absent trailing file is tolerated (F295 control)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-ABSENT");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), foldEvent(2, "progress"));
+    writeFileSync(path.join(run, "3-T-001-terminal.xml"), foldEvent(3, "terminal"));
+    writeFileSync(path.join(run, "4-T-001-progress.xml"), foldEvent(4, "progress"));
+    rmSync(path.join(run, "4-T-001-progress.xml"), { force: true });
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-ABSENT"]);
+    expect(fold.exit).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a parseable event with omitted attributes keeps the filename fallback", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-OMIT");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), `<NgraceRunEvent graceVersion="1.0"/>`);
+    writeFileSync(path.join(run, "3-T-001-terminal.xml"), foldEvent(3, "terminal"));
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-OMIT"]);
+    expect(fold.exit).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a directory at the event path exits non-zero, preserves EISDIR, and names the path", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-DIR");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    const eventDir = path.join(run, "2-T-001-progress.xml");
+    mkdirSync(eventDir);
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-DIR"]);
+    expect(fold.exit).not.toBe(0);
+    expect(fold.stdout + fold.stderr).toMatch(/EISDIR|illegal operation on a directory/i);
+    expect(fold.stdout + fold.stderr).toContain(eventDir);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("real ngrace supersede refuses malformed input before writing discarded and leaves both bundles in place", () => {
+    const root = createProject();
+    seedBundle(root, "C-OLD");
+    writeChangeBundleFixture(root, { changeId: "C-OLD-2", location: "active", specStatus: "draft", planStatus: "draft" });
+    const run = path.join(root, ".ngrace", "changes", "active", "C-OLD", "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), "<broken"); // no closer
+    const before = snapshotTree(root);
+    const result = foldGrace(root, ["supersede", "--change", "C-OLD", "--replacement", "C-OLD-2"]);
+    expect(result.exit).not.toBe(0);
+    expect(result.stdout + result.stderr).toContain("2-T-001-progress.xml");
+    expect(result.stdout + result.stderr).toContain("xml.parse");
+    expect(readdirSync(run).some((name) => name.includes("discarded"))).toBe(false);
+    expect(existsSync(path.join(root, ".ngrace/changes/active/C-OLD/spec.xml"))).toBe(true);
+    expect(existsSync(path.join(root, ".ngrace/changes/active/C-OLD-2/spec.xml"))).toBe(true);
+    expect(existsSync(path.join(root, ".ngrace/changes/archive/C-OLD/spec.xml"))).toBe(false);
+    expect(snapshotTree(root)).toEqual(before);
     rmSync(root, { recursive: true, force: true });
   });
 });

@@ -313,3 +313,38 @@ describe("F295 orphan tolerance (AC-MEMBER-ORPHANS-TOLERANT)", () => {
     rmSync(gateFixture.root, { recursive: true, force: true });
   });
 });
+
+// ---------------------------------------------------------------------------
+// F315 unparseable loose input inventory (C-LOOSE-MALFORMED-FOLD-1-4C18E876 T-001)
+// ---------------------------------------------------------------------------
+
+describe("F315 unparseable loose input inventory (AC-MEMBER-MALFORMED-AND-UNREADABLE)", () => {
+  it("retains filename-derived attributes and empty children and exposes parseIssue, with no LooseEvent.root", () => {
+    const { root, bundle, run } = membershipProject("C-MAL");
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), openedEvent(1));
+    writeFileSync(path.join(run, "2-T-001-terminal.xml"), "<broken");
+    const events = listLooseEventsFromArtifact(bundle);
+    const malformed = events.find((event) => event.id === 2);
+    expect(malformed).toBeDefined();
+    expect(malformed!.kind).toBe("terminal");
+    expect(malformed!.attributes).toEqual({ id: "2", task: "T-001", kind: "terminal" });
+    expect(malformed!.children).toEqual([]);
+    const parseIssue = (malformed as { parseIssue?: { code?: string; message?: string } }).parseIssue;
+    expect(parseIssue?.code).toBe("xml.parse");
+    expect(typeof parseIssue?.message).toBe("string");
+    expect("root" in (malformed as object)).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("cursor show and a root lint remain tolerant of the loose unparseable file", () => {
+    const { root, run } = membershipProject("C-MAL");
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), openedEvent(1));
+    writeFileSync(path.join(run, "2-T-001-terminal.xml"), "<broken");
+    const show = spawnGrace(root, ["cursor", "show", "--change", "C-MAL"]);
+    expect(show.exit).toBe(0);
+    const lint = spawnGrace(root, ["lint", "--fail-on", "errors"]);
+    expect(lint.exit).toBe(0);
+    expect(lint.stdout + lint.stderr).not.toMatch(/2-T-001-terminal/);
+    rmSync(root, { recursive: true, force: true });
+  });
+});

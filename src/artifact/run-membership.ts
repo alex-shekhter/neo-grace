@@ -38,6 +38,12 @@ export type LooseEvent = {
   attributes: Record<string, string>;
   /** Root children (Allocation, FailureSignature, WriteEvidence, Wave, …). */
   children: GraceXmlNode[];
+  /**
+   * Reader parse diagnostic (F315). Set when the file exists but does not parse
+   * (`xml.parse`, root null); never set for `xml.missing-file` (that entry is
+   * omitted) or for a parseable event with omitted attributes.
+   */
+  parseIssue?: { code: string; message: string };
 };
 
 /**
@@ -119,6 +125,7 @@ export function listLooseEvents(bundlePath: string): LooseEvent[] {
     attributes.task = task;
     attributes.kind = kind;
     const children = parsed.root ? parsed.root.children.map(cloneXmlNode) : [];
+    const parseIssue = parsed.issues.find((issue) => issue.code === "xml.parse");
     const allocations =
       kind === "opened"
         ? children
@@ -126,7 +133,16 @@ export function listLooseEvents(bundlePath: string): LooseEvent[] {
             .map(parseAllocationNode)
             .filter((entry): entry is RangeAllocation => entry !== null)
         : undefined;
-    events.push({ id, task, kind, file, allocations, attributes, children });
+    events.push({
+      id,
+      task,
+      kind,
+      file,
+      allocations,
+      attributes,
+      children,
+      ...(parseIssue ? { parseIssue: { code: parseIssue.code, message: parseIssue.message } } : {}),
+    });
   }
   return events.sort((a, b) => a.id - b.id);
 }

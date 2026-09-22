@@ -248,6 +248,12 @@ const bundleMinted: Record<string, string> = {
   // close's mint). A stale predecessor id reds the same walk.
   F295: "C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5",
   "F295.1": "C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5",
+  // C-LOOSE-MALFORMED-FOLD-1-4C18E876 T-002: the chartered row's one minted token
+  // (F315). The extension is consulted only for tokens the derivation actually
+  // mints, so the walk is green with the row live (nothing minted while the bundle
+  // is active) and green in the applied-archive state (the close's mint). A stale id
+  // reds the same walk.
+  F315: "C-LOOSE-MALFORMED-FOLD-1-4C18E876",
 };
 
 
@@ -7097,5 +7103,61 @@ describe("C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5 T-003 applied-archive payer rout
       "retired",
       "retired",
     ]);
+  });
+});
+
+// C-LOOSE-MALFORMED-FOLD-1-4C18E876 T-002: the F315 payer ratchet. Once this
+// bundle's charter row is an archive directory carrying `Pays F315`, `derivePayerMap`
+// mints F315 and the production walk expects `baseline[F315] ?? bundleMinted[F315]`;
+// the entry is the deliberate ratchet.
+describe("C-LOOSE-MALFORMED-FOLD-1-4C18E876 T-002 payer ratchet", () => {
+  const change = "C-LOOSE-MALFORMED-FOLD-1-4C18E876";
+
+  it("mints exactly F315 from the archived row; absent, stale, and staged-only directions red and the current pin greens", () => {
+    const archived = isolatedRoot();
+    mkdirSync(path.join(archived, ".ngrace", "changes", "archive", change), { recursive: true });
+    const derived = derivePayerMap(archived, [{ name: change, pays: "F315", statusText: "" }]);
+    expect(derived.get("F315"), "the archived successor row mints F315").toBe(change);
+    expect(bundleMinted["F315"], "the map pins the successor, and a stale id would red the same walk").toBe(change);
+
+    const live = derivePayerMap(isolatedRoot(), [{ name: change, pays: "F315", statusText: "" }]);
+    expect(live.has("F315"), "the row live (not an archive directory) mints nothing").toBe(false);
+
+    const baseline: Record<string, string> = JSON.parse(
+      readFileSync(path.join(import.meta.dir, "fixtures", "record-parse", "baseline-probes.json"), "utf8"),
+    ).payerMapBaseline.map;
+    const stale: Record<string, string> = { F315: "C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8" };
+    expect(baseline["F315"] ?? stale["F315"], "a stale F315 id reds the walk").not.toBe(change);
+
+    const stagedOnly = isolatedRoot();
+    writeFileSync(path.join(stagedOnly, "staged-findings.md"), `Owner: ${change}\n`);
+    expect(derivePayerMap(stagedOnly, []).has("F315"), "the ignored staged buffer is not a durable route").toBe(false);
+  });
+
+  it("when archived, the durable F315 route names this bundle", () => {
+    const archiveDir = path.join(REPO_ROOT, ".ngrace", "changes", "archive", change);
+    if (!existsSync(archiveDir)) return;
+    const recordDir = path.join(REPO_ROOT, RECORD_REL);
+    const findingsRetired = parseGraceXmlArtifact(
+      "findings-retired.xml",
+      readFileSync(path.join(recordDir, "findings-retired.xml"), "utf8"),
+    ).root;
+    expect(findingsRetired).not.toBeNull();
+    const paid = [...walkNodes(findingsRetired!)].find(
+      (node) => node.tag === "Finding" && node.attributes.token === "F315",
+    );
+    expect(paid, "F315 is retired with this bundle's name").toBeDefined();
+    expect(paid!.attributes.status, "F315 is retired").toBe("retired");
+    expect(childText(paid!, "PaidBy"), "F315 names this bundle").toBe(change);
+    const registryRetired = parseGraceXmlArtifact(
+      "registry-retired.xml",
+      readFileSync(path.join(recordDir, "registry-retired.xml"), "utf8"),
+    ).root;
+    expect(registryRetired).not.toBeNull();
+    const row = [...walkNodes(registryRetired!)].find(
+      (node) => node.tag === "Row" && node.attributes.name === change,
+    );
+    expect(row, "the F315 charter row is retired with this bundle's name").toBeDefined();
+    expect(childText(row!, "Pays"), "the retired row pays exactly F315").toBe("F315");
   });
 });
