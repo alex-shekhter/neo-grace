@@ -386,21 +386,24 @@ function scopeGuardTrackedDiffArgs(base: string): string[] {
   return ["diff", "--name-only", "--no-renames", base];
 }
 
-function gitLines(root: string, args: string[]): string[] {
-  const result = Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "pipe", stderr: "pipe" });
-  return Buffer.from(result.stdout)
-    .toString("utf8")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
+/**
+ * One checked Git invocation supplies both availability and the parsed path lines.
+ * The two must never come from separate spawns: a first success followed by a second
+ * failure would report `{available: true, lines: []}` — a false clean.
+ */
 function gitEvidence(root: string, args: string[]): { available: boolean; lines: string[] } {
   const result = Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "pipe", stderr: "pipe" });
   if (result.exitCode !== 0) {
     return { available: false, lines: [] };
   }
-  return { available: true, lines: gitLines(root, args) };
+  return {
+    available: true,
+    lines: Buffer.from(result.stdout)
+      .toString("utf8")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean),
+  };
 }
 
 /** Files changed against the recorded base outside the closed allowed set. Refuses when git evidence is unavailable. */
@@ -553,6 +556,47 @@ describe("close-time write guard", () => {
       expect(() => scopeGuardOffenders(tmp)).toThrow(/git evidence unavailable/);
     } finally {
       rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("derives availability and paths from one checked git read, and refuses a false clean", () => {
+    const originalSpawnSync = Bun.spawnSync;
+    let invocations = 0;
+    // Odd invocations succeed and name a forbidden path; even invocations fail with
+    // exit 129 and empty stdout. The old helper spawned git twice per read, so its
+    // availability check consumed the odd success while its parse silently consumed
+    // the even failure — a false clean. A correct helper reads git exactly once, so
+    // availability and the parsed lines come from the same checked invocation.
+    const fakeSpawn = (() => {
+      invocations += 1;
+      const ok = invocations % 2 === 1;
+      return {
+        exitCode: ok ? 0 : 129,
+        stdout: Buffer.from(ok ? "docs/forbidden.md\n" : ""),
+        stderr: Buffer.from(""),
+      };
+    }) as unknown as typeof Bun.spawnSync;
+    const fixture = mkdtempSync(path.join(os.tmpdir(), "scope-guard-one-read-"));
+    (Bun as unknown as { spawnSync: typeof Bun.spawnSync }).spawnSync = fakeSpawn;
+    try {
+      invocations = 0;
+      const evidence = gitEvidence(fixture, SCOPE_GUARD_TRACKED_DIFF_ARGS);
+      expect(evidence.available, "the checked read succeeded").toBe(true);
+      expect(evidence.lines, "lines must come from the checked read, not a second one").toContain("docs/forbidden.md");
+      expect(invocations, "gitEvidence must spawn git exactly once").toBe(1);
+
+      invocations = 0;
+      let outcome = "";
+      try {
+        const offenders = scopeGuardOffenders(fixture, SCOPE_GUARD_BASE);
+        outcome = offenders.length === 0 ? "reported-clean" : `offenders:${offenders.join(",")}`;
+      } catch (error) {
+        outcome = `refused:${(error as Error).message}`;
+      }
+      expect(outcome, "a failing read must refuse, never report clean").toMatch(/refused:.*git evidence unavailable/);
+    } finally {
+      (Bun as unknown as { spawnSync: typeof Bun.spawnSync }).spawnSync = originalSpawnSync;
+      rmSync(fixture, { recursive: true, force: true });
     }
   });
 });
