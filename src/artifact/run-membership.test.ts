@@ -326,6 +326,7 @@ describe("F315 unparseable loose input inventory (AC-MEMBER-MALFORMED-AND-UNREAD
     const events = listLooseEventsFromArtifact(bundle);
     const malformed = events.find((event) => event.id === 2);
     expect(malformed).toBeDefined();
+    const typedParseCode: "xml.parse" | undefined = malformed!.parseIssue?.code;
     expect(malformed!.kind).toBe("terminal");
     expect(malformed!.attributes).toEqual({ id: "2", task: "T-001", kind: "terminal" });
     expect(malformed!.children).toEqual([]);

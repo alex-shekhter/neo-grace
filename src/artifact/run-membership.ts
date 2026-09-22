@@ -43,7 +43,7 @@ export type LooseEvent = {
    * (`xml.parse`, root null); never set for `xml.missing-file` (that entry is
    * omitted) or for a parseable event with omitted attributes.
    */
-  parseIssue?: { code: string; message: string };
+  parseIssue?: { code: "xml.parse"; message: string };
 };
 
 /**
@@ -141,7 +141,7 @@ export function listLooseEvents(bundlePath: string): LooseEvent[] {
       allocations,
       attributes,
       children,
-      ...(parseIssue ? { parseIssue: { code: parseIssue.code, message: parseIssue.message } } : {}),
+      ...(parseIssue ? { parseIssue: { code: "xml.parse", message: parseIssue.message } } : {}),
     });
   }
   return events.sort((a, b) => a.id - b.id);
