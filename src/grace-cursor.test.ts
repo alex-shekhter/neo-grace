@@ -21,6 +21,7 @@ import {
   decideFixBudgetEscalation,
   deriveAttemptOrdinal,
   deriveStateFromEvents,
+  discardAndFoldEpoch,
   expectedLedgerEventAttributes,
   FIX_DISTINCT_SIGNATURE_BUDGET,
   FIX_ESCALATION_CEILING,
@@ -36,6 +37,7 @@ import {
   listLedgerEvents,
   listLooseEvents,
   listRunOrphans,
+  type LooseEvent,
   listUnresolvedCircuitTrippedTasks,
   listUnresolvedEscalatedTasks,
   listWindowFailSignatures,
@@ -1355,14 +1357,18 @@ describe("CLI attempt surface (A20.4 / correction 40)", () => {
 
   it("AC-DISCARDED-CALLER: kind discarded write is only inside discardAndFoldEpoch", () => {
     const hits = productionSourceHits('kind: "discarded"');
-    expect(hits).toHaveLength(1);
-    expect(hits[0]!.file).toBe("src/grace-cursor.ts");
+    // C-DISCARD-PREFLIGHT: the deterministic preflight constructs the prospective
+    // `discarded` in memory, so the literal now appears twice — both inside the
+    // discard operation, still the engine's only abandonment surface.
+    expect(hits).toHaveLength(2);
+    expect([...new Set(hits.map((hit) => hit.file))]).toEqual(["src/grace-cursor.ts"]);
     const cursorSrc = readFileSync(path.join(import.meta.dir, "grace-cursor.ts"), "utf8");
     const fnStart = cursorSrc.indexOf("export function discardAndFoldEpoch");
     const fnEnd = cursorSrc.indexOf("\nexport function", fnStart + 1);
     expect(fnStart).toBeGreaterThanOrEqual(0);
     expect(fnEnd).toBeGreaterThan(fnStart);
-    expect(cursorSrc.slice(fnStart, fnEnd)).toContain('kind: "discarded"');
+    const discardRegion = cursorSrc.slice(fnStart, fnEnd);
+    expect(discardRegion.match(/kind: "discarded"/g)).toHaveLength(2);
   });
 
   it("fold accepts a discarded-closed allocation written as loose events", () => {
@@ -5807,4 +5813,385 @@ describe("C-FOLD-MIXED-RECOVERY mixed residue-plus-fresh (AC-FOLD-MIXED-RECOVERY
       rmSync(root, { recursive: true, force: true });
     });
   }
+});
+
+
+// ---------------------------------------------------------------------------
+// C-DISCARD-PREFLIGHT-1-5087B21A: deterministic discard preflight (F158 / F292.1)
+// ---------------------------------------------------------------------------
+
+const b5Opened = (id: number, from: number, to: number) =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="opened"><Allocation worker="w0" from="${from}" to="${to}"/></NgraceRunEvent>`;
+const b5Event = (id: number, kind: string, task = "T-001") =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="${task}" kind="${kind}"/>`;
+
+function b5Seed(changeId: string, events: Array<[string, string]>) {
+  const root = createProject();
+  const bundle = seedBundle(root, changeId);
+  const run = path.join(bundle, "run");
+  mkdirSync(run, { recursive: true });
+  for (const [name, body] of events) writeFileSync(path.join(run, name), body);
+  return { root, bundle, run };
+}
+
+function b5SeedPair(changeId: string, events: Array<[string, string]>) {
+  const { root, bundle, run } = b5Seed(changeId, events);
+  seedBundleReplacement(root);
+  return { root, bundle, run };
+}
+
+function seedBundleReplacement(root: string) {
+  writeChangeBundleFixture(root, {
+    changeId: "C-OLD-2",
+    location: "active",
+    specStatus: "draft",
+    planStatus: "draft",
+  });
+}
+
+function b5Loose(bundle: string): string[] {
+  const run = path.join(bundle, "run");
+  return existsSync(run) ? readdirSync(run).sort() : [];
+}
+
+/** Test-only seam: the candidate accepts it; the untouched base ignores the extra arg. */
+const discardWithSeam = discardAndFoldEpoch as unknown as (
+  root: string,
+  changeId: string,
+  options: { afterPreflight?: () => void },
+) => unknown;
+
+/**
+ * Complete ledger projection: every event's full expected attributes (independent
+ * `expectedLedgerEventAttributes`, never the writer transform) plus its complete child
+ * subtree. Two projections compare the whole payload, not a regex count.
+ */
+function b5Normalize(nodes: GraceXmlNode[]): unknown {
+  return nodes.map((node) => ({
+    tag: node.tag,
+    text: node.text,
+    attributes: Object.entries(node.attributes).sort(),
+    children: b5Normalize(node.children),
+  }));
+}
+
+function b5Projection(events: LooseEvent[]): string {
+  return JSON.stringify(
+    events.map((event) => ({
+      attributes: Object.entries(expectedLedgerEventAttributes(event)).sort(),
+      children: b5Normalize(event.children),
+    })),
+  );
+}
+
+
+function b5LedgerDiscarded(bundle: string): LooseEvent[] {
+  return listLedgerEvents(bundle).filter((event) => event.kind === "discarded");
+}
+
+describe("C-DISCARD-PREFLIGHT deterministic refusal (AC-DISCARD-NOT-WRITTEN-ON-PREWRITE-REFUSE)", () => {
+  const rows: Array<{ changeId: string; events: Array<[string, string]>; match: RegExp }> = [
+    {
+      changeId: "C-B5-NARROW",
+      events: [
+        ["1-T-001-opened.xml", b5Opened(1, 1, 1)],
+        ["2-T-001-progress.xml", b5Event(2, "progress")],
+      ],
+      match: /unterminated range for w0/,
+    },
+    {
+      changeId: "C-B5-DUP",
+      events: [
+        ["1-T-001-opened.xml", b5Opened(1, 1, 99)],
+        ["2-T-001-progress.xml", b5Event(2, "progress")],
+        ["2-T-001-progress-b.xml", b5Event(2, "progress")],
+      ],
+      match: /duplicate event id 2 appears 2 times/,
+    },
+    {
+      changeId: "C-B5-HOLE",
+      events: [
+        ["1-T-001-opened.xml", b5Opened(1, 1, 99)],
+        ["3-T-001-terminal.xml", b5Event(3, "terminal")],
+      ],
+      match: /range hole at 2 for w0/,
+    },
+  ];
+
+  for (const row of rows) {
+    it(`${row.changeId}: refuses before any discarded write and preserves the whole tree`, () => {
+      const { root, bundle } = b5Seed(row.changeId, row.events);
+      const before = snapshotTree(root);
+      let thrown: string | undefined;
+      try {
+        discardAndFoldEpoch(root, row.changeId);
+      } catch (error) {
+        thrown = (error as Error).message;
+      }
+      expect(thrown, `expected a refusal for ${row.changeId}`).toMatch(row.match);
+      expect(snapshotTree(root)).toEqual(before);
+      expect(b5Loose(bundle).some((name) => name.endsWith("-discarded.xml"))).toBe(false);
+      expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+      rmSync(root, { recursive: true, force: true });
+    });
+  }
+
+  it("a repaired dense uniquely-identified stream still writes exactly one discarded and folds", () => {
+    const { root, bundle } = b5Seed("C-B5-POS", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 99)],
+      ["2-T-001-progress.xml", b5Event(2, "progress")],
+    ]);
+    const looseBefore = listLooseEvents(bundle);
+    const expected = b5Projection([
+      ...looseBefore,
+      { id: 3, task: "T-001", kind: "discarded", file: "", attributes: {}, children: [] },
+    ].sort((a, b) => a.id - b.id));
+    const result = discardAndFoldEpoch(root, "C-B5-POS") as { applied?: boolean; eventCount?: number };
+    expect(result.applied).toBe(true);
+    expect(b5Loose(bundle)).toEqual([]);
+    expect(b5LedgerDiscarded(bundle)).toHaveLength(1);
+    expect(b5Projection(listLedgerEvents(bundle))).toBe(expected);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("C-DISCARD-PREFLIGHT no-allocation stream (AC-DISCARD-PREFLIGHT-NO-ALLOC)", () => {
+  it("{1:progress, 3:progress} refuses the range hole with no discarded and no synthesized opened", () => {
+    const { root, bundle } = b5Seed("C-B5-NOALLOC", [
+      ["1-T-001-progress.xml", b5Event(1, "progress")],
+      ["3-T-001-progress.xml", b5Event(3, "progress")],
+    ]);
+    const before = snapshotTree(root);
+    let thrown: string | undefined;
+    try {
+      discardAndFoldEpoch(root, "C-B5-NOALLOC");
+    } catch (error) {
+      thrown = (error as Error).message;
+    }
+    expect(thrown).toMatch(/range hole at 2 for w0/);
+    expect(snapshotTree(root)).toEqual(before);
+    expect(b5Loose(bundle)).toEqual(["1-T-001-progress.xml", "3-T-001-progress.xml"]);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("an empty run/ remains the no-op and writes nothing", () => {
+    const { root, bundle } = b5Seed("C-B5-EMPTY", []);
+    const before = snapshotTree(root);
+    expect(discardAndFoldEpoch(root, "C-B5-EMPTY")).toBeUndefined();
+    expect(snapshotTree(root)).toEqual(before);
+    expect(b5Loose(bundle)).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("C-DISCARD-PREFLIGHT competing-writer seam (AC-DISCARD-NOT-WRITTEN-ON-PREWRITE-REFUSE)", () => {
+  it("a pre-ledger conflict leaves exactly one discarded that a real-CLI retry consumes once unchanged", () => {
+    const { root, bundle } = b5Seed("C-B5-RACE", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 99)],
+      ["2-T-001-progress.xml", b5Event(2, "progress")],
+    ]);
+    let actorAdded = false;
+    let thrown: string | undefined;
+    try {
+      discardWithSeam(root, "C-B5-RACE", {
+        afterPreflight: () => {
+          writeFileSync(path.join(bundle, "run", "2-T-002-progress.xml"), b5Event(2, "progress", "T-002"));
+          actorAdded = true;
+        },
+      });
+    } catch (error) {
+      thrown = (error as Error).message;
+    }
+    expect(actorAdded, "the pre-write seam must fire on the candidate").toBe(true);
+    expect(thrown).toMatch(/duplicate event id 2 appears 2 times/);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+
+    // Capture the preserved residue's complete payload before the retry.
+    const discardedResidue = listLooseEvents(bundle).filter((event) => event.kind === "discarded");
+    expect(discardedResidue).toHaveLength(1);
+    const residueProjection = b5Projection(discardedResidue);
+
+    // The same actor removes only its own mutation; capture the whole loose population
+    // from which the complete expected ledger projection is built independently.
+    rmSync(path.join(bundle, "run", "2-T-002-progress.xml"), { force: true });
+    const looseBeforeRetry = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(looseBeforeRetry.map((event) => `${event.id}:${event.kind}`)).toEqual([
+      "1:opened",
+      "2:progress",
+      "3:discarded",
+    ]);
+    const expectedLedgerProjection = b5Projection(looseBeforeRetry);
+
+    const retry = foldGrace(root, ["cursor", "fold", "--change", "C-B5-RACE"]);
+    expect(retry.exit).toBe(0);
+    expect(b5Loose(bundle)).toEqual([]);
+    const ledger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect([...new Set([...ledger.matchAll(/<Epoch-(\d+)>/g)].map((match) => Number(match[1])))].sort()).toEqual([1]);
+
+    // Complete population, attributes, and children: the recorded ledger equals the
+    // independently captured loose population; no event is lost, added, or changed.
+    const recorded = listLedgerEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(b5Projection(recorded)).toBe(expectedLedgerProjection);
+    const discarded = recorded.filter((event) => event.kind === "discarded");
+    expect(discarded).toHaveLength(1);
+    // Consumed exactly once and unchanged: the recorded payload equals the captured residue.
+    expect(b5Projection(discarded)).toBe(residueProjection);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("C-DISCARD-PREFLIGHT recovery preservation through the changed caller (AC-DISCARD-NOT-WRITTEN-ON-PREWRITE-REFUSE)", () => {
+  it("a partial-deletion residue hole resumes through discardAndFoldEpoch and preserves the recorded epoch payload", () => {
+    const { root, bundle } = b5Seed("C-B5-PARTIAL", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 99)],
+      ["2-T-001-progress.xml", b5Event(2, "progress")],
+      ["3-T-001-terminal.xml", b5Event(3, "terminal")],
+    ]);
+    expect(() => foldEpoch(root, "C-B5-PARTIAL", { injectFailureAfterWrite: true })).toThrow();
+    const recordedLoose = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(recordedLoose.map((event) => `${event.id}:${event.kind}`)).toEqual([
+      "1:opened",
+      "2:progress",
+      "3:terminal",
+    ]);
+    const expectedLedgerProjection = b5Projection(recordedLoose);
+    // A deliberately selected supported matching subset of the recorded epoch: an interior
+    // progress event is removed. This is not evidence that id 2 is first in the shipped
+    // delete loop, which iterates the ordered event set (`src/grace-cursor.ts:1750-1756`).
+    rmSync(path.join(bundle, "run", "2-T-001-progress.xml"), { force: true });
+    const ledgerBefore = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    const result = discardAndFoldEpoch(root, "C-B5-PARTIAL") as { applied?: boolean; epoch?: number };
+    expect(result.applied).toBe(true);
+    expect(result.epoch).toBe(1);
+    expect(b5Loose(bundle)).toEqual([]);
+    expect(b5LedgerDiscarded(bundle)).toHaveLength(0);
+    expect(readFileSync(path.join(bundle, "run-ledger.xml"), "utf8")).toBe(ledgerBefore);
+    // Complete payload preservation: the recorded ledger equals the captured epoch projection.
+    expect(b5Projection(listLedgerEvents(bundle).sort((a, b) => a.id - b.id))).toBe(expectedLedgerProjection);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a mixed residue-plus-fresh set through discardAndFoldEpoch writes the complete expected epoch", () => {
+    const { root, bundle, run } = b5Seed("C-B5-MIXED", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 2)],
+      ["2-T-001-terminal.xml", b5Event(2, "terminal")],
+    ]);
+    expect(() => foldEpoch(root, "C-B5-MIXED", { injectFailureAfterWrite: true })).toThrow();
+    const epoch1Loose = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(epoch1Loose.map((event) => `${event.id}:${event.kind}`)).toEqual(["1:opened", "2:terminal"]);
+    const epoch1Before = b3EpochSlice(bundle, 1);
+    rmSync(path.join(run, "1-T-001-opened.xml"), { force: true });
+    expect(foldGrace(root, ["cursor", "advance", "--change", "C-B5-MIXED", "--task", "T-001"]).exit).toBe(0);
+    expect(
+      foldGrace(root, ["cursor", "advance", "--change", "C-B5-MIXED", "--task", "T-001", "--kind", "terminal"]).exit,
+    ).toBe(0);
+    const looseBefore = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(looseBefore.map((event) => `${event.id}:${event.kind}`)).toEqual([
+      "2:terminal",
+      "3:progress",
+      "4:terminal",
+    ]);
+    const fresh = looseBefore.filter((event) => event.id !== 2);
+
+    const result = discardAndFoldEpoch(root, "C-B5-MIXED") as { applied?: boolean };
+    expect(result.applied).toBe(true);
+    expect(b5Loose(bundle)).toEqual([]);
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1Before);
+
+    // The complete expected population, built independently from the captured epoch-1 and
+    // fresh events plus the engine's derived synthetic events — never from the result.
+    const discardedId = Math.max(...looseBefore.map((event) => event.id)) + 1;
+    const openedId = discardedId + 1;
+    const allocFrom = Math.min(Math.min(...fresh.map((event) => event.id)), openedId);
+    const allocTo = Math.max(Math.max(...looseBefore.map((event) => event.id), openedId), openedId + 98);
+    const synthetic: LooseEvent[] = [
+      { id: discardedId, task: "T-001", kind: "discarded", file: "", attributes: {}, children: [] },
+      {
+        id: openedId,
+        task: "T-001",
+        kind: "opened",
+        file: "",
+        attributes: {},
+        children: [
+          { tag: "Allocation", attributes: { worker: "w0", from: String(allocFrom), to: String(allocTo) }, children: [], text: "" },
+        ],
+      },
+    ];
+    const expected = b5Projection([...epoch1Loose, ...fresh, ...synthetic].sort((a, b) => a.id - b.id));
+    expect(b5Projection(listLedgerEvents(bundle).sort((a, b) => a.id - b.id))).toBe(expected);
+    expect(b5LedgerDiscarded(bundle)).toHaveLength(1);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("real CLI supersede refuses the too-narrow stream with the whole tree unchanged", () => {
+    const { root, bundle } = b5SeedPair("C-OLD", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 1)],
+      ["2-T-001-progress.xml", b5Event(2, "progress")],
+    ]);
+    const before = snapshotTree(root);
+    const result = foldGrace(root, ["supersede", "--change", "C-OLD", "--replacement", "C-OLD-2"]);
+    expect(result.exit).not.toBe(0);
+    expect(result.stdout + result.stderr).toMatch(/unterminated range for w0/);
+    expect(snapshotTree(root)).toEqual(before);
+    expect(b5Loose(bundle).some((name) => name.endsWith("-discarded.xml"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("real CLI supersede archives the predecessor from a partial-deletion residue hole with the recorded epoch intact", () => {
+    const { root, bundle } = b5SeedPair("C-OLD", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 99)],
+      ["2-T-001-progress.xml", b5Event(2, "progress")],
+      ["3-T-001-terminal.xml", b5Event(3, "terminal")],
+    ]);
+    expect(() => foldEpoch(root, "C-OLD", { injectFailureAfterWrite: true })).toThrow();
+    const recordedLoose = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    const expectedLedgerProjection = b5Projection(recordedLoose);
+    rmSync(path.join(bundle, "run", "2-T-001-progress.xml"), { force: true });
+    const result = foldGrace(root, ["supersede", "--change", "C-OLD", "--replacement", "C-OLD-2"]);
+    expect(result.exit).toBe(0);
+    const archived = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD");
+    expect(existsSync(archived)).toBe(true);
+    expect(b5Projection(listLedgerEvents(archived).sort((a, b) => a.id - b.id))).toBe(expectedLedgerProjection);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("real CLI supersede archives the predecessor from a mixed residue-plus-fresh set with the complete expected epoch", () => {
+    const { root, bundle } = b5SeedPair("C-OLD", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 2)],
+      ["2-T-001-terminal.xml", b5Event(2, "terminal")],
+    ]);
+    expect(() => foldEpoch(root, "C-OLD", { injectFailureAfterWrite: true })).toThrow();
+    const epoch1Loose = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    rmSync(path.join(bundle, "run", "1-T-001-opened.xml"), { force: true });
+    expect(foldGrace(root, ["cursor", "advance", "--change", "C-OLD", "--task", "T-001"]).exit).toBe(0);
+    expect(foldGrace(root, ["cursor", "advance", "--change", "C-OLD", "--task", "T-001", "--kind", "terminal"]).exit).toBe(0);
+    const looseBefore = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    const fresh = looseBefore.filter((event) => event.id !== 2);
+    const discardedId = Math.max(...looseBefore.map((event) => event.id)) + 1;
+    const openedId = discardedId + 1;
+    const allocFrom = Math.min(Math.min(...fresh.map((event) => event.id)), openedId);
+    const allocTo = Math.max(Math.max(...looseBefore.map((event) => event.id), openedId), openedId + 98);
+    const synthetic: LooseEvent[] = [
+      { id: discardedId, task: "T-001", kind: "discarded", file: "", attributes: {}, children: [] },
+      {
+        id: openedId,
+        task: "T-001",
+        kind: "opened",
+        file: "",
+        attributes: {},
+        children: [
+          { tag: "Allocation", attributes: { worker: "w0", from: String(allocFrom), to: String(allocTo) }, children: [], text: "" },
+        ],
+      },
+    ];
+    const expected = b5Projection([...epoch1Loose, ...fresh, ...synthetic].sort((a, b) => a.id - b.id));
+
+    const result = foldGrace(root, ["supersede", "--change", "C-OLD", "--replacement", "C-OLD-2"]);
+    expect(result.exit).toBe(0);
+    const archived = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD");
+    expect(existsSync(archived)).toBe(true);
+    expect(b5Projection(listLedgerEvents(archived).sort((a, b) => a.id - b.id))).toBe(expected);
+    rmSync(root, { recursive: true, force: true });
+  });
 });

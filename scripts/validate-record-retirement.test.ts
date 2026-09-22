@@ -260,6 +260,14 @@ const bundleMinted: Record<string, string> = {
   // is active) and green in the applied-archive state (the close's mint). A stale id
   // reds the same walk.
   F313: "C-FOLD-RETRY-CORE-1-000C564C",
+  // C-DISCARD-PREFLIGHT-1-5087B21A T-002: the chartered row's three minted tokens
+  // (F292, its correction F292.1, and the durable live Finding F158). The extension
+  // is consulted only for tokens the derivation actually mints, so the walk is green
+  // with the row live and green in the applied-archive state. A stale id reds the
+  // same walk.
+  F292: "C-DISCARD-PREFLIGHT-1-5087B21A",
+  "F292.1": "C-DISCARD-PREFLIGHT-1-5087B21A",
+  F158: "C-DISCARD-PREFLIGHT-1-5087B21A",
 };
 
 
@@ -7221,5 +7229,231 @@ describe("C-FOLD-RETRY-CORE-1-000C564C T-002 payer ratchet", () => {
     );
     expect(row, "the F313 charter row is retired with this bundle's name").toBeDefined();
     expect(childText(row!, "Pays"), "the retired row pays exactly F313").toBe("F313");
+  });
+});
+
+// C-DISCARD-PREFLIGHT-1-5087B21A T-002: the three-token payer ratchet. Once this
+// bundle's charter row is an archive directory carrying `Pays F292 F292.1 F158`,
+// `derivePayerMap` mints all three and the production walk expects
+// `baseline[token] ?? bundleMinted[token]`; the entries are the deliberate ratchet.
+describe("C-DISCARD-PREFLIGHT-1-5087B21A T-002 payer ratchet", () => {
+  const change = "C-DISCARD-PREFLIGHT-1-5087B21A";
+  const pays = "F292 F292.1 F158";
+
+  it("mints exactly the three tokens from the archived row; live, stale, and staged-only directions red", () => {
+    const archived = isolatedRoot();
+    mkdirSync(path.join(archived, ".ngrace", "changes", "archive", change), { recursive: true });
+    const derived = derivePayerMap(archived, [{ name: change, pays, statusText: "" }]);
+    for (const token of ["F292", "F292.1", "F158"] as const) {
+      expect(derived.get(token), `the archived successor row mints ${token}`).toBe(change);
+      expect(bundleMinted[token], `the map pins ${token}; a stale id reds the same walk`).toBe(change);
+    }
+
+    const live = derivePayerMap(isolatedRoot(), [{ name: change, pays, statusText: "" }]);
+    for (const token of ["F292", "F292.1", "F158"] as const) {
+      expect(live.has(token), `the row live (not an archive directory) mints no ${token}`).toBe(false);
+    }
+
+    const baseline: Record<string, string> = JSON.parse(
+      readFileSync(path.join(import.meta.dir, "fixtures", "record-parse", "baseline-probes.json"), "utf8"),
+    ).payerMapBaseline.map;
+    const stale: Record<string, string> = {
+      F292: "C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8",
+      "F292.1": "C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8",
+      F158: "C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1",
+    };
+    for (const token of ["F292", "F292.1", "F158"] as const) {
+      expect(baseline[token] ?? stale[token], `a stale ${token} id reds the walk`).not.toBe(change);
+    }
+
+    const stagedOnly = isolatedRoot();
+    writeFileSync(path.join(stagedOnly, "staged-findings.md"), `Owner: ${change}\n`);
+    for (const token of ["F292", "F292.1", "F158"] as const) {
+      expect(derivePayerMap(stagedOnly, []).has(token), "the ignored staged buffer is not a durable route").toBe(false);
+    }
+  });
+
+  // The durable-route assertion, factored so it can run against a disposable fixture as
+  // well as the real repository after the close. It reads only durable XML (never the
+  // ignored staged buffer), exactly as the close's payer ratchet must.
+  function durableRouteViolations(root: string, expectedChange = change, expectedPays = pays): string[] {
+    const recordDir = path.join(root, RECORD_REL);
+    const violations: string[] = [];
+    const readRoot = (name: string): GraceXmlNode | null => {
+      const file = path.join(recordDir, name);
+      if (!existsSync(file)) { violations.push(`${name} missing`); return null; }
+      const parsed = parseGraceXmlArtifact(name, readFileSync(file, "utf8")).root;
+      if (!parsed) { violations.push(`${name} unparseable`); return null; }
+      return parsed;
+    };
+    const findings = readRoot("findings.xml");
+    const retired = readRoot("findings-retired.xml");
+    const all = [...(findings ? walkNodes(findings) : []), ...(retired ? walkNodes(retired) : [])];
+    for (const token of expectedPays.split(/\s+/).filter(Boolean)) {
+      const matches = all.filter((node) => node.tag === "Finding" && node.attributes.token === token);
+      if (matches.length === 0) { violations.push(`${token}: no durable Finding`); continue; }
+      if (matches.length !== 1) violations.push(`${token}: duplicate durable Findings=${matches.length}`);
+      const paid = matches[0]!;
+      if (paid.attributes.status !== "retired") violations.push(`${token}: status=${paid.attributes.status ?? "absent"}`);
+      const paidBy = childText(paid, "PaidBy");
+      if (paidBy !== expectedChange) violations.push(`${token}: PaidBy=${paidBy ?? "absent"}`);
+    }
+    const registryRetired = readRoot("registry-retired.xml");
+    if (registryRetired) {
+      const rows = [...walkNodes(registryRetired)].filter(
+        (node) => node.tag === "Row" && node.attributes.name === expectedChange,
+      );
+      if (rows.length === 0) violations.push("charter: no retired row");
+      else if (rows.length !== 1) violations.push(`charter: duplicate retired rows=${rows.length}`);
+      const row = rows[0];
+      if (!row) return violations;
+      else if (childText(row, "Pays") !== expectedPays) violations.push(`charter: Pays=${childText(row, "Pays") ?? "absent"}`);
+    }
+    return violations;
+  }
+
+  function fixtureFindings(retired: boolean, paidBy: string | undefined): string {
+    const tokens = pays.split(/\s+/);
+    const entries = tokens.map((token, index) =>
+      `  <Finding id="f${index}" token="${token}" status="${retired ? "retired" : "live"}">\n`
+      + (paidBy === undefined ? "" : `    <PaidBy>${paidBy}</PaidBy>\n`)
+      + `    <Title>### ${token} — fixture</Title>\n`
+      + `    <Body>fixture body for ${token}</Body>\n`
+      + `  </Finding>`).join("\n");
+    return `<Findings>\n${entries}\n</Findings>\n`;
+  }
+
+  function fixtureRegistry(retired: boolean, rowPays: string): string {
+    return `<Registry>\n  <Row name="${change}" status="${retired ? "retired" : "live"}" kind="chartered">\n`
+      + `    <Number>1</Number>\n    <Charter>fixture charter</Charter>\n`
+      + `    <Pays>${rowPays}</Pays>\n    <StatusText>Delivered</StatusText>\n  </Row>\n</Registry>\n`;
+  }
+
+  /** A disposable fixture in the already-durable (closed) shape; not a real lifecycle. */
+  function durableFixture(): string {
+    const root = isolatedRoot();
+    writeHappy(root, {
+      findings: `<Findings>\n</Findings>\n`,
+      findingsRetired: fixtureFindings(true, change),
+      registry: `<Registry>\n</Registry>\n`,
+      registryRetired: fixtureRegistry(true, pays),
+    });
+    mkdirSync(path.join(root, ".ngrace", "changes", "archive", change), { recursive: true });
+    return root;
+  }
+
+  it("fixture green: valid retired Findings and a retired charter row satisfy the durable assertion", () => {
+    const root = durableFixture();
+    expect(durableRouteViolations(root)).toEqual([]);
+  });
+
+  it("fixture red: missing PaidBy, wrong PaidBy, live status, wrong Pays, and a missing row each redden", () => {
+    const cases: Array<{ label: string; overlay: Parameters<typeof writeHappy>[1]; expect: RegExp }> = [
+      {
+        label: "missing PaidBy",
+        overlay: { findings: `<Findings>\n</Findings>\n`, findingsRetired: fixtureFindings(true, undefined), registry: `<Registry>\n</Registry>\n`, registryRetired: fixtureRegistry(true, pays) },
+        expect: /F292: PaidBy=absent/,
+      },
+      {
+        label: "wrong PaidBy",
+        overlay: { findings: `<Findings>\n</Findings>\n`, findingsRetired: fixtureFindings(true, "C-WRONG-SUCCESSOR"), registry: `<Registry>\n</Registry>\n`, registryRetired: fixtureRegistry(true, pays) },
+        expect: /F292: PaidBy=C-WRONG-SUCCESSOR/,
+      },
+      {
+        label: "live status",
+        overlay: { findings: fixtureFindings(false, change), findingsRetired: `<Findings>\n</Findings>\n`, registry: `<Registry>\n</Registry>\n`, registryRetired: fixtureRegistry(true, pays) },
+        expect: /F292: status=live/,
+      },
+      {
+        label: "wrong charter Pays",
+        overlay: { findings: `<Findings>\n</Findings>\n`, findingsRetired: fixtureFindings(true, change), registry: `<Registry>\n</Registry>\n`, registryRetired: fixtureRegistry(true, "F292") },
+        expect: /charter: Pays=F292/,
+      },
+      {
+        label: "missing charter row",
+        overlay: { findings: `<Findings>\n</Findings>\n`, findingsRetired: fixtureFindings(true, change), registry: `<Registry>\n</Registry>\n`, registryRetired: `<Registry>\n</Registry>\n` },
+        expect: /charter: no retired row/,
+      },
+      {
+        label: "duplicate durable Finding",
+        overlay: { findings: `<Findings>\n</Findings>\n`, findingsRetired: fixtureFindings(true, change).replace("</Findings>", fixtureFindings(true, change).replace(/^<Findings>\n/, "").replace(/<\/Findings>\n$/, "") + "</Findings>"), registry: `<Registry>\n</Registry>\n`, registryRetired: fixtureRegistry(true, pays) },
+        expect: /F292: duplicate durable Findings=2/,
+      },
+      {
+        label: "duplicate retired charter row",
+        overlay: { findings: `<Findings>\n</Findings>\n`, findingsRetired: fixtureFindings(true, change), registry: `<Registry>\n</Registry>\n`, registryRetired: fixtureRegistry(true, pays).replace("</Registry>", "  <Row name=\"" + change + "\" status=\"retired\" kind=\"chartered\"><Pays>" + pays + "</Pays></Row>\n</Registry>") },
+        expect: /charter: duplicate retired rows=2/,
+      },
+    ];
+    for (const testCase of cases) {
+      const root = durableFixture();
+      writeHappy(root, testCase.overlay);
+      const violations = durableRouteViolations(root);
+      expect(violations, testCase.label).not.toEqual([]);
+      expect(violations.join(" | "), testCase.label).toMatch(testCase.expect);
+    }
+  });
+
+  it("staged-only is insufficient: the durable assertion reddens and the payer map mints nothing", () => {
+    const root = isolatedRoot();
+    writeHappy(root, {
+      findings: `<Findings>\n</Findings>\n`,
+      findingsRetired: `<Findings>\n</Findings>\n`,
+      registry: `<Registry>\n</Registry>\n`,
+      registryRetired: `<Registry>\n</Registry>\n`,
+    });
+    writeFileSync(path.join(root, "staged-findings.md"), `Owner: ${change}\n`);
+    expect(durableRouteViolations(root)).not.toEqual([]);
+    expect(durableRouteViolations(root).some((v) => v.includes("no durable Finding"))).toBe(true);
+    for (const token of ["F292", "F292.1", "F158"] as const) {
+      expect(derivePayerMap(root, []).has(token), "the ignored staged buffer is not a durable route").toBe(false);
+    }
+  });
+
+  it("live versus archived: the durable XML assertion holds in both; only the archived row mints the payer", () => {
+    const archived = durableFixture();
+    expect(durableRouteViolations(archived)).toEqual([]);
+    expect(derivePayerMap(archived, [{ name: change, pays, statusText: "" }]).get("F292")).toBe(change);
+
+    const live = isolatedRoot();
+    writeHappy(live, {
+      findings: `<Findings>\n</Findings>\n`,
+      findingsRetired: fixtureFindings(true, change),
+      registry: `<Registry>\n</Registry>\n`,
+      registryRetired: fixtureRegistry(true, pays),
+    });
+    expect(durableRouteViolations(live)).toEqual([]);
+    expect(derivePayerMap(live, [{ name: change, pays, statusText: "" }]).has("F292")).toBe(false);
+  });
+
+  it("the shipped --retire writer moves a live PaidBy finding and the charter row into the durable state the assertion reads", () => {
+    const root = isolatedRoot();
+    writeHappy(root, {
+      // The live finding carries no PaidBy: the retire writer derives and stamps it
+      // from the charter payer, so a pre-existing PaidBy would duplicate.
+      findings: fixtureFindings(false, undefined),
+      findingsRetired: `<Findings>\n</Findings>\n`,
+      registry: fixtureRegistry(false, pays),
+      registryRetired: `<Registry>\n</Registry>\n`,
+      index: `<RecordIndex base="10" headroom="40" ceiling="1000">\n`
+        + `  <Entry id="f0" token="F292" genre="finding" layer="live" />\n`
+        + `  <Entry id="f1" token="F292.1" genre="finding" layer="live" />\n`
+        + `  <Entry id="f2" token="F158" genre="finding" layer="live" />\n`
+        + `</RecordIndex>\n`,
+    });
+    mkdirSync(path.join(root, ".ngrace", "changes", "archive", change), { recursive: true });
+    // Before the move, nothing durable names this bundle.
+    expect(durableRouteViolations(root)).not.toEqual([]);
+    const result = runValidatorInProcess(root, ["--retire"]);
+    // The shipped writer is the actor; a non-zero move is the subject, not a fixture detail.
+    expect(result.status, result.stdout + result.stderr).toBe(0);
+    expect(durableRouteViolations(root)).toEqual([]);
+    expect(derivePayerMap(root, [{ name: change, pays, statusText: "" }]).get("F292")).toBe(change);
+  });
+
+  it("the real repository after-close ratchet (skips until this bundle is archived)", () => {
+    const archiveDir = path.join(REPO_ROOT, ".ngrace", "changes", "archive", change);
+    if (!existsSync(archiveDir)) return;
+    expect(durableRouteViolations(REPO_ROOT)).toEqual([]);
   });
 });

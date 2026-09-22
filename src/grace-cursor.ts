@@ -1791,14 +1791,120 @@ function foldEpochImpl(
  * run/ events — does not invoke foldEpoch.
  */
 /** B1: the discard path mutates the ledger, so it cooperates through the lock. */
-export function discardAndFoldEpoch(projectRoot: string, changeId: string): FoldResult | undefined {
+export function discardAndFoldEpoch(
+  projectRoot: string,
+  changeId: string,
+  options: { afterPreflight?: () => void } = {},
+): FoldResult | undefined {
   return withCandidateLock(projectRoot, changeId, () => {
     assertCandidatePublished(resolveChangeBundle(projectRoot, changeId), changeId);
-    return discardAndFoldEpochImpl(projectRoot, changeId);
+    return discardAndFoldEpochImpl(projectRoot, changeId, options);
   });
 }
 
-function discardAndFoldEpochImpl(projectRoot: string, changeId: string): FoldResult | undefined {
+/**
+ * C-DISCARD-PREFLIGHT: the allocation a prospective fold would use for a set that carries
+ * no explicit Allocation — either the set's own effective allocations, or the same
+ * single-controller covering `opened` fold would synthesize, with the correct future id
+ * and headroom. `virtualNextId` is the id the next engine-authored event would take once
+ * the optional synthetic `discarded` is on disk. Never writes.
+ */
+function prospectiveDiscardAllocations(
+  bundlePath: string,
+  changeId: string,
+  set: LooseEvent[],
+  virtualNextId: number,
+): RangeAllocation[] {
+  const explicit = collectEffectiveAllocations(set);
+  if (explicit.length > 0) return explicit;
+  if (set.length === 0) return [];
+  const workers = collectDistinctWorkers(bundlePath, set);
+  if (workers.length > 1) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Cannot fold ${changeId}: no Allocation found, and auto-open refused — multiple workers `
+        + `${JSON.stringify(workers)}. Multi-worker ranges must not be fabricated (D8.2); `
+        + "open an explicit epoch with --worker bounds, or recover --fix after collapsing to one controller.",
+    );
+  }
+  const worker = workers[0] ?? "w0";
+  const ids = set.map((event) => event.id);
+  const openedId = virtualNextId;
+  const from = Math.min(Math.min(...ids), openedId);
+  const to = Math.max(Math.max(Math.max(...ids), openedId), openedId + OPEN_EPOCH_DEFAULT_HEADROOM);
+  return [{ worker, from, to }];
+}
+
+/**
+ * C-DISCARD-PREFLIGHT: validate the discard stream in memory before any engine-authored
+ * write. Mirrors what the subsequent ordinary fold would validate — the durable-ledger
+ * reconciliation (already-recorded residue, genuine conflict, older-epoch reuse), the
+ * prospective `discarded` this operation would write when no effective allocation carries
+ * a closer, and, for the set that is actually fresh, the same single-controller covering
+ * `opened` fold would synthesize with the correct future id and headroom. Already-recorded
+ * residue resumes and is never re-validated as a fresh set, exactly as bundle 4's mixed
+ * path treats it; a genuine conflict or older-epoch reuse refuses here too, before the
+ * `discarded` write. Never writes; never refuses a stream fold would accept.
+ */
+function preflightDiscardStream(
+  bundlePath: string,
+  changeId: string,
+  events: LooseEvent[],
+): string[] {
+  const effective = collectEffectiveAllocations(events);
+  const hasCloser = events.some(
+    (event) =>
+      (RANGE_CLOSING_KINDS as readonly string[]).includes(event.kind)
+      && effective.some((allocation) => event.id >= allocation.from && event.id <= allocation.to),
+  );
+  const prospective: LooseEvent[] = [...events];
+  let virtualNextId = nextEventId(bundlePath);
+  if (!hasCloser) {
+    const last = events.reduce((current, event) => (event.id >= current.id ? event : current));
+    prospective.push({
+      id: virtualNextId,
+      task: last.task,
+      kind: "discarded",
+      file: path.join(bundlePath, "run", `${virtualNextId}-${last.task}-discarded.xml`),
+      attributes: {},
+      children: [],
+    });
+    virtualNextId += 1;
+  }
+  const reconciliation = reconcileLooseWithLedger(bundlePath, prospective);
+  if (reconciliation?.conflict) {
+    return [
+      `Fold refused: ${reconciliation.conflict.detail}; no new epoch was written and the recorded bytes are unchanged.`,
+    ];
+  }
+  if (reconciliation?.olderReuse) {
+    return [
+      `Fold refused: loose event id ${reconciliation.olderReuse.id} already appears in recorded `
+        + `Epoch-${reconciliation.olderReuse.epoch}; the allocator never reuses a recorded id.`,
+    ];
+  }
+  if (reconciliation?.resumeEpoch !== undefined) {
+    return [];
+  }
+  if (reconciliation && reconciliation.residue.length > 0 && reconciliation.hasFresh) {
+    const residueFiles = new Set(reconciliation.residue.map((event) => event.file));
+    const fresh = prospective.filter((event) => !residueFiles.has(event.file));
+    return validateEventsAgainstAllocations(
+      fresh,
+      prospectiveDiscardAllocations(bundlePath, changeId, fresh, virtualNextId),
+    );
+  }
+  return validateEventsAgainstAllocations(
+    prospective,
+    prospectiveDiscardAllocations(bundlePath, changeId, prospective, virtualNextId),
+  );
+}
+
+function discardAndFoldEpochImpl(
+  projectRoot: string,
+  changeId: string,
+  options: { afterPreflight?: () => void } = {},
+): FoldResult | undefined {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const events = listLooseEvents(bundlePath);
   // F315: the discard path is the other production entry that can write
@@ -1807,6 +1913,14 @@ function discardAndFoldEpochImpl(projectRoot: string, changeId: string): FoldRes
   if (events.length === 0) {
     return;
   }
+  // F158/F292.1: validate the exact snapshot before any engine-authored write. A stream
+  // that cannot fold refuses here, so no `discarded`, auto-open, ledger, status, or
+  // successor/governance mutation happens.
+  const preflightIssues = preflightDiscardStream(bundlePath, changeId, events);
+  if (preflightIssues.length > 0) {
+    throw new GraceCommandError("invalid-project", preflightIssues.join(" "));
+  }
+  options.afterPreflight?.();
   const allocations = collectEffectiveAllocations(events);
   const hasCloser = events.some(
     (event) =>
