@@ -1,0 +1,112 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-FOLD-MIXED-RECOVERY-1-62A1B852>
+    <IntentSummary>
+      **This T1 plan converts the approved `C-FOLD-MIXED-RECOVERY-1-62A1B852` spec (bundle 4 of the five-way split of the superseded `C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1`) into two sequential tasks.** The durable module is exactly `M-CURSOR`; its verification anchor is `V-M-CURSOR`. The sole forced production file is `src/grace-cursor.ts` (`LINKS: M-CURSOR`); the forced files are the behavior test `src/grace-cursor.test.ts` and the close-time guard `src/artifact/scope.test.ts`. `src/artifact/run-membership.ts`, `src/artifact/xml.ts`, and `src/gates/ledger.ts` are not edited. The execution mode is **sequential** and the machine DAG encodes it: **T-001 → T-002**.
+
+      **T-001 — mixed residue-plus-fresh recovery mechanism and final behavior tests:** `src/grace-cursor.ts` keeps the shipped `reconcileLooseWithLedger` classification and adds the missing mixed branch in `foldEpochImpl`. When the reconciliation holds both durable residue and a fresh set, the fresh set's **prospective** allocation — the explicit allocations, or the covering allocation a single-controller auto-open would synthesize, computed in memory by a named helper — is validated in full (allocation, density, closer) **before any destructive action**; a refusal writes nothing, deletes nothing, and materializes no auto-open. Only after that validation passes is the residue deleted (with the test-only `injectFailureAfterResidueDelete` hook after the delete), the covering `opened` materialized when the fresh set needs it (with the test-only `injectFailureAfterAutoOpen` hook after materialization), and the ordinary write/verify/delete path used to fold exactly `F union A`. The final repository tests in `src/grace-cursor.test.ts` are added first and re-driven red on the committed base for behavioral reasons, not import/type/load failure, then green after the production change: the reachable fixture is built through the product path (initial loose epoch, interrupted fold after the ledger write, shipped delete-loop partial deletion for the residue, `ngrace cursor advance` for **F**/**F_bad**), the mixed success row, the progress-only `F_bad` validate-first refusal with a byte-complete recursive snapshot, both new-hook post-states hash-exact, both original hooks on the mixed `F union A` write path with pre-injection `Epoch-1` capture, first recovery and second idempotent retry and no `Epoch-3`, and the bundle-1/2/3 controls. This task maps all three ordinary criteria exactly once: `AC-FOLD-MIXED-RECOVERY`, `AC-MIXED-RECOVERY-VALIDATE-FIRST`, `AC-RECOVERY-HOOKS-CORRECT`.
+
+      **T-002 — exact-id no-payment close guard:** `src/artifact/scope.test.ts` is re-authored to `NGRACE_SCOPE_GUARD_CHANGE=C-FOLD-MIXED-RECOVERY-1-62A1B852` against base `8d08255775b036b63ef1c74c2ec47ea1fc593d0c`, with exact-lifecycle identity recognition, no predecessor transition, and an allowed non-lifecycle set of exactly the one forced source and the two forced tests. The record directory and `.ngrace/scratch/staged-findings.md` are outside the allowed set, so a planted record write reddens and the ignored scratch buffer is proven byte-identical by the close rehearsal's before/after digest rather than by the git-derived guard. T-002 depends on T-001 and maps no criterion. The guard's re-authoring is **indivisible** — the activated guard and its allowlist mechanism live in the same test file — so T-002 is verified **pass-only**: no pre-mechanism red can be landed without contrivance, and its discrimination is the driven red directions (planted ordinary path, planted record XML modification, planted record-directory non-record file, planted bundle-directory non-lifecycle file), not a manufactured red.
+
+      **Payment and record writes.** This bundle pays no finding: the plan grammar has no `&lt;Pays&gt;` element, and there is no `bundleMinted` pin in `scripts/validate-record-retirement.test.ts`, no staged `Owner:` handoff in `.ngrace/scratch/staged-findings.md`, no successor-named `registry.xml` charter row, and no derived `PaidBy`. The close runs neither `--flush` nor `--retire`, so it writes no RM-GOVERNED-PATH record XML and no scratch byte; those paths are outside `ObservedWriteScope` and outside the guard's allowed set. There is **no predecessor supersede transition** for this fresh slug.
+
+      **Baseline, gates, and close.** `8d08255775b036b63ef1c74c2ec47ea1fc593d0c` is the spec's whole-bundle byte-invariance and scope-guard base. Every task runs its narrow instrument; the full CI-equivalent `bun run validate:ci` is the plan's single `TargetAssertions` `MustPassCommand` and the outer final gate, never a per-task command. The activated guard is driven separately by `NGRACE_SCOPE_GUARD_CHANGE=C-FOLD-MIXED-RECOVERY-1-62A1B852 bun test --timeout=0 src/artifact/scope.test.ts` and is bound through the spec's `AC-NO-UNFORCED-WRITES` CloseEvidence, not a third task. The three spec `CloseEvidence` criteria (`AC-NO-UNFORCED-WRITES`, `AC-CLOSE-LINT`, `AC-CLOSE-TESTS`) are evaluated by the close in the applied-archive state and are deliberately absent from every task's `Satisfies`. The plan's `ObservedWriteScope` must not add this bundle's own `spec.xml`, `plan.xml`, `design-context.xml`, `run/`, `run.xml`, or `run-ledger.xml`, because those are governed by identity/lifecycle rules.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/scope.test.ts</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-CURSOR</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>prospectiveFreshAllocations</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>injectFailureAfterResidueDelete</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>injectFailureAfterAutoOpen</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.test.ts</File>
+        <Text>C-FOLD-MIXED-RECOVERY-1-62A1B852</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/scope.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Mixed residue-plus-fresh recovery mechanism and final behavior tests</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/grace-cursor.ts` keeps `reconcileLooseWithLedger` and adds the missing mixed branch in `foldEpochImpl`. When the reconciliation holds both durable residue and a fresh set, the fresh set's prospective allocation is computed by the named helper `prospectiveFreshAllocations` — the explicit allocations when present, otherwise the covering allocation a single-controller auto-open would synthesize — and validated in full (allocation, density, closer) **before any destructive action**. On a pre-mutation validation refusal the invocation writes nothing, materializes no auto-open, deletes nothing, and preserves every loose byte; multi-worker fresh sets refuse before any mutation. Only after validation passes is the residue deleted, the covering `opened` singleton materialized when the fresh set needs it, and `Epoch-2` written containing exactly `F union A` once via the ordinary write/verify/delete path. The fixture is reached through the product path, never manufactured: the initial loose epoch `{1:opened, 2:terminal}` is folded with `injectFailureAfterWrite` and interrupted after the ledger write; the first verified loose event in the shipped delete-loop order (`1:opened`) is deleted to leave the matching residue `{2:terminal}`; and **F** `{3:progress, 4:terminal}` is written by real `ngrace cursor advance` (the allocator), so its ids are above the durable maximum by construction. The final repository test asserts: `Epoch-1` captured before the fold and byte-identical after; exactly one `Epoch-2` = `{3:progress, 4:terminal, 5:opened}` with allocation `w0[3,103]`; no duplicated residue id; `run/` empty; and independent payload comparison with `expectedLedgerEventAttributes` plus complete children. The final tests are added first and re-driven red on the committed base `8d08255775b036b63ef1c74c2ec47ea1fc593d0c` for behavioral reasons (the base exits 0 and writes `Epoch-2` = `{2:terminal, 3:progress, 4:terminal, 5:opened}` with allocation `w0[2,103]`, duplicating residue id 2), then green after the mechanism. The production change adds exactly one `unlinkSync(contained.absolutePath)` contained-path delete site, so the write-surface inventory pin moves `cursorContained` 3→4 and `callSites` 10→11.
+          </Criterion>
+          <Criterion>
+            A progress-only fresh set (`F_bad` = `{3:progress}`) beside the matching residue refuses `unterminated range for w0` **before any mutation**: the invocation exits non-zero naming `unterminated range for w0`, leaves `run-ledger.xml` holding only `Epoch-1` with bytes byte-identical, leaves `run/` holding exactly `2-T-001-terminal.xml` and `3-T-001-progress.xml`, and writes no synthesized `opened`. The refusal is distinguished from a mutation by a byte-complete recursive project snapshot (`snapshotTree`: directory entries, symlinks, relative paths, types, per-file sha256) that is unchanged after the refusal. On the committed base the same drive exits 0 and writes `Epoch-2` = `{2:terminal, 3:progress, 4:opened}` with allocation `w0[2,102]`, so the base direction is discriminating.
+          </Criterion>
+          <Criterion>
+            The two new test-only stage hooks and the two original hooks are asserted on the mixed path with exact, hash-backed post-states. `injectFailureAfterResidueDelete` leaves the ledger holding only `Epoch-1` and `run/` exactly **F** (`3-T-001-progress.xml`, `4-T-001-terminal.xml`); `injectFailureAfterAutoOpen` leaves the ledger holding only `Epoch-1` and `run/` exactly **F union A** (`3-T-001-progress.xml`, `4-T-001-terminal.xml`, `5-T-001-opened.xml`) with the generated **A** captured and payload-compared to the written `Epoch-2` event through `expectedLedgerEventAttributes` plus children. Both original hooks (`injectFailureBeforeVerify`, `injectFailureAfterWrite`) are driven on the mixed `F union A` write path: each leaves `Epoch-1` byte-identical (captured before the injected fold, asserted after the injection and after each retry), loose `F union A` hash-exact against the captured **F** entries, and no second `opened`. Every one of the four rows then performs the normative final empty retry: a second real-CLI fold exits 0, leaves the same `Epoch-2`, writes no `Epoch-3`, leaves both epoch byte-slices unchanged, and empties `run/`. The bundle-1/2/3 controls (pure residue, fresh-only, genuine conflict, older-epoch reuse, both original pure-residue hooks, the third empty fold) remain green. Post-states are asserted by enumerating and hashing `run/`, never by substring checks.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-FOLD-MIXED-RECOVERY />
+          <AC-MIXED-RECOVERY-VALIDATE-FIRST />
+          <AC-RECOVERY-HOOKS-CORRECT />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Exact-id no-payment close guard</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/artifact/scope.test.ts` is re-authored to this bundle's exact id and base: activated only by `NGRACE_SCOPE_GUARD_CHANGE=C-FOLD-MIXED-RECOVERY-1-62A1B852`, measured against base `8d08255775b036b63ef1c74c2ec47ea1fc593d0c`. Its activated allowed non-lifecycle set is exactly the forced source `src/grace-cursor.ts` and the two forced tests (`src/grace-cursor.test.ts`, `src/artifact/scope.test.ts`), with zero globs and no predecessor transition. The guard covers tracked diffs and untracked files, recognizes only this bundle's exact lifecycle files (`spec.xml`, `plan.xml`, `run-ledger.xml`, `run.xml`) and XML under its own `run/` in active and archive locations (and that recognition is not permission for an arbitrary extra file inside the bundle directory), is dormant without its exact activation switch, and refuses when git evidence is unavailable. No record path and no scratch path is in the allowed set.
+          </Criterion>
+          <Criterion>
+            Fixtures prove every direction: a clean applied-archive pass; a forbidden ordinary path reddens; a planted modification of an existing record XML file under `docs/plans/active/RM-GOVERNED-PATH/` reddens; a planted non-record file inside the record directory reddens; a planted non-lifecycle file inside this bundle's own directory reddens; unavailable git evidence refuses rather than reporting clean; and without activation a later unrelated write of the same kind does not fail. Because `.ngrace/scratch/staged-findings.md` is ignored by git and cannot appear in the git-derived population, the guard proves its exclusion by the allowed set and the close rehearsal records the buffer's pre-close bytes and requires them byte-identical after the close; the guard does not pretend to detect the ignored path.
+          </Criterion>
+          <Criterion>
+            The plan's `ObservedWriteScope` enumerates the exact non-lifecycle population (one source and two tests) and adds none of this bundle's own `spec.xml`, `plan.xml`, `design-context.xml`, `run/`, `run.xml`, or `run-ledger.xml`, nor `docs/plans/active/RM-GOVERNED-PATH/` record XML, `decisions.md`, `.ngrace/scratch/staged-findings.md`, `scripts/validate-record-retirement.test.ts`, `src/artifact/run-membership.ts`, `src/artifact/xml.ts`, `src/gates/ledger.ts`, README/examples, a later-bundle file, a new file, a predecessor transition, a directory catch-all, or an archive glob. T-002 satisfies no ordinary or `CloseEvidence` criterion.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/artifact/scope.test.ts</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-FOLD-MIXED-RECOVERY-1-62A1B852>
+</NgraceChangePlan>
