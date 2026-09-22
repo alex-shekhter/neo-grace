@@ -589,14 +589,16 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
     // F288 adds the loose-event writer lock (stale-holder steal and finally release);
     // B1 (C-SUPERSEDE-MEMBERSHIP-4-20941257) adds the candidate lock reclaim and
     // release in grace-cursor, and the candidate cleanup surface in grace-generate.
-    // The lock sites name `lockPath`; the contained-path sites are the fold delete
-    // and the writer's own-file renumber. T-006 residue deletes are B2, not here.
-    expect(cursorContained).toHaveLength(2);
+    // F313 (C-FOLD-RETRY-CORE) adds one contained-path delete in grace-cursor: the
+    // interrupted-fold resume deletes the residue it just re-verified against the
+    // recorded epoch. The lock sites name `lockPath`; the contained-path sites are
+    // the fold delete, the writer's own-file renumber, and the F313 resume delete.
+    expect(cursorContained).toHaveLength(3);
     expect(cursorLock).toHaveLength(4);
     expect(ledgerUnlink).toMatch(/^src\/gates\/ledger\.ts:\d+:\s*unlinkSync\(ledgerPath\);$/);
     expect(dartRm).toMatch(/^src\/lint\/adapters\/dart\.ts:\d+:\s*rmSync\(temporaryDirectory, \{ recursive: true, force: true \}\);$/);
     expect(scorerRm).toMatch(/^src\/review\/scorer\.ts:\d+:\s*rmSync\(root, \{ recursive: true, force: true \}\);$/);
-    expect(callSites).toHaveLength(9);
+    expect(callSites).toHaveLength(10);
     expect(lines.some((line) => line.includes("rmdirSync"))).toBe(true);
   });
 });
@@ -5417,6 +5419,172 @@ describe("F315 fold/discard refusal (AC-MEMBER-MALFORMED-AND-UNREADABLE)", () =>
     expect(existsSync(path.join(root, ".ngrace/changes/active/C-OLD-2/spec.xml"))).toBe(true);
     expect(existsSync(path.join(root, ".ngrace/changes/archive/C-OLD/spec.xml"))).toBe(false);
     expect(snapshotTree(root)).toEqual(before);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-FOLD-RETRY-CORE-1-000C564C T-001: interrupted-fold recovery (F313)
+// ---------------------------------------------------------------------------
+
+function b3EpochNumbers(bundle: string): number[] {
+  const ledger = path.join(bundle, "run-ledger.xml");
+  if (!existsSync(ledger)) return [];
+  return [...readFileSync(ledger, "utf8").matchAll(/<Epoch-(\d+)>/g)]
+    .map((match) => Number(match[1]))
+    .sort((a, b) => a - b);
+}
+
+function b3EpochSlice(bundle: string, epoch: number): string {
+  const text = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+  const match = new RegExp(`<Epoch-${epoch}>[\\s\\S]*?</Epoch-${epoch}>`).exec(text);
+  return match ? match[0] : "";
+}
+
+const b3Opened = (id: number) =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="opened"><Allocation worker="w0" from="${id}" to="99"/></NgraceRunEvent>`;
+const b3Event = (id: number, kind: string) =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="${kind}"/>`;
+
+/** Independent payload comparison: expectedLedgerEventAttributes plus complete children. */
+function b3Payload(event: any): string {
+  const attributes = expectedLedgerEventAttributes(event);
+  return JSON.stringify({
+    attributes: Object.keys(attributes)
+      .sort()
+      .map((key) => [key, attributes[key]]),
+    children: event.children,
+  });
+}
+
+function b3Seed(changeId: string) {
+  const root = createProject();
+  const bundle = seedBundle(root, changeId);
+  const run = path.join(bundle, "run");
+  mkdirSync(run, { recursive: true });
+  writeFileSync(path.join(run, "1-T-001-opened.xml"), b3Opened(1));
+  writeFileSync(path.join(run, "2-T-001-terminal.xml"), b3Event(2, "terminal"));
+  return { root, bundle, run };
+}
+
+describe("F313 interrupted-fold recovery (AC-FOLD-RETRY-IDEMPOTENT)", () => {
+  for (const hook of ["injectFailureBeforeVerify", "injectFailureAfterWrite"] as const) {
+    it(`${hook}: the real-CLI retry reuses the written epoch once and empties run/`, () => {
+      const { root, bundle } = b3Seed("C-RETRY");
+      expect(() => foldEpoch(root, "C-RETRY", hook === "injectFailureBeforeVerify" ? { injectFailureBeforeVerify: true } : { injectFailureAfterWrite: true })).toThrow();
+      expect(b3EpochNumbers(bundle)).toEqual([1]);
+      expect(listLooseEvents(bundle)).toHaveLength(2);
+      const retry = foldGrace(root, ["cursor", "fold", "--change", "C-RETRY"]);
+      expect(retry.exit).toBe(0);
+      expect(b3EpochNumbers(bundle)).toEqual([1]);
+      expect(listLooseEvents(bundle)).toHaveLength(0);
+      rmSync(root, { recursive: true, force: true });
+    });
+  }
+
+  for (const hook of ["injectFailureBeforeVerify", "injectFailureAfterWrite"] as const) {
+    it(`${hook}: same-hook interruption/recovery on two successive fresh epochs keeps each logical epoch once`, () => {
+      const { root, bundle, run } = b3Seed("C-SUCC");
+      const injection = hook === "injectFailureBeforeVerify" ? { injectFailureBeforeVerify: true } : { injectFailureAfterWrite: true };
+      expect(() => foldEpoch(root, "C-SUCC", injection)).toThrow();
+      expect(foldGrace(root, ["cursor", "fold", "--change", "C-SUCC"]).exit).toBe(0);
+      const epoch1 = b3EpochSlice(bundle, 1);
+      writeFileSync(path.join(run, "3-T-001-opened.xml"), b3Opened(3));
+      writeFileSync(path.join(run, "4-T-001-terminal.xml"), b3Event(4, "terminal"));
+      expect(() => foldEpoch(root, "C-SUCC", injection)).toThrow();
+      expect(foldGrace(root, ["cursor", "fold", "--change", "C-SUCC"]).exit).toBe(0);
+      expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+      expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+      expect(listLooseEvents(bundle)).toHaveLength(0);
+      rmSync(root, { recursive: true, force: true });
+    });
+  }
+
+  it("the third empty fold is a no-op returning the same last epoch with eventCount 0", () => {
+    const { root, bundle } = b3Seed("C-EMPTY");
+    expect(() => foldEpoch(root, "C-EMPTY", { injectFailureAfterWrite: true })).toThrow();
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-EMPTY"]).exit).toBe(0);
+    const empty = foldEpoch(root, "C-EMPTY");
+    expect(empty.eventCount).toBe(0);
+    expect(empty.epoch).toBe(1);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a partial verified deletion (first delete-loop event) resumes with the recorded ledger bytes and payload preserved", () => {
+    const { root, bundle, run } = b3Seed("C-PARTIAL");
+    const looseTerminal = b3Payload(listLooseEvents(bundle).find((event) => event.id === 2)!);
+    expect(() => foldEpoch(root, "C-PARTIAL", { injectFailureAfterWrite: true })).toThrow();
+    const recordedLedger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    rmSync(path.join(run, "1-T-001-opened.xml"), { force: true });
+    const retry = foldGrace(root, ["cursor", "fold", "--change", "C-PARTIAL"]);
+    expect(retry.exit).toBe(0);
+    expect(readFileSync(path.join(bundle, "run-ledger.xml"), "utf8")).toBe(recordedLedger);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+    const recorded = listLedgerEvents(bundle);
+    expect(recorded.filter((event) => event.kind === "opened")).toHaveLength(1);
+    expect(b3Payload(recorded.find((event) => event.id === 2)!)).toBe(looseTerminal);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a prior completed epoch stays byte-identical across a later recovery, and a fresh-only set folds normally", () => {
+    const { root, bundle, run } = b3Seed("C-PRIOR");
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-PRIOR"]).exit).toBe(0);
+    const epoch1 = b3EpochSlice(bundle, 1);
+    writeFileSync(path.join(run, "3-T-001-opened.xml"), b3Opened(3));
+    writeFileSync(path.join(run, "4-T-001-terminal.xml"), b3Event(4, "terminal"));
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-PRIOR"]).exit).toBe(0);
+    expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a genuine payload conflict refuses naming the id and the mismatch, with the whole tree unchanged", () => {
+    const { root, bundle, run } = b3Seed("C-CONFLICT");
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-CONFLICT"]).exit).toBe(0);
+    writeFileSync(
+      path.join(run, "1-T-001-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened" outcome="different"><Allocation worker="w0" from="1" to="99"/></NgraceRunEvent>`,
+    );
+    const before = snapshotTree(root);
+    const conflict = foldGrace(root, ["cursor", "fold", "--change", "C-CONFLICT"]);
+    expect(conflict.exit).not.toBe(0);
+    expect(conflict.stdout + conflict.stderr).toMatch(/\b1\b/);
+    expect(conflict.stdout + conflict.stderr).toMatch(/payload|mismatch/i);
+    expect(snapshotTree(root)).toEqual(before);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("an older-epoch id reuse refuses naming the id and the older epoch, with the whole tree unchanged", () => {
+    const { root, bundle, run } = b3Seed("C-OLDER");
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-OLDER"]).exit).toBe(0);
+    writeFileSync(path.join(run, "3-T-001-opened.xml"), b3Opened(3));
+    writeFileSync(path.join(run, "4-T-001-terminal.xml"), b3Event(4, "terminal"));
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-OLDER"]).exit).toBe(0);
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), b3Opened(1));
+    writeFileSync(path.join(run, "2-T-001-terminal.xml"), b3Event(2, "terminal"));
+    const before = snapshotTree(root);
+    const older = foldGrace(root, ["cursor", "fold", "--change", "C-OLDER"]);
+    expect(older.exit).not.toBe(0);
+    expect(older.stdout + older.stderr).toMatch(/\b1\b/);
+    expect(older.stdout + older.stderr).toMatch(/Epoch-1|older/i);
+    expect(snapshotTree(root)).toEqual(before);
+    expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a post-ledger interruption preserves the written ledger across the retry and a second retry", () => {
+    const { root, bundle } = b3Seed("C-POSTLEDGER");
+    expect(() => foldEpoch(root, "C-POSTLEDGER", { injectFailureAfterWrite: true })).toThrow();
+    const written = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-POSTLEDGER"]).exit).toBe(0);
+    expect(readFileSync(path.join(bundle, "run-ledger.xml"), "utf8")).toBe(written);
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-POSTLEDGER"]).exit).toBe(0);
+    expect(readFileSync(path.join(bundle, "run-ledger.xml"), "utf8")).toBe(written);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    expect(listLooseEvents(bundle)).toHaveLength(0);
     rmSync(root, { recursive: true, force: true });
   });
 });

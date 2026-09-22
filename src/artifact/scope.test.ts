@@ -336,9 +336,9 @@ describe("C-GRAMMAR-SEAM T-003 OptionalContext bucket", () => {
   });
 });
 
-// C-LOOSE-MALFORMED-FOLD-1-4C18E876 T-002: the activated close-time write guard.
-const SCOPE_GUARD_CHANGE = "C-LOOSE-MALFORMED-FOLD-1-4C18E876";
-const SCOPE_GUARD_BASE = "8bbb35062a65970419d0053897afea4ee0151beb";
+// C-FOLD-RETRY-CORE-1-000C564C T-002: the activated close-time write guard.
+const SCOPE_GUARD_CHANGE = "C-FOLD-RETRY-CORE-1-000C564C";
+const SCOPE_GUARD_BASE = "0ad7cb4e49b1bb5d930b27732f2978fa66221371";
 const SCOPE_GUARD_RECORD_DIR = "docs/plans/active/RM-GOVERNED-PATH/";
 const SCOPE_GUARD_RECORD_FILES = new Set([
   `${SCOPE_GUARD_RECORD_DIR}decisions.xml`,
@@ -350,9 +350,7 @@ const SCOPE_GUARD_RECORD_FILES = new Set([
   `${SCOPE_GUARD_RECORD_DIR}registry-retired.xml`,
 ]);
 const SCOPE_GUARD_ALLOWED_FILES = new Set([
-  "src/artifact/run-membership.ts",
   "src/grace-cursor.ts",
-  "src/artifact/run-membership.test.ts",
   "src/grace-cursor.test.ts",
   "src/artifact/scope.test.ts",
   "scripts/validate-record-retirement.test.ts",

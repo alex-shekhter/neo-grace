@@ -254,6 +254,12 @@ const bundleMinted: Record<string, string> = {
   // is active) and green in the applied-archive state (the close's mint). A stale id
   // reds the same walk.
   F315: "C-LOOSE-MALFORMED-FOLD-1-4C18E876",
+  // C-FOLD-RETRY-CORE-1-000C564C T-002: the chartered row's one minted token
+  // (F313). The extension is consulted only for tokens the derivation actually
+  // mints, so the walk is green with the row live (nothing minted while the bundle
+  // is active) and green in the applied-archive state (the close's mint). A stale id
+  // reds the same walk.
+  F313: "C-FOLD-RETRY-CORE-1-000C564C",
 };
 
 
@@ -7159,5 +7165,61 @@ describe("C-LOOSE-MALFORMED-FOLD-1-4C18E876 T-002 payer ratchet", () => {
     );
     expect(row, "the F315 charter row is retired with this bundle's name").toBeDefined();
     expect(childText(row!, "Pays"), "the retired row pays exactly F315").toBe("F315");
+  });
+});
+
+// C-FOLD-RETRY-CORE-1-000C564C T-002: the F313 payer ratchet. Once this
+// bundle's charter row is an archive directory carrying `Pays F313`, `derivePayerMap`
+// mints F313 and the production walk expects `baseline[F313] ?? bundleMinted[F313]`;
+// the entry is the deliberate ratchet.
+describe("C-FOLD-RETRY-CORE-1-000C564C T-002 payer ratchet", () => {
+  const change = "C-FOLD-RETRY-CORE-1-000C564C";
+
+  it("mints exactly F313 from the archived row; absent, stale, and staged-only directions red and the current pin greens", () => {
+    const archived = isolatedRoot();
+    mkdirSync(path.join(archived, ".ngrace", "changes", "archive", change), { recursive: true });
+    const derived = derivePayerMap(archived, [{ name: change, pays: "F313", statusText: "" }]);
+    expect(derived.get("F313"), "the archived successor row mints F313").toBe(change);
+    expect(bundleMinted["F313"], "the map pins the successor, and a stale id would red the same walk").toBe(change);
+
+    const live = derivePayerMap(isolatedRoot(), [{ name: change, pays: "F313", statusText: "" }]);
+    expect(live.has("F313"), "the row live (not an archive directory) mints nothing").toBe(false);
+
+    const baseline: Record<string, string> = JSON.parse(
+      readFileSync(path.join(import.meta.dir, "fixtures", "record-parse", "baseline-probes.json"), "utf8"),
+    ).payerMapBaseline.map;
+    const stale: Record<string, string> = { F313: "C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1" };
+    expect(baseline["F313"] ?? stale["F313"], "a stale F313 id reds the walk").not.toBe(change);
+
+    const stagedOnly = isolatedRoot();
+    writeFileSync(path.join(stagedOnly, "staged-findings.md"), `Owner: ${change}\n`);
+    expect(derivePayerMap(stagedOnly, []).has("F313"), "the ignored staged buffer is not a durable route").toBe(false);
+  });
+
+  it("when archived, the durable F313 route names this bundle", () => {
+    const archiveDir = path.join(REPO_ROOT, ".ngrace", "changes", "archive", change);
+    if (!existsSync(archiveDir)) return;
+    const recordDir = path.join(REPO_ROOT, RECORD_REL);
+    const findingsRetired = parseGraceXmlArtifact(
+      "findings-retired.xml",
+      readFileSync(path.join(recordDir, "findings-retired.xml"), "utf8"),
+    ).root;
+    expect(findingsRetired).not.toBeNull();
+    const paid = [...walkNodes(findingsRetired!)].find(
+      (node) => node.tag === "Finding" && node.attributes.token === "F313",
+    );
+    expect(paid, "F313 is retired with this bundle's name").toBeDefined();
+    expect(paid!.attributes.status, "F313 is retired").toBe("retired");
+    expect(childText(paid!, "PaidBy"), "F313 names this bundle").toBe(change);
+    const registryRetired = parseGraceXmlArtifact(
+      "registry-retired.xml",
+      readFileSync(path.join(recordDir, "registry-retired.xml"), "utf8"),
+    ).root;
+    expect(registryRetired).not.toBeNull();
+    const row = [...walkNodes(registryRetired!)].find(
+      (node) => node.tag === "Row" && node.attributes.name === change,
+    );
+    expect(row, "the F313 charter row is retired with this bundle's name").toBeDefined();
+    expect(childText(row!, "Pays"), "the retired row pays exactly F313").toBe("F313");
   });
 });

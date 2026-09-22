@@ -1380,6 +1380,91 @@ export function foldEpoch(
   });
 }
 
+type FoldReconciliation = {
+  resumeEpoch: number | undefined;
+  residue: LooseEvent[];
+  conflict: { id: number; detail: string } | undefined;
+  olderReuse: { id: number; epoch: number } | undefined;
+  hasFresh: boolean;
+};
+
+/**
+ * F313 / C-RUN-LEDGER recovery: compare the loose set to the durable ledger before
+ * appending a new epoch. A loose event whose id matches the last recorded epoch with
+ * an identical canonical payload is residue of an interrupted fold and is resumed,
+ * not re-folded; a matching id in an older epoch is refused (the allocator never
+ * reuses a recorded id); a matching id with a differing payload is a genuine
+ * conflict and refuses before any write.
+ */
+function reconcileLooseWithLedger(bundlePath: string, loose: LooseEvent[]): FoldReconciliation | undefined {
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (!existsSync(ledgerPath)) return undefined;
+  const artifact = readGraceXmlArtifact(ledgerPath);
+  if (!artifact.root) return undefined;
+  const epochs: { number: number; events: GraceXmlNode[] }[] = [];
+  for (const wrapper of artifact.root.children) {
+    for (const epoch of wrapper.children) {
+      const match = EPOCH_SECTION_PATTERN.exec(epoch.tag);
+      if (!match) continue;
+      epochs.push({ number: Number(match[1]), events: epoch.children.filter((child) => child.tag === "Event") });
+    }
+  }
+  if (epochs.length === 0) return undefined;
+  epochs.sort((a, b) => a.number - b.number);
+  const last = epochs[epochs.length - 1]!;
+  const result: FoldReconciliation = {
+    resumeEpoch: undefined,
+    residue: [],
+    conflict: undefined,
+    olderReuse: undefined,
+    hasFresh: false,
+  };
+  for (const event of loose) {
+    const looseFingerprint = payloadFingerprint(expectedLedgerEventAttributes(event), event.children);
+    let matchesLast = false;
+    let matchesOlder = false;
+    let conflictingEpoch: number | undefined;
+    for (const epoch of epochs) {
+      const recorded = epoch.events.find((node) => Number(node.attributes.id) === event.id);
+      if (!recorded) continue;
+      const recordedFingerprint = payloadFingerprint(recorded.attributes, recorded.children);
+      if (recordedFingerprint === looseFingerprint) {
+        if (epoch.number === last.number) matchesLast = true;
+        else matchesOlder = true;
+      } else if (conflictingEpoch === undefined) {
+        conflictingEpoch = epoch.number;
+      }
+    }
+    if (conflictingEpoch !== undefined) {
+      if (!result.conflict) {
+        result.conflict = {
+          id: event.id,
+          detail: `loose event id ${event.id} matches a recorded event in Epoch-${conflictingEpoch} with a differing payload`,
+        };
+      }
+      continue;
+    }
+    if (matchesOlder && !matchesLast) {
+      if (!result.olderReuse) {
+        const olderEpoch = epochs.find(
+          (epoch) => epoch.number !== last.number && epoch.events.some((node) => Number(node.attributes.id) === event.id),
+        );
+        result.olderReuse = { id: event.id, epoch: olderEpoch?.number ?? 0 };
+      }
+      continue;
+    }
+    if (matchesLast) {
+      result.residue.push(event);
+      continue;
+    }
+    result.hasFresh = true;
+  }
+  if (result.residue.length > 0 && !result.hasFresh && !result.conflict && !result.olderReuse) {
+    result.resumeEpoch = last.number;
+  }
+  return result;
+}
+
 function foldEpochImpl(
   projectRoot: string,
   changeId: string,
@@ -1411,6 +1496,59 @@ function foldEpochImpl(
       bundlePath,
       epoch: last,
       eventCount: 0,
+      dryRun: false,
+      applied: true,
+    };
+  }
+
+  // F313: reconcile the loose set against the durable ledger before any write. An
+  // interrupted fold's residue resumes against its recorded epoch; id reuse against
+  // an older epoch or a payload conflict refuses before a new epoch or an auto-open.
+  const reconciliation = reconcileLooseWithLedger(bundlePath, events);
+  if (reconciliation?.conflict) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `Fold refused: ${reconciliation.conflict.detail}; no new epoch was written and the recorded bytes are unchanged.`,
+    );
+  }
+  if (reconciliation?.olderReuse) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `Fold refused: loose event id ${reconciliation.olderReuse.id} already appears in recorded Epoch-${reconciliation.olderReuse.epoch}; the allocator never reuses a recorded id.`,
+    );
+  }
+  if (reconciliation?.resumeEpoch !== undefined) {
+    for (const event of reconciliation.residue) {
+      const relative = path.relative(bundlePath, event.file).replaceAll("\\", "/");
+      const contained = resolveContainedProjectPath(bundlePath, relative, {
+        mode: "existing",
+        allowedRoot: bundlePath,
+      });
+      unlinkSync(contained.absolutePath);
+    }
+    const resumedEpoch = reconciliation.resumeEpoch;
+    const derived = positionProjectionFromBundle(bundlePath, {
+      lastEventTask: reconciliation.residue[reconciliation.residue.length - 1]?.task,
+    });
+    const position: CursorPosition = {
+      changeId,
+      bundlePath,
+      epoch: resumedEpoch,
+      task: derived.task,
+      state: derived.state,
+      escalatedTasks: derived.escalatedTasks,
+      circuitTrippedTasks: derived.circuitTrippedTasks,
+      sources: { epoch: "ledger", task: "ledger", state: "ledger" },
+      inferred: false,
+      degradation: derived.degradation,
+    };
+    writeCursorFile(bundlePath, position);
+    return {
+      changeId,
+      bundlePath,
+      epoch: resumedEpoch,
+      wave: readWaveFromOpened(reconciliation.residue),
+      eventCount: reconciliation.residue.length,
       dryRun: false,
       applied: true,
     };
