@@ -482,4 +482,10 @@
     <Pays>F314</Pays>
     <StatusText></StatusText>
   </Row>
+  <Row name="C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 1 active, 0 archive prior bundle(s) share slug FOLD-MEMBERSHIP-RECOVERY. Membership disappearance tolerance.</Charter>
+    <Pays>F295 F295.1</Pays>
+    <StatusText>In progress.</StatusText>
+  </Row>
 </Registry>

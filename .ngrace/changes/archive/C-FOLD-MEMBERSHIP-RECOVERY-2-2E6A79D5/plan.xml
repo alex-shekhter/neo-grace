@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5>
     <IntentSummary>
       **This T1 plan converts the approved `C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5` spec (bundle 1 of the five-way split of the superseded `C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1`) into three sequential implementation tasks.** The durable module is exactly `M-ARTIFACT-TYPES`; its verification anchor is `V-M-ARTIFACT-TYPES`. The bundle's production surface is `src/artifact/run-membership.ts` alone; `src/grace-cursor.ts` is a consuming test surface only and is never edited.

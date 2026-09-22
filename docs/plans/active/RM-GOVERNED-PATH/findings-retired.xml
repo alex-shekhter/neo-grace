@@ -5556,4 +5556,34 @@ artifact without re-running the suite (the freshness guard reads only the file l
 Owner: `C-SUPERSEDE-MEMBERSHIP-4-20941257` (draft spec), `src/grace-generate.ts` (`LINKS: M-CLI`). Stays staged.
 </Body>
   </Finding>
+  <Finding id="f295" token="F295" status="retired">
+    <PaidBy>C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5</PaidBy>
+    <Title>### F295 — the plan-mandated optimistic event-id allocation (write, detect the duplicate, unlink the caller's own file, retry) is unsafe: the transient file is visible to a concurrent writer's `listLooseEvents`, which reads the name in `readdirSync` and then throws `ENOENT` when `readFileSync` loses the race. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 at `f0ac268`,** executing `C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92`. A first implementation of the approved plan's prescribed shape — `writeEventFile` writes `&lt;id&gt;-&lt;task&gt;-&lt;kind&gt;.xml`, scans `listLooseEvents` for a second event with that id, `unlinkSync`s its own file and retries above the contested id — was driven with 12 concurrent `bun ./src/grace.ts cursor advance` processes on 12 distinct tasks. The stream ended with 13 files and 13 unique ids, but one process **exited 1**: `Error: ENOENT: no such file or directory, open '…/run/10-T-006-progress.xml'`, thrown by `readGraceXmlArtifact` (`src/artifact/xml.ts`) from `listLooseEvents` (`src/artifact/run-membership.ts:59`). The unlink that resolved the collision is exactly what a concurrent writer's `readdirSync`→`readFileSync` window observed.
+
+**Why the shipped reader cannot tolerate it, read not inferred.** `listLooseEvents` enumerates `readdirSync(runDir)` and then `readGraceXmlArtifact(file)` each entry; there is no `existsSync` re-check and no `try/catch` around the read, so any file that vanishes between enumeration and read throws out of the CLI. The approved spec's Constraints forbid touching `src/artifact/run-membership.ts` (`LINKS: M-ARTIFACT-TYPES`) because it would force a second `AffectedAreas` anchor, so the reader could not be hardened inside the approved boundary.
+
+**The shape that was shipped instead, and its cost.** A per-bundle exclusive write lock (`&lt;bundle&gt;/.run-write.lock`, created with `flag: &quot;wx&quot;`, released in `finally`, stolen by pid-liveness when the holder dies) serializes `nextEventId` + write, so no transient duplicate is ever visible to another writer; the post-write uniqueness scan remains as a hard guarantee and renumbers only the caller's own file. This satisfies the plan's observable criteria but **not** the plan's literal &quot;removes only the file it created and retries&quot; sentence, and it adds a delete surface the `AC-WRITE-SURFACE` inventory pin had to be updated for.
+
+**The generalisable rule.** The spec's own recommended lock-free shape — &quot;write the event, verify the id is unique against the loose files … and on a non-unique id remove only the caller's own just-written file and retry&quot; — is unsafe as written, because a delete in a directory a concurrent reader enumerates is a race the reader does not guard. Any remedy that removes a `run/` file must first make `listLooseEvents` tolerant of a vanished entry, or must not create the transient at all.
+
+Owner: C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5, src/artifact/run-membership.ts (`LINKS: M-ARTIFACT-TYPES`); and the `ngrace-spec`/`ngrace-plan` teaching surface. Paid by this bundle. Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f295.1" token="F295.1" status="retired">
+    <PaidBy>C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5</PaidBy>
+    <Title>### F295.1 — the F295 timing matrix re-measured on 2026-09-19, and its teaching premise is false. **[verified, correction]**</Title>
+    <Body>
+**Measured 2026-09-19 at `6dd1d953652775f3dc25095e4f249b37876b9cb6`** (branch `c-supersede-membership`), by re-running `/private/tmp/ngrace-authority-probes/membership.ts` from the repository root. The isolated-process `bun:test` filesystem interception reported it fired in both instrumented windows. The matrix reproduced: stable stream `cursor show` exit 0; event absent before enumeration exit 0; event removed after enumeration before the callee existence check exit 0, with a separate direct `listLooseEvents` call returning `{id:2, task:&quot;T-001&quot;, kind:&quot;progress&quot;, exists:false, attributes: filename-derived, children: []}` — a **fabricated membership entry**, not a recovery; event removed after the existence check just before the read exit 1 with `ENOENT` through `src/artifact/xml.ts:219` and `src/artifact/run-membership.ts:70`; event path becoming a directory exit 1 with `EISDIR`. F295's measurements stand and its two windows are confirmed distinct — the callee's `existsSync` check cannot be the fix, because it is precisely what the late window passes through.
+
+**The teaching premise is false, and F295's owner sentence must not drive skill edits.** F295 asserts the `ngrace-spec`/`ngrace-plan` teaching surface recommends the remove-and-retry shape. `rg -n -i 'lock.?free|optimis|remov.{0,40}retr|unlin|just.written|event.id|collision|unique|concurren' skills/ngrace plugins/ngrace/skills/ngrace` over **both entire trees** returns only unrelated uniqueness rules (AC-id uniqueness, `T-NNN` uniqueness, the unique-tag convention); no current skill passage prescribes event-id allocation. The prescription lives in the **archived** spec and plan of `C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92`, not in a shipped skill. The corrected owner for that half is the archived-artifact record, not `skills/ngrace/*`.
+
+**What the current writer actually does, re-read at this base.** The per-bundle `.run-write.lock` serializes `nextEventId` + write (`src/grace-cursor.ts:3449`, `:3522`), and the post-write uniqueness scan with own-file unlink/retry remains (`:3576-3587`). F295's generalised rule stands — a delete in a directory a concurrent reader enumerates is unguarded — but the shipped delete is lock-serialized, so the reader tolerance remains the correct narrow repair. A 12-writer concurrent control on unmodified code reproduced the authority's receipt: 13 events, unique ids 1–13, every writer exit 0, explicit-replacement supersede exit 0.
+
+**One widening F295 missed.** The parallel inventory `listRunOrphans` (`src/artifact/run-membership.ts:124`) shares the `readdirSync`-then-`readGraceXmlArtifact` pattern. Driven on a throwaway bundle: a well-named file removed before enumeration is silently omitted (exit 0, no fabricated orphan); the same file removed after the callee existence check but before the read throws `ENOENT` out of the command (exit 1). It has the late window and not the fabrication window. The tolerance repair must cover it.
+
+Owner: C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5, src/artifact/run-membership.ts (`LINKS: M-ARTIFACT-TYPES`). Paid by this bundle. Stays staged.
+</Body>
+  </Finding>
 </Findings>
