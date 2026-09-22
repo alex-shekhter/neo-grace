@@ -494,4 +494,10 @@
     <Pays>F315</Pays>
     <StatusText>In progress.</StatusText>
   </Row>
+  <Row name="C-FOLD-RETRY-CORE-1-000C564C" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug FOLD-RETRY-CORE. Interrupted-fold retries resume the recorded epoch without duplication.</Charter>
+    <Pays>F313</Pays>
+    <StatusText>In progress.</StatusText>
+  </Row>
 </Registry>

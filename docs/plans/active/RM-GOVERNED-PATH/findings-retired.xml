@@ -5606,4 +5606,30 @@ and the ledger records `Event id=2 kind=terminal children=0`. An unparseable *cl
 Owner: C-LOOSE-MALFORMED-FOLD-1-4C18E876, src/artifact/run-membership.ts (`LINKS: M-ARTIFACT-TYPES`) and src/grace-cursor.ts (`LINKS: M-CURSOR`). Paid by this bundle. Stays staged.
 </Body>
   </Finding>
+  <Finding id="f313" token="F313" status="retired">
+    <PaidBy>C-FOLD-RETRY-CORE-1-000C564C</PaidBy>
+    <Title>### F313 — an interrupted `foldEpoch` is not idempotent: the retry appends a second epoch carrying the same events, violating `C-RUN-LEDGER`'s `AC-FOLD-ORDERING`. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-19 at `6dd1d953652775f3dc25095e4f249b37876b9cb6`** (branch `c-supersede-membership`), by running `/private/tmp/ngrace-spec-authority-review/probe.ts` from the repository root. For **both** shipped hooks `injectFailureBeforeVerify` and `injectFailureAfterWrite`: a bundle with `opened` and `terminal` loose events is folded with the hook; `foldEpoch` throws, the ledger already holds `Epoch-1` with events 1 and 2, and the loose files remain. The **real CLI** `ngrace cursor fold` then exits 0 printing
+
+```text
+Fold applied
+Change: C-REVIEW
+Epoch: 2
+Events: 2
+```
+
+and the ledger now contains the same two events in **both** `Epoch-1` and `Epoch-2`. Only the third, empty fold is a no-op (`Epoch: 2`, `Events: 0`). **Read, not inferred:** `nextEpochNumber` (`src/grace-cursor.ts:3649`) returns last+1, and `appendEpochToLedger` (`:3278`) replaces an epoch only when the tag matches, so the incremented number appends rather than replaces.
+
+**This is a violated shipped contract, not a new feature.** `.ngrace/changes/archive/C-RUN-LEDGER/spec.xml:140-146` (`AC-FOLD-ORDERING`) states *&quot;a follow-up fold is idempotent rather than duplicating the epoch&quot;*, and `:39-41` fixes the write-verify-delete order.
+
+**Why the existing pin is green over it.** `src/grace-cursor.test.ts:210-227` asserts `second.applied`, `listLooseEvents` empty, and `third.epoch === second.epoch` — never that the ledger holds one epoch or that events are not duplicated.
+
+**Not claimed.** The authority did not establish that any accounting surface double-counts, and this entry makes no such claim. F158's historical measurement concerns a `discarded` event written before an allocation refusal; it is not evidence that recovery currently works.
+
+**Amended 2026-09-19 with the measured partial-deletion recovery boundary (revision 2).** Recovery is also reached after a **partial verified deletion**, not only the two pre-delete hooks. `/private/tmp/ngrace-spec-authority-review/partial-cleanup.ts` (inspected and re-run; the removal is synthetic, not a killed process) triggers `injectFailureAfterWrite`, then removes the first event of the verified set in the **actual delete-loop order** the shipped code uses (`src/grace-cursor.ts:1404-1412`, sequential): here the `opened` event id 1, leaving `terminal` id 2. A real CLI retry (`ngrace cursor fold`) then exits 0 with `Epoch: 2`, `Events: 2`; the ledger holds `Epoch-1` = `1:opened, 2:terminal` and `Epoch-2` = `2:terminal, 3:opened` — the duplicate of the already-recorded terminal **plus** a synthesized covering `opened`. So a legitimate prefix-deleted subset is misclassified by a naive &quot;not an exact match → conflict&quot; recovery rule and must instead be resumed; the new epoch and the auto-open are the same bug. The repair must compare against the durable ledger **before** loose-only closure/hole checks or `maybeAutoOpenCoveringAllocation` can run, must not fabricate an `opened` for an already-recorded epoch, and must reserve refusal for a genuine canonical-payload conflict. This is the same F313 defect, measured at a third recovery boundary, and is a spec revision, not unrelated debt.
+
+Owner: C-FOLD-RETRY-CORE-1-000C564C, src/grace-cursor.ts (`LINKS: M-CURSOR`). Paid by this bundle.
+</Body>
+  </Finding>
 </Findings>
