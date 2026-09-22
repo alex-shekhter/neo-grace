@@ -1,0 +1,148 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-DISCARD-PREFLIGHT-1-5087B21A>
+    <IntentSummary>
+      **This T1 plan converts the approved `C-DISCARD-PREFLIGHT-1-5087B21A` spec (bundle 5 of the five-way split of the superseded `C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1`) into two sequential tasks.** The durable module is exactly `M-CURSOR`; its verification anchor is `V-M-CURSOR`. The sole forced production file is `src/grace-cursor.ts` (`LINKS: M-CURSOR`); the forced files are the behavior test `src/grace-cursor.test.ts`, the close-time guard `src/artifact/scope.test.ts`, and the retirement payer ratchet `scripts/validate-record-retirement.test.ts`. `src/gates/ledger.ts`, `src/grace-supersede.ts`, `src/artifact/run-membership.ts`, and `src/artifact/xml.ts` are **not** edited. Execution is **sequential**; the machine DAG encodes it: **T-001 → T-002**.
+
+      **T-001 — deterministic discard preflight, recovery preservation, and final behavior tests.** `src/grace-cursor.ts` gains an in-memory preflight inside the fold/discard operation, under the existing candidate lock, after unparseable-input refusal and the empty-set no-op, and before `writeEventFile`. It reconciles the prospective stream against the durable ledger first — already-recorded residue resumes and is never re-validated as a fresh set, a genuine conflict or older-epoch reuse refuses, and a mixed residue-plus-fresh set validates only the fresh subset — then computes the current effective allocations, appends the prospective `discarded` it would write when no effective allocation carries a closer, computes the same single-controller covering `opened` the ordinary fold would synthesize when that prospective stream carries no explicit allocation (with the correct future ids and headroom), and validates duplicate-id, membership, density/range-hole, and closer requirements. A refusal throws before any write. A test-only seam after the successful snapshot and before the write exposes the bounded competing writer. The final repository tests in `src/grace-cursor.test.ts` are added first and re-driven red on the approved base for behavioral reasons, not import/type/load failure, then green after the production change. This task maps all three ordinary criteria exactly once: `AC-DISCARD-NOT-WRITTEN-ON-PREWRITE-REFUSE`, `AC-F158-DEFECT-CLOSED`, `AC-DISCARD-PREFLIGHT-NO-ALLOC`.
+
+      **T-002 — exact-id close guard and three-token payer ratchet.** `src/artifact/scope.test.ts` is re-authored to `NGRACE_SCOPE_GUARD_CHANGE=C-DISCARD-PREFLIGHT-1-5087B21A` against base `406049618506877cb4c3aebba0d707733563f334`, with an allowed observable set of exactly the eleven literal paths (the twelve-path declared population minus the ignored scratch), identity-exact bundle-lifecycle recognition, dormancy without the exact switch, and refusal when git evidence is unavailable. `scripts/validate-record-retirement.test.ts` carries exactly the three `bundleMinted` pins `F292`, `F292.1`, and `F158` naming this bundle, and the payer ratchet exercises the durable carriers rather than only the map. T-002 depends on T-001 and maps no ordinary or `CloseEvidence` criterion. Its re-authoring is **indivisible** — the activated guard and its allowlist live in the same test file, and the pins and their ratchet live in the same file — so T-002 is verified **pass-only** with driven red directions and the durable payer red matrix as its discrimination; no fail→pass is manufactured.
+
+      **Payment and record writes.** This bundle pays exactly `F292 F292.1 F158`: the preflight-before-`discarded` half of `F292` (`F292`'s candidate-acquisition/cleanup half was already paid by the closed `C-SUPERSEDE-MEMBERSHIP-4-20941257`, B1), the staged correction `F292.1`, and the durable live Finding `F158`. The plan grammar has no `&lt;Pays&gt;` element: the payment is declared here, carried structurally by the successor-named `registry.xml` charter row's `&lt;Pays&gt;` child (written by the close's `--flush` while the bundle is active), pinned by the three `bundleMinted` entries in `scripts/validate-record-retirement.test.ts` (written by T-002), and stamped as the derived `&lt;PaidBy&gt;` on the retired Finding carriers in `findings-retired.xml` (written by the close's eligible `--retire` after this bundle's archive arrival). The staged handoff is exactly the **two** `Owner:` lines in `.ngrace/scratch/staged-findings.md` at `:79` (`F292`) and `:143` (`F292.1`); `F158` is already durable and has no staged line. The plan's `ObservedWriteScope` enumerates the twelve literal non-lifecycle paths, including the staged buffer and the seven record XML files the close writes; `decisions.md` is deliberately omitted because neither writer writes it. This fresh bundle has **no predecessor supersede transition**, so no predecessor path is in scope.
+
+      **Baseline, gates, and close.** `406049618506877cb4c3aebba0d707733563f334` is the plan-execution and scope-guard base; the approved spec's recorded measurement base remains `98e009a8a4713616c1223733d61416958c3053a3`. Every task runs its narrow instrument; the full CI-equivalent `bun run validate:ci` is the plan's single `TargetAssertions` `MustPassCommand` and the outer final gate, never a per-task command. The four spec `CloseEvidence` criteria (`AC-NO-UNFORCED-WRITES`, `AC-CLOSE-PAYER`, `AC-CLOSE-LINT`, `AC-CLOSE-TESTS`) are evaluated by the close in the applied-archive state and are deliberately absent from every task's `Satisfies`. `ObservedWriteScope` must not add this bundle's own `spec.xml`, `plan.xml`, `design-context.xml`, `run/`, `run.xml`, or `run-ledger.xml`, because those are governed by identity/lifecycle rules.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/scope.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/scratch/staged-findings.md</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-CURSOR</Value>
+      </MustExist>
+      <MustVerify>
+        <Module>M-CURSOR</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>preflightDiscardStream</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>prospectiveDiscardAllocations</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>afterPreflight</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.test.ts</File>
+        <Text>C-DISCARD-PREFLIGHT-1-5087B21A</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F292: "C-DISCARD-PREFLIGHT-1-5087B21A"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>"F292.1": "C-DISCARD-PREFLIGHT-1-5087B21A"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F158: "C-DISCARD-PREFLIGHT-1-5087B21A"</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/scope.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>.ngrace/scratch/staged-findings.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Deterministic discard preflight, recovery preservation, and final behavior tests</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/grace-cursor.ts` reconciles the prospective stream against the durable ledger **before** validating allocation/density: pure or partial recorded residue resumes and is never re-validated as a fresh set; a mixed residue-plus-fresh set validates only the events that are actually fresh; a genuine payload conflict and an older-epoch id reuse refuse before the `discarded` write; an invalid fresh stream refuses before any write. The too-narrow-allocation row (the `F158` reproduction), the duplicate-event-id row (the `F292.1` measurement), the pre-existing-range-hole row, and the no-allocation `{1:progress, 3:progress}` stream each refuse with the complete recursive project tree byte-identical (added, changed, and deleted paths), no `*-discarded.xml`, no synthesized `opened`, and a byte-identical `run-ledger.xml` when it exists. The positive control repairs uniqueness and preserves density/allocation validity, folds through the real product path, writes exactly one `discarded`, folds it once, and empties `run/`; the no-loose-events state remains a no-op that writes nothing.
+          </Criterion>
+          <Criterion>
+            The recovery-preservation arm is driven through the changed caller and the real CLI: a partial-deletion residue hole (`{1:opened, 3:terminal}` exactly matching the durable last epoch) and a mixed residue-plus-fresh set each resume through `discardAndFoldEpoch`; the real CLI `ngrace supersede --change C-OLD --replacement C-OLD-2` archives the predecessor from each. The prior epoch stays byte-identical, and each recorded ledger's complete event population, attributes, and child text/children equal an independently derived expected set (the captured epoch-1 and fresh events plus the engine's synthetic `discarded` and covering `opened`, with bounds derived from the captured ids and the shipped headroom), never an expected built from the resulting ledger.
+          </Criterion>
+          <Criterion>
+            The bounded competing-writer seam is driven: after a successful preflight snapshot a controlled non-cooperating actor adds a deterministic conflicting event, the operation writes exactly one pre-ledger `discarded` residue and refuses before any ledger write, and the actor then reverses only its own mutation. A real `bun run ngrace cursor fold` retry consumes the preserved `discarded` exactly once unchanged (its captured pre-retry payload equals the recorded payload) and the recorded ledger's complete population, attributes, and children equal the projection of the captured pre-retry loose population, built independently of the result, with `run/` empty. This stage-(ii-a) outcome is explicitly not a stage-(i) preflight-snapshot outcome and not the distinct post-ledger `C-RUN-LEDGER` boundary.
+          </Criterion>
+          <Criterion>
+            The final repository tests are landed first and re-driven on the approved base for behavioral red before the production change. With the identical final test file on base and candidate: the base shows the four deterministic-residue directions, the missing-seam direction, and the structural `AC-DISCARDED-CALLER` pin direction classified separately, and the candidate is green. All bundle-1/2/3/4 controls stay green: vanished-entry tolerance, malformed closer/progress refusal, pure residue, partial deletion, genuine conflict, older-epoch reuse, mixed success and `F_bad`, both mixed hooks, both original hooks, and the idempotent third empty retry. `src/grace-cursor.ts` adds no new `unlinkSync` site; the `kind: "discarded"` literal count is re-measured and pinned to the final implementation.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-DISCARD-NOT-WRITTEN-ON-PREWRITE-REFUSE />
+          <AC-F158-DEFECT-CLOSED />
+          <AC-DISCARD-PREFLIGHT-NO-ALLOC />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Exact-id close guard and three-token payer ratchet</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/artifact/scope.test.ts` is re-authored to this bundle's exact id and base `406049618506877cb4c3aebba0d707733563f334`. Activated only by `NGRACE_SCOPE_GUARD_CHANGE=C-DISCARD-PREFLIGHT-1-5087B21A`, its allowed observable set is exactly the eleven literal paths (the twelve-path declared population minus the ignored scratch), zero globs, with only this bundle's identity-bound lifecycle files (`spec.xml`, `plan.xml`, `run-ledger.xml`, `run.xml`, and XML under its own `run/`) recognized in active and archive locations. It rejects an arbitrary non-lifecycle file inside the bundle directory and an arbitrary non-record file inside the record directory; it is dormant without the exact switch and refuses rather than reporting clean when git evidence is unavailable. Inherited comments are corrected so they do not name the prior bundle, an empty payment, or excluded record files.
+          </Criterion>
+          <Criterion>
+            `scripts/validate-record-retirement.test.ts` carries exactly three `bundleMinted` pins — `F292`, `F292.1`, `F158` — naming `C-DISCARD-PREFLIGHT-1-5087B21A`, and the payer ratchet exercises the durable carriers, not only the map: valid retired Findings plus the exact retired charter row are green; a missing `PaidBy`, a wrong `PaidBy`, a live status, a wrong `&lt;Pays&gt;`, a missing row, a duplicate matching Finding, and a duplicate matching retired row each redden; staged-buffer-only cannot green the durable assertion; live versus archived mint behavior is distinct; and the shipped `--retire` writer moves live `PaidBy`-less Findings and the live charter row, stamps the routes, and then greens the assertion. The after-close real-repository ratchet remains separate and may activate only after this bundle is archived.
+          </Criterion>
+          <Criterion>
+            The plan's `ObservedWriteScope` enumerates exactly the twelve literal non-lifecycle paths and adds none of this bundle's own `spec.xml`, `plan.xml`, `design-context.xml`, `run/`, `run.xml`, or `run-ledger.xml`, nor `docs/plans/active/RM-GOVERNED-PATH/decisions.md`, a directory catch-all, a glob, a predecessor path, or any production file the approved spec excludes. T-002 satisfies no ordinary or `CloseEvidence` criterion.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts src/artifact/scope.test.ts</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-DISCARD-PREFLIGHT-1-5087B21A>
+</NgraceChangePlan>
