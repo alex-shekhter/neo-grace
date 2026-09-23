@@ -55,6 +55,8 @@ neo-grace uses `.ngrace` as the durable project model:
 | Source/test files with GRACE markup | File-local contracts, links, and semantic block anchors |
 | `examples/polyglot/` | Golden-path React + Go + Rust monorepo (CI-linted, review-green, and its documented breaks plus the full lifecycle are executed by `scripts/validate-walkthrough.ts`; see the [walkthrough](./examples/polyglot/WALKTHROUGH.md)) |
 
+When the engine cannot pin the identity of a candidate it just created — for example, because the platform refuses to open the candidate directory — `ngrace spec new` and candidate cleanup refuse and leave the candidate in place, naming the preserved path in the diagnostic; they never delete a candidate whose identity they cannot prove.
+
 neo-grace does not dual-validate legacy GRACE 3 project docs as current state. Existing GRACE 3 projects use `$ngrace-migrate`; the CLI validates the generated `.ngrace` result but does not convert legacy docs itself.
 
 Verification commands run from the project root by default. A `V-M-*` entry may declare one contained project-relative `<Cwd>packages/example</Cwd>` while keeping `<TestFiles><File>...</File></TestFiles>` paths project-root-relative. Absolute paths, `..` escapes, and symlink escapes fail closed.

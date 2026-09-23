@@ -59,6 +59,7 @@
 //   setEvaluateTargetCompleteThrowProbeForTests
 //   setEventIdAllocationProbeForTests
 //   setEventWriteLockTtlForTests
+//   setCandidateLockCaptureOrderForTests
 //   setCandidateLockTtlForTests
 //   setCandidateReclaimProbeForTests
 //   assertCandidatePublished
@@ -97,8 +98,11 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import {
+  closeSync,
   existsSync,
+  fstatSync,
   mkdirSync,
+  openSync,
   readFileSync,
   readdirSync,
   statSync,
@@ -3994,6 +3998,13 @@ let candidateReclaimProbeForTests:
   | ((phase: "observed" | "before-unlink", lockPath: string, observedRaw: string) => void)
   | undefined;
 
+let candidateLockCaptureOrderForTests: string[] | undefined;
+
+/** Test-only: when set, observeCandidateLock records its capture call order into the array. */
+export function setCandidateLockCaptureOrderForTests(order: string[] | undefined): void {
+  candidateLockCaptureOrderForTests = order;
+}
+
 /**
  * Test-only: fires at the reclaim boundary so a deterministic B/A/B schedule can be
  * driven without a real race. `phase` is "observed" (stale bytes read, before the
@@ -4012,51 +4023,75 @@ export function setCandidateReclaimProbeForTests(
  * (AC-CANDIDATE-RECLAIM-EXCLUSIVE).
  * Returns true when the path is free after the call.
  */
-type CandidateLockObservation = { raw: string; dev: number; ino: number };
+type CandidateLockObservation = { raw: string; dev: number; ino: number; fd: number };
 
 function observeCandidateLock(lockPath: string): CandidateLockObservation | undefined {
+  let fd: number | undefined;
   try {
-    const raw = readFileSync(lockPath, "utf8");
-    const stat = statSync(lockPath);
-    return { raw, dev: stat.dev, ino: stat.ino };
+    fd = openSync(lockPath, "r");
+    candidateLockCaptureOrderForTests?.push("open");
+    const stat = fstatSync(fd);
+    candidateLockCaptureOrderForTests?.push("fstat");
+    const raw = readFileSync(fd, "utf8");
+    candidateLockCaptureOrderForTests?.push("read");
+    return { raw, dev: stat.dev, ino: stat.ino, fd };
   } catch {
+    if (fd !== undefined) {
+      try {
+        closeSync(fd);
+      } catch {
+        // best-effort
+      }
+    }
     return undefined;
   }
 }
 
+/**
+ * Proto: the observation holds an open handle, pinning the observed inode across
+ * the check-to-unlink window so a recycled device/inode cannot impersonate it.
+ */
 function reclaimCandidateLock(lockPath: string, observed: CandidateLockObservation): boolean {
-  candidateReclaimProbeForTests?.("observed", lockPath, observed.raw);
-  let current: string;
-  let currentStat: ReturnType<typeof statSync>;
   try {
-    current = readFileSync(lockPath, "utf8");
-    currentStat = statSync(lockPath);
-  } catch (error) {
-    const code = (error as { code?: string }).code;
-    if (code === "ENOENT") return true;
-    return false;
-  }
-  if (current !== observed.raw || currentStat.dev !== observed.dev || currentStat.ino !== observed.ino) return false;
-  candidateReclaimProbeForTests?.("before-unlink", lockPath, observed.raw);
-  // Revalidate bytes AND filesystem identity immediately before the destructive call,
-  // so a same-bytes replacement inode installed during the seam is not unlinked.
-  try {
-    const verifyRaw = readFileSync(lockPath, "utf8");
-    const verifyStat = statSync(lockPath);
-    if (verifyRaw !== observed.raw || verifyStat.dev !== observed.dev || verifyStat.ino !== observed.ino) return false;
-  } catch (error) {
-    const code = (error as { code?: string }).code;
-    if (code === "ENOENT") return true;
-    return false;
-  }
-  try {
-    unlinkSync(lockPath);
-    return true;
-  } catch (error) {
-    const code = (error as { code?: string }).code;
-    if (code === "ENOENT") return true;
-    if (code === "EPERM" || code === "EBUSY") return false;
-    throw error;
+    candidateReclaimProbeForTests?.("observed", lockPath, observed.raw);
+    let current: string;
+    let currentStat: ReturnType<typeof statSync>;
+    try {
+      current = readFileSync(lockPath, "utf8");
+      currentStat = statSync(lockPath);
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code === "ENOENT") return true;
+      return false;
+    }
+    if (current !== observed.raw || currentStat.dev !== observed.dev || currentStat.ino !== observed.ino) return false;
+    candidateReclaimProbeForTests?.("before-unlink", lockPath, observed.raw);
+    // Revalidate bytes AND filesystem identity immediately before the destructive call,
+    // so a same-bytes replacement inode installed during the seam is not unlinked.
+    try {
+      const verifyRaw = readFileSync(lockPath, "utf8");
+      const verifyStat = statSync(lockPath);
+      if (verifyRaw !== observed.raw || verifyStat.dev !== observed.dev || verifyStat.ino !== observed.ino) return false;
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code === "ENOENT") return true;
+      return false;
+    }
+    try {
+      unlinkSync(lockPath);
+      return true;
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code === "ENOENT") return true;
+      if (code === "EPERM" || code === "EBUSY") return false;
+      throw error;
+    }
+  } finally {
+    try {
+      closeSync(observed.fd);
+    } catch {
+      // best-effort
+    }
   }
 }
 
@@ -4092,6 +4127,11 @@ function acquireCandidateLock(lockPath: string, token: string, ttl: number): voi
           if (!reclaimCandidateLock(lockPath, observed)) Bun.sleepSync(2);
           continue;
         }
+      }
+      try {
+        closeSync(observed.fd);
+      } catch {
+        // best-effort
       }
       Bun.sleepSync(2);
     }

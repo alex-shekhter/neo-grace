@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
@@ -363,5 +364,149 @@ describe("C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0 CI governance lint", () => {
     const command = pkg.scripts["validate:ci"];
     expect(command).toContain("bun ./src/grace.ts lint --path . --assertions none --fail-on errors");
     expect(command).not.toContain("--assertions current");
+  });
+});
+
+/** The fetch-depth declared on the `validate` job's own Checkout step, or null when absent. */
+export function validateJobCheckoutDepth(xml: string): string | null {
+  const jobs: Array<{ name: string; body: string[] }> = [];
+  let current: { name: string; body: string[] } | null = null;
+  for (const line of xml.split("\n")) {
+    const m = /^  ([A-Za-z0-9_-]+):\s*$/.exec(line);
+    if (m) {
+      if (current) jobs.push(current);
+      current = { name: m[1]!, body: [] };
+    } else if (current) {
+      current.body.push(line);
+    }
+  }
+  if (current) jobs.push(current);
+  const job = jobs.find((candidate) => candidate.name === "validate");
+  if (!job) return null;
+  let inCheckout = false;
+  for (const line of job.body) {
+    if (/^\s+- name: Checkout\s*$/.test(line)) {
+      inCheckout = true;
+      continue;
+    }
+    if (!inCheckout) continue;
+    const depth = /^\s+fetch-depth:\s*(\S+)\s*$/.exec(line);
+    if (depth) return depth[1]!;
+    if (/^\s+- name:\s/.test(line)) inCheckout = false;
+  }
+  return null;
+}
+
+describe("C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 checkout and README guards", () => {
+  it("the validate job checks out full history for the pinned baseline control", () => {
+    const xml = readFileSync(path.join(repoRoot, ".github/workflows/validate.yml"), "utf8");
+    expect(validateJobCheckoutDepth(xml), "validate checkout fetch-depth").toBe("0");
+  });
+
+  it("README documents the fail-closed candidate refusal", () => {
+    const readme = readFileSync(path.join(repoRoot, "README.md"), "utf8");
+    expect(readme).toContain("never delete a candidate whose identity they cannot prove");
+  });
+});
+
+/** The Windows job's own `run:` invocation that selects the grace-generate pin tests. */
+export function windowsPinInvocation(xml: string): string | undefined {
+  const jobs: Array<{ name: string; body: string[] }> = [];
+  let current: { name: string; body: string[] } | null = null;
+  for (const line of xml.split("\n")) {
+    const m = /^  ([A-Za-z0-9_-]+):\s*$/.exec(line);
+    if (m) {
+      if (current) jobs.push(current);
+      current = { name: m[1]!, body: [] };
+    } else if (current) {
+      current.body.push(line);
+    }
+  }
+  if (current) jobs.push(current);
+  const job = jobs.find((candidate) => candidate.name === "windows-compatibility");
+  if (!job) return undefined;
+  const line = job.body.find((l) => l.includes("run:") && l.includes("src/grace-generate.test.ts"));
+  return line?.trim();
+}
+
+describe("C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 Windows pin invocation guard", () => {
+  it("the Windows job selects every required pin direction", () => {
+    const xml = readFileSync(path.join(repoRoot, ".github/workflows/validate.yml"), "utf8");
+    const invocation = windowsPinInvocation(xml);
+    expect(invocation, "the Windows pin invocation exists").toBeDefined();
+    for (const needle of [
+      "AC-PIN-ACQUISITION: an ordinary mint",
+      "AC-PIN-ACQUISITION: a forced open failure",
+      "AC-PIN-RELEASE: releaseAcquiredCandidate",
+      "AC-PIN-RELEASE-NO-LEAK",
+      "AC-PIN-RELEASE-LIFETIME",
+      "AC-PIN-RELEASE-API: successful writeSpecNew closes its record",
+      "AC-PIN-RELEASE-API: a publish failure closes the pin exactly once",
+      "AC-WINDOWS-DIRECTORY-PIN",
+    ]) {
+      expect(invocation, `windows pin invocation must keep ${needle}`).toContain(needle);
+    }
+  });
+});
+
+/** The Windows job's own `run:` invocation that selects the implicit-supersede owner tests. */
+export function windowsSupersedeInvocation(xml: string): string | undefined {
+  const jobs: Array<{ name: string; body: string[] }> = [];
+  let current: { name: string; body: string[] } | null = null;
+  for (const line of xml.split("\n")) {
+    const m = /^  ([A-Za-z0-9_-]+):\s*$/.exec(line);
+    if (m) {
+      if (current) jobs.push(current);
+      current = { name: m[1]!, body: [] };
+    } else if (current) {
+      current.body.push(line);
+    }
+  }
+  if (current) jobs.push(current);
+  const job = jobs.find((candidate) => candidate.name === "windows-compatibility");
+  if (!job) return undefined;
+  const line = job.body.find((l) => l.includes("run:") && l.includes("src/grace-supersede.test.ts"));
+  return line?.trim();
+}
+
+describe("C-LINUX-VALIDATION-REPAIR-2-D4F54467 Windows supersede invocation guard", () => {
+  it("the Windows job selects the implicit-supersede pin release owner", () => {
+    const xml = readFileSync(path.join(repoRoot, ".github/workflows/validate.yml"), "utf8");
+    const invocation = windowsSupersedeInvocation(xml);
+    expect(invocation, "the Windows supersede invocation exists").toBeDefined();
+    for (const needle of [
+      "AC-SUPERSEDE-PIN-RELEASE: a successful implicit mint",
+      "AC-SUPERSEDE-PIN-RELEASE: a post-mint failure removal",
+      "AC-SUPERSEDE-PIN-RELEASE: a post-mint refusal/residue",
+      "AC-SUPERSEDE-PIN-RELEASE: a pre-publication mint failure",
+    ]) {
+      expect(invocation, `windows supersede invocation must keep ${needle}`).toContain(needle);
+    }
+    expect(invocation, "the supersede invocation stays filtered to the owner tests").toContain("-t");
+  });
+});
+
+describe("C-LINUX-VALIDATION-REPAIR-2-D4F54467 writer owner platform guard", () => {
+  it("the writer owner is declared with a plain it(), never a Linux-only skip", () => {
+    const src = readFileSync(path.join(repoRoot, "src/grace-generate.test.ts"), "utf8");
+    expect(src).toMatch(/it\("AC-PIN-RELEASE-API: successful writeSpecNew closes its record before returning"/);
+    expect(src).not.toMatch(/itLinux\("AC-PIN-RELEASE-API: successful writeSpecNew closes its record/);
+    expect(src).not.toMatch(/it\.skip\("AC-PIN-RELEASE-API: successful writeSpecNew closes its record/);
+  });
+});
+
+/** Exact committed bytes of the predecessor's archive arrival at `9bdf72e` (the governed supersede move). */
+export const PREDECESSOR_ARCHIVE_SHA256: Record<string, string> = {
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-1-DE5A1A05/spec.xml": "44669e46bd860a3cd54038798e25f996da78e5b88015ce6fd6421fd46165642e",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-1-DE5A1A05/plan.xml": "4e979a2682c68a85c0d0019d36f94767990cd244c86a909fea67b3d23aaf22e1",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-1-DE5A1A05/design-context.xml": "387dc9f528ad9bd88f2a21265eb8acc51307438b8355077f4bd7515fb9a43e21",
+};
+
+describe("C-LINUX-VALIDATION-REPAIR-2-D4F54467 predecessor archive byte guard", () => {
+  it("the predecessor archive arrival keeps its committed post-supersede bytes", () => {
+    for (const [rel, digest] of Object.entries(PREDECESSOR_ARCHIVE_SHA256)) {
+      const bytes = readFileSync(path.join(repoRoot, rel));
+      expect(createHash("sha256").update(bytes).digest("hex"), `${rel} must keep the bytes committed at 9bdf72e`).toBe(digest);
+    }
   });
 });

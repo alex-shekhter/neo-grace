@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import type { GraceXmlNode } from "./artifact/xml";
 import os from "node:os";
@@ -60,6 +60,37 @@ import * as graceCursorModule from "./grace-cursor";
 import { GraceCommandError } from "./query/errors";
 import { collectProjectStatus, formatStatusText } from "./grace-status";
 import { lintGraceProject } from "./lint/core";
+
+/**
+ * Does the filesystem hosting TMPDIR recycle device/inode pairs for the file and
+ * directory shapes this suite replaces? Computed once so the recycled-identity
+ * controls can register a real skip on filesystems that do not recycle, instead of
+ * printing `SKIP` and passing.
+ */
+function filesystemRecyclesInodes(): boolean {
+  const probe = mkdtempSync(path.join(os.tmpdir(), "ngrace-recycle-probe-"));
+  try {
+    const file = path.join(probe, "f");
+    writeFileSync(file, "x");
+    const fileFirst = statSync(file).ino;
+    rmSync(file);
+    writeFileSync(file, "x");
+    const fileSecond = statSync(file).ino;
+    const dir = path.join(probe, "d");
+    mkdirSync(dir);
+    const dirFirst = statSync(dir).ino;
+    rmSync(dir, { recursive: true });
+    mkdirSync(dir);
+    const dirSecond = statSync(dir).ino;
+    return fileFirst === fileSecond && dirFirst === dirSecond;
+  } finally {
+    rmSync(probe, { recursive: true, force: true });
+  }
+}
+const FS_RECYCLES = filesystemRecyclesInodes();
+if (!FS_RECYCLES) {
+  console.log("SKIP recycled-identity controls: filesystem does not recycle device/inode pairs");
+}
 
 /** Test helper: path list → write evidence with stable synthetic content digests. */
 function evidencePaths(paths: string[], digests?: Record<string, string>): WriteEvidenceSnapshot {
@@ -5010,7 +5041,7 @@ describe("pause/resume alias mapping", () => {
 
 // C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-002: filesystem-identity reclaim control.
 describe("candidate reclaim identity", () => {
-  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE: a same-bytes replacement inode is not unlinked", async () => {
+  it.skipIf(!FS_RECYCLES)("AC-CANDIDATE-RECLAIM-EXCLUSIVE: a same-bytes replacement inode is not unlinked", async () => {
     const lockDirFor = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
     const lockPathFor = (root: string, id: string) => path.join(lockDirFor(root), `.candidate-${id}.lock`);
     const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-ident-"));
@@ -5018,6 +5049,8 @@ describe("candidate reclaim identity", () => {
     const lockPath = lockPathFor(root, "C-IDENT");
     const stale = `2147483647\n${Date.now()}\ndead-token\n`;
     writeFileSync(lockPath, stale, { flag: "wx" });
+    const observedStat = statSync(lockPath);
+    const observedPair = `${observedStat.dev}:${observedStat.ino}`;
     const bReplaced = path.join(root, "b-replaced");
     const bSecond = path.join(root, "b-second-observed");
     const bAcquired = path.join(root, "b-acquired");
@@ -5035,23 +5068,31 @@ describe("candidate reclaim identity", () => {
           const bytes = fs.readFileSync(lockPath, 'utf8');
           fs.unlinkSync(lockPath);
           fs.writeFileSync(lockPath, bytes, { flag: 'wx' });
-          fs.writeFileSync(${JSON.stringify(bReplaced)}, String(fs.statSync(lockPath).ino));
+          const st = fs.statSync(lockPath);
+          fs.writeFileSync(${JSON.stringify(bReplaced)}, st.dev + ':' + st.ino);
         }
       });
       mod.withCandidateLock(${JSON.stringify(root)}, 'C-IDENT', () => { fs.writeFileSync(${JSON.stringify(bAcquired)}, '1'); });
     `;
     const b = Bun.spawn({ cmd: [process.execPath, "-e", body], stdout: "pipe", stderr: "pipe" });
-    for (let i = 0; i < 400 && !existsSync(bReplaced); i += 1) await Bun.sleep(5);
-    expect(existsSync(bReplaced)).toBe(true);
-    const replacementIno = Number(readFileSync(bReplaced, "utf8"));
-    for (let i = 0; i < 800 && !existsSync(bSecond); i += 1) await Bun.sleep(5);
-    expect(existsSync(bSecond), "B retried and observed the replacement").toBe(true);
-    expect(existsSync(bAcquired), "B never acquired by unlinking the replacement inode").toBe(false);
-    expect(statSync(lockPath).ino, "the replacement inode survives").toBe(replacementIno);
-    expect(readFileSync(lockPath, "utf8")).toBe(stale);
-    b.kill();
-    await b.exited;
-    rmSync(root, { recursive: true, force: true });
+    try {
+      for (let i = 0; i < 400 && !existsSync(bReplaced); i += 1) await Bun.sleep(5);
+      expect(existsSync(bReplaced)).toBe(true);
+      const recreatedPair = readFileSync(bReplaced, "utf8");
+      const [recreatedDev, recreatedIno] = recreatedPair.split(":").map(Number);
+      expect(recreatedDev, `same filesystem (observed ${observedPair}, recreated ${recreatedPair})`).toBe(observedStat.dev);
+      expect(recreatedIno, `the held pin forces a recycled pair to differ (observed ${observedPair}, recreated ${recreatedPair})`).not.toBe(observedStat.ino);
+      for (let i = 0; i < 800 && !existsSync(bSecond); i += 1) await Bun.sleep(5);
+      expect(existsSync(bSecond), "B retried and observed the replacement").toBe(true);
+      expect(existsSync(bAcquired), "B never acquired by unlinking the replacement inode").toBe(false);
+      const afterStat = statSync(lockPath);
+      expect(`${afterStat.dev}:${afterStat.ino}`, `the replacement pair survives (observed ${observedPair})`).toBe(recreatedPair);
+      expect(readFileSync(lockPath, "utf8")).toBe(stale);
+    } finally {
+      b.kill();
+      await b.exited;
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 
@@ -6365,5 +6406,283 @@ describe("AC-MEMBER-MATRIX-COMPLETE item17 (C-SUPERSEDE-INTEGRATION-CLOSE-1-8207
     expect(result.applied).toBe(true);
     expect(readdirSync(run)).toEqual([]);
     expect(b3cProjection(listLedgerEvents(bundle))).toBe(expected);
+  });
+});
+
+// C-LINUX-VALIDATION-REPAIR-1-DE5A1A05: pre-pin recycled-identity control and timeout diagnostic.
+describe("candidate reclaim pin controls (C-LINUX-VALIDATION-REPAIR-1-DE5A1A05)", () => {
+  const lockDirFor = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
+  const lockPathFor = (root: string, id: string) => path.join(lockDirFor(root), `.candidate-${id}.lock`);
+
+  async function readStderrBounded(child: Bun.Subprocess, limitMs: number): Promise<string> {
+    const read = (async () => {
+      try {
+        return Buffer.from(await new Response(child.stderr as ReadableStream<Uint8Array>).arrayBuffer()).toString("utf8");
+      } catch {
+        return "";
+      }
+    })();
+    const outcome = await Promise.race([
+      read.then((text) => ({ text })),
+      Bun.sleep(limitMs).then(() => ({ text: "" })),
+    ]);
+    return outcome.text;
+  }
+
+  async function reclaimFixtureDiagnostic(
+    child: Bun.Subprocess,
+    awaited: string,
+    markerPaths: Record<string, string>,
+    timeoutMs = 200,
+    reapTimeoutMs = 1000,
+  ): Promise<{ state: string; exitCode: number | null; signal: string | null; stderrTail: string; markers: Record<string, boolean>; message: string; reapFailure: string | null }> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline && !existsSync(awaited)) await Bun.sleep(5);
+    const wasRunning = child.exitCode === null;
+    let killSignal: string | null = null;
+    let reapFailure: string | null = null;
+    if (wasRunning) {
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        // best-effort
+      }
+      const reaped = await Promise.race([child.exited.then(() => true), Bun.sleep(reapTimeoutMs).then(() => false)]);
+      if (reaped) {
+        killSignal = child.signalCode ?? null;
+      } else {
+        reapFailure = `bounded reap failed after ${reapTimeoutMs}ms; child pid ${child.pid} still running`;
+        try {
+          child.kill("SIGKILL");
+        } catch {
+          // last-effort termination attempt
+        }
+      }
+    }
+    const state = wasRunning ? "running" : "exited";
+    const exitCode = wasRunning ? null : child.exitCode;
+    const signal = wasRunning ? killSignal : null;
+    const markers = Object.fromEntries(Object.entries(markerPaths).map(([name, markerPath]) => [name, existsSync(markerPath)]));
+    // Bound the stderr read: a still-running child (including one that refused the kill)
+    // can hold stderr open forever.
+    const stderr = await readStderrBounded(child, reapTimeoutMs);
+    const stderrTail = stderr.trim().split("\n").slice(-3).join("\n");
+    const message = reapFailure !== null
+      ? `reclaim fixture wait expired: bounded reap failed; ${reapFailure}; markers ${JSON.stringify(markers)}; stderr tail ${JSON.stringify(stderrTail)}`
+      : state === "running"
+        ? `reclaim fixture wait expired: child state running; killed with signal ${signal}; markers ${JSON.stringify(markers)}; stderr tail ${JSON.stringify(stderrTail)}`
+        : `reclaim fixture wait expired: child state exited; exit code ${exitCode}; markers ${JSON.stringify(markers)}; stderr tail ${JSON.stringify(stderrTail)}`;
+    return { state, exitCode, signal, stderrTail, markers, message, reapFailure };
+  }
+
+  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE: the observed lock identity is captured open → fstat → read", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-lock-order-"));
+    mkdirSync(lockDirFor(root), { recursive: true });
+    const lockPath = lockPathFor(root, "C-ORDER");
+    writeFileSync(lockPath, `2147483647\n${Date.now()}\ndead-token\n`, { flag: "wx" });
+    const order: string[] = [];
+    graceCursorModule.setCandidateLockCaptureOrderForTests(order);
+    try {
+      graceCursorModule.withCandidateLock(root, "C-ORDER", () => {});
+    } finally {
+      graceCursorModule.setCandidateLockCaptureOrderForTests(undefined);
+      rmSync(root, { recursive: true, force: true });
+    }
+    expect(order.slice(0, 3), "open → fstat → read-from-handle").toEqual(["open", "fstat", "read"]);
+    expect(order.indexOf("fstat"), "fstat precedes the handle read").toBeLessThan(order.indexOf("read"));
+  });
+
+  it.skipIf(!FS_RECYCLES)("AC-CANDIDATE-RECLAIM-EXCLUSIVE pre-pin control: b53d13d unlinks the recycled replacement", async () => {
+    const worktree = mkdtempSync(path.join(os.tmpdir(), "reclaim-baseline-"));
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const add = Bun.spawnSync({ cmd: ["git", "worktree", "add", "--detach", worktree, "b53d13df47cdf8d85f75b33502c6ecd9e97ff262"], cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
+    expect(add.exitCode, Buffer.from(add.stderr).toString("utf8")).toBe(0);
+    let childForCleanup: Bun.Subprocess | undefined;
+    try {
+      symlinkSync(path.join(repoRoot, "node_modules"), path.join(worktree, "node_modules"));
+      const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-prepin-"));
+      mkdirSync(lockDirFor(root), { recursive: true });
+      const lockPath = lockPathFor(root, "C-PREPIN");
+      writeFileSync(lockPath, `2147483647\n${Date.now()}\ndead-token\n`, { flag: "wx" });
+      const observedStat = statSync(lockPath);
+      const observedPair = `${observedStat.dev}:${observedStat.ino}`;
+      const bAcquired = path.join(root, "b-acquired");
+      const bReplaced = path.join(root, "b-replaced");
+      const modulePath = JSON.stringify(path.join(worktree, "src", "grace-cursor.ts"));
+      const body = `
+        const fs = require('node:fs');
+        const mod = await import(${modulePath});
+        let replaced = false;
+        mod.setCandidateReclaimProbeForTests((phase, lockPath) => {
+          if (phase !== 'observed' && !replaced) {
+            replaced = true;
+            const bytes = fs.readFileSync(lockPath, 'utf8');
+            fs.unlinkSync(lockPath);
+            fs.writeFileSync(lockPath, bytes, { flag: 'wx' });
+            const st = fs.statSync(lockPath);
+            fs.writeFileSync(${JSON.stringify(bReplaced)}, st.dev + ':' + st.ino);
+          }
+        });
+        mod.withCandidateLock(${JSON.stringify(root)}, 'C-PREPIN', () => { fs.writeFileSync(${JSON.stringify(bAcquired)}, '1'); });
+      `;
+      const child = Bun.spawn({ cmd: [process.execPath, "-e", body], stdout: "pipe", stderr: "pipe" });
+      childForCleanup = child;
+      for (let i = 0; i < 600 && !existsSync(bAcquired); i += 1) {
+        if (child.exitCode !== null) break;
+        await Bun.sleep(5);
+      }
+      if (child.exitCode === null) {
+        try {
+          child.kill("SIGKILL");
+        } catch {
+          // best-effort
+        }
+        await Promise.race([child.exited, Bun.sleep(1000)]);
+      }
+      expect(existsSync(bReplaced), "the pre-pin replacement was recorded").toBe(true);
+      const recreatedPair = readFileSync(bReplaced, "utf8");
+      const [recreatedDev, recreatedIno] = recreatedPair.split(":").map(Number);
+      expect(recreatedDev, `same filesystem (observed ${observedPair}, recreated ${recreatedPair})`).toBe(observedStat.dev);
+      expect(recreatedIno, `recycling established at the exact lock (observed ${observedPair}, recreated ${recreatedPair})`).toBe(observedStat.ino);
+      expect(existsSync(bAcquired), "the pre-pin comparison unlinks the recycled replacement and B acquires").toBe(true);
+      rmSync(root, { recursive: true, force: true });
+    } finally {
+      if (childForCleanup && childForCleanup.exitCode === null) {
+        try {
+          childForCleanup.kill("SIGKILL");
+        } catch {
+          // best-effort
+        }
+        await Promise.race([childForCleanup.exited, Bun.sleep(1000)]);
+      }
+      Bun.spawnSync({ cmd: ["git", "worktree", "remove", "--force", worktree], cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
+      rmSync(worktree, { recursive: true, force: true });
+    }
+  });
+
+  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE timeout diagnostic: running child, signal, stderr and markers", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-diag-"));
+    mkdirSync(lockDirFor(root), { recursive: true });
+    const lockPath = lockPathFor(root, "C-DIAG");
+    writeFileSync(lockPath, `2147483647\n${Date.now()}\ndead-token\n`, { flag: "wx" });
+    const bSecond = path.join(root, "b-second-observed");
+    const bNever = path.join(root, "b-never-observed");
+    const markerPaths = {
+      "b-replaced": path.join(root, "b-replaced"),
+      "b-second-observed": bSecond,
+      "b-acquired": path.join(root, "b-acquired"),
+      "b-error": path.join(root, "b-error"),
+    };
+    const body = `
+      const fs = require('node:fs');
+      const mod = await import(${JSON.stringify(path.join(import.meta.dir, "grace-cursor.ts"))});
+      let observed = 0;
+      let replaced = false;
+      mod.setCandidateReclaimProbeForTests((phase, lockPath) => {
+        if (phase === 'observed') {
+          observed += 1;
+          if (observed >= 2) { fs.writeFileSync(${JSON.stringify(bSecond)}, '1'); process.stderr.write('diag-child-running\\n'); while (true) Bun.sleep(50); }
+        } else if (!replaced) {
+          replaced = true;
+          process.stderr.write('diag-child-replaced\\n');
+          fs.writeFileSync(${JSON.stringify(path.join(root, "b-replaced"))}, '1');
+          const bytes = fs.readFileSync(lockPath, 'utf8');
+          fs.unlinkSync(lockPath);
+          fs.writeFileSync(lockPath, bytes, { flag: 'wx' });
+        }
+      });
+      mod.withCandidateLock(${JSON.stringify(root)}, 'C-DIAG', () => {});
+    `;
+    const child = Bun.spawn({ cmd: [process.execPath, "-e", body], stdout: "pipe", stderr: "pipe" });
+    try {
+      // Wait for the child to reach its second observation (the marker write) so the
+      // "running" state is established before the bounded wait under test expires.
+      for (let i = 0; i < 1200 && !existsSync(bSecond); i += 1) {
+        if (child.exitCode !== null) break;
+        await Bun.sleep(5);
+      }
+      expect(existsSync(bSecond), "the child reached the second observation").toBe(true);
+      const diagnostic = await reclaimFixtureDiagnostic(child, bNever, markerPaths);
+      expect(diagnostic.state, JSON.stringify(diagnostic)).toBe("running");
+      expect(diagnostic.signal, JSON.stringify(diagnostic)).toBe("SIGKILL");
+      expect(diagnostic.markers, JSON.stringify(diagnostic)).toEqual({
+        "b-replaced": true,
+        "b-second-observed": true,
+        "b-acquired": false,
+        "b-error": false,
+      });
+      expect(diagnostic.stderrTail, JSON.stringify(diagnostic)).toContain("diag-child-running");
+      expect(diagnostic.message).toContain("running");
+      expect(diagnostic.message).toContain("SIGKILL");
+      expect(diagnostic.message).toContain('"b-second-observed":true');
+      expect(diagnostic.message).toContain("diag-child-running");
+    } finally {
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        // already reaped
+      }
+      await Promise.race([child.exited, Bun.sleep(1000)]);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE timeout diagnostic: an unkillable child yields a bounded-reap failure", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-diag-reap-"));
+    const neverExits = {
+      exitCode: null,
+      signalCode: null,
+      pid: 999999,
+      kill() {
+        // refuse to die
+      },
+      exited: new Promise<number>(() => {}),
+      stderr: new ReadableStream<Uint8Array>({ start() { /* never closes */ } }),
+    } as unknown as Bun.Subprocess;
+    const started = Date.now();
+    const diagnostic = await reclaimFixtureDiagnostic(
+      neverExits,
+      path.join(root, "never"),
+      { "b-replaced": path.join(root, "b-replaced") },
+      50,
+      100,
+    );
+    const elapsed = Date.now() - started;
+    expect(diagnostic.reapFailure, JSON.stringify(diagnostic)).not.toBeNull();
+    expect(diagnostic.state, JSON.stringify(diagnostic)).toBe("running");
+    expect(diagnostic.exitCode, JSON.stringify(diagnostic)).toBeNull();
+    expect(diagnostic.signal, JSON.stringify(diagnostic)).toBeNull();
+    expect(diagnostic.markers["b-replaced"], JSON.stringify(diagnostic)).toBe(false);
+    expect(diagnostic.message).toContain("bounded reap failed");
+    expect(elapsed, `the helper returned within its bound (${elapsed}ms)`).toBeLessThan(1000);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE timeout diagnostic: already-exited child reports its numeric code", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-diag-exit-"));
+    const bError = path.join(root, "b-error");
+    const markerPaths = {
+      "b-replaced": path.join(root, "b-replaced"),
+      "b-second-observed": path.join(root, "b-second-observed"),
+      "b-acquired": path.join(root, "b-acquired"),
+      "b-error": bError,
+    };
+    const child = Bun.spawn({
+      cmd: [process.execPath, "-e", `require('node:fs').writeFileSync(${JSON.stringify(bError)}, '1'); process.stderr.write('diag-child-exited\\n'); process.exit(7);`],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    try {
+      const diagnostic = await reclaimFixtureDiagnostic(child, path.join(root, "never"), markerPaths);
+      expect(diagnostic.state, JSON.stringify(diagnostic)).toBe("exited");
+      expect(diagnostic.exitCode, JSON.stringify(diagnostic)).toBe(7);
+      expect(diagnostic.signal, JSON.stringify(diagnostic)).toBeNull();
+      expect(diagnostic.markers["b-error"], JSON.stringify(diagnostic)).toBe(true);
+      expect(diagnostic.markers["b-replaced"], JSON.stringify(diagnostic)).toBe(false);
+      expect(diagnostic.stderrTail, JSON.stringify(diagnostic)).toContain("diag-child-exited");
+      expect(diagnostic.message).toContain("exit code 7");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

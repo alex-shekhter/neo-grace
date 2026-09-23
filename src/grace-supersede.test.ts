@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
-import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, closeSync, cpSync, existsSync, fstatSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -1707,5 +1707,176 @@ describe("AC-SUPERSEDE-MATRIX-COMPLETE item11 (C-SUPERSEDE-INTEGRATION-CLOSE-1-8
       expect(active[0]!.startsWith(`C-B3-CHAIN-${step + 1}-`)).toBe(true);
       current = active[0]!;
     }
+  });
+});
+
+// C-LINUX-VALIDATION-REPAIR-2-D4F54467 T-003: the implicit-mint transaction's pin release.
+describe("implicit mint pin release (AC-SUPERSEDE-PIN-RELEASE)", () => {
+  const activeDir = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
+  const archiveDir = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "archive");
+
+  function seedPredecessor(root: string, id: string): void {
+    writeChangeBundleFixture(root, { changeId: id, location: "active", specStatus: "draft", planStatus: "draft" });
+  }
+
+  function resolvedFor(id: string): ResolvedSpecMint {
+    return { id, slug: "C-PINREL", lineage: 2, hash: "ABCDEF12", branch: "probe", timestamp: "2026-09-23T04:21:00.000Z" };
+  }
+
+  function fdIsOpen(fd: number): boolean {
+    try {
+      fstatSync(fd);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  it("AC-SUPERSEDE-PIN-RELEASE: a successful implicit mint closes the transaction's pin", () => {
+    const root = tempProject();
+    seedPredecessor(root, "C-PINREL-1");
+    const resolved = resolvedFor("C-PINREL-2-ABCDEF12");
+    let capturedFd: number | undefined;
+    supersedeChangeBundle(root, "C-PINREL-1", {
+      kind: "mint",
+      id: resolved.id,
+      mint: () => {
+        const acquired = mintResolvedBundle(root, resolved).acquired;
+        capturedFd = acquired.dirFd;
+        return acquired;
+      },
+    });
+    expect(capturedFd, "the minted record carried a pin").toBeDefined();
+    expect(fdIsOpen(capturedFd!), "the pin is closed before the transaction returns").toBe(false);
+    expect(existsSync(path.join(archiveDir(root), "C-PINREL-1"))).toBe(true);
+    expect(existsSync(path.join(activeDir(root), resolved.id))).toBe(true);
+  });
+
+  it("AC-SUPERSEDE-PIN-RELEASE: a post-mint failure removal closes the pin exactly once", () => {
+    const root = tempProject();
+    seedPredecessor(root, "C-PINREL-1");
+    const resolved = resolvedFor("C-PINREL-2-ABCDEF12");
+    let capturedFd: number | undefined;
+    let closeCalls = 0;
+    const outcomes: Array<{ removed: boolean; diagnostic?: string }> = [];
+    let threw = false;
+    try {
+      supersedeChangeBundle(
+        root,
+        "C-PINREL-1",
+        {
+          kind: "mint",
+          id: resolved.id,
+          mint: () => {
+            const acquired = mintResolvedBundle(root, resolved).acquired;
+            capturedFd = acquired.dirFd;
+            return acquired;
+          },
+        },
+        {
+          writeFileSync: (() => {
+            throw new Error("injected post-mint spec write failure");
+          }) as typeof writeFileSync,
+          closeSync: ((fd: number) => {
+            closeCalls += 1;
+            return closeSync(fd);
+          }) as typeof closeSync,
+          observeCleanupForTests: (outcome) => outcomes.push(outcome),
+        },
+      );
+    } catch {
+      threw = true;
+    }
+    expect(threw).toBe(true);
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0]!.removed).toBe(true);
+    expect(closeCalls, "cleanup closes the pin exactly once").toBe(1);
+    expect(fdIsOpen(capturedFd!), "the pin is closed after cleanup").toBe(false);
+    expect(existsSync(path.join(activeDir(root), resolved.id)), "successful cleanup leaves no successor").toBe(false);
+  });
+
+  it("AC-SUPERSEDE-PIN-RELEASE: a post-mint refusal/residue closes the pin exactly once", () => {
+    const root = tempProject();
+    seedPredecessor(root, "C-PINREL-1");
+    const resolved = resolvedFor("C-PINREL-2-ABCDEF12");
+    let capturedFd: number | undefined;
+    let closeCalls = 0;
+    const outcomes: Array<{ removed: boolean; diagnostic?: string }> = [];
+    let threw = false;
+    try {
+      supersedeChangeBundle(
+        root,
+        "C-PINREL-1",
+        {
+          kind: "mint",
+          id: resolved.id,
+          mint: () => {
+            const acquired = mintResolvedBundle(root, resolved).acquired;
+            capturedFd = acquired.dirFd;
+            writeFileSync(path.join(activeDir(root), resolved.id, "foreign.txt"), "FOREIGN");
+            return acquired;
+          },
+        },
+        {
+          writeFileSync: (() => {
+            throw new Error("injected post-mint spec write failure");
+          }) as typeof writeFileSync,
+          closeSync: ((fd: number) => {
+            closeCalls += 1;
+            return closeSync(fd);
+          }) as typeof closeSync,
+          observeCleanupForTests: (outcome) => outcomes.push(outcome),
+        },
+      );
+    } catch {
+      threw = true;
+    }
+    expect(threw).toBe(true);
+    expect(outcomes).toHaveLength(1);
+    expect(outcomes[0]!.removed, "the foreign entry forces a refusal").toBe(false);
+    expect(outcomes[0]!.diagnostic).toMatch(/foreign entry/);
+    expect(closeCalls, "cleanup closes the pin exactly once on refusal").toBe(1);
+    expect(fdIsOpen(capturedFd!), "the pin is closed after refusal").toBe(false);
+    expect(existsSync(path.join(activeDir(root), resolved.id)), "residue is preserved").toBe(true);
+  });
+
+  it("AC-SUPERSEDE-PIN-RELEASE: a pre-publication mint failure closes internally without a returned record", () => {
+    const root = tempProject();
+    seedPredecessor(root, "C-PINREL-1");
+    const resolved = resolvedFor("C-PINREL-2-ABCDEF12");
+    const innerOutcomes: Array<{ removed: boolean; diagnostic?: string }> = [];
+    const outerOutcomes: Array<{ removed: boolean; diagnostic?: string }> = [];
+    let writes = 0;
+    const innerIo = {
+      writeFileSync: ((...args: Parameters<typeof writeFileSync>) => {
+        writes += 1;
+        if (writes === 2) throw new Error("injected inner spec write failure at write 2");
+        return writeFileSync(...args);
+      }) as typeof writeFileSync,
+      closeSync: ((fd: number) => closeSync(fd)) as typeof closeSync,
+    };
+    setCandidateCleanupObserverForTests((outcome) => innerOutcomes.push(outcome));
+    let threw = false;
+    try {
+      supersedeChangeBundle(
+        root,
+        "C-PINREL-1",
+        {
+          kind: "mint",
+          id: resolved.id,
+          mint: () => mintResolvedBundle(root, resolved, innerIo).acquired,
+        },
+        { observeCleanupForTests: (outcome) => outerOutcomes.push(outcome) },
+      );
+    } catch {
+      threw = true;
+    } finally {
+      setCandidateCleanupObserverForTests(undefined);
+    }
+    expect(threw).toBe(true);
+    expect(innerOutcomes, "the inner publisher cleans up exactly once").toHaveLength(1);
+    expect(innerOutcomes[0]!.removed).toBe(true);
+    expect(outerOutcomes, "no returned record reaches the outer cleanup").toHaveLength(0);
+    expect(existsSync(path.join(activeDir(root), resolved.id)), "the failed successor is gone").toBe(false);
   });
 });

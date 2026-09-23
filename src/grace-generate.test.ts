@@ -1,9 +1,9 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, fstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, rmdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
 
-import { cleanupCandidate, mintResolvedBundle, resolveSpecMint, type AcquiredCandidate, type CandidateIo, type ResolvedSpecMint } from "./grace-generate";
+import { cleanupCandidate, mintResolvedBundle, releaseAcquiredCandidate, resolveSpecMint, specCommand, writeSpecNew, type AcquiredCandidate, type CandidateIo, type ResolvedSpecMint } from "./grace-generate";
 
 import { GRAMMAR_INVENTORIES } from "./artifact/grammar";
 import { ARTIFACT_DIR } from "./artifact/paths";
@@ -15,6 +15,37 @@ import { writeChangeBundleFixture } from "./artifact/test-fixtures";
 
 const repoRoot = path.resolve(import.meta.dir, "..");
 const graceBin = path.join(repoRoot, "src", "grace.ts");
+
+/**
+ * Does the filesystem hosting TMPDIR recycle device/inode pairs for the file and
+ * directory shapes this suite replaces? Computed once so the recycled-identity
+ * control can register a real skip on filesystems that do not recycle, instead of
+ * printing `SKIP` and passing.
+ */
+function filesystemRecyclesInodes(): boolean {
+  const probe = mkdtempSync(path.join(tmpdir(), "ngrace-recycle-probe-"));
+  try {
+    const file = path.join(probe, "f");
+    writeFileSync(file, "x");
+    const fileFirst = statSync(file).ino;
+    rmSync(file);
+    writeFileSync(file, "x");
+    const fileSecond = statSync(file).ino;
+    const dir = path.join(probe, "d");
+    mkdirSync(dir);
+    const dirFirst = statSync(dir).ino;
+    rmSync(dir, { recursive: true });
+    mkdirSync(dir);
+    const dirSecond = statSync(dir).ino;
+    return fileFirst === fileSecond && dirFirst === dirSecond;
+  } finally {
+    rmSync(probe, { recursive: true, force: true });
+  }
+}
+const FS_RECYCLES = filesystemRecyclesInodes();
+if (!FS_RECYCLES) {
+  console.log("SKIP recycled-identity controls: filesystem does not recycle device/inode pairs");
+}
 
 function runGenerate(root: string, argv: string[]) {
   return Bun.spawnSync({
@@ -510,6 +541,7 @@ describe("candidate exclusive acquisition and bounded cleanup", () => {
       stage: opts.spec !== undefined ? "spec-written" : "marker-written",
       dev: st.dev,
       ino: st.ino,
+      dirFd: openSync(dir, "r"),
     };
   }
 
@@ -534,13 +566,17 @@ describe("candidate exclusive acquisition and bounded cleanup", () => {
     const root = createTempProject("cand-replace-");
     const id = "C-CAND-REPL-1-ABCDEF12";
     const candidate = mkCandidate(root, id, { spec: "<ours />" });
+    const observedPair = `${candidate.dev}:${candidate.ino}`;
     rmSync(candidateDir(root, id), { recursive: true });
     mkdirSync(candidateDir(root, id), { recursive: true });
     writeFileSync(specPath(root, id), "<ours />");
+    const recreated = statSync(candidateDir(root, id));
+    const recreatedPair = `${recreated.dev}:${recreated.ino}`;
     const result = cleanupCandidate(candidate);
-    expect(result.removed).toBe(false);
+    expect(result.removed, `the held pin preserves the replacement (observed ${observedPair}, recreated ${recreatedPair})`).toBe(false);
     expect(result.diagnostic).toMatch(/identity changed/);
     expect(existsSync(candidateDir(root, id))).toBe(true);
+    expect(`${statSync(candidateDir(root, id)).dev}:${statSync(candidateDir(root, id)).ino}`, `the replacement pair survives (observed ${observedPair}, recreated ${recreatedPair})`).toBe(recreatedPair);
   });
 
   it("(d) a same-path modification of our spec.xml is detected by bytes and preserved", () => {
@@ -606,9 +642,40 @@ describe("candidate exclusive acquisition and bounded cleanup", () => {
         throw new Error("stat exploded");
       }) as unknown as typeof statSync,
     };
-    expect(() => mintResolvedBundle(root, resolvedFor(id), io)).toThrow(/identity capture failed/);
+    // The statSync seam now runs as the post-open path check (handle capture is first),
+    // so the injected failure surfaces as the path-check refusal and still preserves the leaf.
+    expect(() => mintResolvedBundle(root, resolvedFor(id), io)).toThrow(/identity path check failed/);
     expect(existsSync(candidateDir(root, id))).toBe(true);
     expect(readdirSync(candidateDir(root, id))).toEqual([]);
+  });
+
+  it("AC-PIN-ACQUISITION: the opened handle is the first identity source", () => {
+    const root = createTempProject("cand-order-");
+    const id = "C-CAND-ORDER-1-ABCDEF12";
+    const order: string[] = [];
+    const io: CandidateIo = {
+      openSync: ((...args: Parameters<typeof openSync>) => {
+        order.push("open");
+        return openSync(...args);
+      }) as typeof openSync,
+      fstatSync: ((fd: number) => {
+        order.push("fstat");
+        return fstatSync(fd);
+      }) as typeof fstatSync,
+      statSync: ((...args: Parameters<typeof statSync>) => {
+        order.push("stat");
+        return statSync(...args);
+      }) as typeof statSync,
+    };
+    const minted = mintResolvedBundle(root, resolvedFor(id), io);
+    const openAt = order.indexOf("open");
+    const fstatAt = order.indexOf("fstat");
+    const statAt = order.indexOf("stat");
+    expect(openAt, "the directory is opened").toBeGreaterThanOrEqual(0);
+    expect(fstatAt, "fstat runs").toBeGreaterThanOrEqual(0);
+    expect(fstatAt, "fstat of the handle precedes any path stat").toBeLessThan(statAt);
+    expect(openAt, "open precedes the path check").toBeLessThan(statAt);
+    cleanupCandidate(minted.acquired);
   });
 
   it("(g) a first-unlink failure keeps the marker while the spec survives", () => {
@@ -718,6 +785,7 @@ describe("candidate cleanup lock API", () => {
       stage: "spec-written",
       dev: stat.dev,
       ino: stat.ino,
+      dirFd: openSync(dir, "r"),
     };
   }
 
@@ -881,7 +949,7 @@ describe("creation wrapper mapping", () => {
     const src = readFileSync(path.join(import.meta.dir, "grace-generate.ts"), "utf8");
     expect(src).toMatch(/export function mintResolvedBundle\([\s\S]*?const published = publishSpecNew\(root, resolved\.id, io\);/);
     expect(src).toMatch(/export function mintBundle\([\s\S]*?return mintResolvedBundle\(root, mint\);/);
-    expect(src).toMatch(/function writeSpecNew\(root: string, changeId: string\): string \{\n  return publishSpecNew\(root, changeId\)\.relative;/);
+    expect(src).toMatch(/export function writeSpecNew\(root: string, changeId: string, io: CandidateIo = \{\}\): string \{\n  const published = publishSpecNew\(root, changeId, io\);\n  releaseAcquiredCandidate\(published\.acquired, io\);\n  return published\.relative;/);
     expect(src).toMatch(/const relative = writeSpecNew\(root, mint\.id\);/);
   });
 
@@ -1086,6 +1154,7 @@ describe("cleanup validate first", () => {
       stage: "spec-written",
       dev: stat.dev,
       ino: stat.ino,
+      dirFd: openSync(dir, "r"),
     };
     const before = readdirSync(dir).sort().map((name) => `${name}:${readFileSync(path.join(dir, name), "utf8")}`);
     let unlinks = 0;
@@ -1102,5 +1171,225 @@ describe("cleanup validate first", () => {
     const after = readdirSync(dir).sort().map((name) => `${name}:${readFileSync(path.join(dir, name), "utf8")}`);
     expect(after).toEqual(before);
     expect(statSync(dir).ino).toBe(stat.ino);
+  });
+});
+
+// C-LINUX-VALIDATION-REPAIR-1-DE5A1A05: pin acquisition, fail-closed refusal, release API, lifetime.
+describe("pin identity and release (C-LINUX-VALIDATION-REPAIR-1-DE5A1A05)", () => {
+  const PIN_RESOLVED: ResolvedSpecMint = { id: "C-PIN-1-ABCDEF12", slug: "PIN", lineage: 1, hash: "ABCDEF12", branch: "probe", timestamp: "2026-09-23T00:00:00.000Z" };
+  const pinBundle = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active", PIN_RESOLVED.id);
+
+  it("AC-PIN-ACQUISITION: an ordinary mint pins the candidate and cleanup removes it", () => {
+    const root = createTempProject("pin-ok-");
+    const minted = mintResolvedBundle(root, PIN_RESOLVED);
+    expect(minted.acquired.dirFd, "the candidate directory handle is open").not.toBeUndefined();
+    expect(existsSync(path.join(pinBundle(root), "spec.xml"))).toBe(true);
+    const result = cleanupCandidate(minted.acquired);
+    expect(result.removed, JSON.stringify(result)).toBe(true);
+    expect(existsSync(pinBundle(root)), "handled cleanup removes the owned directory").toBe(false);
+  });
+
+  it("AC-PIN-ACQUISITION: a forced open failure preserves the candidate and refuses", () => {
+    const root = createTempProject("pin-fail-");
+    let message = "";
+    try {
+      mintResolvedBundle(root, PIN_RESOLVED, {
+        openSync: (() => {
+          throw new Error("injected open failure");
+        }) as unknown as typeof openSync,
+      });
+      message = "NO_THROW";
+    } catch (error) {
+      message = String((error as Error).message);
+    }
+    expect(message).toMatch(/identity pin acquisition failed \(injected open failure\); preserved/);
+    expect(existsSync(path.join(pinBundle(root), "spec.xml")), "no spec is treated as published").toBe(false);
+    expect(existsSync(pinBundle(root)), "the candidate leaf is preserved").toBe(true);
+    expect(readdirSync(pinBundle(root))).toEqual([]);
+  });
+
+  it("AC-PIN-RELEASE: releaseAcquiredCandidate closes once; cleanup after release refuses", () => {
+    const root = createTempProject("pin-release-");
+    const minted = mintResolvedBundle(root, PIN_RESOLVED);
+    releaseAcquiredCandidate(minted.acquired);
+    releaseAcquiredCandidate(minted.acquired);
+    expect(minted.acquired.dirFd).toBeUndefined();
+    const before = readFileSync(path.join(pinBundle(root), "spec.xml"), "utf8");
+    const result = cleanupCandidate(minted.acquired);
+    expect(result.removed).toBe(false);
+    expect(result.diagnostic).toMatch(/released or absent/);
+    expect(readFileSync(path.join(pinBundle(root), "spec.xml"), "utf8")).toBe(before);
+  });
+
+  it("AC-PIN-RELEASE-NO-LEAK: a returned published candidate detects a same-path replacement", () => {
+    const root = createTempProject("pin-return-");
+    const minted = mintResolvedBundle(root, PIN_RESOLVED);
+    const candidateDir = pinBundle(root);
+    const replacementBytes = "<replacement />";
+    rmSync(candidateDir, { recursive: true });
+    mkdirSync(candidateDir, { recursive: true });
+    writeFileSync(path.join(candidateDir, "spec.xml"), replacementBytes);
+    const result = cleanupCandidate(minted.acquired);
+    expect(result.removed, "the pin held at return must detect the same-path replacement").toBe(false);
+    expect(result.diagnostic, "the refusal is the identity comparison, not the released path").toMatch(/identity changed/);
+    expect(existsSync(path.join(candidateDir, "spec.xml")), "the replacement survives").toBe(true);
+    expect(readFileSync(path.join(candidateDir, "spec.xml"), "utf8"), "the replacement bytes survive").toBe(replacementBytes);
+  });
+
+  const itLinux = process.platform === "linux" ? it : it.skip;
+  itLinux("AC-PIN-RELEASE-LIFETIME: descriptor count does not grow over cycles", () => {
+    const fdCount = () => readdirSync("/proc/self/fd").length;
+    const warm = createTempProject("pin-warm-");
+    releaseAcquiredCandidate(mintResolvedBundle(warm, PIN_RESOLVED).acquired);
+    rmSync(warm, { recursive: true, force: true });
+    const baseline = fdCount();
+    // (1) Repeated acquire→publish→release cycles: the owner releases the returned pin.
+    for (let i = 0; i < 25; i += 1) {
+      const published = createTempProject("pin-pub-");
+      releaseAcquiredCandidate(mintResolvedBundle(published, PIN_RESOLVED).acquired);
+      rmSync(published, { recursive: true, force: true });
+    }
+    // (2) Repeated acquire→fail→cleanup cycles: openSync succeeds and allocates the
+    // handle, then fstatSync fails; the failure path must close the handle exactly once.
+    for (let i = 0; i < 25; i += 1) {
+      const failed = createTempProject("pin-fail-");
+      const handles: number[] = [];
+      const io: CandidateIo = {
+        openSync: ((p: Parameters<typeof openSync>[0], flags: Parameters<typeof openSync>[1]) => {
+          const fd = openSync(p, flags);
+          handles.push(fd);
+          return fd;
+        }) as typeof openSync,
+        fstatSync: (() => {
+          throw new Error("injected post-open fstat failure");
+        }) as typeof fstatSync,
+      };
+      expect(() => mintResolvedBundle(failed, PIN_RESOLVED, io)).toThrow(/identity pin capture failed/);
+      expect(handles, "the pin handle was allocated before the fstat failure").toHaveLength(1);
+      let stillOpen = true;
+      try {
+        fstatSync(handles[0]!);
+      } catch {
+        stillOpen = false;
+      }
+      expect(stillOpen, "the post-open failure path closes the pin handle").toBe(false);
+      rmSync(failed, { recursive: true, force: true });
+    }
+    expect(fdCount(), "open descriptors return to baseline").toBeLessThanOrEqual(baseline + 2);
+  });
+
+  it("AC-PIN-RELEASE-API: successful writeSpecNew closes its record before returning", () => {
+    const root = createTempProject("pin-writer-owner-");
+    let capturedFd: number | undefined;
+    let closeCalls = 0;
+    const io: CandidateIo = {
+      openSync: ((...args: Parameters<typeof openSync>) => {
+        const fd = openSync(...args);
+        capturedFd = fd;
+        return fd;
+      }) as typeof openSync,
+      closeSync: ((fd: number) => {
+        closeCalls += 1;
+        return closeSync(fd);
+      }) as typeof closeSync,
+    };
+    writeSpecNew(root, PIN_RESOLVED.id, io);
+    expect(capturedFd, "the writer acquired a record with a pin").toBeDefined();
+    expect(closeCalls, "writeSpecNew closes its record exactly once").toBe(1);
+    let stillOpen = false;
+    try {
+      fstatSync(capturedFd!);
+      stillOpen = true;
+    } catch {
+      stillOpen = false;
+    }
+    expect(stillOpen, "the record's descriptor no longer resolves after the writer returns").toBe(false);
+  });
+
+  itLinux("AC-PIN-RELEASE-API: repeated spec new leaves the writer's handle count flat", async () => {
+    const root = createTempProject("pin-writer-api-");
+    const fdCount = () => readdirSync("/proc/self/fd").length;
+    const newRun = (specCommand.subCommands as unknown as { new: { run: (ctx: never) => Promise<unknown> } }).new.run;
+    await newRun({
+      args: { path: root, slug: "PINWARM", timestamp: "2026-09-23T03:00:00.000Z", branch: "probe" },
+      rawArgs: [],
+    } as never);
+    const baseline = fdCount();
+    for (let i = 0; i < 12; i += 1) {
+      await newRun({
+        args: { path: root, slug: `PINAPI${i}`, timestamp: `2026-09-23T04:${10 + i}:00.000Z`, branch: "probe" },
+        rawArgs: [],
+      } as never);
+    }
+    expect(fdCount(), "repeated successful writer calls do not grow the descriptor count").toBeLessThanOrEqual(baseline + 2);
+  });
+
+  it("AC-PIN-RELEASE-API: a publish failure closes the pin exactly once", () => {
+    const root = createTempProject("pin-pubfail-");
+    let mintedFd: number | undefined;
+    let closeCalls = 0;
+    const io: CandidateIo = {
+      openSync: ((...args: Parameters<typeof openSync>) => {
+        const fd = openSync(...args);
+        mintedFd = fd;
+        return fd;
+      }) as typeof openSync,
+      writeFileSync: ((file: string, data: string, opts?: unknown) => {
+        if (String(file).endsWith("spec.xml")) throw new Error("injected spec write failure");
+        return writeFileSync(file, data, opts as never);
+      }) as unknown as typeof writeFileSync,
+      closeSync: ((fd: number) => {
+        closeCalls += 1;
+        return closeSync(fd);
+      }) as typeof closeSync,
+    };
+    let threw = false;
+    try {
+      mintResolvedBundle(root, PIN_RESOLVED, io);
+    } catch {
+      threw = true;
+    }
+    expect(threw).toBe(true);
+    expect(closeCalls, "the publish failure path closes the pin exactly once").toBe(1);
+    let stillOpen = false;
+    try {
+      fstatSync(mintedFd!);
+      stillOpen = true;
+    } catch {
+      stillOpen = false;
+    }
+    expect(stillOpen, "the publish failure path closes the captured handle").toBe(false);
+  });
+
+  it.skipIf(!FS_RECYCLES)("AC-CLEANUP-BOUNDED pre-pin control: b53d13d deletes the recycled replacement", () => {
+    const worktree = mkdtempSync(path.join(tmpdir(), "pin-baseline-"));
+    const add = Bun.spawnSync({ cmd: ["git", "worktree", "add", "--detach", worktree, "b53d13df47cdf8d85f75b33502c6ecd9e97ff262"], cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
+    expect(add.exitCode, Buffer.from(add.stderr).toString("utf8")).toBe(0);
+    try {
+      symlinkSync(path.join(repoRoot, "node_modules"), path.join(worktree, "node_modules"));
+      const root = createTempProject("prepin-cleanup-");
+      const dir = path.join(root, "candidate");
+      const modulePath = JSON.stringify(path.join(worktree, "src", "grace-generate.ts"));
+      const runner = `import fs from "node:fs";\nimport { cleanupCandidate } from ${modulePath};\nconst dir = ${JSON.stringify(dir)};\nconst spec = dir + "/spec.xml";\nfs.mkdirSync(dir, { recursive: true });\nfs.writeFileSync(spec, "<ours />");\nconst st = fs.statSync(dir);\nfs.rmSync(dir, { recursive: true });\nfs.mkdirSync(dir, { recursive: true });\nfs.writeFileSync(spec, "<ours />");\nconst recreated = fs.statSync(dir);\nconst result = cleanupCandidate({ path: dir, markerPath: dir + "/.ngrace-mint-owner", specPath: spec, token: "t", expectedSpecBytes: "<ours />", stage: "spec-written", dev: st.dev, ino: st.ino });\nprocess.stdout.write(JSON.stringify({ removed: result.removed, specExists: fs.existsSync(spec), observedDev: st.dev, observedIno: st.ino, recreatedDev: recreated.dev, recreatedIno: recreated.ino }));`;
+      const child = Bun.spawnSync({ cmd: [process.execPath, "-e", runner], cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
+      expect(child.exitCode, Buffer.from(child.stderr).toString("utf8")).toBe(0);
+      const out = JSON.parse(Buffer.from(child.stdout).toString("utf8")) as { removed: boolean; specExists: boolean; observedDev: number; observedIno: number; recreatedDev: number; recreatedIno: number };
+      expect(out.observedDev, "same filesystem").toBe(out.recreatedDev);
+      expect(out.observedIno, `recycling established at the exact directory (observed ${out.observedDev}:${out.observedIno}, recreated ${out.recreatedDev}:${out.recreatedIno})`).toBe(out.recreatedIno);
+      expect(out.removed, "the pre-pin comparison deletes the recycled replacement").toBe(true);
+      expect(out.specExists).toBe(false);
+    } finally {
+      Bun.spawnSync({ cmd: ["git", "worktree", "remove", "--force", worktree], cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
+      rmSync(worktree, { recursive: true, force: true });
+    }
+  });
+
+  const itWindows = process.platform === "win32" ? it : it.skip;
+  itWindows("AC-WINDOWS-DIRECTORY-PIN: candidate pin success and cleanup removal", () => {
+    const root = createTempProject("win-pin-");
+    const minted = mintResolvedBundle(root, PIN_RESOLVED);
+    expect(minted.acquired.dirFd).not.toBeUndefined();
+    const result = cleanupCandidate(minted.acquired);
+    expect(result.removed).toBe(true);
   });
 });

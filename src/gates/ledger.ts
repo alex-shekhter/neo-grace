@@ -63,7 +63,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { spawnShellCommand } from "../artifact/assertions";
@@ -73,7 +73,7 @@ import { ANCHOR_PATTERNS, ARTIFACT_TAG_PREFIX, nextBundleLineage, NGRACE_ARTIFAC
 import { cloneXmlNode, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "../artifact/xml";
 import { serializeGraceXmlDocument } from "../artifact/xml-serialize";
 import { assertCandidatePublished, discardAndFoldEpoch, resolveChangeBundle, withCandidateLock } from "../grace-cursor";
-import { cleanupCandidate, type AcquiredCandidate } from "../grace-generate";
+import { cleanupCandidate, releaseAcquiredCandidate, type AcquiredCandidate } from "../grace-generate";
 import { GraceCommandError } from "../query/errors";
 
 export type ReviewVerdictOutcome = "pass" | "fail" | "unable-to-determine";
@@ -1543,6 +1543,8 @@ export function supersedeChangeBundle(
     writeFileSync?: typeof writeFileSync;
     unlinkSync?: typeof unlinkSync;
     rmdirSync?: typeof rmdirSync;
+    /** Forwarded to cleanupCandidate so a test can observe the pin close seam. */
+    closeSync?: typeof closeSync;
     /** Test-only: fires after the initial explicit-replacement validation so a
      * relocation/appearance/disappearance can be driven before the under-lock
      * revalidation (AC-SUPERSEDE-VALIDATE-BEFORE-FOLD row (j)). */
@@ -1707,6 +1709,10 @@ export function supersedeChangeBundle(
           mkdirSync(archiveParent, { recursive: true });
         }
         (io.renameSync ?? renameSync)(activeDir, archiveDir);
+        // Success: the transaction owns the minted record and must close its pin before
+        // returning (AC-SUPERSEDE-PIN-RELEASE). The failure path below closes through
+        // cleanupCandidate instead, so closure is exactly once on every branch.
+        if (acquired) releaseAcquiredCandidate(acquired);
       } catch (error) {
         // Each rollback write is attempted once; a persistent rollback failure is
         // recorded and composed, never allowed to skip successor cleanup or recurse

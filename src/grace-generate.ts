@@ -13,6 +13,7 @@
 //   CandidateStage
 //   ResolvedSpecMint
 //   cleanupCandidate
+//   releaseAcquiredCandidate
 //   setCandidateCleanupObserverForTests
 //   mintBundle
 //   mintResolvedBundle
@@ -21,10 +22,11 @@
 //   resolveSpecMint
 //   scaffoldCommand
 //   specCommand
+//   writeSpecNew
 // END_MODULE_MAP
 import { execFileSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readdirSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { defineCommand } from "citty";
 
@@ -115,6 +117,8 @@ export type AcquiredCandidate = {
   stage: CandidateStage;
   dev?: number;
   ino?: number;
+  /** Proto: an open handle pinning the acquired directory inode across the record's life. */
+  dirFd?: number;
 };
 
 /** Bounded I/O seam: injected at the real stat/write/unlink/rmdir boundaries. */
@@ -123,6 +127,9 @@ export type CandidateIo = {
   writeFileSync?: typeof writeFileSync;
   unlinkSync?: typeof unlinkSync;
   rmdirSync?: typeof rmdirSync;
+  openSync?: typeof openSync;
+  fstatSync?: typeof fstatSync;
+  closeSync?: typeof closeSync;
 };
 
 const CANDIDATE_MARKER = ".ngrace-mint-owner";
@@ -144,8 +151,9 @@ function candidateRefusal(root: string, changeId: string): never {
 /**
  * Acquire the leaf exclusively: parents recursively, the leaf with a
  * non-recursive mkdir (EEXIST refuses), then an identity-pending record.
- * Identity is captured at the real statSync boundary; a failed or
- * non-directory identity preserves the leaf and names it without deleting.
+ * Identity is captured from the opened directory handle (`fstatSync`), never
+ * from a path stat; a failed open/fstat preserves the leaf and names it without
+ * deleting. A post-capture path check confirms the path still names the pinned object.
  */
 function acquireCandidate(root: string, changeId: string, io: CandidateIo): AcquiredCandidate {
   const bundlePath = activeDir(root, changeId);
@@ -168,23 +176,72 @@ function acquireCandidate(root: string, changeId: string, io: CandidateIo): Acqu
     expectedSpecBytes,
     stage: "identity-pending",
   };
-  let identity: ReturnType<typeof statSync>;
+  let dirFd: number | undefined;
   try {
-    identity = (io.statSync ?? statSync)(bundlePath);
+    dirFd = (io.openSync ?? openSync)(bundlePath, "r");
   } catch (error) {
     throw new GraceCommandError(
       "invalid-project",
-      `Candidate ${projectRelative(root, bundlePath)} identity capture failed (${(error as Error).message}); preserved.`,
+      `Candidate ${projectRelative(root, bundlePath)} identity pin acquisition failed (${(error as Error).message}); preserved.`,
     );
   }
-  if (!identity.isDirectory()) {
+  let pinned: ReturnType<typeof fstatSync>;
+  try {
+    pinned = (io.fstatSync ?? fstatSync)(dirFd);
+  } catch (error) {
+    try {
+      (io.closeSync ?? closeSync)(dirFd);
+    } catch {
+      // best-effort
+    }
     throw new GraceCommandError(
       "invalid-project",
-      `Candidate ${projectRelative(root, bundlePath)} identity capture returned a non-directory; preserved.`,
+      `Candidate ${projectRelative(root, bundlePath)} identity pin capture failed (${(error as Error).message}); preserved.`,
     );
   }
-  candidate.dev = identity.dev;
-  candidate.ino = identity.ino;
+  if (!pinned.isDirectory()) {
+    try {
+      (io.closeSync ?? closeSync)(dirFd);
+    } catch {
+      // best-effort
+    }
+    throw new GraceCommandError(
+      "invalid-project",
+      `Candidate ${projectRelative(root, bundlePath)} identity pin returned a non-directory; preserved.`,
+    );
+  }
+  // The handle is the first and only source of the pinned identity. The path check
+  // below runs after capture and only confirms the path still names the pinned object.
+  candidate.dev = pinned.dev;
+  candidate.ino = pinned.ino;
+  candidate.dirFd = dirFd;
+  let pathIdentity: ReturnType<typeof statSync>;
+  try {
+    pathIdentity = (io.statSync ?? statSync)(bundlePath);
+  } catch (error) {
+    try {
+      (io.closeSync ?? closeSync)(dirFd);
+    } catch {
+      // best-effort
+    }
+    candidate.dirFd = undefined;
+    throw new GraceCommandError(
+      "invalid-project",
+      `Candidate ${projectRelative(root, bundlePath)} identity path check failed (${(error as Error).message}); preserved.`,
+    );
+  }
+  if (!pathIdentity.isDirectory() || pathIdentity.dev !== pinned.dev || pathIdentity.ino !== pinned.ino) {
+    try {
+      (io.closeSync ?? closeSync)(dirFd);
+    } catch {
+      // best-effort
+    }
+    candidate.dirFd = undefined;
+    throw new GraceCommandError(
+      "invalid-project",
+      `Candidate ${projectRelative(root, bundlePath)} identity path check disagreed with the pinned handle; preserved.`,
+    );
+  }
   candidate.stage = "acquired";
   return candidate;
 }
@@ -210,6 +267,20 @@ function cleanupCandidateLocked(
   io: CandidateIo = {},
 ): { removed: boolean; diagnostic?: string } {
   const rel = acquired.path;
+  const closePin = (): void => {
+    if (acquired.dirFd !== undefined) {
+      try {
+        (io.closeSync ?? closeSync)(acquired.dirFd);
+      } catch {
+        // best-effort
+      }
+      acquired.dirFd = undefined;
+    }
+  };
+  try {
+  if (acquired.dirFd === undefined) {
+    return { removed: false, diagnostic: `candidate ${rel}: pin released or absent; unpinned comparison refused; preserved` };
+  }
   if (acquired.dev === undefined || acquired.ino === undefined) {
     return { removed: false, diagnostic: `candidate ${rel}: identity-pending record is not safely removable; preserved` };
   }
@@ -277,6 +348,9 @@ function cleanupCandidateLocked(
     return { removed: false, diagnostic: `candidate ${rel}: cleanup failed (${(error as Error).message}); preserved` };
   }
   return { removed: true };
+  } finally {
+    closePin();
+  }
 }
 
 let candidateCleanupObserverForTests:
@@ -303,6 +377,18 @@ export function cleanupCandidate(
   const result = withCandidateLock(root, changeId, () => cleanupCandidateLocked(acquired, io));
   candidateCleanupObserverForTests?.(result);
   return result;
+}
+
+/** Proto: idempotent release of an acquired candidate's identity pin. */
+export function releaseAcquiredCandidate(acquired: AcquiredCandidate, io: CandidateIo = {}): void {
+  if (acquired.dirFd !== undefined) {
+    try {
+      (io.closeSync ?? closeSync)(acquired.dirFd);
+    } catch {
+      // best-effort
+    }
+    acquired.dirFd = undefined;
+  }
 }
 
 function pauseForTestsIfRequested(): void {
@@ -346,8 +432,14 @@ function publishSpecNew(
   });
 }
 
-function writeSpecNew(root: string, changeId: string): string {
-  return publishSpecNew(root, changeId).relative;
+/**
+ * Standalone writer boundary: acquire, publish, then close the pin before returning.
+ * Exported and I/O-seamed so the release owner can be driven with a real captured handle.
+ */
+export function writeSpecNew(root: string, changeId: string, io: CandidateIo = {}): string {
+  const published = publishSpecNew(root, changeId, io);
+  releaseAcquiredCandidate(published.acquired, io);
+  return published.relative;
 }
 
 /** A bare human slug for a first mint; a `C-` prefixed argument is a hand-typed id. */
