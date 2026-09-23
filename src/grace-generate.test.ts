@@ -1368,7 +1368,7 @@ describe("pin identity and release (C-LINUX-VALIDATION-REPAIR-1-DE5A1A05)", () =
     try {
       symlinkSync(path.join(repoRoot, "node_modules"), path.join(worktree, "node_modules"));
       const root = createTempProject("prepin-cleanup-");
-      const dir = path.join(root, "candidate");
+      const dir = path.join(root, ARTIFACT_DIR, "changes", "active", "C-PREPIN");
       const modulePath = JSON.stringify(path.join(worktree, "src", "grace-generate.ts"));
       const runner = `import fs from "node:fs";\nimport { cleanupCandidate } from ${modulePath};\nconst dir = ${JSON.stringify(dir)};\nconst spec = dir + "/spec.xml";\nfs.mkdirSync(dir, { recursive: true });\nfs.writeFileSync(spec, "<ours />");\nconst st = fs.statSync(dir);\nfs.rmSync(dir, { recursive: true });\nfs.mkdirSync(dir, { recursive: true });\nfs.writeFileSync(spec, "<ours />");\nconst recreated = fs.statSync(dir);\nconst result = cleanupCandidate({ path: dir, markerPath: dir + "/.ngrace-mint-owner", specPath: spec, token: "t", expectedSpecBytes: "<ours />", stage: "spec-written", dev: st.dev, ino: st.ino });\nprocess.stdout.write(JSON.stringify({ removed: result.removed, specExists: fs.existsSync(spec), observedDev: st.dev, observedIno: st.ino, recreatedDev: recreated.dev, recreatedIno: recreated.ino }));`;
       const child = Bun.spawnSync({ cmd: [process.execPath, "-e", runner], cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
