@@ -56,10 +56,10 @@ jobs:
         run: bun run test src/artifact/paths.test.ts src/artifact/scope.test.ts src/artifact/assertions.test.ts src/lint/adapters/python.test.ts src/grace-cursor.test.ts src/artifact/grammar.test.ts
 
       - name: Run the platform-agnostic pin and Windows directory-pin regressions
-        run: bun run test src/grace-generate.test.ts -t "AC-PIN-ACQUISITION: an ordinary mint|AC-PIN-ACQUISITION: a forced open failure|AC-PIN-RELEASE: releaseAcquiredCandidate|AC-PIN-RELEASE-NO-LEAK|AC-PIN-RELEASE-LIFETIME|AC-PIN-RELEASE-API: successful writeSpecNew closes its record|AC-PIN-RELEASE-API: a publish failure closes the pin exactly once|AC-WINDOWS-DIRECTORY-PIN"
+        run: 'bun run test src/grace-generate.test.ts -t "AC-PIN-ACQUISITION: an ordinary mint|AC-PIN-ACQUISITION: a forced open failure|AC-PIN-RELEASE: releaseAcquiredCandidate|AC-PIN-RELEASE-NO-LEAK|AC-PIN-RELEASE-LIFETIME|AC-PIN-RELEASE-API: successful writeSpecNew closes its record|AC-PIN-RELEASE-API: a publish failure closes the pin exactly once|AC-WINDOWS-DIRECTORY-PIN"'
 
       - name: Run the implicit-supersede pin release regressions
-        run: bun run test src/grace-supersede.test.ts -t "AC-SUPERSEDE-PIN-RELEASE: a successful implicit mint|AC-SUPERSEDE-PIN-RELEASE: a post-mint failure removal|AC-SUPERSEDE-PIN-RELEASE: a post-mint refusal/residue|AC-SUPERSEDE-PIN-RELEASE: a pre-publication mint failure"
+        run: 'bun run test src/grace-supersede.test.ts -t "AC-SUPERSEDE-PIN-RELEASE: a successful implicit mint|AC-SUPERSEDE-PIN-RELEASE: a post-mint failure removal|AC-SUPERSEDE-PIN-RELEASE: a post-mint refusal/residue|AC-SUPERSEDE-PIN-RELEASE: a pre-publication mint failure"'
 
       - name: Run Windows CLI integration regressions
         run: bun run validate:cli

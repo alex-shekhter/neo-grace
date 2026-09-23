@@ -432,6 +432,7 @@ export function windowsPinInvocation(xml: string): string | undefined {
 describe("C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 Windows pin invocation guard", () => {
   it("the Windows job selects every required pin direction", () => {
     const xml = readFileSync(path.join(repoRoot, ".github/workflows/validate.yml"), "utf8");
+    expect(() => Bun.YAML.parse(xml), "the workflow must parse before Actions can run any job").not.toThrow();
     const invocation = windowsPinInvocation(xml);
     expect(invocation, "the Windows pin invocation exists").toBeDefined();
     for (const needle of [
