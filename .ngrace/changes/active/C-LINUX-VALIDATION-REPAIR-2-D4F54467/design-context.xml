@@ -1,0 +1,462 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-LINUX-VALIDATION-REPAIR-2-D4F54467</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    `stat` device/inode can be recycled after `unlink`, so a comparison of a recorded pair against a
+    re-read path cannot tell an object from a same-path replacement on a filesystem that recycles
+    inode numbers. The repair therefore pins identity to the opened object: open once, record the pair
+    with `fstat` of that handle, read the lock's ownership bytes from the same handle, and hold the
+    handle until the destructive call. An open handle keeps the observed inode allocated, so a
+    replacement cannot receive that number and the comparison becomes sound. `fstat` binding closes
+    the separate-path gap that let an implementation open one object and record another after a
+    rename, or read `readFileSync(path)` and `statSync(path)` from two different lock files.
+    When the handle cannot be obtained the operation preserves and refuses with a named diagnostic and
+    never substitutes the unpinned comparison, because that comparison is exactly the deletion the
+    Linux CI observed. The ordinary `spec new` mint and handled cleanup must still succeed on a
+    supported platform, Windows included; the Windows job is the only place a Windows platform claim
+    is taken from. All measurements in this document are dated 2026-09-23 and were taken on Linux with
+    Bun 1.3.14. The implementation authority independently confirmed in a separate disposable ext4
+    mount that unpinned file and directory replacements reused an inode 100/100 times each, versus
+    0/100 with the old object open. The successor additionally closes the release-owner gap:
+    `writeSpecNew` and the supersede transaction each discard a pinned candidate without releasing
+    it, so a long-running process leaks one descriptor per successful mint or transaction. The owner
+    probes below are prototype measurements, not proof that production has been repaired.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      **A `birthtime` secondary instead of a handle.** Record creation time beside device/inode.
+      Rejected: on filesystems with coarse or absent creation timestamps it cannot prove identity, so
+      the guard would be sound only where it is not needed.
+    </Alternative>
+    <Alternative>
+      **Fall back to the unpinned `dev`/`ino` comparison when the handle cannot be opened.** Rejected:
+      it reproduces the verified pre-pin deletion on ext4 and would delete another actor's object.
+    </Alternative>
+    <Alternative>
+      **A refusal-only Windows test.** Rejected by the authority: Windows is a supported CI platform,
+      so the platform-agnostic success and forced-failure tests must run there, and a run whose only
+      green is a refusal is not a pass.
+    </Alternative>
+    <Alternative>
+      **Release the pin before the final removal on every platform.** Rejected as the default: it
+      reopens the identity window on platforms that can remove an owned object while its handle is
+      open. It is permitted only as a last resort on a platform that cannot, closing the handle after
+      every ownership check and immediately before the destructive call, inside the archived
+      post-validation/pre-unlink boundary.
+    </Alternative>
+  </Alternatives>
+  <Scenarios>
+    <Scenario>
+      **Ext4 precondition and whole-population probe (2026-09-23, Linux, Bun 1.3.14).** A loopback
+      ext4 image is a precondition; XFS does not reproduce the recycling (0/100 and 0/200 measured),
+      so an XFS green is not ext4 evidence. Create and mount it:
+
+      sudo mkdir -p /var/mnt/ext4t
+      sudo dd if=/dev/zero of=/var/tmp/ext4.img bs=1M count=256
+      sudo mkfs.ext4 -q -F /var/tmp/ext4.img
+      sudo mount -o loop /var/tmp/ext4.img /var/mnt/ext4t
+      sudo chmod 777 /var/mnt/ext4t
+
+      Save the probe as `PROBE_DIR/inode-recycle-probe.mjs` (PROBE_DIR is its host directory) and run it with TMPDIR on the mount:
+
+      import fs from "node:fs";
+      import os from "node:os";
+      import path from "node:path";
+      const N = 300;
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "inode-probe-"));
+      const f = path.join(dir, "a");
+      function fileRound(pin) {
+        let recycled = 0;
+        for (let i = 0; i !== N; i += 1) {
+          fs.writeFileSync(f, "x");
+          let fd;
+          if (pin) { fd = fs.openSync(f, "r"); }
+          const ino = pin ? fs.fstatSync(fd).ino : fs.statSync(f).ino;
+          fs.unlinkSync(f);
+          fs.writeFileSync(f, "x");
+          if (fs.statSync(f).ino === ino) { recycled += 1; }
+          fs.unlinkSync(f);
+          if (pin) { fs.closeSync(fd); }
+        }
+        return recycled;
+      }
+      function dirRound(pin) {
+        let recycled = 0;
+        const d = path.join(dir, pin ? "cand-pin" : "cand");
+        for (let i = 0; i !== N; i += 1) {
+          fs.mkdirSync(d);
+          let fd;
+          if (pin) { fd = fs.openSync(d, "r"); }
+          const ino = pin ? fs.fstatSync(fd).ino : fs.statSync(d).ino;
+          fs.rmdirSync(d);
+          fs.mkdirSync(d);
+          if (fs.statSync(d).ino === ino) { recycled += 1; }
+          fs.rmdirSync(d);
+          if (pin) { fs.closeSync(fd); }
+        }
+        return recycled;
+      }
+      const report = {
+        n: N,
+        filesystem: fs.statfsSync(dir).type,
+        fileRecycledUnpinned: fileRound(false),
+        dirRecycledUnpinned: dirRound(false),
+        fileRecycledPinned: fileRound(true),
+        dirRecycledPinned: dirRound(true),
+      };
+      console.log(JSON.stringify(report));
+      fs.rmSync(dir, { recursive: true, force: true });
+
+      Command (mount the probe directory and the ext4 mount into the container):
+
+      podman run --rm --security-opt label=disable -v PROBE_DIR:/probes -v /var/mnt/ext4t:/ext4 -e TMPDIR=/ext4 docker.io/oven/bun:1.3.14 bun /probes/inode-recycle-probe.mjs
+
+      Observed output, exit 0:
+
+      {"n":300,"filesystem":61267,"fileRecycledUnpinned":300,"dirRecycledUnpinned":300,
+       "fileRecycledPinned":0,"dirRecycledPinned":0}
+
+      `filesystem` 61267 is 0xEF53 (ext4). Without a pin the file and the directory inode numbers
+      recycle in every case; with the handle held open they never do, which is the mechanism the
+      repair relies on.
+      Cleanup after the probe: `sudo umount /var/mnt/ext4t &amp;&amp; sudo rm /var/tmp/ext4.img`.
+    </Scenario>
+    <Scenario>
+      **Pre-pin red transcript (2026-09-23, Linux, Bun 1.3.14, TMPDIR on the ext4 mount, unmodified
+      tree `b53d13df47cdf8d85f75b33502c6ecd9e97ff262`).** Exit codes were read directly, not through a
+      pipe:
+
+      bun test --timeout=0 src/grace-generate.test.ts -t "same-path replacement is detected by inode"
+      EXIT=1
+      Expected: false
+      Received: true
+      (fail) candidate exclusive acquisition and bounded cleanup ... same-path replacement
+
+      bun test --timeout=0 src/grace-cursor.test.ts -t "same-bytes replacement inode"
+      EXIT=1
+      Expected: true
+      Received: false
+      (fail) candidate reclaim identity ... a same-bytes replacement inode is not unlinked
+
+      An instrumented replay of the reclaim fixture on ext4 shows the child unlinking the recycled
+      replacement and acquiring, exit 0:
+
+      REPORT {"staleDev":1792,"staleIno":17,"replacementIno":17,"inoRecycled":true,
+       "secondObserverFired":false,"bAcquired":true,
+       "childLog":["phase=observed observed=0 replaced=false",
+                   "phase=before-unlink observed=1 replaced=false","acquired-returned"],
+       "lockExistsAfter":false}
+
+      With the corrected pin, the same two tests pass on ext4 and `src/grace-generate.test.ts` runs
+      47 pass / 0 fail. The Windows platform has not been executed in this environment; its claim is
+      taken only from the `windows-compatibility` job.
+    </Scenario>
+    <Scenario>
+      **Release-owner probes (2026-09-23, Bun 1.4.2; disposable prototype `/private/tmp/ngrace-proto3`,
+      NOT production).** Four probes drive the release owners the predecessor's criteria did not. They
+      are recorded here because the figures expire; the normative criteria state only the relations.
+      The production tree carries the same unclosed shape at `src/grace-generate.ts:349-350`
+      (`writeSpecNew` returns `publishSpecNew(...).relative`, dropping the acquired record) and
+      `src/gates/ledger.ts:1696` (the minted record is captured), `:1709` (the transaction returns
+      after the rename), `:1734` (the post-mint-failure cleanup already calls `cleanupCandidate`).
+      Each probe's full source is inlined below and was rerun in that prototype. The only inputs are
+      repository support modules (`./src/artifact/test-fixtures`, `./src/test-support/fixtures`) plus
+      the prototype's pin API (`AcquiredCandidate.dirFd`, `releaseAcquiredCandidate`), which is the
+      disposable tree named above and is not yet in the production tree; the probe file, the command,
+      and the output are otherwise self-contained.
+
+      **(1) `spec new` / `writeSpecNew` success leaks one handle per mint.** An in-process series of
+      eight successful mints through `specCommand.subCommands.new.run({ args, rawArgs: [] })`, reading
+      `/dev/fd` after each. Save `scratch-specnew-fd-probe.ts`:
+
+      import { readdirSync } from "node:fs";
+      import { specCommand } from "./src/grace-generate";
+      import { createTempProject } from "./src/test-support/fixtures";
+
+      const root = createTempProject("pin-writer-probe-");
+      const counts: number[] = [];
+      for (let i = 0; i &lt; 8; i += 1) {
+        const timestamp = `2026-09-23T04:2${i}:00.000Z`;
+        await specCommand.subCommands!.new.run!({
+          args: { path: root, slug: `PROBE${i}`, timestamp, branch: "probe" },
+          rawArgs: [],
+        } as never);
+        counts.push(readdirSync("/dev/fd").length);
+      }
+      process.stdout.write(`${JSON.stringify({ mints: 8, fdCounts: counts })}\n`);
+
+      Run it:
+
+      bun run scratch-specnew-fd-probe.ts
+      {"mints":8,"fdCounts":[7,8,9,10,11,12,13,14]}
+      EXIT=0
+
+      The probe prints the whole `/dev/fd` series and asserts nothing; the relation — one descriptor
+      per mint, not flat — is read from the printed series. The repaired tree must keep the count
+      flat.
+
+      **(2) Supersede success leaks its minted record.** Save `scratch-supersede-fd-probe.test.ts`:
+
+      import { existsSync, fstatSync, mkdtempSync, rmSync } from "node:fs";
+      import os from "node:os";
+      import path from "node:path";
+      import { test, expect } from "bun:test";
+
+      import { writeChangeBundleFixture, writeMinimalNgraceProject } from "./src/artifact/test-fixtures";
+      import { mintResolvedBundle, type AcquiredCandidate, type ResolvedSpecMint } from "./src/grace-generate";
+      import { supersedeChangeBundle } from "./src/gates/ledger";
+
+      test("probe: supersede success does not release the minted record", () =&gt; {
+        const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-supersede-probe-"));
+        try {
+          writeMinimalNgraceProject(root);
+          writeChangeBundleFixture(root, { changeId: "C-PROBE-1", location: "active", specStatus: "draft", planStatus: "draft" });
+          const resolved: ResolvedSpecMint = {
+            id: "C-PROBE-2-ABCDEF12",
+            slug: "C-PROBE",
+            lineage: 2,
+            hash: "ABCDEF12",
+            branch: "probe",
+            timestamp: "2026-09-23T04:21:00.000Z",
+          };
+          let captured: AcquiredCandidate | undefined;
+          let threw = false;
+          let message = "";
+          try {
+            supersedeChangeBundle(root, "C-PROBE-1", {
+              kind: "mint",
+              id: resolved.id,
+              mint: () =&gt; {
+                const acquired = mintResolvedBundle(root, resolved).acquired;
+                captured = acquired;
+                return acquired;
+              },
+            });
+          } catch (error) {
+            threw = true;
+            message = String((error as Error).message);
+          }
+          let fdOpenAfterTransaction = false;
+          if (captured?.dirFd !== undefined) {
+            try {
+              fstatSync(captured.dirFd);
+              fdOpenAfterTransaction = true;
+            } catch {
+              fdOpenAfterTransaction = false;
+            }
+          }
+          const report = {
+            success: !threw,
+            message,
+            successorArchived: existsSync(path.join(root, ".ngrace", "changes", "archive", "C-PROBE-1")),
+            successorActive: existsSync(path.join(root, ".ngrace", "changes", "active", resolved.id)),
+            fdCaptured: captured?.dirFd !== undefined,
+            fdOpenAfterTransaction,
+          };
+          process.stdout.write(`${JSON.stringify(report)}\n`);
+          expect(report.success).toBe(true);
+        } finally {
+          rmSync(root, { recursive: true, force: true });
+        }
+      });
+
+      Run it:
+
+      bun test --timeout=0 scratch-supersede-fd-probe.test.ts
+      {"success":true,"message":"","successorArchived":true,"successorActive":true,
+       "fdCaptured":true,"fdOpenAfterTransaction":true}
+      EXIT=0
+
+      The probe asserts `report.success` (the transaction returned without throwing, driven by
+      `expect(report.success).toBe(true)`); `message`, `successorArchived`, `successorActive`,
+      `fdCaptured`, and `fdOpenAfterTransaction` are printed, not asserted — the still-open captured
+      descriptor is the leak witness recorded here.
+
+      **(3) Supersede post-mint failure already closes exactly once.** Save
+      `scratch-supersede-fail-probe.test.ts`:
+
+      import { closeSync, existsSync, fstatSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+      import os from "node:os";
+      import path from "node:path";
+      import { test, expect } from "bun:test";
+
+      import { writeChangeBundleFixture, writeMinimalNgraceProject } from "./src/artifact/test-fixtures";
+      import { mintResolvedBundle, type ResolvedSpecMint } from "./src/grace-generate";
+      import { supersedeChangeBundle } from "./src/gates/ledger";
+
+      test("probe: supersede post-mint failure invokes cleanup and closes the pin exactly once", () =&gt; {
+        const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-supersede-fail-probe-"));
+        try {
+          writeMinimalNgraceProject(root);
+          writeChangeBundleFixture(root, { changeId: "C-PROBEF-1", location: "active", specStatus: "draft", planStatus: "draft" });
+          const resolved: ResolvedSpecMint = { id: "C-PROBEF-2-ABCDEF12", slug: "C-PROBEF", lineage: 2, hash: "ABCDEF12", branch: "probe", timestamp: "2026-09-23T04:21:00.000Z" };
+          let mintedFd: number | undefined;
+          let closeCalls = 0;
+          const cleanupOutcomes: { removed: boolean; diagnostic?: string }[] = [];
+          let threw = false;
+          try {
+            supersedeChangeBundle(
+              root,
+              "C-PROBEF-1",
+              {
+                kind: "mint",
+                id: resolved.id,
+                mint: () =&gt; {
+                  const acquired = mintResolvedBundle(root, resolved).acquired;
+                  mintedFd = acquired.dirFd;
+                  return acquired;
+                },
+              },
+              {
+                writeFileSync: (() =&gt; {
+                  throw new Error("injected post-mint spec write failure");
+                }) as typeof writeFileSync,
+                closeSync: ((fd: number) =&gt; {
+                  closeCalls += 1;
+                  return closeSync(fd);
+                }) as typeof closeSync,
+                observeCleanupForTests: (outcome) =&gt; cleanupOutcomes.push(outcome),
+              },
+            );
+          } catch {
+            threw = true;
+          }
+          let fdOpenAfterTransaction = false;
+          if (mintedFd !== undefined) {
+            try {
+              fstatSync(mintedFd);
+              fdOpenAfterTransaction = true;
+            } catch {
+              fdOpenAfterTransaction = false;
+            }
+          }
+          const report = {
+            threw,
+            cleanupCalls: cleanupOutcomes.length,
+            cleanupOutcome: cleanupOutcomes[0] ?? null,
+            fdCaptured: mintedFd !== undefined,
+            closeCalls,
+            fdOpenAfterTransaction,
+            successorActive: existsSync(path.join(root, ".ngrace", "changes", "active", resolved.id)),
+            predecessorActive: existsSync(path.join(root, ".ngrace", "changes", "active", "C-PROBEF-1")),
+          };
+          process.stdout.write(`${JSON.stringify(report)}\n`);
+          expect(report.threw).toBe(true);
+          expect(closeCalls).toBe(1);
+          expect(fdOpenAfterTransaction).toBe(false);
+        } finally {
+          rmSync(root, { recursive: true, force: true });
+        }
+      });
+
+      Run it:
+
+      bun test --timeout=0 scratch-supersede-fail-probe.test.ts
+      {"threw":true,"cleanupCalls":1,"cleanupOutcome":{"removed":true},"fdCaptured":true,
+       "closeCalls":1,"fdOpenAfterTransaction":false,"successorActive":false,
+       "predecessorActive":true}
+      EXIT=0
+
+      The probe asserts the thrown transaction (`report.threw`), exactly one close (`closeCalls`), and
+      a closed descriptor (`fdOpenAfterTransaction` false); it prints the cleanup outcome.
+
+      **(4) Supersede post-mint refusal/residue already closes exactly once.** The same probe with a
+      foreign file written into the candidate by the mint callback. Save
+      `scratch-supersede-residue-probe.test.ts`:
+
+      import { closeSync, existsSync, fstatSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+      import os from "node:os";
+      import path from "node:path";
+      import { test, expect } from "bun:test";
+
+      import { writeChangeBundleFixture, writeMinimalNgraceProject } from "./src/artifact/test-fixtures";
+      import { mintResolvedBundle, type ResolvedSpecMint } from "./src/grace-generate";
+      import { supersedeChangeBundle } from "./src/gates/ledger";
+
+      test("probe: supersede post-mint refusal/residue still closes the pin exactly once", () =&gt; {
+        const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-supersede-residue-probe-"));
+        try {
+          writeMinimalNgraceProject(root);
+          writeChangeBundleFixture(root, { changeId: "C-PROBER-1", location: "active", specStatus: "draft", planStatus: "draft" });
+          const resolved: ResolvedSpecMint = {
+            id: "C-PROBER-2-ABCDEF12",
+            slug: "C-PROBER",
+            lineage: 2,
+            hash: "ABCDEF12",
+            branch: "probe",
+            timestamp: "2026-09-23T04:21:00.000Z",
+          };
+          let mintedFd: number | undefined;
+          let closeCalls = 0;
+          const cleanupOutcomes: { removed: boolean; diagnostic?: string }[] = [];
+          let threw = false;
+          try {
+            supersedeChangeBundle(
+              root,
+              "C-PROBER-1",
+              {
+                kind: "mint",
+                id: resolved.id,
+                mint: () =&gt; {
+                  const acquired = mintResolvedBundle(root, resolved).acquired;
+                  mintedFd = acquired.dirFd;
+                  // A foreign entry forces cleanupCandidate to preserve-and-refuse.
+                  writeFileSync(path.join(root, ".ngrace", "changes", "active", resolved.id, "foreign.txt"), "FOREIGN");
+                  return acquired;
+                },
+              },
+              {
+                writeFileSync: (() =&gt; {
+                  throw new Error("injected post-mint spec write failure");
+                }) as typeof writeFileSync,
+                closeSync: ((fd: number) =&gt; {
+                  closeCalls += 1;
+                  return closeSync(fd);
+                }) as typeof closeSync,
+                observeCleanupForTests: (outcome) =&gt; cleanupOutcomes.push(outcome),
+              },
+            );
+          } catch {
+            threw = true;
+          }
+          let fdOpenAfterTransaction = false;
+          if (mintedFd !== undefined) {
+            try {
+              fstatSync(mintedFd);
+              fdOpenAfterTransaction = true;
+            } catch {
+              fdOpenAfterTransaction = false;
+            }
+          }
+          const report = {
+            threw,
+            cleanupCalls: cleanupOutcomes.length,
+            cleanupOutcome: cleanupOutcomes[0] ?? null,
+            closeCalls,
+            fdOpenAfterTransaction,
+            successorActive: existsSync(path.join(root, ".ngrace", "changes", "active", resolved.id)),
+          };
+          process.stdout.write(`${JSON.stringify(report)}\n`);
+          expect(report.threw).toBe(true);
+          expect(closeCalls).toBe(1);
+          expect(fdOpenAfterTransaction).toBe(false);
+        } finally {
+          rmSync(root, { recursive: true, force: true });
+        }
+      });
+
+      Run it:
+
+      bun test --timeout=0 scratch-supersede-residue-probe.test.ts
+      {"threw":true,"cleanupCalls":1,"cleanupOutcome":{"removed":false,"diagnostic":"candidate …:
+       foreign entry foreign.txt; preserved"},"closeCalls":1,"fdOpenAfterTransaction":false,
+       "successorActive":true}
+      EXIT=0
+
+      The probe asserts the thrown transaction, exactly one close, and a closed descriptor; it prints
+      the refusal outcome (`removed` false, preserved residue) and that the successor directory stays.
+      The `…` elides the per-run `mkdtempSync` path; every other byte is the probe's output. Both
+      failure branches close the pin exactly once, and the successor criteria keep it that way.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>

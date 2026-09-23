@@ -1,5 +1,5 @@
 <NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-LINUX-VALIDATION-REPAIR-1-DE5A1A05>
+  <C-LINUX-VALIDATION-REPAIR-2-D4F54467>
     <Summary>
       PR #117's Linux `validate` job fails at `bun run test:metrics` with three failures. Two are one
       product defect: `cleanupCandidate` (`src/grace-generate.ts`) and `reclaimCandidateLock`
@@ -14,7 +14,10 @@
       pin acquisition genuinely fails the operation preserves and refuses with a named diagnostic and
       never falls back to unpinned `dev`/`ino`. It adds the reclaim-fixture diagnostics, a Windows
       regression catch, a documented refusal, and full history in the `validate` checkout behind a
-      static guard.
+      static guard. **This successor is the lineage continuation of the approved
+      `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05`:** it preserves every predecessor requirement and adds
+      the supersede transaction's release owner in `src/gates/ledger.ts` (`LINKS: M-GATES`) and the
+      owner-by-owner handle evidence that the predecessor's approved scope and criteria omitted.
     </Summary>
     <Goals>
       <Goal>
@@ -44,9 +47,13 @@
         refusal.
       </Goal>
       <Goal>
-        **Handle ownership is an API.** A named release capability closes the pin exactly once on every
-        branch; a returned candidate is never silently invalidated; cleanup after explicit release is
-        validly refused and named.
+        **Handle ownership is an API, and every release owner is exercised.** A named release
+        capability closes the pin exactly once on every branch; a returned candidate is never silently
+        invalidated; cleanup after explicit release is validly refused and named. `writeSpecNew`
+        closes its successful record before returning, and the supersede transaction in
+        `src/gates/ledger.ts` closes its minted record before returning on success and through
+        `cleanupCandidate` on failure. Owner evidence is taken from real handles, never a source
+        regex.
       </Goal>
       <Goal>
         **The reclaim fixture reports its own child and a Windows regression is caught.** A timed-out
@@ -62,8 +69,9 @@
     </Goals>
     <Constraints>
       <Constraint>
-        **Ceremony tier T2 (cross-cutting).** Two production modules with distinct owners
-        (`M-CLI`, `M-CURSOR`) plus a CI configuration surface. T2 deepens sections; it changes no gate.
+        **Ceremony tier T2 (cross-cutting).** Three production modules with distinct owners
+        (`M-CLI`, `M-CURSOR`, `M-GATES`) plus a CI configuration surface. T2 deepens sections; it
+        changes no gate.
       </Constraint>
       <Constraint>
         **Measured base, re-measured at close.** The measured base commit is
@@ -98,15 +106,26 @@
         **Handle ownership is a named API.** `releaseAcquiredCandidate(candidate)` is exported from
         `src/grace-generate.ts` and closes the pin exactly once (idempotent; a second call is a safe
         no-op). `cleanupCandidate` also closes the pin exactly once on every return path, success or
-        refusal. Owners: `publishSpecNew` closes on its failure path through `cleanupCandidate`;
-        `writeSpecNew` releases its successful record; `mintBundle` / `mintResolvedBundle` return the
-        record, and the supersede transaction releases it after a successful transaction and lets
-        `cleanupCandidate` close it on a failed one. An external caller receiving a published record
-        may call `cleanupCandidate` later or call `releaseAcquiredCandidate`; neither leaks. A returned
-        record is never silently invalidated. Because a released record has no pin, `cleanupCandidate`
+        refusal. Owners, each discriminated by its own real-handle evidence:
+        `publishSpecNew` closes on its failure path through `cleanupCandidate`; `writeSpecNew`
+        closes its successful record before returning (an in-process repeated-run handle count is
+        flat); `mintBundle` / `mintResolvedBundle` return the record with the pin still held, and an
+        external caller either cleans it later or calls `releaseAcquiredCandidate`; the supersede
+        transaction in `src/gates/ledger.ts` closes its minted record before returning on success
+        and lets `cleanupCandidate` close it on a failed one. An external caller receiving a published
+        record may call `cleanupCandidate` later or call `releaseAcquiredCandidate`; neither leaks. A
+        returned record is never silently invalidated. Because a released record has no pin, `cleanupCandidate`
         on an already-released record must **refuse safely** with a named diagnostic
         (`removed === false`, every byte preserved) and must not fall back to the unpinned comparison.
         No path may leave a pin open across a completed transaction.
+      </Constraint>
+      <Constraint>
+        **Release owners are discriminated with real handles, and the archived boundary is not
+        widened.** Each release owner is verified with a real handle check — `fstatSync` on the
+        captured descriptor after the owner boundary, the process descriptor relation on Linux, and
+        bytes/ownership checks — never a source-regex-only guard. The `src/gates/ledger.ts`
+        transaction uses the same post-validation/pre-unlink boundary as `AC-CLEANUP-BOUNDED`; this
+        bundle widens nothing.
       </Constraint>
       <Constraint>
         **Supported-writer boundary is the archived one, restated rather than widened.**
@@ -136,22 +155,33 @@
         handle must support an ordinary mint and a handled cleanup that removes the owned directory
         while the pin is held (or the implementation closes the handle only at the last ownership
         check, per the boundary above). The platform-agnostic tests in
-        `AC-PIN-SUCCESS-AND-REFUSAL`, `AC-PIN-RELEASE-API`, and `AC-PIN-RELEASE-NO-LEAK` are added to
-        the `windows-compatibility` job list and must pass there; `AC-WINDOWS-DIRECTORY-PIN` records
-        that the platform claim is taken from that job's Actions outcome and from nowhere else. If the
-        handle mechanism cannot support ordinary Windows success, the executor stops at the
+        `AC-PIN-SUCCESS-AND-REFUSAL`, `AC-PIN-RELEASE-API`, `AC-PIN-RELEASE-NO-LEAK`, and
+        `AC-SUPERSEDE-PIN-RELEASE` are added to the `windows-compatibility` job and must pass there.
+        The `src/grace-generate.test.ts` directions are one filtered invocation that selects every
+        `AC-PIN-RELEASE-API` owner direction; the new supersede owner tests in
+        `src/grace-supersede.test.ts` are selected by a **separate filtered** invocation of that file,
+        keyed on the `AC-SUPERSEDE-PIN-RELEASE` title prefix (that file's other tests carry platform
+        assumptions and the file is not added whole). Each filtered invocation must select and
+        execute a nonzero count, and a static guard reads that step's own `run:` line in
+        `.github/workflows/validate.yml` and reddens when the selector is removed.
+        `AC-WINDOWS-DIRECTORY-PIN` records that the platform claim is taken from that job's Actions
+        outcome for the exact candidate head SHA and from nowhere else. If the handle mechanism cannot
+        support ordinary Windows success or the supersede owner checks, the executor stops at the
         independent-review boundary and reports the measured evidence; a permanent Windows limitation
         is never shipped by inference.
       </Constraint>
       <Constraint>
         **Every forced write path, in one list.** The bundle's forced paths are exactly:
-        `src/grace-generate.ts`, `src/grace-cursor.ts`, `src/grace-generate.test.ts`,
-        `src/grace-cursor.test.ts`, `.github/workflows/validate.yml`,
-        `scripts/audit-regressions.test.ts`, and `README.md`. `src/grace-generate.ts`
-        (`LINKS: M-CLI`) and `src/grace-cursor.ts` (`LINKS: M-CURSOR`) are the production anchors; the
-        two test files are under `src/` but are not module-ownable; the workflow, script, and
-        `README.md` are not under `src/`, so no test/workflow/README graph anchor is inferred and
-        `M-RELEASE-AUTOMATION` is **not** forced (none of its linked files is written).
+        `src/grace-generate.ts`, `src/grace-cursor.ts`, `src/gates/ledger.ts`,
+        `src/grace-generate.test.ts`, `src/grace-cursor.test.ts`, `src/grace-supersede.test.ts`,
+        `.github/workflows/validate.yml`, `scripts/audit-regressions.test.ts`, and `README.md`.
+        `src/grace-generate.ts` (`LINKS: M-CLI`), `src/grace-cursor.ts` (`LINKS: M-CURSOR`), and
+        `src/gates/ledger.ts` (`LINKS: M-GATES`) are the production anchors; the three test files are
+        under `src/` but are not module-ownable; the workflow, script, and `README.md` are not under
+        `src/`, so no test/workflow/README graph anchor is inferred and `M-RELEASE-AUTOMATION` is
+        **not** forced (none of its linked files is written). The predecessor fixed seven paths and
+        omitted `src/gates/ledger.ts`; the successor adds it plus `src/grace-supersede.test.ts` for
+        the transaction owner.
       </Constraint>
       <Constraint>
         **The plan's full-CI command is the close gate.** The plan's `MustPassCommand` is
@@ -166,9 +196,11 @@
       </Constraint>
       <Constraint>
         **Scope declaration excludes the bundle's own identity-skipped artifacts.** The plan's
-        `ObservedWriteScope` lists the seven forced paths and must **not** list this bundle's own
+        `ObservedWriteScope` lists the nine forced paths and must **not** list this bundle's own
         `spec.xml`, `plan.xml`, `design-context.xml`, or `run/`, `run.xml`, `run-ledger.xml` paths
         (review identity-skips the first three; the shipped lifecycle exclusion governs the rest).
+        The plan's `DurableScope` names `M-CLI`, `M-CURSOR`, and `M-GATES`, with `V-M-CLI`,
+        `V-M-CURSOR`, and `V-M-GATES` under `VerificationAnchors`.
       </Constraint>
       <Constraint>
         **Durable reproduction lives in `design-context.xml`.** The ext4 precondition, its date, the
@@ -281,25 +313,49 @@
         <CloseEvidence><Command>bun test --timeout=0 src/grace-generate.test.ts</Command></CloseEvidence>
       </AC-PIN-SUCCESS-AND-REFUSAL>
       <AC-PIN-RELEASE-API>
-        The release capability is named and exercised. `releaseAcquiredCandidate(candidate)` is
-        exported; it closes the pin exactly once and a second call is a safe no-op. Each owner is
-        driven: `writeSpecNew` releases its successful record; a successful supersede transaction
-        releases its minted record; a failed one closes through `cleanupCandidate`; and an external
-        caller's published record is cleaned later successfully. `cleanupCandidate` on an
-        already-released record **refuses safely**: `removed === false`, every byte preserved, and a
-        diagnostic naming the record as released; it does not fall back to the unpinned comparison.
-        Closure is exactly once on every branch, including the refusal paths.
+        The release capability is named and every non-transaction owner is discriminated.
+        `releaseAcquiredCandidate(candidate)` is exported; it closes the pin exactly once and a second
+        call is a safe no-op. **(a) Ordinary `spec new` / `writeSpecNew` success:** the pin is closed
+        before the writer returns — an in-process series of repeated successful mints leaves the
+        process's open-handle count flat, not one handle per mint. **(b) External
+        `mintResolvedBundle` return:** the returned record is still pinned; it detects a same-path
+        directory replacement at `cleanupCandidate` time, and the caller may instead call
+        `releaseAcquiredCandidate`. **(c) Publish failure:** the failure path closes through
+        `cleanupCandidate` exactly once. **(d) Already-released record:** `cleanupCandidate` on an
+        already-released record **refuses safely** — `removed === false`, every byte preserved, and a
+        diagnostic naming the record as released — and does not fall back to the unpinned comparison.
+        Each direction is asserted with a real handle check (`fstatSync` on the captured descriptor
+        after the boundary) or a bytes/ownership check, not a source regex; closure is exactly once
+        on every branch, including the refusal paths. The owner tests carry the `AC-PIN-RELEASE-API`
+        title prefix so the `windows-compatibility` job can select them as one filtered invocation;
+        the supersede transaction owner is `AC-SUPERSEDE-PIN-RELEASE`.
         <CloseEvidence><Command>bun test --timeout=0 src/grace-generate.test.ts</Command></CloseEvidence>
       </AC-PIN-RELEASE-API>
+      <AC-SUPERSEDE-PIN-RELEASE>
+        The supersede transaction in `src/gates/ledger.ts` releases its minted candidate exactly once
+        on every branch, proven with a real handle. **Success:** the implicit-mint transaction returns
+        with the minted record's descriptor closed — `fstatSync` on the captured descriptor throws
+        after the transaction boundary. **Post-mint failure:** a failure after the mint returned an
+        ownership record invokes `cleanupCandidate` exactly once, which closes the descriptor, and the
+        transaction surfaces the refusal or residue without a second close. **Pre-publication mint
+        failure:** the inner publisher's own cleanup closes the record and the outer transaction
+        observes no returned record. The owner tests carry the `AC-SUPERSEDE-PIN-RELEASE` title
+        prefix, are driven in the `windows-compatibility` job through the filtered invocation
+        required by `AC-WINDOWS-DIRECTORY-PIN`, and keep the archived post-validation/pre-unlink
+        boundary; the checks are real handles and bytes/ownership, not a source regex, and this bundle
+        widens nothing.
+        <CloseEvidence><Command>bun test --timeout=0 src/grace-supersede.test.ts</Command></CloseEvidence>
+      </AC-SUPERSEDE-PIN-RELEASE>
       <AC-PIN-RELEASE-NO-LEAK>
         The pin is never leaked in a long-running process. Drive repeated acquire→publish→release
-        cycles and acquire→fail→cleanup cycles; on Linux the process's open-descriptor count (read
-        from `/proc/self/fd`) returns to its baseline within the run and does not grow with the cycle
-        count, and the criterion names that the count is skipped with a reason on a platform without
-        `/proc/self/fd`. A returned published candidate that is later passed to `cleanupCandidate`
-        still detects a same-path replacement, proving the pin was still held at cleanup time and was
-        not silently invalidated by return. The cycle count is not pinned; the relation (count does
-        not grow with the cycle count) is asserted.
+        cycles — including in-process repeated `writeSpecNew` / `spec new` calls, whose open-handle
+        count is flat rather than one handle per mint — and acquire→fail→cleanup cycles; on Linux the
+        process's open-descriptor count (read from `/proc/self/fd`) returns to its baseline within
+        the run and does not grow with the cycle count, and the criterion names that the count is
+        skipped with a reason on a platform without `/proc/self/fd`. A returned published candidate
+        that is later passed to `cleanupCandidate` still detects a same-path replacement, proving the
+        pin was still held at cleanup time and was not silently invalidated by return. The cycle
+        count is not pinned; the relation (count does not grow with the cycle count) is asserted.
         <CloseEvidence><Command>bun test --timeout=0 src/grace-generate.test.ts src/grace-cursor.test.ts</Command></CloseEvidence>
       </AC-PIN-RELEASE-NO-LEAK>
       <AC-README-REFUSAL>
@@ -310,15 +366,23 @@
         <CloseEvidence><Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command></CloseEvidence>
       </AC-README-REFUSAL>
       <AC-WINDOWS-DIRECTORY-PIN>
-        The platform-agnostic tests of `AC-PIN-SUCCESS-AND-REFUSAL`, `AC-PIN-RELEASE-API`, and
-        `AC-PIN-RELEASE-NO-LEAK` are added to the `windows-compatibility` job's test list and pass in
-        that job: an ordinary Windows mint succeeds with the pin, a handled cleanup removes the owned
-        directory (or closes the handle only at the last ownership check, per the boundary
-        Constraint), and the forced-acquisition failure refuses with preserved bytes. The evidence for
-        a Windows platform claim is that job's Actions outcome; Linux or macOS green is **not**
-        Windows evidence, and a refusal-only Windows test is not a pass. If ordinary Windows success
-        cannot be achieved with the handle mechanism, the result is a stop-and-report, not a shipped
-        limitation.
+        The platform-agnostic tests of `AC-PIN-SUCCESS-AND-REFUSAL`, `AC-PIN-RELEASE-API`,
+        `AC-PIN-RELEASE-NO-LEAK`, and `AC-SUPERSEDE-PIN-RELEASE` are added to the
+        `windows-compatibility` job's test list and pass in that job: an ordinary Windows mint
+        succeeds with the pin, a handled cleanup removes the owned directory (or closes the handle
+        only at the last ownership check, per the boundary Constraint), the forced-acquisition failure
+        refuses with preserved bytes, and the supersede transaction's success and post-mint-failure
+        (removal and refusal/residue) owner checks close the minted record's descriptor exactly once.
+        One filtered invocation of `src/grace-generate.test.ts` selects the pin criteria
+        (`AC-PIN-SUCCESS-AND-REFUSAL`, `AC-PIN-RELEASE-API`, `AC-PIN-RELEASE-NO-LEAK`) including every
+        `AC-PIN-RELEASE-API` owner direction; a second filtered invocation of
+        `src/grace-supersede.test.ts` selects the `AC-SUPERSEDE-PIN-RELEASE` owners. Each reports a
+        nonzero executed count; the whole `grace-supersede` file is **not** added, because its other
+        tests carry platform assumptions. The evidence for a
+        Windows platform claim is that job's Actions outcome for the exact candidate head SHA; Linux
+        or macOS green is **not** Windows evidence, and a refusal-only Windows test is not a pass. If
+        ordinary Windows success or a supersede owner check cannot be achieved with the handle
+        mechanism, the result is a stop-and-report, not a shipped limitation.
       </AC-WINDOWS-DIRECTORY-PIN>
       <AC-WORKFLOW-FULL-HISTORY>
         The `validate` job in `.github/workflows/validate.yml` checks out with `fetch-depth: 0`, so the
@@ -354,6 +418,7 @@
     <AffectedAreas>
       <M-CLI />
       <M-CURSOR />
+      <M-GATES />
     </AffectedAreas>
     <VerificationIntent>
       <ExpectedCommand>bun run validate:ci</ExpectedCommand>
@@ -366,11 +431,35 @@
         ext4 evidence. The durable reproduction — ext4 precondition, date, complete probe, and raw
         transcript — is in `design-context.xml`. The checkout-depth failure is shown by a `--depth 1`
         clone of the branch whose `git worktree add --detach ... 6dd1d95` exits 128
-        `fatal: invalid reference`; after `git fetch --unshallow` the same control exits 0. Windows
-        evidence is taken only from the `windows-compatibility` job's Actions outcome.
+        `fatal: invalid reference`; after `git fetch --unshallow` the same control exits 0. The
+        release-owner evidence is taken from real handles: an in-process `spec new` series, a
+        `mintResolvedBundle` returned record, and the `src/gates/ledger.ts` supersede transaction on
+        both its success and post-mint-failure branches, with `fstatSync` after each owner boundary
+        and the Linux descriptor relation. The raw owner probe commands and outputs are recorded in
+        `design-context.xml` with their prototype provenance. The `M-GATES` module and its `V-M-GATES`
+        verification anchor cover the transaction owner; the plan's `DurableScope` names them beside
+        `M-CLI`/`M-CURSOR`. Windows evidence is taken only from the `windows-compatibility` job's
+        Actions outcome for the exact candidate head SHA, covering both the
+        `src/grace-generate.test.ts` pin directions and the filtered `src/grace-supersede.test.ts`
+        `AC-SUPERSEDE-PIN-RELEASE` owners.
       </ExpectedEvidence>
     </VerificationIntent>
     <Problem>
+      **Lineage.** This bundle succeeds the approved `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05`
+      (archived, `status="superseded"`), which is superseded because its approved scope fixed exactly
+      seven write paths and named only `M-CLI` and `M-CURSOR`, omitting `src/gates/ledger.ts`
+      (`LINKS: M-GATES`), where the supersede transaction owns a minted candidate; and because its
+      criteria did not discriminate every release owner. An approved artifact is immutable, so the
+      repair is a successor. The three PR-validation failures below are copied from the predecessor
+      unchanged.
+      **Successor defect — unclosed release owners.** The approved predecessor covered the
+      candidate-directory and candidate-lock owners but not the supersede transaction owner. Measured
+      on the disposable prototype: `writeSpecNew` discards the published record without releasing its
+      pin, so each successful `spec new` leaks one descriptor; the `supersedeChangeBundle` success
+      path captures the implicitly minted record and returns without releasing it. The failure path
+      already closes through `cleanupCandidate` and must keep doing so. The raw probe commands and
+      outputs, with their prototype provenance, are in `design-context.xml`; the production tree
+      carries the same unclosed shape.
       GitHub Actions run `35796125320`, job `validate` on Ubuntu 24.04/Bun 1.3.14, failed during
       `bun run validate:ci` → `bun run test:metrics` at `2366 pass, 3 skip, 3 fail`; the later
       validation commands did not run. The `windows-compatibility` and `dart-adapter` jobs passed.
@@ -401,8 +490,10 @@
         The `validate` job is the only CI job that runs `src/grace-generate.test.ts`; the
         `windows-compatibility` job runs `src/grace-cursor.test.ts` and the `dart-adapter` job runs the
         Dart adapter. Adding the platform-agnostic pin tests to the `windows-compatibility` job is the
-        Windows catch. If that file has pre-existing Windows failures, the plan measures them and
-        narrows the added tests rather than widening the job silently.
+        Windows catch, and the new `src/grace-supersede.test.ts` owner checks ride the same job through
+        a narrowed, filtered invocation because that file's other tests carry platform assumptions. If
+        either file has pre-existing Windows failures, the plan measures them and narrows the added
+        tests rather than widening the job silently.
       </Assumption>
       <Assumption>
         Pinning makes `dev`/`ino` sound because an open handle keeps the recorded inode allocated, so a
@@ -433,5 +524,5 @@
         approval.
       </Clarification>
     </Clarifications>
-  </C-LINUX-VALIDATION-REPAIR-1-DE5A1A05>
+  </C-LINUX-VALIDATION-REPAIR-2-D4F54467>
 </NgraceChangeSpec>

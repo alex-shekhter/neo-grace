@@ -1,0 +1,350 @@
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-LINUX-VALIDATION-REPAIR-1-DE5A1A05><Replacement>C-LINUX-VALIDATION-REPAIR-2-D4F54467</Replacement>
+    <IntentSummary>
+      **This T2 plan converts the approved `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05` spec into three sequential tasks plus the close.** The durable modules are exactly `M-CLI` and `M-CURSOR`; the verification anchors are their `V-M-*` entries. `ObservedWriteScope` is exactly the spec's seven forced paths (`src/grace-generate.ts`, `src/grace-cursor.ts`, `src/grace-generate.test.ts`, `src/grace-cursor.test.ts`, `.github/workflows/validate.yml`, `scripts/audit-regressions.test.ts`, `README.md`), with no globs and no bundle lifecycle path; the close writes no record file because this bundle pays no finding, so no `docs/plans/active/RM-GOVERNED-PATH/` path is in scope.
+
+      **Execution is sequential: T-001 → T-002 → T-003.** T-001 binds candidate-lock identity to a handle pinned to the observed lock in `src/grace-cursor.ts` and extends `src/grace-cursor.test.ts` with the recycled-identity discriminator, the pre-pin `b53d13df47cdf8d85f75b33502c6ecd9e97ff262` control, and the timeout diagnostic. T-002 binds candidate-directory identity to a handle pinned to the acquired directory in `src/grace-generate.ts`, makes acquisition fail-closed, adds the exported idempotent `releaseAcquiredCandidate` API, and extends `src/grace-generate.test.ts` with the distinct/recycled cleanup probes, the ordinary-success and forced-failure directions, the release semantics, the returned-published-record same-path-replacement probe, and the descriptor-lifetime relation driven over both acquire→publish→release and post-open-failure cycles. T-003 restores full history to the `validate` checkout, adds the platform-agnostic pin tests (including the returned-record probe and the lifetime test) to the `windows-compatibility` job with the Windows-conditional directory-removal test, adds the two static guards in `scripts/audit-regressions.test.ts`, and lands the `README.md` sentence; it is the only task that carries `Satisfies`.
+
+      **Criterion mapping.** All thirteen close-bound criteria (`AC-CLEANUP-PINNED-DISTINCT`, `AC-CLEANUP-PINNED-RECYCLED`, `AC-RECLAIM-PINNED-DISTINCT`, `AC-RECLAIM-PINNED-RECYCLED`, `AC-RECLAIM-TIMEOUT-DIAGNOSTIC`, `AC-PIN-SUCCESS-AND-REFUSAL`, `AC-PIN-RELEASE-API`, `AC-PIN-RELEASE-NO-LEAK`, `AC-README-REFUSAL`, `AC-WORKFLOW-FULL-HISTORY`, `AC-BASELINE-CONTROL-AVAILABLE`, `AC-CLOSE-LINT`, `AC-CLOSE-SUITE`) are evaluated by the close's `CloseEvidence` commands and are deliberately absent from every `Satisfies`. The single ordinary criterion, `AC-WINDOWS-DIRECTORY-PIN`, is mapped exactly once, to T-003.
+
+      **Windows evidence sequence (owned by the implementation authority and the user, never invoked here).** The implementation authority independently validates the implementation and creates the reviewable candidate/lifecycle commit on `c-supersede-membership`, reporting its full SHA; the user pushes that commit. The external executor takes no remote action, and neither party invokes a remote action on the executor's behalf. The PR's `windows-compatibility` job then runs the platform-agnostic pin tests. Execution pauses at that job. The evidence is that job's Actions outcome for the exact pushed candidate head SHA; a failed run, an absent run, or a run at a different SHA leaves `AC-WINDOWS-DIRECTORY-PIN` unmet and blocks the close. The old green Windows check on the pre-repair SHA is never evidence for the new code. If the Windows failure proves the approved handle mechanism cannot meet ordinary success, the authority stops for review rather than amending the approved spec or shipping a limitation.
+
+      **The full CI-equivalent verification is the single `TargetAssertions` `MustPassCommand` `bun run validate:ci`, run at the close under `--assertions final --run-commands`; it is not duplicated as a per-task command.**
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-CLI</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-generate.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-generate.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.github/workflows/validate.yml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/audit-regressions.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>README.md</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>M-CLI</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-generate.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-generate.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.github/workflows/validate.yml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/audit-regressions.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>README.md</Value>
+      </MustExist>
+      <MustVerify>
+        <Module>M-CLI</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-CURSOR</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>fstatSync</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-generate.ts</File>
+        <Text>releaseAcquiredCandidate</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/validate.yml</File>
+        <Text>fetch-depth: 0</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/validate.yml</File>
+        <Text>src/grace-generate.test.ts</Text>
+      </MustContain>
+      <MustContain>
+        <File>.github/workflows/validate.yml</File>
+        <Text>AC-WINDOWS-DIRECTORY-PIN</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>validateJobCheckoutDepth</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>windowsPinInvocation</Text>
+      </MustContain>
+      <MustContain>
+        <File>README.md</File>
+        <Text>never delete a candidate whose identity they cannot prove</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-CURSOR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-CURSOR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-generate.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-generate.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>.github/workflows/validate.yml</File>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>README.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Pin reclaim identity to the observed lock handle</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            In `src/grace-cursor.ts`, `observeCandidateLock` opens the lock, reads the ownership bytes
+            from that handle, and records `dev`/`ino` with `fstatSync` of that handle; it returns the
+            handle with the observation. `reclaimCandidateLock` compares the current path's bytes and
+            `dev`/`ino` to the pinned observation and closes the handle exactly once after the decision
+            on every branch (match, mismatch, `ENOENT`, or throw). `acquireCandidateLock` closes the
+            observation handle on the live-holder wait path so repeated waits do not accumulate open
+            descriptors. The two phases are distinct and both required. **Phase 1, observation:** the
+            pinned bytes and pair come exclusively from the opened handle — no `readFileSync(path)` or
+            `statSync(path)` supplies the pinned bytes or pair. **Phase 2, immediate pre-unlink
+            revalidation:** `reclaimCandidateLock` reads the current **path** bytes and stats the
+            current **path** and compares both to the pinned pair; the pinned handle keeps the observed
+            inode allocated, so the path comparison is sound. The dead-holder reclaim test drives the
+            matching-owner path; the different-token B/A/B and same-bytes replacement tests drive
+            mismatch paths and preserve the replacement bytes.
+          </Criterion>
+          <Criterion>
+            `src/grace-cursor.test.ts` keeps and passes the existing different-token controls on the
+            real exported boundary with recursive byte snapshots: the B/A/B control
+            `AC-CANDIDATE-RECLAIM-EXCLUSIVE: a stale observer cannot unlink a replacement holder (B/A/B)`,
+            the mismatched-token release no-op, the own-lock removal after A releases, and the
+            successor-lock preservation control.
+          </Criterion>
+          <Criterion>
+            The same-bytes test
+            `AC-CANDIDATE-RECLAIM-EXCLUSIVE: a same-bytes replacement inode is not unlinked` probes the
+            filesystem for inode recycling and reports both the observed and recreated pairs. On a
+            recycling filesystem it asserts the pin forces the recreated inode to differ and that B
+            refuses while the replacement bytes and inode survive; on a non-recycling filesystem it
+            emits a named skip reason and does not claim the discriminating case.
+          </Criterion>
+          <Criterion>
+            A new pre-pin control
+            `AC-CANDIDATE-RECLAIM-EXCLUSIVE pre-pin control: b53d13d unlinks the recycled replacement`
+            adds a disposable `git worktree` at the full hash
+            `b53d13df47cdf8d85f75b33502c6ecd9e97ff262`, and on a recycling filesystem drives the same
+            fixture against that pre-pin module and asserts the replacement is unlinked and B acquires;
+            on a non-recycling filesystem it skips with the named reason. The control is removed in a
+            `finally`.
+          </Criterion>
+          <Criterion>
+            A new test
+            `AC-CANDIDATE-RECLAIM-EXCLUSIVE timeout diagnostic: running child, signal, stderr and markers`
+            forces the bounded wait to expire and asserts the failure names whether the child is still
+            running (reporting `running`) or has exited (reporting the numeric exit code, or the signal
+            after a bounded kill and await), the stderr tail, and the marker states, and always
+            terminates and reaps the child before the test ends.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "a stale observer cannot unlink a replacement holder"</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "reclaims a dead fresh holder immediately"</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "a same-bytes replacement inode is not unlinked"</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "pre-pin control"</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "timeout diagnostic"</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Pin candidate-directory identity, fail-closed acquisition, and the release API</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            In `src/grace-generate.ts`, `AcquiredCandidate` carries the acquired directory handle and a
+            released flag. `acquireCandidate` opens the candidate directory first, records `dev`/`ino`
+            with `fstatSync` of that handle, and stores the handle; `cleanupCandidateLocked` compares
+            the current path pair to the pinned pair immediately before the destructive phase and
+            closes the handle exactly once on every return path. On a platform that cannot remove the
+            directory while the handle is open, the handle is closed only after every ownership check
+            and immediately before the destructive call, inside the spec's post-validation/pre-unlink
+            boundary.
+          </Criterion>
+          <Criterion>
+            Acquisition is fail-closed. If the open or the `fstat` fails, `acquireCandidate` refuses
+            with a diagnostic naming the preserved candidate; the CLI exits non-zero, the candidate is
+            byte-identical to its post-`mkdir`, pre-open snapshot, and no `spec.xml` is treated as
+            published. The unpinned `dev`/`ino` comparison is never used as a substitute. The
+            `CandidateIo` seam carries `openSync`, `fstatSync`, and `closeSync`, so a real handle can
+            be allocated and a post-open `fstat` failure injected; the failure path closes the handle
+            exactly once.
+          </Criterion>
+          <Criterion>
+            `releaseAcquiredCandidate(candidate)` is exported, closes the pin exactly once, and a second
+            call is a safe no-op. Owners are wired: `publishSpecNew` closes on its failure path through
+            `cleanupCandidate`; `writeSpecNew` releases its successful record; the supersede transaction
+            releases a successful minted record and lets `cleanupCandidate` close a failed one. A
+            returned record is never silently invalidated. `cleanupCandidate` on an already-released
+            record returns `removed === false` with a diagnostic naming the record as released and
+            preserves every byte.
+          </Criterion>
+          <Criterion>
+            `src/grace-generate.test.ts` drives both directions on every supported platform. The
+            ordinary-success direction asserts a real mint pins the directory and a handled cleanup
+            removes the owned directory; the forced-failure direction injects a real `openSync` (or
+            `fstat`) failure through the `CandidateIo` seam and asserts the operation refuses with the
+            candidate preserved and a named diagnostic. It also carries the distinct-identity cleanup
+            probe, the recycled-identity cleanup probe against
+            `b53d13df47cdf8d85f75b33502c6ecd9e97ff262`, the release-semantics probe, a non-vacuous
+            returned-record probe, and a descriptor-lifetime probe. The returned-record probe returns
+            a **published** record from `mintResolvedBundle`, replaces its directory at the same path
+            (writing the replacement's own `spec.xml` bytes), passes that returned record to
+            `cleanupCandidate`, and asserts the held pin detects the replacement — the refusal is the
+            identity comparison, not the released-or-absent path — while the replacement and its bytes
+            survive. This proves the pin was still held at cleanup time and was not silently
+            invalidated by return; the hand-built `mkCandidate` (c) probe cannot and is not the
+            evidence. The descriptor-lifetime probe drives repeated acquire→publish→release cycles
+            **and** repeated acquire→fail→cleanup cycles in which `openSync` succeeds and allocates
+            the real handle and `fstatSync` fails after the open; it asserts that the post-open
+            failure path closes the handle (the captured descriptor no longer resolves) and that on
+            Linux the `/proc/self/fd` count returns to baseline and does not grow with the cycle
+            count. It runs as `process.platform === "linux" ? it : it.skip` and skips with a named
+            reason elsewhere. Test titles:
+            `AC-CLEANUP-BOUNDED pre-pin control: b53d13d deletes the recycled replacement`,
+            `AC-PIN-ACQUISITION: an ordinary mint pins the candidate and cleanup removes it`,
+            `AC-PIN-ACQUISITION: a forced open failure preserves the candidate and refuses`,
+            `AC-PIN-RELEASE: releaseAcquiredCandidate closes once; cleanup after release refuses`,
+            `AC-PIN-RELEASE-NO-LEAK: a returned published candidate detects a same-path replacement`,
+            and `AC-PIN-RELEASE-LIFETIME: descriptor count does not grow over cycles`. The new
+            exported symbol is added to the `START_MODULE_MAP` exports of `src/grace-generate.ts` so
+            the MODULE_MAP/EXPORTS parity check stays green. The existing
+            hand-constructed `AcquiredCandidate` helpers in `src/grace-generate.test.ts`
+            (`ownedCandidate` and the foreign-marker-token fixture) open the pin when they build the
+            record, so the unchanged `AC-CLEANUP-LOCK-API` and `AC-CLEANUP-VALIDATE-FIRST` tests keep
+            exercising removal and validate-first with a pinned record rather than the
+            released-or-absent refusal.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "same-path replacement is detected by inode"</Command>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "a returned published candidate detects a same-path replacement"</Command>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "pre-pin control"</Command>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "an ordinary mint pins the candidate and cleanup removes it"</Command>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "a forced open failure preserves the candidate and refuses"</Command>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "releaseAcquiredCandidate closes once"</Command>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "descriptor count does not grow over cycles"</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Full-history checkout, Windows regression catch, guards, and the README refusal</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `.github/workflows/validate.yml` declares `fetch-depth: 0` on the `validate` job's
+            checkout step, so `git worktree add --detach ... 6dd1d95` resolves in a pull-request
+            checkout and the isolated `AC-MINT-EXCLUSIVE` baseline control runs.
+          </Criterion>
+          <Criterion>
+            The `windows-compatibility` job gains a dedicated invocation step
+            `bun run test src/grace-generate.test.ts -t "AC-PIN-ACQUISITION: an ordinary mint|AC-PIN-ACQUISITION: a forced open failure|AC-PIN-RELEASE: releaseAcquiredCandidate|AC-PIN-RELEASE-NO-LEAK|AC-PIN-RELEASE-LIFETIME|AC-WINDOWS-DIRECTORY-PIN"`
+            that selects exactly the spec-required pin directions: the ordinary-mint success, the
+            forced-acquisition refusal, the release semantics, the returned-published-record
+            same-path-replacement probe, the descriptor-lifetime test, and the Windows-only
+            directory-removal test. The `src/grace-generate.test.ts` file is **not** added whole to
+            the Windows job's existing file list (that file's unconditional historical-baseline and
+            competitor-interceptor tests have unrelated Windows assumptions). The selected invocation
+            must report a nonzero test count. The Windows-conditional test uses the required form
+            `process.platform === "win32" ? it : it.skip` and
+            `AC-WINDOWS-DIRECTORY-PIN: candidate pin success and cleanup removal` drives an ordinary
+            mint with the pin, a handled cleanup that removes the owned directory (or closes the
+            handle only at the last ownership check), and the forced-acquisition-failure refusal with
+            preserved bytes. The `/proc/self/fd` lifetime test uses the same skip form
+            (`process.platform === "linux" ? it : it.skip`); it is permitted to skip off Linux and is
+            not relied on for Windows.
+          </Criterion>
+          <Criterion>
+            `scripts/audit-regressions.test.ts` gains `windowsPinInvocation(xml)`, which reads the
+            `windows-compatibility` job's own `run:` line that names `src/grace-generate.test.ts`, and
+            a guard that fails when the invocation drops any required direction substring,
+            enumerated one per direction: `AC-PIN-ACQUISITION: an ordinary mint`,
+            `AC-PIN-ACQUISITION: a forced open failure`,
+            `AC-PIN-RELEASE: releaseAcquiredCandidate`, `AC-PIN-RELEASE-NO-LEAK`,
+            `AC-PIN-RELEASE-LIFETIME`, and `AC-WINDOWS-DIRECTORY-PIN`. All six are required, so each
+            direction reddens the guard on its own when the filter removes it, rather than only a
+            whole-family prefix. The Ubuntu `validate` job keeps `fetch-depth: 0` and its
+            `validateJobCheckoutDepth` guard; the Windows checkout does not need full history under
+            this variant.
+          </Criterion>
+          <Criterion>
+            **T-003 cannot be marked complete until the `windows-compatibility` job succeeds for the
+            exact candidate head SHA.** The implementation authority (not the external executor)
+            validates the implementation and creates the candidate/lifecycle commit, then the user
+            pushes it; the authority records the job URL, its conclusion, and the pushed head SHA in
+            the bundle's evidence, and a failed run, an absent run, or a run at a different SHA blocks
+            the criterion and the close. The historical green Windows job on the pre-repair SHA is not
+            proof for the new code. If the Windows job shows the approved handle mechanism cannot meet
+            ordinary success, T-003 stops for authority review rather than shipping a limitation.
+          </Criterion>
+          <Criterion>
+            `scripts/audit-regressions.test.ts` gains a guard that reads the `validate` job's own
+            checkout step and fails when the depth is not full, keyed on the job's step and never on
+            the file's bytes as a whole, so a reverted depth reddens without a Linux runner; and a
+            guard that asserts `README.md` contains the operator-visible sentence
+            `never delete a candidate whose identity they cannot prove`.
+          </Criterion>
+          <Criterion>
+            `README.md` carries the spec's operator-visible sentence: *"When the engine cannot pin the
+            identity of a candidate it just created — for example, because the platform refuses to open
+            the candidate directory — `ngrace spec new` and candidate cleanup refuse and leave the
+            candidate in place, naming the preserved path in the diagnostic; they never delete a
+            candidate whose identity they cannot prove."* No other README sentence is required to
+            change.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "AC-PIN-ACQUISITION: an ordinary mint|AC-PIN-ACQUISITION: a forced open failure|AC-PIN-RELEASE: releaseAcquiredCandidate|AC-PIN-RELEASE-NO-LEAK|AC-PIN-RELEASE-LIFETIME|AC-WINDOWS-DIRECTORY-PIN"</Command>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "isolated unmodified baseline"</Command>
+        </Verification>
+        <Satisfies>
+          <AC-WINDOWS-DIRECTORY-PIN />
+        </Satisfies>
+      </T-003>
+    </ImplementationPlan>
+  </C-LINUX-VALIDATION-REPAIR-1-DE5A1A05>
+</NgraceChangePlan>
