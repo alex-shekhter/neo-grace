@@ -1,0 +1,922 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-LINUX-VALIDATION-REPAIR-6-62765C22>
+    <Summary>
+      PR #117's Linux `validate` job fails at `bun run test:metrics` with three failures. Two are one
+      product defect: `cleanupCandidate` (`src/grace-generate.ts`) and `reclaimCandidateLock`
+      (`src/grace-cursor.ts`) decide ownership from a `stat` device/inode pair that the filesystem
+      recycles after `unlink`, so a same-path replacement on ext4 impersonates the object the record
+      was created for and is deleted. The third is a checkout-depth defect: the `validate` job fetches
+      the PR merge ref at depth 1, so the pinned baseline commit the `AC-MINT-EXCLUSIVE` negative
+      control needs is absent and `git worktree add --detach ... 6dd1d95` exits non-zero. This bundle
+      pins identity to the opened object: open once, record identity with `fstat` of that handle, read
+      the ownership bytes from that handle, and hold the handle until the destructive call. Ordinary
+      `spec new` and handled cleanup must succeed on every supported platform, Windows included; when
+      pin acquisition genuinely fails the operation preserves and refuses with a named diagnostic and
+      never falls back to unpinned `dev`/`ino`. It adds the reclaim-fixture diagnostics, a Windows
+      regression catch, a documented refusal, and full history in the `validate` checkout behind a
+      static guard. **This successor follows approved
+      `C-LINUX-VALIDATION-REPAIR-5-EE982B6D` (archived, `status="superseded"`):** C5 completed and
+      committed T-001 (adopted repair verification), T-002 (the C3/C4 archive-byte guards), and
+      T-003 (the archive-ratchet correction), but T-004 never opened. C5's exact-head Validate run
+      `36182564019` on `4a973bd` failed the Windows job: during `AC-UNIQUE-CONCURRENT` one
+      `ngrace cursor advance` process exited 1 with `EPERM` at the candidate lock's
+      `writeFileSync(..., { flag: "wx" })` in `src/grace-cursor.ts`, so the Windows pin, supersede,
+      and CLI steps were skipped. The remote log recorded the exception and stack only — not whether
+      the lock file existed or what it held — so contention is an **inference**, not a measured
+      mechanism. C5's approved T-001 says it changes none of the nine inherited repair paths, and
+      `src/grace-cursor.ts` is one of them, so the fix could not ride C5; the one-active-bundle rule
+      prevents an independent executable bundle beside it, so C6 is a successor. C6 keeps the
+      URL-free evidence contract, the inherited repair, the archive-ratchet correction, the
+      six-field response rule, and the close requirements, and adds the candidate-lock open-boundary
+      behaviour in `src/grace-cursor.ts`, its durable tests and test-fixture cleanup in
+      `src/grace-cursor.test.ts`, and the C5 archive-byte pin. The repair code the earlier tasks
+      landed — including the supersede transaction's release owner in `src/gates/ledger.ts`
+      (`LINKS: M-GATES`) and the owner-by-owner handle evidence — is already committed on this branch
+      and is adopted, not rewritten; the successor's new writes are the candidate-lock change and
+      its tests, the evidence guard in `scripts/audit-regressions.test.ts`, the authority-written
+      `ci-evidence.json` sidecar, and the previously requested six-field reporting rule in
+      `CLAUDE.md` (the tracked `AGENTS.md` symlink's target). The response-format rule, the C1–C4
+      archive-byte guards, and the ratchet correction are already committed; this successor adopts
+      them and completes the C5 archive-byte guard, the candidate-lock criterion, and the positive
+      CI record.
+    </Summary>
+    <Goals>
+      <Goal>
+        **Identity is bound to the opened object, not to a path re-read later.** The handle is opened
+        first; the device/inode is recorded from `fstat` of that handle; for the candidate lock the
+        ownership bytes are read from that handle; and the current path is compared to the pinned pair
+        immediately before the destructive call. Recording `stat(path)` and separately opening a
+        handle is forbidden: it permits opening one object and recording another after a rename, and
+        permits `readFileSync` and `statSync` to observe different lock files.
+      </Goal>
+      <Goal>
+        **Identity survives inode recycling.** A same-path replacement of an exclusively acquired
+        candidate directory, and a same-bytes replacement of an observed stale candidate lock, are
+        detected and preserved on a filesystem that recycles inode numbers, satisfying the archived
+        `AC-CLEANUP-BOUNDED` and `AC-CANDIDATE-RECLAIM-EXCLUSIVE`
+        (`.ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-4-20941257/spec.xml`).
+      </Goal>
+      <Goal>
+        **Ordinary success is mandatory on Windows.** A normal `spec new` mint and a handled candidate
+        cleanup succeed with the pin held on Windows, proven by the `windows-compatibility` job, not
+        inferred from Linux or macOS. Platform green is claimed only from that job's recorded outcome.
+      </Goal>
+      <Goal>
+        **Pin acquisition failure is fail-closed, not a fallback.** When the handle cannot be obtained,
+        the operation refuses with the candidate preserved byte-identical and a diagnostic naming the
+        residue, and never compares unpinned `dev`/`ino`. `README.md` documents this operator-visible
+        refusal.
+      </Goal>
+      <Goal>
+        **Handle ownership is an API, and every release owner is exercised.** A named release
+        capability closes the pin exactly once on every branch; a returned candidate is never silently
+        invalidated; cleanup after explicit release is validly refused and named. `writeSpecNew`
+        closes its successful record before returning, and the supersede transaction in
+        `src/gates/ledger.ts` closes its minted record before returning on success and through
+        `cleanupCandidate` on failure. Owner evidence is taken from real handles, never a source
+        regex.
+      </Goal>
+      <Goal>
+        **The reclaim fixture reports its own child and a Windows regression is caught.** A timed-out
+        reclaim-fixture failure names whether the child is still running or its exit/signal status,
+        plus stderr and marker state, and always reaps the child. The platform-agnostic success and
+        forced-failure tests run in the Windows job so a Windows break is not invisible until release.
+      </Goal>
+      <Goal>
+        **The pinned baseline commit is present in the `validate` checkout.** The `validate` job
+        fetches full history, and a static guard reads `.github/workflows/validate.yml` so a reverted
+        depth reddens locally, not only in CI.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        **Ceremony tier T2 (cross-cutting).** Three production modules with distinct owners
+        (`M-CLI`, `M-CURSOR`, `M-GATES`) plus a CI configuration surface. T2 deepens sections; it
+        changes no gate.
+      </Constraint>
+      <Constraint>
+        **Pre-pin control baseline, re-measured at close.** The full hash
+        `b53d13df47cdf8d85f75b33502c6ecd9e97ff262` is the **pre-pin control baseline** for the
+        identity repair: the controls the identity criteria drive (`AC-CLEANUP-PINNED-DISTINCT`,
+        `AC-CLEANUP-PINNED-RECYCLED`, `AC-RECLAIM-PINNED-RECYCLED`, `AC-BASELINE-CONTROL-AVAILABLE`)
+        and the relations in `VerificationIntent` are measured against that commit and re-measured
+        when the close runs; counts expire when a bundle archives. It is **not** this bundle's review
+        or approval base. That base is the `baseCommit` that `ngrace gate approve` records in C6's
+        run ledger at approval; `ngrace review` reads it back and compares it to the worktree
+        (tracked and untracked) when no explicit base is supplied. C6 has no approve decision yet,
+        so the draft must not project the base; read the actual `baseCommit` from the CLI result or
+        the ledger after approval and never substitute `b53d…` for it.
+      </Constraint>
+      <Constraint>
+        **Identity is bound to the opened handle.** The capture sequence is exactly: (1) `open` the
+        object and obtain a handle; (2) `fstat` **that handle** to obtain the pinned device/inode;
+        (3) for the candidate lock, read the ownership bytes from **that handle**, never from a
+        re-opened path; for the candidate directory, pin the container by `fstat` of its handle and
+        only then enumerate and read its owned files. Before deletion the **current path** is compared
+        to the pinned `fstat` pair, and for the lock the path bytes are compared to the pinned bytes
+        read from the handle.
+      </Constraint>
+      <Constraint>
+        **Pin acquisition failure is preserve-and-refuse, never an unpinned fallback.** If the handle
+        cannot be opened (or `fstat` fails), `acquireCandidate` refuses with a named diagnostic naming
+        the preserved candidate; the operation exits non-zero and no `spec.xml` is treated as
+        published. The unpinned `dev`/`ino` comparison is never used as a substitute, because it
+        reproduces the verified deletion. This refusal is operator-visible and is documented in
+        `README.md`; it is a distinct test from the ordinary success path, driven by a real injected
+        open failure. The behavior of a prototype that silently continues with no handle is explicitly
+        **not** this contract. `README.md` carries the operator-visible sentence: *"When the engine
+        cannot pin the identity of a candidate it just created — for example, because the platform
+        refuses to open the candidate directory — `ngrace spec new` and candidate cleanup refuse and
+        leave the candidate in place, naming the preserved path in the diagnostic; they never delete a
+        candidate whose identity they cannot prove."*
+      </Constraint>
+      <Constraint>
+        **Handle ownership is a named API.** `releaseAcquiredCandidate(candidate)` is exported from
+        `src/grace-generate.ts` and closes the pin exactly once (idempotent; a second call is a safe
+        no-op). `cleanupCandidate` also closes the pin exactly once on every return path, success or
+        refusal. Owners, each discriminated by its own real-handle evidence:
+        `publishSpecNew` closes on its failure path through `cleanupCandidate`; `writeSpecNew`
+        closes its successful record before returning (an in-process repeated-run handle count is
+        flat); `mintBundle` / `mintResolvedBundle` return the record with the pin still held, and an
+        external caller either cleans it later or calls `releaseAcquiredCandidate`; the supersede
+        transaction in `src/gates/ledger.ts` closes its minted record before returning on success
+        and lets `cleanupCandidate` close it on a failed one. An external caller receiving a published
+        record may call `cleanupCandidate` later or call `releaseAcquiredCandidate`; neither leaks. A
+        returned record is never silently invalidated. Because a released record has no pin, `cleanupCandidate`
+        on an already-released record must **refuse safely** with a named diagnostic
+        (`removed === false`, every byte preserved) and must not fall back to the unpinned comparison.
+        No path may leave a pin open across a completed transaction.
+      </Constraint>
+      <Constraint>
+        **Release owners are discriminated with real handles, and the archived boundary is not
+        widened.** Each release owner is verified with a real handle check — `fstatSync` on the
+        captured descriptor after the owner boundary, the process descriptor relation on Linux, and
+        bytes/ownership checks — never a source-regex-only guard. The `src/gates/ledger.ts`
+        transaction uses the same post-validation/pre-unlink boundary as `AC-CLEANUP-BOUNDED`; this
+        bundle widens nothing.
+      </Constraint>
+      <Constraint>
+        **Supported-writer boundary is the archived one, restated rather than widened.**
+        `AC-CLEANUP-BOUNDED` supports exactly: a losing non-recursive leaf `mkdir`; a same-path
+        replacement or modification detected at validation; a foreign sentinel at enumeration; and a
+        controlled cleanup I/O failure. A non-cooperating writer that replaces this invocation's own
+        file **after** the byte/identity validation and **before** the `unlink` is outside the model —
+        no portable primitive provides atomic delete-if-unmodified — and the uncatchable SIGKILL or
+        power-loss window is not claimed closed. On a platform that cannot remove an owned object
+        while its handle is open, the handle is closed only after every ownership check and immediately
+        before the destructive call; that residual window is this same boundary, not a new one. This
+        bundle strengthens the handled cases; it opens no new one.
+      </Constraint>
+      <Constraint>
+        **Archived criteria promises are not changed, and any change is named.** Re-read
+        `C-SUPERSEDE-MEMBERSHIP-4-20941257/spec.xml:61-65,75`. `AC-MINT-EXCLUSIVE`,
+        `AC-CLEANUP-VALIDATE-FIRST`, `AC-CLEANUP-LOCK-API`, and `AC-COOPERATING-WRITER-COVERAGE`
+        (including `cleanupCandidate`'s carve-out and its reentrant self-locking requirement) keep
+        their exact promises. `AC-CLEANUP-BOUNDED` and `AC-CANDIDATE-RECLAIM-EXCLUSIVE` keep their
+        handled cases and their post-validation/pre-unlink boundary; this bundle makes their
+        same-path/same-bytes cases hold on a recycling filesystem and widens nothing. If any
+        implementation needs an exception, it is surfaced to the authority, never folded into the
+        criterion text.
+      </Constraint>
+      <Constraint>
+        **Windows is a supported platform, proven or stopped, never inferred.** The Windows directory
+        handle must support an ordinary mint and a handled cleanup that removes the owned directory
+        while the pin is held (or the implementation closes the handle only at the last ownership
+        check, per the boundary above). The platform-agnostic tests in
+        `AC-PIN-SUCCESS-AND-REFUSAL`, `AC-PIN-RELEASE-API`, `AC-PIN-RELEASE-NO-LEAK`, and
+        `AC-SUPERSEDE-PIN-RELEASE` are added to the `windows-compatibility` job and must pass there.
+        The `src/grace-generate.test.ts` directions are one filtered invocation that selects every
+        `AC-PIN-RELEASE-API` owner direction; the new supersede owner tests in
+        `src/grace-supersede.test.ts` are selected by a **separate filtered** invocation of that file,
+        keyed on the `AC-SUPERSEDE-PIN-RELEASE` title prefix (that file's other tests carry platform
+        assumptions and the file is not added whole). Each filtered invocation must select and
+        execute a nonzero count, and a static guard reads that step's own `run:` line in
+        `.github/workflows/validate.yml` and reddens when the selector is removed.
+        `AC-WINDOWS-DIRECTORY-PIN` records that the platform claim is taken from that job's Actions
+        outcome for the exact candidate head SHA and from nowhere else. If the handle mechanism cannot
+        support ordinary Windows success or the supersede owner checks, the executor stops at the
+        independent-review boundary and reports the measured evidence; a permanent Windows limitation
+        is never shipped by inference.
+      </Constraint>
+      <Constraint>
+        **The Windows evidence is a positive, authority-recorded CI record.** The Windows claim is
+        supported by a committed sidecar, `.ngrace/changes/&lt;active|archive&gt;/C-LINUX-VALIDATION-REPAIR-6-62765C22/ci-evidence.json`,
+        whose `schemaVersion` is exactly `1.0.0`. It carries `candidateSha` (the exact head the
+        `windows-compatibility` job ran on), the numeric `runId`, a `jobs` array, and a `directions`
+        array. Each `jobs` entry has a unique `name`, a unique positive numeric `id`, a `conclusion`,
+        and nonnegative integer `pass`/`skip`/`fail` tallies; the required names are `validate`,
+        `dart-adapter`, and `windows-compatibility`, each with `conclusion` exactly `success`, `fail`
+        exactly `0`, and `pass` greater than `0`. Each `directions` entry has a `selector` and
+        nonnegative integer `executed` and `skipped` counts. The **required Windows direction set** is
+        the seven generate directions (`AC-PIN-ACQUISITION: an ordinary mint`,
+        `AC-PIN-ACQUISITION: a forced open failure`, `AC-PIN-RELEASE: releaseAcquiredCandidate`,
+        `AC-PIN-RELEASE-NO-LEAK`, `AC-PIN-RELEASE-API: successful writeSpecNew closes its record`,
+        `AC-PIN-RELEASE-API: a publish failure closes the pin exactly once`, and
+        `AC-WINDOWS-DIRECTORY-PIN`) plus the four `AC-SUPERSEDE-PIN-RELEASE` owner directions; each
+        required direction must be present with `executed` at least `1` and `skipped` exactly `0`.
+        The Linux-only `AC-PIN-RELEASE-LIFETIME` direction is explicitly **outside** the required set
+        and is not held to that rule. The **writer and owner** is the implementation authority, not
+        the executor: after independently inspecting the remote run through the authenticated GitHub
+        API or CLI — the inspection that binds the numeric job IDs to the run and the SHA — the
+        authority commits the sidecar. Executor prose in `design-context.xml` is explanatory input and
+        is **not** fulfillment of this authority-owned step. The **consumer** is the guard in
+        `scripts/audit-regressions.test.ts`, run pre-close through `bun run validate:ci` and post-close
+        through the criterion's `CloseEvidence`; it checks the local record's shape and provenance and
+        does **not** prove the remote result.
+      </Constraint>
+      <Constraint>
+        **Candidate evidence and final-head validation are separate gates.** Run `35831257226` at
+        `6c18033e90f90bd83ab59b37fd1afe55effd3750` proves the repair on that committed tree;
+        it does not prove this successor's later governance state. The Windows job also runs
+        `validate:cli`, whose `src/grace-status.test.ts` reads an exact archived run-event byte
+        sequence and enumerates the repository's live `.ngrace/changes/` bundles. No blanket
+        `.ngrace/changes/` exemption can establish that the Windows-exercised tree is identical.
+        After this successor's spec and plan are approved, all four predecessor archive arrivals,
+        the `CLAUDE.md` reporting rule, the `src/review/core.test.ts` ratchet correction, and the
+        candidate-lock open-boundary change and its tests are
+        committed, and the user pushes that reviewable governance
+        head, a **fresh**
+        `windows-compatibility` success on precisely that head, with the named owner directions
+        executed, becomes this successor's `candidateSha` evidence; a failed, absent, or other-head
+        run cannot seed `ci-evidence.json`. The authority verifies that run remotely and records its
+        numeric evidence in the sidecar. Subsequent local checks may retain that historical witness
+        only while changes from `candidateSha` are confined to the successor's exact active/archive
+        bundle paths and `scripts/audit-regressions.test.ts`; a source, test, workflow, dependency,
+        runtime, or other path change requires another user-pushed candidate run. This local rule
+        does **not** claim the allowed governance changes are invisible to Windows. After the guard,
+        sidecar, and applied-archive lifecycle commit is pushed, the final PR head must obtain a new
+        successful `Validate` workflow, including Windows, Ubuntu, and Dart, before PR merge. That
+        final remote result checks the changed governance tree; it is a release gate after the bundle
+        close, not a self-referential field in the earlier candidate sidecar.
+      </Constraint>
+      <Constraint>
+        **The sidecar bootstrap has a truthful two-stage remote sequence.** First commit and push the
+        approved successor governance, the `CLAUDE.md` reporting rule, the
+        `src/review/core.test.ts` ratchet correction, and the candidate-lock change and its tests
+        without the not-yet-implemented guard or sidecar;
+        the existing
+        test suite runs and the authority waits for the fresh exact-head candidate Windows result.
+        The authority then writes and commits `ci-evidence.json` for that verified candidate run;
+        the executor lands the guard, which is red on an absent sidecar and can now green during
+        target/final `bun run validate:ci`. The sidecar names the prior candidate head, not the
+        sidecar's own future commit, so no commit-SHA fixed point is required. The guard's local
+        changed-path check compares `candidateSha` with the **current working tree**, not only
+        `HEAD`: use `git diff --no-renames --name-only &lt;candidateSha&gt;` for tracked staged,
+        unstaged, committed, deleted, and moved paths, plus
+        `git ls-files --others --exclude-standard` for untracked paths. Both the source and
+        destination of a rename must be checked; a forbidden path moved into an allowed directory
+        remains forbidden. The only allowed differences are under this successor's exact
+        `.ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/` and
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/` directories and the one
+        guard file `scripts/audit-regressions.test.ts`. All four predecessor archive arrivals are
+        already committed in `candidateSha`, so they need no exemption. A forbidden difference resets the
+        candidate evidence before T-004 completion. The final-head remote workflow gate above
+        covers the allowed bundle lifecycle writes that Windows tests may read.
+      </Constraint>
+      <Constraint>
+        **The evidence record is URL-free, and the guard is scoped to this bundle, not the repo.**
+        Every artifact of this successor bundle — `spec.xml`, `plan.xml`, `design-context.xml`,
+        `run.xml`, `run-ledger.xml`, `run/` events, `ci-evidence.json`, and any later artifact — is
+        scanned in both its active and its archived location and must contain no full GitHub Actions
+        run or job link: an `http` or `https` scheme whose host is the GitHub web host and whose path
+        reaches the Actions `runs` endpoint. The full clickable link embeds the repository owner's
+        account handle, so it is retained only in the private authority report; no URL-shaped
+        placeholder stands in for it, and the policy prose in this bundle is written without one.
+        This replaces the `C-LINUX-VALIDATION-REPAIR-2-D4F54467` plan's promise to record the full job URL in the bundle's
+        evidence, which the `AGENTS.md` public-content rule forbids. **Boundary honesty:** the guard
+        protects this successor's evidence; it does not claim that the repository already satisfies a
+        global no-handle rule. Measured at `6c18033e90f90bd83ab59b37fd1afe55effd3750`, thirteen
+        tracked files already contain the repository owner handle — functionally-required manifest
+        author and homepage fields, install and `gh` command examples, auto-generated changelog
+        permalinks, and record-parse fixtures. Reconciling that blanket policy with required metadata
+        is a separate governance decision; this bundle neither edits those files nor calls them green.
+      </Constraint>
+      <Constraint>
+        **Every forced write path, in one list.** The nine inherited forced write paths are exactly:
+        `src/grace-generate.ts`, `src/grace-cursor.ts`, `src/gates/ledger.ts`,
+        `src/grace-generate.test.ts`, `src/grace-cursor.test.ts`, `src/grace-supersede.test.ts`,
+        `.github/workflows/validate.yml`, `scripts/audit-regressions.test.ts`, and `README.md`.
+        Six of those carry the repair the earlier tasks already committed and this successor
+        adopts unchanged; `src/grace-cursor.ts` carries the candidate-lock open-boundary change this
+        successor makes, `src/grace-cursor.test.ts` carries its durable tests and the `candidateRoot`
+        fixture cleanup, and `scripts/audit-regressions.test.ts` carries the evidence guard and the
+        C1–C5 archive-byte guards. `src/review/core.test.ts` is one further forced path: it carries
+        the archive-ratchet correction already committed by `C-LINUX-VALIDATION-REPAIR-5-EE982B6D`
+        and adopted here; it is test-only and not module-ownable, so it forces no `M-*` anchor.
+        `CLAUDE.md` is one further forced source path: tracked `AGENTS.md` is a symlink to it, so the
+        six-field reporting instruction is written to `CLAUDE.md` before the fresh candidate run.
+        The plan lists `CLAUDE.md` in `ObservedWriteScope`; the symlink itself is not rewritten. One
+        further bundle-own path is forced because review identity-skips only `spec.xml`, `plan.xml`,
+        and `design-context.xml`: the authority-written sidecar
+        `.ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/ci-evidence.json`, which
+        moves to the matching archive path at close. The plan's `ObservedWriteScope` lists the exact
+        active path. The shipped `expandScopePathsForArchiveIdentity` adds this bundle's matching
+        archive path when the reviewed plan is archived (measured from the exported function), so
+        no second path or archive glob is declared; a faithful disposable close rechecks the audit.
+        Twelve further exact accounting paths are the four sanctioned predecessor archive arrivals,
+        `C-LINUX-VALIDATION-REPAIR-2-D4F54467`, `C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3`,
+        `C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B`, and `C-LINUX-VALIDATION-REPAIR-5-EE982B6D`, three XML
+        artifacts each:
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/spec.xml`,
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/plan.xml`,
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/design-context.xml`,
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/spec.xml`,
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/plan.xml`,
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/design-context.xml`,
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/spec.xml`,
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/plan.xml`,
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/design-context.xml`,
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-5-EE982B6D/spec.xml`,
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-5-EE982B6D/plan.xml`, and
+        `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-5-EE982B6D/design-context.xml`.
+        The plan lists them in `ObservedWriteScope` solely so review can account for the completed
+        `ngrace supersede` moves; no task or close edits their bytes. The C2–C4 arrivals are already
+        committed at this successor's current HEAD; the C5 arrival is uncommitted, so the changed
+        file set `ngrace review` derives from C6's eventual approve `baseCommit` includes the C5
+        arrival (untracked now, tracked addition after the governance commit) while C2–C4 are not
+        newly changed. `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05`'s archive arrival is already
+        committed at `9bdf72e` and is not such a path, so the write scope is not broadened to it.
+        Their post-supersede SHA-256 values are pinned by red/green guards in
+        `scripts/audit-regressions.test.ts`. The predecessors' `run/`, `run.xml`, and
+        `run-ledger.xml` are CLI lifecycle paths, which review excludes from this path-scope
+        finding; no agent hand-edits them.
+        The list is the successor's contract surface, not a claim that the successor authors every
+        path afresh.
+        `src/grace-generate.ts` (`LINKS: M-CLI`), `src/grace-cursor.ts` (`LINKS: M-CURSOR`), and
+        `src/gates/ledger.ts` (`LINKS: M-GATES`) are the production anchors; the four test files are
+        under `src/` but are not module-ownable; the workflow, script, and `README.md` are not under
+        `src/`, so no test/workflow/README graph anchor is inferred and `M-RELEASE-AUTOMATION` is
+        **not** forced (none of its linked files is written). `src/review/core.test.ts` is under
+        `src/` and is likewise not module-ownable. The `C-LINUX-VALIDATION-REPAIR-2-D4F54467`
+        repair fixed seven paths and omitted `src/gates/ledger.ts`; the
+        `C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3` repair added it plus `src/grace-supersede.test.ts`
+        for the transaction owner.
+      </Constraint>
+      <Constraint>
+        **The archive ratchet's exact-zero non-lifecycle `.ngrace/` pin is overturned.**
+        `C-DECLARED-WRITES`' archived `AC-ARCHIVE-RATCHET`
+        (`.ngrace/changes/archive/C-DECLARED-WRITES/spec.xml:396-430`) pins the non-lifecycle
+        `.ngrace/` `review.write-evidence-outside-scope` count to exactly zero across all archived
+        bundles. The sanctioned C3 supersede made that pin unreachable: `ngrace supersede` folds the
+        loose events, so C3's T-001 WriteEvidence — naming C3's own `spec.xml`, `plan.xml`, and
+        `design-context.xml` — was written into C3's archived `run-ledger.xml`, and the shipped
+        `auditWriteEvidenceOutsideScope` must keep raising on those paths (its
+        `AC-WRITE-EVIDENCE-KEPT` stay-true, `C-REVIEW-SELF-SCOPE-2/spec.xml:197-207`).
+        `C-LINUX-VALIDATION-REPAIR-5-EE982B6D` replaced the exact-zero pin with an **exact three-path
+        C3 expectation**, which this bundle adopts: the
+        `src/review/core.test.ts` ratchet requires the non-lifecycle `.ngrace/` finding set to be
+        exactly the three historical
+        `.ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/{spec,plan,design-context}.xml`
+        paths and reddens on
+        any fourth non-lifecycle `.ngrace/` path, while the product/non-docs multiset and the
+        `unable-to-determine` status accounting are unchanged. The runtime audit is not changed.
+        The original pin's purpose — catching a genuine undeclared approved-artifact edit — is
+        preserved: a future such edit adds a fourth non-lifecycle `.ngrace/` path and reddens the
+        ratchet, and only the one already-measured historical C3 set is recorded.
+        This correction lands before the fresh candidate Windows run, so the candidate head includes
+        it; the prototype measurements are recorded in `Assumptions` and `design-context.xml`.
+      </Constraint>
+      <Constraint>
+        **The plan's full-CI command is the close gate.** The plan's `MustPassCommand` is
+        `bun run validate:ci`; the close runs it through `--assertions final --run-commands`. The
+        spec's own `AC-CLOSE-SUITE` claims only the behavior-pinning suites, not full CI, because the
+        `CloseEvidence` command shape accepted at close is the suite command.
+      </Constraint>
+      <Constraint>
+        **Escape markup as character data.** Where this artifact names a tag, attribute form, or
+        angle-bracketed token, the entity form is used (`&lt;`, `&gt;`, `&amp;`); brackets are never
+        paraphrased away, and markup-byte assertions belong in a TypeScript test (F43).
+      </Constraint>
+      <Constraint>
+        **Scope declaration excludes the bundle's own identity-skipped artifacts.** The plan's
+        `ObservedWriteScope` lists the nine inherited forced paths, `src/review/core.test.ts`,
+        `CLAUDE.md`, the authority-written `ci-evidence.json` active path (whose matching archive
+        path is expanded by the id-scoped review rule), and exactly the twelve predecessor-archive
+        accounting paths named above.
+        It must **not** list this bundle's own
+        `spec.xml`, `plan.xml`, `design-context.xml`, or `run/`, `run.xml`, `run-ledger.xml` paths
+        (review identity-skips the first three; the shipped lifecycle exclusion governs the rest).
+        The plan's `DurableScope` names `M-CLI`, `M-CURSOR`, and `M-GATES`, with `V-M-CLI`,
+        `V-M-CURSOR`, and `V-M-GATES` under `VerificationAnchors`.
+      </Constraint>
+      <Constraint>
+        **Durable reproduction lives in `design-context.xml`.** The ext4 precondition, its date, the
+        complete probe, and the raw transcript are non-normative and carried in
+        `design-context.xml`; the normative criteria state relations, not scratch paths or projected
+        figures. A future reader can reproduce the evidence from the repository alone.
+      </Constraint>
+      <Constraint>
+        **No finding id is minted by this stage.** Payment allocation belongs to the implementation
+        authority; the executor names no `F-*` id and writes no record file.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        **`examples/` is unchanged.** Owner: unchanged. The examples invoke `status`, `cursor fold`,
+        and `gate archive` and exercise neither candidate acquisition/cleanup nor the candidate lock,
+        so no expected output changes; the fail-closed refusal is not reachable from them.
+      </NonGoal>
+      <NonGoal>
+        **No change to the cooperation rule or the tripartite reclaim semantics.** The rule that a
+        reachable mutator acquires the candidate lock or refuses, and the known-live/known-dead/unknown
+        reclamation rule, are unchanged; only whether an observed object *is* the recorded object is
+        strengthened.
+      </NonGoal>
+      <NonGoal>
+        **No new production file family, dependency, or permanent artifact.** No new production
+        `src/*.ts` file and no new package dependency are introduced.
+      </NonGoal>
+      <NonGoal>
+        **No release act, version bump, or hand-edited `CHANGELOG.md`.** Owner: release automation;
+        this dispatch authorizes neither.
+      </NonGoal>
+      <NonGoal>
+        **No archive edit beyond the sanctioned moves, and no record edit.** The predecessors' archive
+        arrivals were written by the four sanctioned `ngrace supersede` moves, and this bundle's own
+        close writes its own arrival; no predecessor's archived bytes are edited afterward, and the
+        guards in `scripts/audit-regressions.test.ts` keep pinning the C2, C3, and C4 predecessors'
+        bytes while this bundle adds C5's. Nothing else under `.ngrace/changes/archive/` or
+        `docs/plans/` is written by this bundle, and this bundle pays no finding and writes no record
+        file.
+      </NonGoal>
+      <NonGoal>
+        **No reconciliation of the pre-existing repository-wide owner-handle references.** Owner: a
+        separate governance decision recorded outside this bundle. Thirteen tracked files already
+        carry the repository owner handle (manifest author and homepage fields, install and `gh`
+        examples, auto-generated changelog permalinks, and record-parse fixtures); deciding which are
+        functionally-required metadata and how the blanket `AGENTS.md` policy applies to them is out
+        of scope, and this bundle neither edits those files nor claims them compliant.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-CLEANUP-PINNED-DISTINCT>
+        **Positive probe (non-discriminating on identity).** A same-path replacement of the acquired
+        candidate directory that presents a device/inode pair **distinct** from the pinned pair is
+        preserved: `cleanupCandidate` returns `removed === false`, the diagnostic names the identity
+        change, and the replacement's `spec.xml` is byte-identical afterward. The probe asserts as a
+        precondition that the recreated pair differs from the pinned pair and reports both pairs when
+        they do not. This direction passes against both the pre-pin tree at
+        `b53d13df47cdf8d85f75b33502c6ecd9e97ff262` and the repaired tree, and is a control, not the
+        discriminating case. The common handled case is also driven: an invocation-created directory
+        holding no foreign artifact is removed, and a handled refusal leaves no successor.
+        <CloseEvidence><Command>bun test --timeout=0 src/grace-generate.test.ts</Command></CloseEvidence>
+      </AC-CLEANUP-PINNED-DISTINCT>
+      <AC-CLEANUP-PINNED-RECYCLED>
+        **Discriminating negative probe (recycled identity).** On a filesystem that recycles inode
+        numbers (ext4), the fixture removes the acquired directory recursively and recreates it at the
+        same path with identical `spec.xml` bytes so the recreated directory reuses the freed inode
+        number; the probe records that the two pairs were equal. Against the **pre-pin tree**
+        `b53d13df47cdf8d85f75b33502c6ecd9e97ff262` on ext4 the replacement is deleted
+        (`removed === true`) — the guard reddens. Against the **repaired tree** on ext4 the pin forces
+        the replacement to a different inode, the comparison fails, and the replacement is preserved
+        (`removed === false`) with the identity diagnostic and identical bytes. The probe's
+        precondition records whether the recreated pair equals the pinned pair and reports both, so a
+        fixture that did not establish recycling is named rather than passing vacuously. The
+        post-validation/pre-unlink boundary is exactly `AC-CLEANUP-BOUNDED`'s.
+        <CloseEvidence><Command>bun test --timeout=0 src/grace-generate.test.ts</Command></CloseEvidence>
+      </AC-CLEANUP-PINNED-RECYCLED>
+      <AC-RECLAIM-PINNED-DISTINCT>
+        **Positive probe (distinct token, non-discriminating on identity).** The existing
+        different-token B/A/B control passes: B observes the stale token, A reclaims and acquires a
+        replacement with a different token, and B aborts without removing A's file; the
+        mismatched-token release is a no-op; a third control proves B, after A releases and B acquires
+        its own lock, removes only its own lock on a matching-token release; a successor-lock
+        preservation control proves the loser cannot unlink a holder it did not create. Driven on the
+        real exported boundary with recursive byte snapshots.
+        <CloseEvidence><Command>bun test --timeout=0 src/grace-cursor.test.ts</Command></CloseEvidence>
+      </AC-RECLAIM-PINNED-DISTINCT>
+      <AC-RECLAIM-PINNED-RECYCLED>
+        **Discriminating negative probe (recycled identity).** On ext4, B observes the stale lock,
+        then unlinks it and recreates it with identical bytes so the replacement reuses the observed
+        inode number. Against the **pre-pin tree**
+        `b53d13df47cdf8d85f75b33502c6ecd9e97ff262` on ext4 the replacement is unlinked and B
+        **acquires**; against the **repaired tree** the pinned observation keeps the observed inode
+        allocated, B's comparison fails, B refuses, and the replacement's bytes and inode survive
+        while B is pending. The probe asserts as a precondition that the pre-pin recreated inode equals
+        the observed inode (recycling established) and that the repaired recreated inode differs
+        (the pin forced it), reporting both pairs. The archived
+        `AC-CANDIDATE-RECLAIM-EXCLUSIVE` boundary is widened by nothing.
+        <CloseEvidence><Command>bun test --timeout=0 src/grace-cursor.test.ts</Command></CloseEvidence>
+      </AC-RECLAIM-PINNED-RECYCLED>
+      <AC-RECLAIM-TIMEOUT-DIAGNOSTIC>
+        When a reclaim-fixture wait expires, the failure names the child's state without inventing an
+        exit code: if the child is still alive the message reports `running` and then kills it and
+        awaits the bounded exit, reporting the signal that ended it; if the child has exited it reports
+        the numeric exit code. The message also reports the child's stderr tail and which of the
+        fixture's marker files exist. A null or fabricated exit code does not satisfy this criterion.
+        The fixture always terminates and reaps its child before the test ends, including on the
+        failure path.
+        <CloseEvidence><Command>bun test --timeout=0 src/grace-cursor.test.ts</Command></CloseEvidence>
+      </AC-RECLAIM-TIMEOUT-DIAGNOSTIC>
+      <AC-PIN-SUCCESS-AND-REFUSAL>
+        Two directions, both required on every supported platform. **(a) Ordinary success:** a real
+        ordinary mint (`ngrace spec new`, equivalently `mintResolvedBundle`) acquires with a pin (the
+        directory handle is opened and its `fstat` pair recorded), writes the marker and spec, and
+        publishes; a subsequent handled cleanup of the owned candidate **removes the directory** while
+        the platform's normal path runs, proving the ownership handle does not prevent removal. **(b)
+        Forced pin-acquisition failure:** with a real injected `openSync` (or `fstat`) failure,
+        `mintResolvedBundle` / `spec new` exits non-zero, leaves the candidate byte-identical to its post-mkdir, pre-open snapshot, emits a
+        diagnostic naming the preserved candidate, and never treats `spec.xml` as published. A run
+        that reports success with no handle — the behavior of an earlier throwaway prototype — does not
+        satisfy (b) and is not the contract. This criterion is platform-agnostic and is run in the
+        Windows job as well as locally.
+        <CloseEvidence><Command>bun test --timeout=0 src/grace-generate.test.ts</Command></CloseEvidence>
+      </AC-PIN-SUCCESS-AND-REFUSAL>
+      <AC-PIN-RELEASE-API>
+        The release capability is named and every non-transaction owner is discriminated.
+        `releaseAcquiredCandidate(candidate)` is exported; it closes the pin exactly once and a second
+        call is a safe no-op. **(a) Ordinary `spec new` / `writeSpecNew` success:** the pin is closed
+        before the writer returns — an in-process series of repeated successful mints leaves the
+        process's open-handle count flat, not one handle per mint. **(b) External
+        `mintResolvedBundle` return:** the returned record is still pinned; it detects a same-path
+        directory replacement at `cleanupCandidate` time, and the caller may instead call
+        `releaseAcquiredCandidate`. **(c) Publish failure:** the failure path closes through
+        `cleanupCandidate` exactly once. **(d) Already-released record:** `cleanupCandidate` on an
+        already-released record **refuses safely** — `removed === false`, every byte preserved, and a
+        diagnostic naming the record as released — and does not fall back to the unpinned comparison.
+        Each direction is asserted with a real handle check (`fstatSync` on the captured descriptor
+        after the boundary) or a bytes/ownership check, not a source regex; closure is exactly once
+        on every branch, including the refusal paths. The owner tests carry the `AC-PIN-RELEASE-API`
+        title prefix so the `windows-compatibility` job can select them as one filtered invocation;
+        the supersede transaction owner is `AC-SUPERSEDE-PIN-RELEASE`.
+        <CloseEvidence><Command>bun test --timeout=0 src/grace-generate.test.ts</Command></CloseEvidence>
+      </AC-PIN-RELEASE-API>
+      <AC-SUPERSEDE-PIN-RELEASE>
+        The supersede transaction in `src/gates/ledger.ts` releases its minted candidate exactly once
+        on every branch, proven with a real handle. **Success:** the implicit-mint transaction returns
+        with the minted record's descriptor closed — `fstatSync` on the captured descriptor throws
+        after the transaction boundary. **Post-mint failure:** a failure after the mint returned an
+        ownership record invokes `cleanupCandidate` exactly once, which closes the descriptor, and the
+        transaction surfaces the refusal or residue without a second close. **Pre-publication mint
+        failure:** the inner publisher's own cleanup closes the record and the outer transaction
+        observes no returned record. The owner tests carry the `AC-SUPERSEDE-PIN-RELEASE` title
+        prefix, are driven in the `windows-compatibility` job through the filtered invocation
+        required by `AC-WINDOWS-DIRECTORY-PIN`, and keep the archived post-validation/pre-unlink
+        boundary; the checks are real handles and bytes/ownership, not a source regex, and this bundle
+        widens nothing.
+        <CloseEvidence><Command>bun test --timeout=0 src/grace-supersede.test.ts</Command></CloseEvidence>
+      </AC-SUPERSEDE-PIN-RELEASE>
+      <AC-PIN-RELEASE-NO-LEAK>
+        The pin is never leaked in a long-running process. Drive repeated acquire→publish→release
+        cycles — including in-process repeated `writeSpecNew` / `spec new` calls, whose open-handle
+        count is flat rather than one handle per mint — and acquire→fail→cleanup cycles; on Linux the
+        process's open-descriptor count (read from `/proc/self/fd`) returns to its baseline within
+        the run and does not grow with the cycle count, and the criterion names that the count is
+        skipped with a reason on a platform without `/proc/self/fd`. A returned published candidate
+        that is later passed to `cleanupCandidate` still detects a same-path replacement, proving the
+        pin was still held at cleanup time and was not silently invalidated by return. The cycle
+        count is not pinned; the relation (count does not grow with the cycle count) is asserted.
+        <CloseEvidence><Command>bun test --timeout=0 src/grace-generate.test.ts src/grace-cursor.test.ts</Command></CloseEvidence>
+      </AC-PIN-RELEASE-NO-LEAK>
+      <AC-README-REFUSAL>
+        `README.md` carries the operator-visible sentence decided in the pin-acquisition-failure
+        Constraint, and a guard in `scripts/audit-regressions.test.ts` asserts that sentence is
+        present, so the documented refusal cannot be dropped without a red. No other README sentence
+        is required to change.
+        <CloseEvidence><Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command></CloseEvidence>
+      </AC-README-REFUSAL>
+      <AC-WINDOWS-DIRECTORY-PIN>
+        The platform-agnostic tests of `AC-PIN-SUCCESS-AND-REFUSAL`, `AC-PIN-RELEASE-API`,
+        `AC-PIN-RELEASE-NO-LEAK`, and `AC-SUPERSEDE-PIN-RELEASE` are added to the
+        `windows-compatibility` job's test list and pass in that job: an ordinary Windows mint
+        succeeds with the pin, a handled cleanup removes the owned directory (or closes the handle
+        only at the last ownership check, per the boundary Constraint), the forced-acquisition failure
+        refuses with preserved bytes, and the supersede transaction's success and post-mint-failure
+        (removal and refusal/residue) owner checks close the minted record's descriptor exactly once.
+        One filtered invocation of `src/grace-generate.test.ts` selects the pin criteria
+        (`AC-PIN-SUCCESS-AND-REFUSAL`, `AC-PIN-RELEASE-API`, `AC-PIN-RELEASE-NO-LEAK`) including every
+        `AC-PIN-RELEASE-API` owner direction; a second filtered invocation of
+        `src/grace-supersede.test.ts` selects the `AC-SUPERSEDE-PIN-RELEASE` owners. Each reports a
+        nonzero executed count; the whole `grace-supersede` file is **not** added, because its other
+        tests carry platform assumptions. The evidence for a
+        Windows platform claim is that job's Actions outcome for the exact candidate head SHA — not a
+        local-field self-test and not a green on Linux or macOS: the authority's remote inspection,
+        recorded in the `ci-evidence.json` sidecar, is the remote evidence, and the guard checks that
+        record's shape and provenance. A refusal-only Windows test is not a pass. If ordinary Windows
+        success or a supersede owner check cannot be achieved with the handle mechanism, the result
+        is a stop-and-report, not a shipped limitation.
+      </AC-WINDOWS-DIRECTORY-PIN>
+      <AC-WINDOWS-EVIDENCE-RECORD>
+        One guard in `scripts/audit-regressions.test.ts` checks the Windows evidence both positively
+        and negatively. **Positive:** the guard resolves this successor bundle in `active/` and then
+        `archive/` — red when it is absent from both or present in both — and reads its
+        `ci-evidence.json`. It fails (zero-record is red, never green) when the sidecar is absent;
+        when `schemaVersion` is not exactly `1.0.0`; when `candidateSha` is missing, not a
+        40-character lowercase hex commit, not an ancestor of `HEAD`, or when any committed, staged,
+        unstaged, deleted, renamed, or untracked path changed since `candidateSha` falls outside the
+        two exact successor bundle directories and `scripts/audit-regressions.test.ts`. The guard
+        uses the working-tree and untracked inventories named in the bootstrap Constraint, with
+        rename detection disabled or both rename endpoints checked; it does not infer Windows
+        coverage of changed bundle bytes from this local path check. It also fails when `runId` is not a
+        positive integer; when the `jobs` array lacks `validate`, `dart-adapter`, or
+        `windows-compatibility`, repeats a job name or id, gives a job a `conclusion` other than
+        `success`, a non-integer or negative tally, `fail` other than `0`, or `pass` of `0`; and when
+        the `directions` array lacks a required Windows owner direction or gives a required direction
+        a non-integer count, `executed == 0`, or `skipped != 0`. The Linux-only
+        `AC-PIN-RELEASE-LIFETIME` direction is outside the required set. **Negative:** the same guard
+        scans every file of that bundle directory — including `spec.xml`, `plan.xml`,
+        `design-context.xml`, `run.xml`, `run-ledger.xml`, and `run/` — and fails when any contains a
+        full GitHub Actions run or job link (an `http`/`https` scheme, the GitHub web host, and the
+        Actions `runs` path), in plain or XML-escaped form. **Probes are a successor implementation
+        task, not completed evidence:** the guard's own test plants, in throwaway copies, an absent
+        sidecar; a sidecar with `schemaVersion` removed or wrong; a sidecar whose
+        `windows-compatibility` conclusion is `failure`; a sidecar with one required direction's
+        `executed` set to `0`; a sidecar with a malformed tally; an **uncommitted** mutation of
+        `.github/workflows/validate.yml` with `src/` unchanged; a rename from a forbidden workflow
+        or source path into an allowed bundle directory;
+        a run-only link and a `/job/` link in a temporary `design-context.xml`; and a full link in a
+        temporary `run-ledger.xml`; and asserts each reddens while clean evidence greens the guard.
+        The guard is **not yet implemented** — its expected red/green behaviour is stated here and
+        proven by this bundle's later plan, and this criterion does not claim present green. The guard runs
+        pre-close through `bun run validate:ci` and post-archive as the `CloseEvidence` below.
+        <CloseEvidence><Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command></CloseEvidence>
+      </AC-WINDOWS-EVIDENCE-RECORD>
+      <AC-ARCHIVE-RATCHET-TRIPLE>
+        `C-DECLARED-WRITES`' archived `AC-ARCHIVE-RATCHET` exact-zero non-lifecycle `.ngrace/` pin is
+        overturned and replaced by an exact three-path expectation. The `src/review/core.test.ts`
+        archive ratchet requires the non-lifecycle `.ngrace/` `review.write-evidence-outside-scope`
+        finding set to be exactly the three historical
+        `.ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/{spec,plan,design-context}.xml`
+        paths, keeps the runtime
+        `auditWriteEvidenceOutsideScope` findings unchanged, and reddens when a fourth non-lifecycle
+        `.ngrace/` path is planted in a disposable copy while restoring the copy greens it. The
+        product/non-docs multiset and the `unable-to-determine` status accounting are unchanged.
+        <CloseEvidence><Command>bun test --timeout=0 src/review/core.test.ts</Command></CloseEvidence>
+      </AC-ARCHIVE-RATCHET-TRIPLE>
+      <AC-CANDIDATE-LOCK-OPEN-BOUNDARY>
+        The candidate lock's exclusive create (`writeFileSync(..., { flag: "wx" })` in
+        `acquireCandidateLock`, `src/grace-cursor.ts`) classifies the platform's open error without
+        changing the cooperation contract. On a permission code (`EPERM`/`EACCES`/`EBUSY`) whose
+        holder is observable, the contender takes the unchanged wait/reclaim path — known-live
+        wait, known-dead reclaim, unknown-holder TTL, and token/identity protection all preserved —
+        and revalidates and acquires; the shipped unobservable-`EEXIST` wait is unchanged. On a
+        permission code whose holder cannot be observed, the contender retries a bounded number of
+        times and then fails closed with the original error in bounded time, so a persistent
+        genuine denial cannot become an infinite wait. `EPERM` is the remotely observed code;
+        `EACCES`/`EBUSY` are classified as possible contention on the sharing/access-denial
+        mechanism and are likewise bounded when unobservable, so an unobservable genuine denial
+        cannot become an unlimited wait. Durable tests inject immediately before the exclusive
+        create and exercise its catch path:
+        a live-holder contention waits and acquires; a persistent denial fails closed and bounded;
+        an unobservable `EEXIST` holder is waited on; and a permission code whose holder exists but
+        cannot be observed is bounded. The `candidateRoot` fixture in `src/grace-cursor.test.ts`
+        removes its temporary directories.
+        <CloseEvidence><Command>bun test --timeout=0 src/grace-cursor.test.ts -t "candidate lock primitive"</Command></CloseEvidence>
+      </AC-CANDIDATE-LOCK-OPEN-BOUNDARY>
+      <AC-PREDECESSOR-ARCHIVE-BYTES>
+        The twelve predecessor-archive `ObservedWriteScope` entries are accounting for the four
+        completed supersede moves, not permission to change the archive. A guard in
+        `scripts/audit-regressions.test.ts` reads the exact post-supersede bytes of
+        `C-LINUX-VALIDATION-REPAIR-2-D4F54467/{spec,plan,design-context}.xml` under
+        `.ngrace/changes/archive/` and requires their SHA-256 values respectively to be
+        `81e24a146ecd768853a73e72209f7e3cbac980d078f16523f7ac670b7d85efda`,
+        `7a6def8dfa80b075a035f0dee32984be838723b93837e3a2f2f8b8eba8a124f0`, and
+        `174e2a72373cf15669728d528f87dca7472e36aef258c6acd1d5d5a7d653f67e`, and separate
+        guard cases read
+        `C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/{spec,plan,design-context}.xml` requiring
+        `5793a14cc630f6ae10d3ce9e9a87aa2b2b9d4189632cb7bcabf3944f8dc86f78`,
+        `8710763f8dd1cb078256ef36592fc4d9d95af52d10824bcfca2f4204908451da`, and
+        `1e81d42538c9e61e5a42d1c7365dd4b4a805f878b6f5bc53553d4db1c89461f0`,
+        `C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/{spec,plan,design-context}.xml` requiring
+        `df77b115bb4829201b527baaea814ee77f53ce39eeea62000db861d21c3695e4`,
+        `1ec42d0fd515ec622b0c0b127b8553b4ffe400619023f1e9e06e2cddd82d6a93`, and
+        `0acf649d3d514f41a0bb89818e847dc8ecaefe4423be56f34a89d703a48dfa09`, and
+        `C-LINUX-VALIDATION-REPAIR-5-EE982B6D/{spec,plan,design-context}.xml` requiring
+        `735dc0c1ccdbe388249ddd324a02da9dc11284e3db046f2ecc6a7770be941136`,
+        `cead3ad5fa15972ee30eb77bc30e0f6bfc707a477d0b5415ae5c9afdbb24255c`, and
+        `670fa7b1a8954a154d5676f2c2f16faf2cc66d162236850664aecd645fec1e6c`. Each of the twelve
+        files mutated separately in a disposable copy reddens the guard; restoring it greens the
+        guard. The C2–C4 arrivals are already committed at this successor's HEAD; the C5 arrival is
+        uncommitted, so its three pins are measured against the pre-commit bytes and re-measured at
+        close. Neither the successor's tasks nor its close writes these archived bytes.
+        <CloseEvidence><Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command></CloseEvidence>
+      </AC-PREDECESSOR-ARCHIVE-BYTES>
+      <AC-REPORT-FORMAT>
+        `AGENTS.md` resolves to the tracked `CLAUDE.md` instruction file. Before the fresh candidate
+        Windows run, that target gains a rule for every executor or authority response about
+        repository work, including handoffs and brief status updates, to use, in order, `STATUS`,
+        `DEVIATIONS`, `EVIDENCE`, `DISCRIMINATION`,
+        `AMBIGUITIES AND PROBLEMS`, and `WRONG`. `STATUS` states what landed and what is blocked;
+        `DEVIATIONS` lists differences from plan or prompt or says `none`; `EVIDENCE` gives suite
+        pass/fail counts, lint error count with distinct codes, and CI exit code, explicitly saying
+        `not run` for any unavailable measure; `DISCRIMINATION` records each planted mutation, its
+        observed red result, and restored green result, or says `none` when no probe applies;
+        `AMBIGUITIES AND PROBLEMS` reports every ambiguity, contradiction, and workaround, including
+        ones resolved during the work, or says `none`; `WRONG` names where the prompt, plan, or spec
+        was wrong, or says `none`. A static test in `scripts/audit-regressions.test.ts` reads the
+        symlink target and requires all six headings and their guidance, so dropping a heading
+        reddens and restoring it greens. This instruction contains no person, secret, or session
+        identifier.
+        <CloseEvidence><Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command></CloseEvidence>
+      </AC-REPORT-FORMAT>
+      <AC-WORKFLOW-FULL-HISTORY>
+        The `validate` job in `.github/workflows/validate.yml` checks out with `fetch-depth: 0`, so the
+        pinned baseline commit the `AC-MINT-EXCLUSIVE` isolated control adds with
+        `git worktree add --detach ... 6dd1d95` is present in a pull-request checkout. A static guard
+        in `scripts/audit-regressions.test.ts` reads the `validate` job's checkout step and fails when
+        the depth is not full, so a reverted depth reddens without a Linux runner. The guard keys on
+        the `validate` job's own checkout step, never on the file's bytes as a whole.
+        <CloseEvidence><Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command></CloseEvidence>
+      </AC-WORKFLOW-FULL-HISTORY>
+      <AC-BASELINE-CONTROL-AVAILABLE>
+        The isolated pre-repair baseline control for `AC-MINT-EXCLUSIVE` still runs against `6dd1d95`
+        and still observes the pre-repair overwrite (`candidateSpecPreserved` false on the baseline
+        while the repaired tree preserves the competitor), and it is exercised in the `validate`
+        checkout under full history. The control is not removed, skipped, or replaced by the repaired
+        binary. This is a separate baseline from the identity controls' pre-pin tree
+        `b53d13df47cdf8d85f75b33502c6ecd9e97ff262`.
+        <CloseEvidence><Command>bun test --timeout=0 src/grace-generate.test.ts</Command></CloseEvidence>
+      </AC-BASELINE-CONTROL-AVAILABLE>
+      <AC-CLOSE-LINT>
+        Post-close lint of the repository root reports zero errors and zero warnings, evaluated in the
+        applied-archive state.
+        <CloseEvidence><Command>bun run ngrace lint --path . --fail-on warnings</Command></CloseEvidence>
+      </AC-CLOSE-LINT>
+      <AC-CLOSE-SUITE>
+        The behavior-pinning suites for the changed surfaces pass with no wall-clock timeout in the
+        applied-archive state. This criterion claims the suites only; the full CI command
+        `bun run validate:ci` is the plan's `MustPassCommand`, run at the close through
+        `--assertions final --run-commands`.
+        <CloseEvidence><Command>bun test --timeout=0</Command></CloseEvidence>
+      </AC-CLOSE-SUITE>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI />
+      <M-CURSOR />
+      <M-GATES />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        The relational evidence for the identity repair is driven on a disposable ext4 mount against
+        the immediate pre-pin tree `b53d13df47cdf8d85f75b33502c6ecd9e97ff262` and the repaired tree:
+        without a pin, an unpinned replacement reuses the observed inode on ext4 and the guard deletes
+        or unlinks it; with the handle held open, the replacement receives a different inode and is
+        preserved. XFS in this environment does not reproduce the recycling, so an XFS green is not
+        ext4 evidence. The durable reproduction — ext4 precondition, date, complete probe, and raw
+        transcript — is in `design-context.xml`. The checkout-depth failure is shown by a `--depth 1`
+        clone of the branch whose `git worktree add --detach ... 6dd1d95` exits 128
+        `fatal: invalid reference`; after `git fetch --unshallow` the same control exits 0. The
+        release-owner evidence is taken from real handles: an in-process `spec new` series, a
+        `mintResolvedBundle` returned record, and the `src/gates/ledger.ts` supersede transaction on
+        both its success and post-mint-failure branches, with `fstatSync` after each owner boundary
+        and the Linux descriptor relation. The raw owner probe commands and outputs are recorded in
+        `design-context.xml` with their prototype provenance. The `M-GATES` module and its `V-M-GATES`
+        verification anchor cover the transaction owner; the plan's `DurableScope` names them beside
+        `M-CLI`/`M-CURSOR`. The four sanctioned supersede moves place twelve predecessor XML
+        artifacts in the archive; C2–C4 are already committed and the C5 arrival is uncommitted, so
+        C6's review changed-file set includes the C5 XML paths as untracked paths now and tracked
+        additions after the governance commit; the later plan carries all twelve exact paths
+        in `ObservedWriteScope` for review accounting only, and the guard pins their post-supersede
+        SHA-256 bytes with a separately planted mutation per file. The `src/review/core.test.ts`
+        ratchet is re-driven for the exact C3 three-path non-lifecycle `.ngrace/` expectation and
+        reddens on a planted fourth path. The candidate-lock boundary is driven by
+        `src/grace-cursor.test.ts`'s durable open-boundary tests: live-holder contention waits and
+        acquires, persistent denial fails closed and bounded, the unobservable `EEXIST` wait holds,
+        and the `candidateRoot` fixtures are removed. Windows evidence is taken only
+        from the `windows-compatibility` job's
+        Actions outcome for the exact candidate head SHA, covering both the
+        `src/grace-generate.test.ts` pin directions and the filtered `src/grace-supersede.test.ts`
+        `AC-SUPERSEDE-PIN-RELEASE` owners. That outcome is recorded, URL-free and without any account
+        handle, in the authority-owned `ci-evidence.json` sidecar: the exact candidate SHA, the
+        numeric run and job identifiers, the conclusions and tallies, and the per-direction
+        executed/skipped counts. The guard in `scripts/audit-regressions.test.ts` consumes that record
+        and scans the whole successor bundle for a prohibited full link, both before the close through
+        `bun run validate:ci` and after the close as `CloseEvidence`; the clickable link itself never
+        enters the repository. Because Windows CLI tests read the governed bundle tree, the
+        authority also checks a fresh successful `Validate` workflow at the final pushed PR head
+        after the applied-archive commit, before the PR is merged. That later release check does not
+        rewrite the historical candidate run recorded in the sidecar.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      **Lineage.** This bundle's immediate predecessor is the approved
+      `C-LINUX-VALIDATION-REPAIR-5-EE982B6D` (archived, `status="superseded"`), superseded after it
+      completed and committed T-001, T-002, and T-003 but before T-004 opened. C5's exact-head
+      Validate run `36182564019` on `4a973bd` failed the Windows job: during `AC-UNIQUE-CONCURRENT`
+      one `ngrace cursor advance` process exited 1 with `EPERM` at the candidate lock's
+      `writeFileSync(..., { flag: "wx" })` in `src/grace-cursor.ts`, and the later Windows pin,
+      supersede, and CLI steps were skipped. The remote log recorded the exception and stack only —
+      not whether the lock file existed or held a live holder — so contention is an **inference**.
+      C5's approved T-001 says it changes none of the nine inherited repair paths;
+      `src/grace-cursor.ts` is one of them, and the one-active-bundle rule prevents an independent
+      executable bundle beside C5, so C6 is the successor that scopes the fix.
+      The **previous** predecessor `C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B` (archived,
+      `status="superseded"`) was superseded before it opened any execution epoch: the shipped
+      `C-DECLARED-WRITES` `AC-ARCHIVE-RATCHET` pins the non-lifecycle `.ngrace/` WriteEvidence count
+      to exactly zero, and the sanctioned C3 supersede folds the loose events, so C3's T-001
+      WriteEvidence — naming C3's own `spec.xml`, `plan.xml`, and `design-context.xml` — was written
+      into C3's archived `run-ledger.xml` and remains audit-visible.
+      `C-LINUX-VALIDATION-REPAIR-5-EE982B6D` corrected that with the exact three-path C3
+      expectation in `src/review/core.test.ts`, which this bundle adopts.
+      The **earlier** predecessor `C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3` (archived,
+      `status="superseded"`) was superseded for an authority process error: its approved spec and
+      plan were left uncommitted when its execution epoch opened and its T-001 attempt recorded, so
+      that attempt's WriteEvidence captured C3's own `spec.xml`, `plan.xml`, and `design-context.xml`
+      outside the approved write scope and `ngrace review` reported three
+      `review.write-evidence-outside-scope` errors for those identity-skipped paths. The supersede
+      verb folds the loose events, so "discarded" describes the epoch state, not the evidence: those
+      three paths are durable in C3's archived ledger, and this bundle keeps the runtime
+      `auditWriteEvidenceOutsideScope` findings rather than suppressing them.
+      The **earliest** predecessor `C-LINUX-VALIDATION-REPAIR-2-D4F54467` (archived,
+      `status="superseded"`) was superseded when its approved plan's T-004 criterion required the
+      implementation authority to record the **full GitHub Actions job URL** in the bundle's
+      evidence, together with its conclusion and the pushed head SHA. The full clickable link embeds
+      the repository owner's account handle, which the `AGENTS.md` public-content rule forbids in
+      every repository surface, and the shipped writer surfaces do not accept it — the cursor
+      subcommand set (read directly) exposes no external-job URL field, and `gate verdict --note`
+      writes free text into `run-ledger.xml`, which is itself a committed repository surface, so it
+      too cannot carry the link. `C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3` replaced that promise with
+      the positive, URL-free evidence record this bundle preserves.
+      `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05` remains the first bundle of the lineage. This successor
+      is therefore a governance repair plus re-validation: it adopts the repair code committed at
+      `6c18033e90f90bd83ab59b37fd1afe55effd3750`, plus the C3/C4 archive guards and ratchet
+      correction committed at `3a1ef22c40d5c35b0712809cf389e3e9de182b01`, adds accounting and
+      byte protection for the C5 archive arrival, and adds the candidate-lock open-boundary change
+      and its tests; this draft has **no plan yet**, and the plan's `ObservedWriteScope` and tasks
+      are a later stage. The three PR-validation failures below are copied from the earlier bundles
+      unchanged.
+      **Release-owner gap — measured, then repaired in the committed work this bundle adopts.** The
+      `C-LINUX-VALIDATION-REPAIR-2-D4F54467` approval covered the candidate-directory and
+      candidate-lock owners but not the supersede transaction owner. Measured on the disposable
+      prototype at the time: `writeSpecNew` discarded the published record without releasing its
+      pin, so each successful `spec new` leaked one descriptor; the `supersedeChangeBundle` success
+      path captured the implicitly minted record and returned without releasing it. The failure path
+      already closed through `cleanupCandidate`. The committed tree now closes both —
+      `writeSpecNew` releases at `src/grace-generate.ts:441`, and the transaction releases at
+      `src/gates/ledger.ts:1715` on success and lets `cleanupCandidate` close at `:1740` on a
+      post-mint failure. The raw probe commands and outputs, with their prototype provenance, are in
+      `design-context.xml`; `AC-SUPERSEDE-PIN-RELEASE`, `AC-PIN-RELEASE-API`, and
+      `AC-PIN-RELEASE-NO-LEAK` re-validate that committed repair.
+      GitHub Actions run `35796125320`, job `validate` on Ubuntu 24.04/Bun 1.3.14, failed during
+      `bun run validate:ci` → `bun run test:metrics` at `2366 pass, 3 skip, 3 fail`; the later
+      validation commands did not run. The `windows-compatibility` and `dart-adapter` jobs passed.
+      **Failure 1 — `src/grace-generate.test.ts:533-543`, `AC-CLEANUP-BOUNDED`.** Expected
+      `cleanupCandidate(...).removed === false`, received `true`. `src/grace-generate.ts:213-223`
+      compares only `dev`/`ino` before deleting; on ext4 the recreated directory reused the freed
+      inode number and the replacement was deleted.
+      **Failure 2 — `src/grace-generate.test.ts:988-995`, `AC-MINT-EXCLUSIVE` baseline control.**
+      `git worktree add --detach ... 6dd1d95` failed `fatal: invalid reference: 6dd1d95`, exit 128,
+      because `.github/workflows/validate.yml:14-16` checks out the PR merge ref at the default
+      shallow depth.
+      **Failure 3 — `src/grace-cursor.test.ts:5014-5054`, `AC-CANDIDATE-RECLAIM-EXCLUSIVE`.** The
+      fixture waited for a second `observed` probe that never appeared. `src/grace-cursor.ts:4015-4050`
+      reads bytes and stats the **path** separately and compares `dev`/`ino`. On ext4 an instrumented
+      replay shows the observed inode and the recreated inode are the same number, the child proceeds
+      from `observed` to `before-unlink` to `acquired-returned`, and the child acquires: B unlinked
+      the recycled replacement.
+      **Measured mechanism.** `stat` device/inode can be recycled after `unlink`; holding a handle to
+      the object across the destructive call pins the inode. `open` + `fstat` works on Linux and macOS
+      for both a file and a directory, and `rmdir` succeeds while a directory handle is open.
+      `fs.opendirSync` exposes no descriptor and cannot supply `fstat`. Windows is not measured in
+      this environment and is a required platform proven by the `windows-compatibility` job. The
+      defect is that identity is recorded from a path and the ownership bytes are read from a path,
+      not that the fixtures are wrong.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        The `validate` job is the only CI job that runs `src/grace-generate.test.ts`; the
+        `windows-compatibility` job runs `src/grace-cursor.test.ts` and the `dart-adapter` job runs the
+        Dart adapter. Adding the platform-agnostic pin tests to the `windows-compatibility` job is the
+        Windows catch, and the new `src/grace-supersede.test.ts` owner checks ride the same job through
+        a narrowed, filtered invocation because that file's other tests carry platform assumptions. If
+        either file has pre-existing Windows failures, the plan measures them and narrows the added
+        tests rather than widening the job silently.
+      </Assumption>
+      <Assumption>
+        Pinning makes `dev`/`ino` sound because an open handle keeps the recorded inode allocated, so a
+        replacement cannot receive that number. Measured on ext4 (see `design-context.xml`). Whether
+        Windows permits the directory open, and removal while it is held, is proven by the Windows job
+        rather than assumed.
+      </Assumption>
+      <Assumption>
+        The probe's projected figures are not pinned in criteria; the relations (replacement preserved,
+        pre-pin control reddens, descriptor count does not grow) are asserted, and the measured figures
+        live in `design-context.xml`, where they expire.
+      </Assumption>
+      <Assumption>
+        The archive-ratchet prototype figures are not pinned in criteria. The authority's disposable
+        prototype measured the pre-correction exact-zero expectation as zero observed against three,
+        the exact C3 triple as 1 pass / 0 fail, and a planted fourth `.ngrace/.../extra.xml` as
+        0 pass / 1 fail. `AC-ARCHIVE-RATCHET-TRIPLE` states only the relations.
+      </Assumption>
+    </Assumptions>
+    <Clarifications>
+      <Clarification resolved="true">
+        <IC-CANDIDATE-IDENTITY />
+        Resolved 2026-09-23 by the implementation authority's design decision, encoded throughout this
+        draft. **(a) Strategy:** handle-pinning with `fstat` identity and lock bytes read from the same
+        handle. A `birthtime` secondary is rejected because it cannot prove identity on filesystems
+        with coarse or absent creation timestamps. **(b) Windows:** ordinary `spec new` and candidate
+        cleanup must succeed on Windows; the platform-agnostic success and forced-failure tests are
+        added to the `windows-compatibility` job and the platform claim comes only from that job's
+        Actions outcome; if the mechanism cannot support ordinary Windows success the executor stops
+        and reports rather than shipping a limitation by inference. **(c) Fail policy:** when pin
+        acquisition genuinely fails, preserve-and-refuse with a named diagnostic; the unpinned
+        `dev`/`ino` fallback is forbidden because it reproduces the verified deletion. This refusal is
+        operator-visible and `README.md` documents it. This clarification no longer blocks plan
+        approval.
+      </Clarification>
+    </Clarifications>
+  </C-LINUX-VALIDATION-REPAIR-6-62765C22>
+</NgraceChangeSpec>

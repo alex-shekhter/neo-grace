@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-LINUX-VALIDATION-REPAIR-5-EE982B6D>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-LINUX-VALIDATION-REPAIR-5-EE982B6D><Replacement>C-LINUX-VALIDATION-REPAIR-6-62765C22</Replacement>
     <IntentSummary>
       Adopt the committed predecessor repair, complete C5's URL-free Windows evidence, and correct
       the archive ratchet in five sequential tasks. T-001 verifies the inherited repair without
