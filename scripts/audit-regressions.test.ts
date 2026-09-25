@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync, statSync } from "node:fs";
 import path from "node:path";
 
 type AuditRegressionCase = {
@@ -508,6 +508,61 @@ describe("C-LINUX-VALIDATION-REPAIR-2-D4F54467 predecessor archive byte guard", 
     for (const [rel, digest] of Object.entries(PREDECESSOR_ARCHIVE_SHA256)) {
       const bytes = readFileSync(path.join(repoRoot, rel));
       expect(createHash("sha256").update(bytes).digest("hex"), `${rel} must keep the bytes committed at 9bdf72e`).toBe(digest);
+    }
+  });
+});
+
+const REPORT_FORMAT_LINES = [
+  "- STATUS: what landed and what is blocked.",
+  "- DEVIATIONS: anything differing from the plan or prompt; say `none` if there is no deviation.",
+  "- EVIDENCE: suite pass/fail counts, lint error count and distinct codes, and CI exit code; say `not run` for an unavailable measure.",
+  "- DISCRIMINATION: each probe as mutate -> observed -> restored; say `none` when no probe applies.",
+  "- AMBIGUITIES AND PROBLEMS: every ambiguity, contradiction, or block encountered, including ones resolved or worked around; say `none` if there are none.",
+  "- WRONG: where the prompt, plan, or spec is wrong; say `none` if none is known.",
+] as const;
+
+function reportFormatProblems(content: string): string[] {
+  const start = content.indexOf("## Response Format\n");
+  if (start < 0) return ["Response Format section"];
+  const next = content.indexOf("\n## ", start + 1);
+  const section = content.slice(start, next < 0 ? undefined : next);
+  const problems: string[] = [];
+  let previous = -1;
+  for (const line of REPORT_FORMAT_LINES) {
+    const position = section.indexOf(line);
+    if (position < 0 || position <= previous) problems.push(line);
+    else previous = position;
+  }
+  return problems;
+}
+
+describe("C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3 response format guard", () => {
+  it("the AGENTS target keeps all six fields and their guidance", () => {
+    const agentsPath = path.join(repoRoot, "AGENTS.md");
+    if (process.platform === "win32" && !lstatSync(agentsPath).isSymbolicLink()) {
+      expect(readFileSync(agentsPath, "utf8").trim()).toBe("CLAUDE.md");
+    } else {
+      expect(readlinkSync(agentsPath)).toBe("CLAUDE.md");
+    }
+    const content = readFileSync(path.join(repoRoot, "CLAUDE.md"), "utf8");
+    expect(reportFormatProblems(content)).toEqual([]);
+    for (const line of REPORT_FORMAT_LINES) {
+      expect(reportFormatProblems(content.replace(line, "")), `${line} must be required`).toContain(line);
+    }
+  });
+});
+
+export const SECOND_PREDECESSOR_ARCHIVE_SHA256: Record<string, string> = {
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/spec.xml": "81e24a146ecd768853a73e72209f7e3cbac980d078f16523f7ac670b7d85efda",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/plan.xml": "7a6def8dfa80b075a035f0dee32984be838723b93837e3a2f2f8b8eba8a124f0",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/design-context.xml": "174e2a72373cf15669728d528f87dca7472e36aef258c6acd1d5d5a7d653f67e",
+};
+
+describe("C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3 predecessor archive byte guard", () => {
+  it("the predecessor archive arrival keeps its exact post-supersede bytes", () => {
+    for (const [rel, digest] of Object.entries(SECOND_PREDECESSOR_ARCHIVE_SHA256)) {
+      const bytes = readFileSync(path.join(repoRoot, rel));
+      expect(createHash("sha256").update(bytes).digest("hex"), `${rel} must keep its post-supersede bytes`).toBe(digest);
     }
   });
 });

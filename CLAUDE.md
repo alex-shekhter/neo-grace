@@ -115,6 +115,18 @@ Never write a brief that refers to "your draft" or otherwise assumes the executo
 work. Point at the artifact by path and tell it to read it. A cold-safe brief still works for a warm
 executor; a warm brief fails a cold one, so cold is the only safe default.
 
+## Response Format
+
+Every response about repository work, including handoffs and brief status updates, uses these six
+fields in order:
+
+- STATUS: what landed and what is blocked.
+- DEVIATIONS: anything differing from the plan or prompt; say `none` if there is no deviation.
+- EVIDENCE: suite pass/fail counts, lint error count and distinct codes, and CI exit code; say `not run` for an unavailable measure.
+- DISCRIMINATION: each probe as mutate -> observed -> restored; say `none` when no probe applies.
+- AMBIGUITIES AND PROBLEMS: every ambiguity, contradiction, or block encountered, including ones resolved or worked around; say `none` if there are none.
+- WRONG: where the prompt, plan, or spec is wrong; say `none` if none is known.
+
 ## Evidence Standard For The Authority
 
 The authority holds the executor to `file:line` citations and pasted command tails, and tells it a
