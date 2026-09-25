@@ -1,9 +1,10 @@
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import type { GraceXmlNode } from "./artifact/xml";
 import os from "node:os";
+import { pathToFileURL } from "node:url";
 import path from "node:path";
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, afterAll } from "bun:test";
 
 import { ARTIFACT_DIR } from "./artifact/paths";
 import {
@@ -4585,9 +4586,15 @@ describe("candidate lock primitive", () => {
   const lockDirFor = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
   const lockPathFor = (root: string, id: string) => path.join(lockDirFor(root), `.candidate-${id}.lock`);
 
+  const createdRoots: string[] = [];
+  afterAll(() => {
+    for (const root of createdRoots) rmSync(root, { recursive: true, force: true });
+  });
+
   function candidateRoot(label: string): string {
     const root = mkdtempSync(path.join(os.tmpdir(), `grace-candidate-lock-${label}-`));
     mkdirSync(lockDirFor(root), { recursive: true });
+    createdRoots.push(root);
     return root;
   }
 
@@ -4743,6 +4750,210 @@ describe("candidate lock primitive", () => {
     for (const nearMiss of nearMisses) {
       expect(paths, nearMiss).toContain(nearMiss);
     }
+  });
+
+  // C-LINUX-VALIDATION-REPAIR-6-62765C22: the exclusive create's permission-code
+  // boundary. A permission code is possible contention; an observable holder takes
+  // the unchanged wait/reclaim path, an unobservable one is bounded. Every contender
+  // and releaser runs in a bounded, reaped child so a failed release cannot hang the run.
+  const moduleUrl = pathToFileURL(path.resolve(import.meta.dir, "grace-cursor.ts")).href;
+
+  function unreadableIsEnforced(): boolean {
+    const probeRoot = mkdtempSync(path.join(os.tmpdir(), "grace-candidate-lock-unreadable-"));
+    const probe = path.join(probeRoot, "probe");
+    writeFileSync(probe, "probe");
+    try {
+      chmodSync(probe, 0o000);
+      try {
+        readFileSync(probe, "utf8");
+        return false;
+      } catch {
+        return true;
+      }
+    } finally {
+      try {
+        chmodSync(probe, 0o600);
+      } catch {
+        // best-effort
+      }
+      rmSync(probeRoot, { recursive: true, force: true });
+    }
+  }
+  // Explicit skip reason: chmod(000) is not the Windows access model, and an elevated POSIX
+  // runner (root) can still read a 000 file, so the fixture would otherwise be vacuous.
+  const UNREADABLE_SKIP = process.platform === "win32" || !unreadableIsEnforced();
+
+  function contenderScript(): string {
+    return [
+      `import { existsSync, readFileSync } from "node:fs";`,
+      `import { withCandidateLock, setCandidateLockOpenForTests } from ${JSON.stringify(moduleUrl)};`,
+      `const [root, id, mode] = process.argv.slice(2);`,
+      `if (mode === "eperm-when-present") {`,
+      `  setCandidateLockOpenForTests((lockPath) => {`,
+      `    if (existsSync(lockPath)) { const e = new Error("EPERM probe"); e.code = "EPERM"; throw e; }`,
+      `  });`,
+      `} else if (mode === "eperm-always") {`,
+      `  setCandidateLockOpenForTests(() => { throw Object.assign(new Error("EPERM probe"), { code: "EPERM" }); });`,
+      `}`,
+      `const flush = (code, message, stream = process.stdout) => new Promise((resolve) => {`,
+      `  process.exitCode = code;`,
+      `  stream.write(message, () => resolve());`,
+      `});`,
+      `let owned = false;`,
+      `try {`,
+      `  withCandidateLock(root, id, () => {`,
+      `    const lockPath = root + "/.ngrace/changes/active/.candidate-" + id + ".lock";`,
+      `    owned = existsSync(lockPath) && readFileSync(lockPath, "utf8").split("\\n")[0] === String(process.pid);`,
+      `  });`,
+      `  await flush(0, "acquired owned=" + owned + "\\n");`,
+      `} catch (error) { await flush(2, "refused " + ((error && error.code) || "unknown") + "\\n"); }`,
+      ``,
+    ].join("\n");
+  }
+
+  /** Run the contender in its own process and bound every wait: a hang fails, never stalls the runner. */
+  async function runContender(root: string, id: string, mode: string, timeoutMs: number) {
+    const script = path.join(root, `contender-${Math.random().toString(16).slice(2)}.ts`);
+    writeFileSync(script, contenderScript());
+    const proc = Bun.spawn({ cmd: [process.execPath, script, root, id, mode], stdout: "pipe", stderr: "pipe" });
+    const stdout = new Response(proc.stdout).text();
+    try {
+      const exited = proc.exited.then(async (code) => ({ code, out: await stdout }));
+      const outcome = await Promise.race([exited, Bun.sleep(timeoutMs).then(() => undefined)]);
+      if (!outcome) {
+        proc.kill();
+        const reaped = await Promise.race([proc.exited, Bun.sleep(2000).then(() => undefined)]);
+        if (reaped === undefined) {
+          throw new Error(`contender for ${mode} did not exit within ${timeoutMs}ms and could not be reaped`);
+        }
+        throw new Error(`contender for ${mode} did not exit within ${timeoutMs}ms (reaped with code ${reaped})`);
+      }
+      return outcome;
+    } finally {
+      // Deterministic cleanup; a cleanup error must not replace the primary failure.
+      try {
+        rmSync(script, { force: true });
+      } catch {
+        // best-effort
+      }
+    }
+  }
+
+  interface Releaser {
+    proc: ReturnType<typeof Bun.spawn>;
+    script: string;
+  }
+
+  /** Reliable releaser: retries until the lock is gone and exits non-zero if it never is. */
+  function releaseAfter(lockPath: string, ms: number): Releaser {
+    const script = path.join(os.tmpdir(), `c6-lock-releaser-${Math.random().toString(16).slice(2)}.ts`);
+    const source =
+      `import { existsSync, chmodSync, unlinkSync } from "node:fs";`
+      + `const target = ${JSON.stringify(lockPath)};`
+      + `await Bun.sleep(${JSON.stringify(ms)});`
+      + `const deadline = Date.now() + 3000;`
+      + `while (existsSync(target) && Date.now() < deadline) {`
+      + `  try { chmodSync(target, 0o600); } catch {}`
+      + `  try { unlinkSync(target); } catch {}`
+      + `  if (existsSync(target)) await Bun.sleep(10);`
+      + `}`
+      + `const flush = (code, message, stream = process.stdout) => new Promise((resolve) => {`
+      + `  process.exitCode = code;`
+      + `  stream.write(message, () => resolve());`
+      + `});`
+      + `if (existsSync(target)) { await flush(3, "release failed\\n", process.stderr); }`
+      + `else { await flush(0, "released\\n"); }`;
+    writeFileSync(script, source);
+    const proc = Bun.spawn({ cmd: [process.execPath, script], stdout: "pipe", stderr: "pipe" });
+    return { proc, script };
+  }
+
+  /** Bounded, checked releaser teardown: terminate and reap a stuck releaser, or fail explicitly. */
+  async function disposeReleaser(releaser: Releaser): Promise<number> {
+    let code = await Promise.race([releaser.proc.exited, Bun.sleep(4000).then(() => undefined)]);
+    if (code === undefined) {
+      releaser.proc.kill();
+      code = await Promise.race([releaser.proc.exited, Bun.sleep(2000).then(() => undefined)]);
+      if (code === undefined) throw new Error("releaser did not exit and could not be reaped");
+    }
+    try {
+      rmSync(releaser.script, { force: true });
+    } catch {
+      // best-effort
+    }
+    return code;
+  }
+
+  it("AC-CANDIDATE-LOCK-OPEN-BOUNDARY: a permission code with a real live holder waits and acquires", async () => {
+    const root = candidateRoot("perm-contention");
+    const lock = lockPathFor(root, "C-LOCK-PERM");
+    writeFileSync(lock, `${process.pid}\n${Date.now()}\nholder-token\n`, { flag: "wx" });
+    const releaser = releaseAfter(lock, 150);
+    const started = Date.now();
+    let releaseCode: number | undefined;
+    try {
+      const outcome = await runContender(root, "C-LOCK-PERM", "eperm-when-present", 5000);
+      expect(outcome.code, "the contender acquired rather than refusing").toBe(0);
+      expect(outcome.out).toContain("acquired");
+      expect(outcome.out, "the contender genuinely held the lock it wrote").toContain("owned=true");
+    } finally {
+      releaseCode = await disposeReleaser(releaser);
+    }
+    expect(releaseCode, "the holder released reliably").toBe(0);
+    expect(existsSync(lock), "the contender's lock was released").toBe(false);
+    expect(Date.now() - started, "waited for the live holder").toBeGreaterThanOrEqual(100);
+  });
+
+  it("AC-CANDIDATE-LOCK-OPEN-BOUNDARY: a persistent permission denial with no holder fails closed and bounded", async () => {
+    const root = candidateRoot("perm-denied");
+    const started = Date.now();
+    const outcome = await runContender(root, "C-LOCK-DENIED", "eperm-always", 5000);
+    expect(outcome.code, "refused rather than acquired").toBe(2);
+    expect(outcome.out).toContain("refused");
+    expect(Date.now() - started, "bounded, not a hang").toBeLessThan(3000);
+  });
+
+  it.skipIf(UNREADABLE_SKIP)("AC-CANDIDATE-LOCK-OPEN-BOUNDARY: a permission code whose real holder exists but cannot be observed is bounded", async () => {
+    const root = candidateRoot("perm-unobservable");
+    const lock = lockPathFor(root, "C-LOCK-PERM-UNREADABLE");
+    writeFileSync(lock, "unreadable holder");
+    chmodSync(lock, 0o000);
+    expect(() => readFileSync(lock, "utf8"), "fixture must be unreadable").toThrow();
+    const started = Date.now();
+    try {
+      const outcome = await runContender(root, "C-LOCK-PERM-UNREADABLE", "eperm-when-present", 5000);
+      expect(outcome.code, "refused rather than acquired").toBe(2);
+      expect(Date.now() - started, "bounded, not a hang").toBeLessThan(3000);
+    } finally {
+      if (existsSync(lock)) {
+        try {
+          chmodSync(lock, 0o600);
+        } catch {
+          // best-effort
+        }
+      }
+    }
+  });
+
+  it.skipIf(UNREADABLE_SKIP)("AC-CANDIDATE-LOCK-OPEN-BOUNDARY: an unobservable EEXIST holder is waited on until it is really released", async () => {
+    const root = candidateRoot("unobservable");
+    const lock = lockPathFor(root, "C-LOCK-UNREADABLE");
+    writeFileSync(lock, "unreadable holder");
+    chmodSync(lock, 0o000);
+    expect(() => readFileSync(lock, "utf8"), "fixture must be unreadable").toThrow();
+    const releaser = releaseAfter(lock, 200);
+    const started = Date.now();
+    let releaseCode: number | undefined;
+    try {
+      const outcome = await runContender(root, "C-LOCK-UNREADABLE", "none", 5000);
+      expect(outcome.code, "the contender acquired").toBe(0);
+      expect(outcome.out).toContain("acquired");
+      expect(outcome.out, "the contender genuinely held the lock it wrote").toContain("owned=true");
+    } finally {
+      releaseCode = await disposeReleaser(releaser);
+    }
+    expect(releaseCode, "the holder released reliably").toBe(0);
+    expect(Date.now() - started, "waited on the unobservable holder").toBeGreaterThanOrEqual(150);
   });
 });
 

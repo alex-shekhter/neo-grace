@@ -60,6 +60,7 @@
 //   setEventIdAllocationProbeForTests
 //   setEventWriteLockTtlForTests
 //   setCandidateLockCaptureOrderForTests
+//   setCandidateLockOpenForTests
 //   setCandidateLockTtlForTests
 //   setCandidateReclaimProbeForTests
 //   assertCandidatePublished
@@ -3973,6 +3974,17 @@ export function setCandidateLockTtlForTests(ms: number | null): void {
   candidateLockTtlOverride = ms;
 }
 
+let candidateLockOpenForTests: ((lockPath: string) => void) | undefined;
+
+/**
+ * Test-only: wraps the candidate lock's exclusive create so a deterministic probe can
+ * inject a platform-shaped open failure at the real lock-open boundary. Production leaves
+ * it unset; it is not a user-facing switch.
+ */
+export function setCandidateLockOpenForTests(fn: ((lockPath: string) => void) | undefined): void {
+  candidateLockOpenForTests = fn;
+}
+
 const candidateLockDepth = new Map<string, number>();
 
 const CANDIDATE_MARKER_NAME = ".ngrace-mint-owner";
@@ -4095,15 +4107,37 @@ function reclaimCandidateLock(lockPath: string, observed: CandidateLockObservati
   }
 }
 
+const CANDIDATE_LOCK_PERMISSION_RETRY_LIMIT = 25;
+
 function acquireCandidateLock(lockPath: string, token: string, ttl: number): void {
+  // A permission code (EPERM/EACCES/EBUSY) at the exclusive create can mean the lock is
+  // held — Windows sharing violations surface these instead of EEXIST — but it is also the
+  // shape of a genuine denial. A permission code whose holder cannot be observed is retried
+  // a bounded number of times and then fails closed; the EEXIST wait below is unchanged.
+  let permissionRetries = 0;
   for (;;) {
     try {
+      candidateLockOpenForTests?.(lockPath);
       writeFileSync(lockPath, `${process.pid}\n${Date.now()}\n${token}\n`, { flag: "wx" });
       return;
     } catch (error) {
-      if ((error as { code?: string }).code !== "EEXIST") throw error;
+      const code = (error as { code?: string }).code;
+      const permissionCode = code === "EPERM" || code === "EACCES" || code === "EBUSY";
+      if (code !== "EEXIST" && !permissionCode) throw error;
       const observed = observeCandidateLock(lockPath);
-      if (!observed) continue;
+      if (!observed) {
+        if (permissionCode) {
+          // The holder is not observable: retry to absorb a release between the failed
+          // create and this read, then fail closed rather than wait forever on a denial.
+          permissionRetries += 1;
+          if (permissionRetries > CANDIDATE_LOCK_PERMISSION_RETRY_LIMIT) throw error;
+          Bun.sleepSync(2);
+          continue;
+        }
+        // Shipped behavior: an EEXIST lock may be mid-creation or mid-release; keep waiting.
+        continue;
+      }
+      permissionRetries = 0;
       const lines = observed.raw.split("\n");
       const pid = Number(lines[0]);
       const stampParsed = /^\d+$/.test((lines[1] ?? "").trim());
