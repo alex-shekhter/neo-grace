@@ -107,7 +107,9 @@ anyone asked what the URL was.
 ## Briefing The Executor
 
 Implementation work is dispatched to a separate executor agent. Write every executor brief to a
-Markdown file in the project workspace, then hand over its path and label it WARM or COLD. Default
+Markdown file in the project workspace. Its first line must be `/skill:ngrace-XXX` for the skill
+the executor should invoke, followed by the brief body. Before handoff, read that first line back
+and correct any mismatch; give the user the file link and label the brief WARM or COLD. Default
 to COLD unless the user explicitly says the executor is warm. A COLD brief is self-contained: name
 the repository, artifacts, role split, and instruction to refresh installed `ngrace` skills from
 `skills/ngrace/*` before reading source. A WARM brief is a delta that preserves the executor's KV
