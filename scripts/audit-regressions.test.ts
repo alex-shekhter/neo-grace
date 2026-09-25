@@ -558,9 +558,39 @@ export const SECOND_PREDECESSOR_ARCHIVE_SHA256: Record<string, string> = {
   ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/design-context.xml": "174e2a72373cf15669728d528f87dca7472e36aef258c6acd1d5d5a7d653f67e",
 };
 
-describe("C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3 predecessor archive byte guard", () => {
-  it("the predecessor archive arrival keeps its exact post-supersede bytes", () => {
+describe("C-LINUX-VALIDATION-REPAIR-2-D4F54467 (second arrival) predecessor archive byte guard", () => {
+  it("the second-arrival archive keeps its exact post-supersede bytes", () => {
     for (const [rel, digest] of Object.entries(SECOND_PREDECESSOR_ARCHIVE_SHA256)) {
+      const bytes = readFileSync(path.join(repoRoot, rel));
+      expect(createHash("sha256").update(bytes).digest("hex"), `${rel} must keep its post-supersede bytes`).toBe(digest);
+    }
+  });
+});
+
+export const THIRD_ARRIVAL_ARCHIVE_SHA256: Record<string, string> = {
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/spec.xml": "5793a14cc630f6ae10d3ce9e9a87aa2b2b9d4189632cb7bcabf3944f8dc86f78",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/plan.xml": "8710763f8dd1cb078256ef36592fc4d9d95af52d10824bcfca2f4204908451da",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/design-context.xml": "1e81d42538c9e61e5a42d1c7365dd4b4a805f878b6f5bc53553d4db1c89461f0",
+};
+
+describe("C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3 (third arrival) predecessor archive byte guard", () => {
+  it("the third-arrival archive keeps its exact post-supersede bytes", () => {
+    for (const [rel, digest] of Object.entries(THIRD_ARRIVAL_ARCHIVE_SHA256)) {
+      const bytes = readFileSync(path.join(repoRoot, rel));
+      expect(createHash("sha256").update(bytes).digest("hex"), `${rel} must keep its post-supersede bytes`).toBe(digest);
+    }
+  });
+});
+
+export const FOURTH_ARRIVAL_ARCHIVE_SHA256: Record<string, string> = {
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/spec.xml": "df77b115bb4829201b527baaea814ee77f53ce39eeea62000db861d21c3695e4",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/plan.xml": "1ec42d0fd515ec622b0c0b127b8553b4ffe400619023f1e9e06e2cddd82d6a93",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/design-context.xml": "0acf649d3d514f41a0bb89818e847dc8ecaefe4423be56f34a89d703a48dfa09",
+};
+
+describe("C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B (fourth arrival) predecessor archive byte guard", () => {
+  it("the fourth-arrival archive keeps its exact post-supersede bytes", () => {
+    for (const [rel, digest] of Object.entries(FOURTH_ARRIVAL_ARCHIVE_SHA256)) {
       const bytes = readFileSync(path.join(repoRoot, rel));
       expect(createHash("sha256").update(bytes).digest("hex"), `${rel} must keep its post-supersede bytes`).toBe(digest);
     }

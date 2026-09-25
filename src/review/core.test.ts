@@ -2612,7 +2612,7 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     expect(we.every((f) => !f.file.startsWith("docs/plans/"))).toBe(true);
   });
 
-  it("archive ratchet: exact product multiset of three pairs; non-lifecycle .ngrace/ exactly 0", () => {
+  it("archive ratchet: exact product multiset of three pairs; exact C3 non-lifecycle .ngrace/ triple", () => {
     const repoRoot = path.resolve(import.meta.dir, "../..");
     const archiveDir = path.join(repoRoot, ".ngrace/changes/archive");
     // Dynamic enumeration — no expect(dirs.length).toBe(N) (F33).
@@ -2622,7 +2622,7 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     });
 
     const productPairs: Array<[string, string]> = [];
-    let nonLifecycleNgraceFindings = 0;
+    const ngracPairs: Array<[string, string]> = [];
     /** Bundles with no comparable WriteEvidence (F27.1 "11" class — not scored clean ran). */
     const AUTHORING_UNEVALUABLE = [
       "C-ABSENCE-VALUE",
@@ -2661,7 +2661,7 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
         const isNgrace = f.file === ".ngrace" || f.file.startsWith(".ngrace/");
         // Lifecycle would not have been emitted; any .ngrace finding is non-lifecycle.
         if (isNgrace) {
-          nonLifecycleNgraceFindings += 1;
+          ngracPairs.push([id, f.file]);
         } else {
           productPairs.push([id, f.file]);
         }
@@ -2672,7 +2672,14 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     const expected = [...WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET].map(([c, p]) => [c, p] as [string, string]);
     expected.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
     expect(productPairs).toEqual(expected);
-    expect(nonLifecycleNgraceFindings).toBe(0);
+    const expectedNgracePairs: Array<[string, string]> = [
+      ["C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3", ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/spec.xml"],
+      ["C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3", ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/plan.xml"],
+      ["C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3", ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/design-context.xml"],
+    ];
+    expectedNgracePairs.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+    ngracPairs.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+    expect(ngracPairs).toEqual(expectedNgracePairs);
     // Unevaluable authoring set must not score as clean ran (F31).
     for (const id of AUTHORING_UNEVALUABLE) {
       expect(dirs).toContain(id);
