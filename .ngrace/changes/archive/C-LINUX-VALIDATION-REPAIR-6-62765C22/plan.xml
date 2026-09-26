@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-LINUX-VALIDATION-REPAIR-6-62765C22>
     <IntentSummary>
       Adopt the committed predecessor repair, land the C6 candidate-lock open-boundary behavior and
