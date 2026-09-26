@@ -31,6 +31,40 @@ jobs:
       - name: Run local release consistency check
         run: bun run release:check
 
+      - name: Checkout exact head for pre-pin behavior
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          path: prepin-behavior
+
+      - name: Install exact-head dependencies
+        working-directory: prepin-behavior
+        run: bun install --frozen-lockfile
+
+      - name: Stamp pre-pin behavior head
+        working-directory: prepin-behavior
+        run: git rev-parse HEAD > prepin-behavior-head.txt
+
+      - name: Run pre-pin controls
+        working-directory: prepin-behavior
+        run: bun test --timeout=0 src/grace-generate.test.ts src/grace-cursor.test.ts -t b53d13d --reporter=junit --reporter-outfile=prepin-behavior-junit.xml
+
+      - name: Require pre-pin behavior files
+        if: always()
+        working-directory: prepin-behavior
+        run: test -f prepin-behavior-junit.xml && test -f prepin-behavior-head.txt
+
+      - name: Upload pre-pin behavior JUnit
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: prepin-behavior-junit
+          if-no-files-found: error
+          path: |
+            prepin-behavior/prepin-behavior-junit.xml
+            prepin-behavior/prepin-behavior-head.txt
+
   windows-compatibility:
     runs-on: windows-latest
     timeout-minutes: 30

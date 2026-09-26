@@ -1,0 +1,96 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-SQUASH-WITNESS-1-87D77A3D>
+    <IntentSummary>
+      Execute the approved spec at dc885ef441cad3d1969382a0f5399182a8eda00d. Ceremony tier T1. All eleven acceptance criteria carry CloseEvidence, so this plan has no Satisfies block: a Satisfies of a close-bound criterion is change.close-evidence-and-satisfied. AffectedAreas names no module anchor, so DurableScope is None. ObservedWriteScope is the seven forced product paths and nothing else. run-ledger.xml is a lifecycle path the scope audit already skips. spec.xml, plan.xml, and design-context.xml are skipped by identity. test-metrics.json is not in scope: the fixture and the verifier are not .test.ts files, and artifactIsStale stays false.
+
+      Three serial tasks. T-001 stores the pre-pin src tree as archive.tar plus manifest.json and points the two controls at a throwaway extraction. T-002 makes the omitted-boundary C6 call a content witness that spawns no git, and keeps explicit-boundary and active-mode git checks. T-003 adds the exact-head JUnit upload to the validate job and the portable verifier. T-003 verification runs that verifier through a gh executable on PATH and simulates the workflow step graph locally. A string check of the workflow and the verifier is not the task command. The executor does not commit, push, run gate verdict, or archive. The authority owns the commit, the push, the Ubuntu artifact for that exact head, and the post-archive verdict. bun test --timeout=0 ./scripts/verify-prepin-linux-evidence.ts stays non-zero until that artifact exists. A Mac exit 0 while the two controls are skipped is not a behavior pass. bun run validate:ci is the target MustPassCommand and runs only at final with --run-commands.
+
+      Baseline commands below were driven at this commit and exited 0. They assert bytes this bundle does not change. The new test filters do not exist yet and exit non-zero until the task that adds them has landed. That red is the phase, not a defect in the command.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-generate.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>.github/workflows/validate.yml</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/ci-evidence.json</Value></MustExist>
+      <MustPassCommand><Command>git diff --exit-code 16d7f2d4095e9aacb6c18299afb48b21f8ac2c1b -- src/grace-generate.ts src/grace-cursor.ts</Command></MustPassCommand>
+      <MustPassCommand><Command>git diff --exit-code 16d7f2d4095e9aacb6c18299afb48b21f8ac2c1b -- README.md examples</Command></MustPassCommand>
+      <MustPassCommand><Command>git diff --exit-code 16d7f2d4095e9aacb6c18299afb48b21f8ac2c1b -- .ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22</Command></MustPassCommand>
+      <MustPassCommand><Command>bun -e 'import { artifactIsStale } from "./scripts/test-metrics.ts"; if (artifactIsStale(process.cwd(), "test-metrics.json")) process.exit(1)'</Command></MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>scripts/fixtures/prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262/archive.tar</Value></MustExist>
+      <MustExist><Value>scripts/fixtures/prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262/manifest.json</Value></MustExist>
+      <MustExist><Value>scripts/verify-prepin-linux-evidence.ts</Value></MustExist>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>actions/upload-artifact@v7</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>prepin-behavior-junit</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>fetch-depth: 0</Text></MustContain>
+      <MustContain><File>scripts/verify-prepin-linux-evidence.ts</File><Text>gh run list</Text></MustContain>
+      <MustContain><File>scripts/verify-prepin-linux-evidence.ts</File><Text>AC-CLEANUP-BOUNDED pre-pin control: b53d13d deletes the recycled replacement</Text></MustContain>
+      <MustContain><File>scripts/verify-prepin-linux-evidence.ts</File><Text>AC-CANDIDATE-RECLAIM-EXCLUSIVE pre-pin control: b53d13d unlinks the recycled replacement</Text></MustContain>
+      <MustNotContain><File>scripts/verify-prepin-linux-evidence.ts</File><Text>process.argv</Text></MustNotContain>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>ngrace gate verdict</Text></MustNotContain>
+      <MustPassCommand><Command>bun -e 'import { artifactIsStale } from "./scripts/test-metrics.ts"; if (artifactIsStale(process.cwd(), "test-metrics.json")) process.exit(1)'</Command></MustPassCommand>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>src/grace-generate.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>scripts/fixtures/prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262/archive.tar</File>
+      <File>scripts/fixtures/prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262/manifest.json</File>
+      <File>scripts/verify-prepin-linux-evidence.ts</File>
+      <File>.github/workflows/validate.yml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Store the pre-pin src tree as a tar and manifest, and import the two controls from a throwaway extraction</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The fixture directory contains only archive.tar and manifest.json. Extraction into a throwaway root yields src tree b34bbc1fab64c6823afbf47311c39944ab2d74fe. Every extracted file matches its manifest blob id. A one-byte extracted source change, a missing file, and an extra file each fail and restoring the source payload passes. A tar-padding change that leaves those payloads alone is outside the pin. An escaping path fails closed. An import of cleanupCandidate or the reclaim entry whose resolved path is outside the temp root fails closed. When b53d13df47cdf8d85f75b33502c6ecd9e97ff262 is absent, the rev-parse cross-check reports a named reason and the tree-id check still runs.</Criterion>
+          <Criterion>The tests titled AC-CLEANUP-BOUNDED pre-pin control: b53d13d deletes the recycled replacement and AC-CANDIDATE-RECLAIM-EXCLUSIVE pre-pin control: b53d13d unlinks the recycled replacement stay, import those entry points from the temp root, and skip unless the filesystem recycles inodes. They do not run git worktree add of that commit. A skip on this Mac is not the behavior proof.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts src/grace-cursor.test.ts -t "prepin fixture bytes"</Command>
+          <Command>git diff --exit-code dc885ef441cad3d1969382a0f5399182a8eda00d -- scripts/audit-regressions.test.ts .github/workflows/validate.yml src/grace-generate.ts src/grace-cursor.ts README.md examples</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Make the omitted-boundary C6 call a content witness, and keep explicit-boundary and active-mode git checks</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>windowsEvidenceProblems of this repository with the boundary argument omitted returns an empty list, spawns no git process, and still returns empty when the injected git runner would fail every call. The six archive sha256 pairs and the twelve paths are the pins in the spec. One changed byte, one extra file, or one missing pinned file fails closed and restoring it greens the call. The green result does not contain the absent-boundary sentence or the not-an-ancestor-of-HEAD sentence. candidateSha must equal b7c94d786ebc89cc279c6dc292c8dd32110fcc9d.</Criterion>
+          <Criterion>An explicit boundary keeps git ancestry, the historical diff, the archive-byte diff, and the existing allow and emptiness rules. A passed boundary that is absent or not an ancestor of that repository HEAD fails closed. Omitting the boundary on a throwaway whose archive bytes do not match the six pins fails closed, and passing that throwaway its own boundary still greens the git path. Active mode does not consult the content pins. The object-aware git diff helper is not called by the omitted path. When either object is absent it reports a named reason. The fixture discovery test plants a .test.ts under the fixture directory, sees artifactIsStale true, and sees false again after the file is removed. No new .test.ts file is added under src/ or scripts/.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+          <Command>test ! -e scripts/verify-prepin-linux-evidence.ts</Command>
+          <Command>git diff --exit-code dc885ef441cad3d1969382a0f5399182a8eda00d -- .github/workflows/validate.yml src/grace-generate.ts src/grace-cursor.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Upload the exact-head Ubuntu JUnit artifact from the validate job and add the portable verifier</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The validate job stays on ubuntu-latest. Its first checkout keeps fetch-depth 0 and is not retargeted. Later steps check out the pull-request head sha, or the pushed sha, with fetch-depth 0, install, run the two pre-pin files with -t b53d13d and the JUnit reporter, write prepin-behavior-head.txt, and upload both files with actions/upload-artifact@v7 as prepin-behavior-junit, including after a failed test step. A missing file fails the upload. The job does not run ngrace gate verdict and does not commit run-ledger.xml.</Criterion>
+          <Criterion>scripts/verify-prepin-linux-evidence.ts is the one bun:test file the CloseEvidence command runs. Its name does not contain .test. It takes no local-report argument and no environment switch. It selects the newest gh run for git rev-parse HEAD on validate.yml, requires status completed and conclusion success, checks the head stamp, and accepts the report only when each of the two titles is exactly one testcase with no skipped, failure, or error child. Other skipped testcases are ignored. A missing run, a failed run, a head mismatch, a missing title, or a forbidden child fails the test. The task command is bun test --timeout=0 scripts/audit-regressions.test.ts -t "prepin linux verifier". It executes this file through a gh binary on PATH and refuses a newest failure that has an older success, a missing run, a wrong or missing head stamp, a missing, duplicate, skipped, failed, or error target, a missing gh binary, and a failed download. It also reads the workflow and simulates the step graph locally: the upload still runs after a failed control, and a missing junit or head file fails the job. That simulation is not a GitHub Actions execution. A file that only contains the pinned words passes a string check and fails this command. The CloseEvidence command is expected non-zero until the authority has pushed the closing commit and the Ubuntu job for that sha has succeeded. The executor does not invent that run.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t "prepin linux verifier"</Command>
+          <Command>git diff --exit-code 16d7f2d4095e9aacb6c18299afb48b21f8ac2c1b -- src/grace-generate.ts src/grace-cursor.ts README.md examples</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <Assumptions>
+      <Assumption>The behavior CloseEvidence command cannot pass in this checkout. It passes only after the authority pushes the applied-archive commit and the validate job uploads a successful exact-head artifact. Synthetic JUnit used to probe the parser is not that artifact.</Assumption>
+    </Assumptions>
+  </C-SQUASH-WITNESS-1-87D77A3D>
+</NgraceChangePlan>
