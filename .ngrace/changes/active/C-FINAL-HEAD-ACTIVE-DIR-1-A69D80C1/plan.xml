@@ -1,0 +1,81 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-FINAL-HEAD-ACTIVE-DIR-1-A69D80C1>
+    <IntentSummary>
+      T0 hotfix. T-001 stages the empty tracked marker `.ngrace/changes/active/.gitkeep` and stops. The authority commits that path before T-002's verification. T-002 repairs the archived-mode C6 guard in `scripts/audit-regressions.test.ts` and adds the discriminating probes. The authority commits the completed implementation before close. The executor does not commit or push. Every spec acceptance criterion is close-bound, so this plan has no Satisfies links. No module anchor is in scope.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/ci-evidence.json</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>project.missing-change-directory</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>git diff --exit-code 0fbd59961d15b7587cc2b153e225fcdcf9066db2 -- .ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22</Command>
+      </MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>.ngrace/changes/active/.gitkeep</Value>
+      </MustExist>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>project.missing-change-directory</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>git diff --exit-code 0fbd59961d15b7587cc2b153e225fcdcf9066db2 -- .ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.ngrace/changes/active/.gitkeep</File>
+      <File>scripts/audit-regressions.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Stage the empty active-directory marker</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Create an empty file at `.ngrace/changes/active/.gitkeep` and stage it with `git add .ngrace/changes/active/.gitkeep`. Do not commit, push, or edit any other path. Stop after the verification command exits 0. The authority then commits this path so `git cat-file -e HEAD:.ngrace/changes/active/.gitkeep` exits 0 before T-002 verification runs. An uncommitted worktree file is not enough for the fresh-checkout probe, which reads `git archive HEAD`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>git ls-files --error-unmatch .ngrace/changes/active/.gitkeep</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Bound the archived C6 evidence guard</Title>
+        <DependsOn>
+          <T-001 />
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Before verification, require `git cat-file -e HEAD:.ngrace/changes/active/.gitkeep` to exit 0. If it does not, stop for the authority marker commit. Do not commit or push.
+          </Criterion>
+          <Criterion>
+            In `scripts/audit-regressions.test.ts`, keep active mode on today's working-tree inventory. When `C-LINUX-VALIDATION-REPAIR-6-62765C22` is only under `archive/`, compare `candidateSha` to `0fbd59961d15b7587cc2b153e225fcdcf9066db2` with `git diff --no-renames --name-only`, require `candidateSha` to be an ancestor of that boundary and that boundary to be an ancestor of HEAD, and fail closed on a reversed or unrelated range. Keep the archive-byte check and the archive-scoped untracked inventory, both fail-closed. The production call uses that hash as the default function argument. A test may pass a different boundary commit as an explicit argument. No environment switch selects the boundary.
+          </Criterion>
+          <Criterion>
+            Add probes, each restored to green after the red: a `git archive HEAD` checkout with active `C-*` directories removed lints 0/0 and the three module-find commands exit 0, and deleting `active/` reddens lint and `module find true`; an uncommitted workflow edit and a forbidden rename still redden in active mode; a later tracked file outside the C6 archive stays green in archived mode; a tracked and an untracked C6 archive mutation redden; a forbidden path inside the candidate-to-boundary range reddens while the later tree is clean; a candidate newer than the boundary and an unrelated candidate redden; a repository that lacks `0fbd59961d15b7587cc2b153e225fcdcf9066db2` fails closed on the no-override call; sidecar, job, direction, inventory, and full Actions-link failures still redden. Symlink dependencies in a git checkout are excluded with a bare `node_modules` line in `.git/info/exclude`.
+          </Criterion>
+          <Criterion>
+            The authority commits the completed implementation, including the marker and `scripts/audit-regressions.test.ts`, before close. Close then runs the spec CloseEvidence commands and `bun run validate:ci` through selected final `--run-commands`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-FINAL-HEAD-ACTIVE-DIR-1-A69D80C1>
+</NgraceChangePlan>
