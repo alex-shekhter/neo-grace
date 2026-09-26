@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -622,6 +622,11 @@ describe("C-LINUX-VALIDATION-REPAIR-5-EE982B6D (fifth arrival) predecessor archi
 export const WINDOWS_EVIDENCE_BUNDLE_ID = "C-LINUX-VALIDATION-REPAIR-6-62765C22";
 export const WINDOWS_EVIDENCE_GUARD_FILE = "scripts/audit-regressions.test.ts";
 
+/** Application commit of the C6 governance. Archived mode uses this unless a test passes another boundary. */
+export const WINDOWS_EVIDENCE_BOUNDARY = "0fbd59961d15b7587cc2b153e225fcdcf9066db2";
+
+const WINDOWS_EVIDENCE_ARCHIVE_DIR = `.ngrace/changes/archive/${WINDOWS_EVIDENCE_BUNDLE_ID}`;
+
 export const WINDOWS_EVIDENCE_REQUIRED_JOBS = ["validate", "dart-adapter", "windows-compatibility"] as const;
 
 export const WINDOWS_EVIDENCE_REQUIRED_DIRECTIONS = [
@@ -687,8 +692,67 @@ export function changedPathsSince(root: string, sha: string, run: GitRunner = de
   return [...new Set([...tracked.stdout.split("\n"), ...untracked.stdout.split("\n")].map((s) => s.trim()).filter(Boolean))];
 }
 
-function isAncestorOfHead(root: string, sha: string): boolean {
-  return spawnSync("git", ["merge-base", "--is-ancestor", sha, "HEAD"], { cwd: root, encoding: "utf8" }).status === 0;
+function isAncestor(root: string, ancestor: string, descendant: string): boolean {
+  return spawnSync("git", ["merge-base", "--is-ancestor", ancestor, descendant], { cwd: root, encoding: "utf8" }).status === 0;
+}
+
+function commitExists(root: string, sha: string): boolean {
+  return spawnSync("git", ["cat-file", "-e", `${sha}^{commit}`], { cwd: root, encoding: "utf8" }).status === 0;
+}
+
+function isAllowedEvidencePath(changed: string): boolean {
+  return changed.startsWith(`.ngrace/changes/active/${WINDOWS_EVIDENCE_BUNDLE_ID}/`)
+    || changed.startsWith(`${WINDOWS_EVIDENCE_ARCHIVE_DIR}/`)
+    || changed === WINDOWS_EVIDENCE_GUARD_FILE;
+}
+
+function readInventory(result: GitInventoryResult, label: string): { failure: string | null; paths: string[] } {
+  if (result.error || result.status !== 0) {
+    const detail = result.error?.message ?? (result.stderr.trim() || "unknown");
+    return { failure: `${label} inventory failed: ${detail}`, paths: [] };
+  }
+  return {
+    failure: null,
+    paths: [...new Set(result.stdout.split("\n").map((line) => line.trim()).filter(Boolean))],
+  };
+}
+
+function archivedProvenanceProblems(root: string, sha: string, boundary: string, run: GitRunner): string[] {
+  if (!commitExists(root, boundary)) {
+    return [`boundary ${boundary} is absent; archived-mode inventory fails closed`];
+  }
+  const problems: string[] = [];
+  if (!isAncestor(root, sha, "HEAD")) problems.push(`candidateSha ${sha} is not an ancestor of HEAD`);
+  if (!isAncestor(root, boundary, "HEAD")) {
+    problems.push(`boundary ${boundary} is not an ancestor of HEAD; archived-mode range fails closed`);
+  }
+  if (!isAncestor(root, sha, boundary)) {
+    problems.push(`candidateSha ${sha} is not an ancestor of boundary ${boundary}; archived-mode range fails closed`);
+  }
+  const historical = readInventory(run(root, ["diff", "--no-renames", "--name-only", sha, boundary]), "historical diff");
+  if (historical.failure) problems.push(historical.failure);
+  else {
+    for (const changed of historical.paths) {
+      if (!isAllowedEvidencePath(changed)) problems.push(`path changed since candidateSha is outside the allowed set: ${changed}`);
+    }
+  }
+  const archiveDiff = readInventory(
+    run(root, ["diff", "--no-renames", "--name-only", boundary, "--", WINDOWS_EVIDENCE_ARCHIVE_DIR]),
+    "archive-byte",
+  );
+  if (archiveDiff.failure) problems.push(archiveDiff.failure);
+  else {
+    for (const changed of archiveDiff.paths) problems.push(`archive path differs from the boundary: ${changed}`);
+  }
+  const untracked = readInventory(
+    run(root, ["ls-files", "--others", "--exclude-standard", "--", WINDOWS_EVIDENCE_ARCHIVE_DIR]),
+    "archive untracked",
+  );
+  if (untracked.failure) problems.push(untracked.failure);
+  else {
+    for (const changed of untracked.paths) problems.push(`untracked archive path: ${changed}`);
+  }
+  return problems;
 }
 
 /**
@@ -696,7 +760,11 @@ function isAncestorOfHead(root: string, sha: string): boolean {
  * provenance, job/direction tallies, and a full-Actions-link scan of every bundle
  * artifact in its active or archived location. An empty array is green.
  */
-export function windowsEvidenceProblems(root: string, run: GitRunner = defaultGitRunner): string[] {
+export function windowsEvidenceProblems(
+  root: string,
+  run: GitRunner = defaultGitRunner,
+  boundary: string = WINDOWS_EVIDENCE_BOUNDARY,
+): string[] {
   const problems: string[] = [];
   const active = path.join(root, ".ngrace", "changes", "active", WINDOWS_EVIDENCE_BUNDLE_ID);
   const archived = path.join(root, ".ngrace", "changes", "archive", WINDOWS_EVIDENCE_BUNDLE_ID);
@@ -720,19 +788,17 @@ export function windowsEvidenceProblems(root: string, run: GitRunner = defaultGi
   const sha = record.candidateSha;
   if (typeof sha !== "string" || !/^[0-9a-f]{40}$/.test(sha)) {
     problems.push("candidateSha must be a 40-character lowercase hex commit");
-  } else {
-    if (!isAncestorOfHead(root, sha)) problems.push(`candidateSha ${sha} is not an ancestor of HEAD`);
-    const allowed = (p: string): boolean =>
-      p.startsWith(`.ngrace/changes/active/${WINDOWS_EVIDENCE_BUNDLE_ID}/`) ||
-      p.startsWith(`.ngrace/changes/archive/${WINDOWS_EVIDENCE_BUNDLE_ID}/`) ||
-      p === WINDOWS_EVIDENCE_GUARD_FILE;
+  } else if (activeExists) {
+    if (!isAncestor(root, sha, "HEAD")) problems.push(`candidateSha ${sha} is not an ancestor of HEAD`);
     try {
       for (const changed of changedPathsSince(root, sha, run)) {
-        if (!allowed(changed)) problems.push(`path changed since candidateSha is outside the allowed set: ${changed}`);
+        if (!isAllowedEvidencePath(changed)) problems.push(`path changed since candidateSha is outside the allowed set: ${changed}`);
       }
     } catch (error) {
       problems.push(`changed-path inventory failed: ${(error as Error).message}`);
     }
+  } else {
+    problems.push(...archivedProvenanceProblems(root, sha, boundary, run));
   }
 
   if (!isPositiveInteger(record.runId)) problems.push("runId must be a positive integer");
@@ -1063,5 +1129,276 @@ describe("C-LINUX-VALIDATION-REPAIR-6-62765C22 Windows evidence guard self-tests
         "the normal inventory still sees the forbidden untracked path",
       ).toBe(true);
     });
+  });
+});
+
+function archiveEvidencePath(root: string): string {
+  return path.join(root, ".ngrace", "changes", "archive", WINDOWS_EVIDENCE_BUNDLE_ID);
+}
+
+function makeArchivedEvidenceFixture(): { root: string; candidate: string; boundary: string; sidecarText: string } {
+  const root = mkdtempSync(path.join(os.tmpdir(), "c6-archived-evidence-"));
+  const bundle = archiveEvidencePath(root);
+  mkdirSync(bundle, { recursive: true });
+  mkdirSync(path.join(root, ".github", "workflows"), { recursive: true });
+  mkdirSync(path.join(root, "scripts"), { recursive: true });
+  writeFileSync(path.join(bundle, "keep.txt"), "keep\n");
+  writeFileSync(path.join(root, ".github", "workflows", "validate.yml"), "name: Validate\n");
+  writeFileSync(path.join(root, "scripts", "audit-regressions.test.ts"), "export const guard = 1;\n");
+  writeFileSync(path.join(root, "src-keep.ts"), "export const keep = 1;\n");
+  gitRun(root, ["init", "-q"]);
+  gitRun(root, ["config", "user.email", "fixture"]);
+  gitRun(root, ["config", "user.name", "fixture"]);
+  gitRun(root, ["add", "-A"]);
+  gitRun(root, ["commit", "-q", "-m", "fixture candidate"]);
+  const candidate = gitRun(root, ["rev-parse", "HEAD"]).trim();
+  const sidecarText = `${JSON.stringify(cleanSidecarRecord(candidate), null, 2)}\n`;
+  writeFileSync(path.join(bundle, "ci-evidence.json"), sidecarText);
+  gitRun(root, ["add", "-A"]);
+  gitRun(root, ["commit", "-q", "-m", "fixture boundary"]);
+  const boundary = gitRun(root, ["rev-parse", "HEAD"]).trim();
+  return { root, candidate, boundary, sidecarText };
+}
+
+describe("C-LINUX-VALIDATION-REPAIR-6 archived-mode boundary", () => {
+  function withArchivedFixture(body: (fixture: { root: string; candidate: string; boundary: string; sidecarText: string }) => void): void {
+    const fixture = makeArchivedEvidenceFixture();
+    try {
+      expect(windowsEvidenceProblems(fixture.root, defaultGitRunner, fixture.boundary), "clean archived evidence greens").toEqual([]);
+      body(fixture);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  }
+
+  it("stays green when a later tracked file lands outside the C6 archive", () => {
+    withArchivedFixture(({ root, boundary }) => {
+      writeFileSync(path.join(root, "later.txt"), "later\n");
+      gitRun(root, ["add", "later.txt"]);
+      gitRun(root, ["commit", "-q", "-m", "later tracked file"]);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "a later file outside the archive stays green").toEqual([]);
+    });
+  });
+
+  it("reddens on a tracked C6 archive mutation and greens when restored", () => {
+    withArchivedFixture(({ root, boundary }) => {
+      const sidecar = path.join(archiveEvidencePath(root), "ci-evidence.json");
+      const saved = readFileSync(sidecar, "utf8");
+      writeFileSync(sidecar, `${saved}\n`);
+      expect(
+        windowsEvidenceProblems(root, defaultGitRunner, boundary).some((problem) => problem.includes("ci-evidence.json")),
+        "tracked archive mutation reddens",
+      ).toBe(true);
+      writeFileSync(sidecar, saved);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "restored archive bytes green").toEqual([]);
+    });
+  });
+
+  it("reddens on an untracked C6 archive file and greens when removed", () => {
+    withArchivedFixture(({ root, boundary }) => {
+      const extra = path.join(archiveEvidencePath(root), "extra.txt");
+      writeFileSync(extra, "extra\n");
+      expect(
+        windowsEvidenceProblems(root, defaultGitRunner, boundary).some((problem) => problem.includes("extra.txt")),
+        "untracked archive file reddens",
+      ).toBe(true);
+      rmSync(extra);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "removed untracked archive file greens").toEqual([]);
+    });
+  });
+
+  it("reddens on a forbidden historical path while the later tree is clean and greens when restored", () => {
+    withArchivedFixture(({ root, candidate, boundary }) => {
+      gitRun(root, ["checkout", "-q", "--detach", candidate]);
+      writeFileSync(path.join(root, "forbidden.ts"), "export const forbidden = 1;\n");
+      const sidecarText = `${JSON.stringify(cleanSidecarRecord(candidate), null, 2)}\n`;
+      writeFileSync(path.join(archiveEvidencePath(root), "ci-evidence.json"), sidecarText);
+      gitRun(root, ["add", "-A"]);
+      gitRun(root, ["commit", "-q", "-m", "forbidden historical path"]);
+      const badBoundary = gitRun(root, ["rev-parse", "HEAD"]).trim();
+      rmSync(path.join(root, "forbidden.ts"));
+      gitRun(root, ["add", "-A"]);
+      gitRun(root, ["commit", "-q", "-m", "later clean tree"]);
+      expect(gitRun(root, ["status", "--porcelain"]).trim(), "the later tree is clean").toBe("");
+      expect(existsSync(path.join(root, "forbidden.ts")), "the forbidden file is gone after the boundary").toBe(false);
+      expect(
+        windowsEvidenceProblems(root, defaultGitRunner, badBoundary).some((problem) => problem.includes("forbidden.ts")),
+        "the historical range reddens while the later tree is clean",
+      ).toBe(true);
+      gitRun(root, ["checkout", "-q", "--detach", boundary]);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "restored boundary greens").toEqual([]);
+    });
+  });
+
+  it("reddens when the candidate is newer than the boundary and greens when restored", () => {
+    withArchivedFixture(({ root, boundary, sidecarText }) => {
+      writeFileSync(path.join(root, "later.txt"), "later\n");
+      gitRun(root, ["add", "later.txt"]);
+      gitRun(root, ["commit", "-q", "-m", "candidate after boundary"]);
+      const newer = gitRun(root, ["rev-parse", "HEAD"]).trim();
+      const sidecar = path.join(archiveEvidencePath(root), "ci-evidence.json");
+      const record = JSON.parse(readFileSync(sidecar, "utf8")) as Record<string, unknown>;
+      record.candidateSha = newer;
+      writeFileSync(sidecar, `${JSON.stringify(record, null, 2)}\n`);
+      expect(
+        windowsEvidenceProblems(root, defaultGitRunner, boundary).some((problem) => problem.includes("not an ancestor of boundary")),
+        "a newer candidate reddens",
+      ).toBe(true);
+      writeFileSync(sidecar, sidecarText);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "restored candidate greens").toEqual([]);
+    });
+  });
+
+  it("reddens on an unrelated candidate and greens when restored", () => {
+    withArchivedFixture(({ root, boundary, sidecarText }) => {
+      gitRun(root, ["checkout", "-q", "--orphan", "unrelated"]);
+      gitRun(root, ["reset", "-q"]);
+      gitRun(root, ["commit", "-q", "--allow-empty", "-m", "unrelated"]);
+      const unrelated = gitRun(root, ["rev-parse", "HEAD"]).trim();
+      gitRun(root, ["checkout", "-q", "-f", "--detach", boundary]);
+      const sidecar = path.join(archiveEvidencePath(root), "ci-evidence.json");
+      const record = JSON.parse(readFileSync(sidecar, "utf8")) as Record<string, unknown>;
+      record.candidateSha = unrelated;
+      writeFileSync(sidecar, `${JSON.stringify(record, null, 2)}\n`);
+      expect(
+        windowsEvidenceProblems(root, defaultGitRunner, boundary).some((problem) => problem.includes("not an ancestor of boundary")),
+        "an unrelated candidate reddens",
+      ).toBe(true);
+      writeFileSync(sidecar, sidecarText);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "restored candidate greens").toEqual([]);
+    });
+  });
+
+  it("fails closed on the no-override call when the repository lacks the boundary object", () => {
+    withArchivedFixture(({ root, boundary }) => {
+      const closed = windowsEvidenceProblems(root);
+      expect(closed.some((problem) => problem.includes("fails closed")), "the default boundary is absent").toBe(true);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "an explicit boundary greens the same repository").toEqual([]);
+    });
+  });
+
+  it("reddens on an absent archived sidecar and greens when restored", () => {
+    withArchivedFixture(({ root, boundary }) => {
+      const sidecar = path.join(archiveEvidencePath(root), "ci-evidence.json");
+      const saved = readFileSync(sidecar, "utf8");
+      rmSync(sidecar);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "absent archived sidecar reddens").not.toEqual([]);
+      writeFileSync(sidecar, saved);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "restored archived sidecar greens").toEqual([]);
+    });
+  });
+
+  it("reddens on a full Actions link in the archived bundle and greens when removed", () => {
+    withArchivedFixture(({ root, boundary }) => {
+      const artifact = path.join(archiveEvidencePath(root), "design-context.xml");
+      writeFileSync(artifact, `<x>${makeRuntimeActionsLink()}</x>\n`);
+      expect(
+        windowsEvidenceProblems(root, defaultGitRunner, boundary).some((problem) => problem.includes("design-context.xml")),
+        "archived Actions link reddens",
+      ).toBe(true);
+      rmSync(artifact);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "removed archived link greens").toEqual([]);
+    });
+  });
+
+  it("reddens when the historical diff inventory fails and greens with the real runner", () => {
+    withArchivedFixture(({ root, boundary }) => {
+      const failingHistorical = ((r: string, args: string[]) => {
+        if (args[0] === "diff" && !args.includes("--")) return { status: 128, stdout: "", stderr: "historical inventory unavailable" };
+        return defaultGitRunner(r, args);
+      }) as GitRunner;
+      const problems = windowsEvidenceProblems(root, failingHistorical, boundary);
+      expect(problems.some((problem) => problem.includes("inventory failed")), "a failed historical diff reddens").toBe(true);
+      expect(problems, "a failed historical diff is not an empty path set").not.toEqual([]);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "the real historical diff greens").toEqual([]);
+    });
+  });
+
+  it("reddens when the archive untracked inventory fails and greens with the real runner", () => {
+    withArchivedFixture(({ root, boundary }) => {
+      const failingUntracked = ((r: string, args: string[]) => {
+        if (args[0] === "ls-files") return { status: 128, stdout: "", stderr: "inventory unavailable" };
+        return defaultGitRunner(r, args);
+      }) as GitRunner;
+      const problems = windowsEvidenceProblems(root, failingUntracked, boundary);
+      expect(problems.some((problem) => problem.includes("inventory failed")), "a failed archive inventory reddens").toBe(true);
+      expect(problems, "a failed archive inventory is not an empty path set").not.toEqual([]);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "the real archive inventory greens").toEqual([]);
+    });
+  });
+
+  it("reddens when a present boundary is off HEAD ancestry and greens when that head is restored", () => {
+    withArchivedFixture(({ root, boundary, sidecarText }) => {
+      expect(spawnSync("git", ["cat-file", "-e", `${boundary}^{commit}`], { cwd: root }).status, "the boundary object is present").toBe(0);
+      gitRun(root, ["checkout", "-q", "--detach", "HEAD~1"]);
+      writeFileSync(path.join(archiveEvidencePath(root), "ci-evidence.json"), sidecarText);
+      gitRun(root, ["add", "-A"]);
+      gitRun(root, ["commit", "-q", "-m", "alternate head"]);
+      const problems = windowsEvidenceProblems(root, defaultGitRunner, boundary);
+      expect(problems).toEqual([`boundary ${boundary} is not an ancestor of HEAD; archived-mode range fails closed`]);
+      gitRun(root, ["checkout", "-q", "-f", "--detach", boundary]);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "restored boundary head greens").toEqual([]);
+    });
+  });
+
+  it("reddens when the archive-byte inventory fails and greens with the real runner", () => {
+    withArchivedFixture(({ root, boundary }) => {
+      const failingArchiveByte = ((r: string, args: string[]) => {
+        if (args[0] === "diff" && args.includes("--")) return { status: 128, stdout: "", stderr: "archive-byte inventory unavailable" };
+        return defaultGitRunner(r, args);
+      }) as GitRunner;
+      const problems = windowsEvidenceProblems(root, failingArchiveByte, boundary);
+      expect(problems).toEqual(["archive-byte inventory failed: archive-byte inventory unavailable"]);
+      expect(windowsEvidenceProblems(root, defaultGitRunner, boundary), "the real archive-byte diff greens").toEqual([]);
+    });
+  });
+});
+
+describe("tracked active-directory marker", () => {
+  it("a git archive HEAD checkout with active bundles removed lints clean and module find exits 0, and deleting active/ reddens", () => {
+    expect(gitRun(repoRoot, ["ls-files", "--error-unmatch", ".ngrace/changes/active/.gitkeep"]).trim()).toBe(".ngrace/changes/active/.gitkeep");
+    expect(spawnSync("git", ["cat-file", "-e", "HEAD:.ngrace/changes/active/.gitkeep"], { cwd: repoRoot }).status).toBe(0);
+    const dest = mkdtempSync(path.join(os.tmpdir(), "c7-archive-checkout-"));
+    try {
+      const extracted = spawnSync("bash", ["-c", 'git archive HEAD | tar -x -C "$1"', "extract-head-archive", dest], {
+        cwd: repoRoot,
+        encoding: "utf8",
+      });
+      expect(extracted.status, extracted.stderr).toBe(0);
+      const active = path.join(dest, ".ngrace", "changes", "active");
+      for (const name of readdirSync(active)) {
+        if (name.startsWith("C-")) rmSync(path.join(active, name), { recursive: true, force: true });
+      }
+      expect(existsSync(path.join(active, ".gitkeep")), "the marker survives removal of active bundles").toBe(true);
+      symlinkSync(path.join(repoRoot, "node_modules"), path.join(dest, "node_modules"));
+      const lintArgs = ["run", "ngrace", "lint", "--path", dest, "--fail-on", "warnings"];
+      const lint = spawnSync(process.execPath, lintArgs, { cwd: dest, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      const lintText = `${lint.stdout}\n${lint.stderr}`;
+      expect(lint.status, lintText).toBe(0);
+      expect(lintText).toMatch(/^Errors: 0$/m);
+      expect(lintText).toMatch(/^Warnings: 0$/m);
+      expect(lintText).not.toContain("project.missing-change-directory");
+      for (const args of [
+        ["run", "ngrace", "module", "find", "true", "--path", dest],
+        ["run", "ngrace", "module", "find", "false", "--path", dest],
+        ["run", "ngrace", "module", "find", "--json=true", "--path", dest],
+      ]) {
+        const found = spawnSync(process.execPath, args, { cwd: dest, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+        expect(found.status, `${args.join(" ")}\n${found.stdout}\n${found.stderr}`).toBe(0);
+      }
+      rmSync(active, { recursive: true, force: true });
+      const red = spawnSync(process.execPath, lintArgs, { cwd: dest, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      const redText = `${red.stdout}\n${red.stderr}`;
+      expect(red.status, redText).toBe(1);
+      expect(redText).toContain("project.missing-change-directory");
+      const redFind = spawnSync(process.execPath, ["run", "ngrace", "module", "find", "true", "--path", dest], {
+        cwd: dest,
+        encoding: "utf8",
+        maxBuffer: 64 * 1024 * 1024,
+      });
+      expect(redFind.status, `${redFind.stdout}\n${redFind.stderr}`).not.toBe(0);
+    } finally {
+      rmSync(dest, { recursive: true, force: true });
+    }
   });
 });
