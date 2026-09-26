@@ -1,0 +1,43 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-SQUASH-WITNESS-1-87D77A3D</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    The squash kept the tree and dropped the side history from every public ref. The pre-pin controls need the old source bytes. The C6 guard needs a witness that the archive is still the boundary archive and that the historical range is the twelve recorded paths. Git ancestry of HEAD cannot provide either witness. A raw src tree under scripts/ would. scripts/test-metrics.ts lists every .test.ts under src/ and scripts/, and that commit's src tree contains 51 such files, so validate:ci would run the historical suite and regenerate test-metrics.json. The repository therefore stores a tar plus a manifest, and the tests extract into a throwaway root. The src tree id, the twelve paths, and the six archive sha256 pairs are written in the spec so a clean clone can check the witness without the lost commits. The authority selected the content-addressed route on 2026-09-26. This file records the later correction of the fixture form and of the behavior-evidence route. It is not ratification.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Store the pre-pin src tree as ordinary files under scripts/fixtures. The discovery walk treats those .test.ts files as the current suite. typecheck and a lint with assertions none stayed green on a disposable copy, and those greens did not see the stale metrics artifact. Rejected.
+    </Alternative>
+    <Alternative>
+      Reattach the side history. A bundle or a dangling object makes the commits exist and still leaves them off HEAD. This clone already has the objects, and the in-repository C6 test fails on ancestry. Rejected.
+    </Alternative>
+    <Alternative>
+      Leave the omitted-boundary call free of git, and also have that same call run git diff when the objects exist. Those two sentences cannot both be true. The git diff lives in a separate helper. The failing git runner on the omitted-boundary call stays meaningful only if that call spawns no git process of its own.
+    </Alternative>
+    <Alternative>
+      Treat a bun test exit 0 as proof of the pre-pin behavior. On a filesystem that does not recycle inodes those two tests skip and bun test still exits 0. Rejected. Scanning the whole JUnit document for a skipped element is also rejected: Bun's reporter writes a skipped element for every name-filtered test, so that scan is red when the two targets passed. The verifier reads only the two target testcase elements of the Ubuntu artifact.
+    </Alternative>
+    <Alternative>
+      Record the behavior pass by running ngrace gate verdict on a local Linux machine. Measured 2026-09-26: the running Podman machine's tmpfs /tmp and xfs /var/tmp do not recycle device/inode pairs, and an Alpine container on that machine does not either. The two controls would skip there. Rejected.
+    </Alternative>
+    <Alternative>
+      Have the Validate workflow run ngrace gate verdict and push run-ledger.xml. The workflow does not record verdicts. main requires the status checks validate, windows-compatibility, and dart-adapter, with enforce_admins enabled, so that job cannot push the ledger onto main. Rejected. The verdict stays a local ngrace gate verdict over the downloaded artifact.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      The dormant scope-guard base 73044f83c3f4eaaaa5c5b7648a8a31c115337c39 is not an ancestor of HEAD either. The guard collects no evidence unless its switch names C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC, and an unavailable git read refuses rather than reporting clean. It was not one of the three CI failures. The spec leaves it unchanged.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      A clean clone on Linux, with inode recycling, and without the three commits: extraction rebuilds tree b34bbc1fab64c6823afbf47311c39944ab2d74fe; the Validate job's exact-head checkout runs the pre-pin controls and the artifact's two target testcases contain no skipped, failure, or error child; filtered testcases may be skipped; the post-archive verifier exits 0 for that commit; the omitted-boundary C6 call is green and spawns no git; artifactIsStale against test-metrics.json is false.
+    </Scenario>
+    <Scenario>
+      This clone, where the objects exist and are not ancestors of HEAD: the omitted-boundary call is green and does not report the ancestry failure; the separate helper's git diff equals the twelve paths; the verifier exits non-zero until a successful exact-head artifact exists, and a report whose two target testcases are skipped is a refusal. Validate run 36218229773 on ubuntu-latest recorded those two controls as fail, not skip. The windows-compatibility job in that run printed the skip line.
+    </Scenario>
+    <Scenario>
+      A planted .test.ts under the fixture directory makes artifactIsStale true. Deleting it makes artifactIsStale false. A planted archive byte makes the omitted-boundary call fail closed. Restoring it greens the call. An explicit throwaway boundary that is off that throwaway's HEAD still fails closed.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
