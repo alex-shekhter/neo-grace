@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync, statSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 type AuditRegressionCase = {
@@ -609,5 +610,458 @@ describe("C-LINUX-VALIDATION-REPAIR-5-EE982B6D (fifth arrival) predecessor archi
       const bytes = readFileSync(path.join(repoRoot, rel));
       expect(createHash("sha256").update(bytes).digest("hex"), `${rel} must keep its post-supersede bytes`).toBe(digest);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-LINUX-VALIDATION-REPAIR-6-62765C22: the positive, URL-free Windows evidence
+// record. The guard checks a local record's shape and provenance; it does not
+// prove the remote result. The clickable link stays in the private report.
+// ---------------------------------------------------------------------------
+
+export const WINDOWS_EVIDENCE_BUNDLE_ID = "C-LINUX-VALIDATION-REPAIR-6-62765C22";
+export const WINDOWS_EVIDENCE_GUARD_FILE = "scripts/audit-regressions.test.ts";
+
+export const WINDOWS_EVIDENCE_REQUIRED_JOBS = ["validate", "dart-adapter", "windows-compatibility"] as const;
+
+export const WINDOWS_EVIDENCE_REQUIRED_DIRECTIONS = [
+  "AC-PIN-ACQUISITION: an ordinary mint",
+  "AC-PIN-ACQUISITION: a forced open failure",
+  "AC-PIN-RELEASE: releaseAcquiredCandidate",
+  "AC-PIN-RELEASE-NO-LEAK",
+  "AC-PIN-RELEASE-API: successful writeSpecNew closes its record",
+  "AC-PIN-RELEASE-API: a publish failure closes the pin exactly once",
+  "AC-WINDOWS-DIRECTORY-PIN",
+  "AC-SUPERSEDE-PIN-RELEASE: a successful implicit mint",
+  "AC-SUPERSEDE-PIN-RELEASE: a post-mint failure removal",
+  "AC-SUPERSEDE-PIN-RELEASE: a post-mint refusal/residue",
+  "AC-SUPERSEDE-PIN-RELEASE: a pre-publication mint failure",
+] as const;
+
+/** A GitHub Actions run/job link: the GitHub web host plus the actions/runs endpoint. Scheme and host are case-insensitive. */
+const ACTIONS_LINK = /https?:\/\/github\.com\/[^/\s"'<>]+\/[^/\s"'<>]+\/actions\/runs\/[0-9]+/i;
+
+function decodeXmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"');
+}
+
+export function findActionsLink(text: string): string | undefined {
+  return ACTIONS_LINK.exec(decodeXmlEntities(text))?.[0];
+}
+
+function collectBundleFiles(dir: string, acc: string[] = []): string[] {
+  for (const ent of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, ent.name);
+    if (ent.isDirectory()) collectBundleFiles(full, acc);
+    else acc.push(full);
+  }
+  return acc;
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+export type GitInventoryResult = { status: number | null; stdout: string; stderr: string; error?: Error };
+export type GitRunner = (root: string, args: string[]) => GitInventoryResult;
+
+const defaultGitRunner: GitRunner = (root, args) => {
+  const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  return { status: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? "", error: result.error ?? undefined };
+};
+
+/** Repository-relative paths whose tracked, staged, or untracked bytes changed since `sha`. Fails closed. */
+export function changedPathsSince(root: string, sha: string, run: GitRunner = defaultGitRunner): string[] {
+  const tracked = run(root, ["diff", "--no-renames", "--name-only", sha]);
+  if (tracked.error || tracked.status !== 0) {
+    throw new Error(`git diff inventory failed: ${tracked.error?.message ?? tracked.stderr.trim() ?? "unknown"}`);
+  }
+  const untracked = run(root, ["ls-files", "--others", "--exclude-standard"]);
+  if (untracked.error || untracked.status !== 0) {
+    throw new Error(`git ls-files inventory failed: ${untracked.error?.message ?? untracked.stderr.trim() ?? "unknown"}`);
+  }
+  return [...new Set([...tracked.stdout.split("\n"), ...untracked.stdout.split("\n")].map((s) => s.trim()).filter(Boolean))];
+}
+
+function isAncestorOfHead(root: string, sha: string): boolean {
+  return spawnSync("git", ["merge-base", "--is-ancestor", sha, "HEAD"], { cwd: root, encoding: "utf8" }).status === 0;
+}
+
+/**
+ * All red states of the local evidence record: bundle resolution, sidecar shape,
+ * provenance, job/direction tallies, and a full-Actions-link scan of every bundle
+ * artifact in its active or archived location. An empty array is green.
+ */
+export function windowsEvidenceProblems(root: string, run: GitRunner = defaultGitRunner): string[] {
+  const problems: string[] = [];
+  const active = path.join(root, ".ngrace", "changes", "active", WINDOWS_EVIDENCE_BUNDLE_ID);
+  const archived = path.join(root, ".ngrace", "changes", "archive", WINDOWS_EVIDENCE_BUNDLE_ID);
+  const activeExists = existsSync(active);
+  const archiveExists = existsSync(archived);
+  if (!activeExists && !archiveExists) return [`${WINDOWS_EVIDENCE_BUNDLE_ID} absent from both active/ and archive/`];
+  if (activeExists && archiveExists) return [`${WINDOWS_EVIDENCE_BUNDLE_ID} present in both active/ and archive/`];
+  const bundle = activeExists ? active : archived;
+  const sidecar = path.join(bundle, "ci-evidence.json");
+  if (!existsSync(sidecar)) return ["ci-evidence.json sidecar absent (a zero-record bundle is red)"];
+
+  let record: Record<string, unknown>;
+  try {
+    record = JSON.parse(readFileSync(sidecar, "utf8")) as Record<string, unknown>;
+  } catch (error) {
+    return [`ci-evidence.json is not valid JSON: ${(error as Error).message}`];
+  }
+
+  if (record.schemaVersion !== "1.0.0") problems.push("schemaVersion must be exactly 1.0.0");
+
+  const sha = record.candidateSha;
+  if (typeof sha !== "string" || !/^[0-9a-f]{40}$/.test(sha)) {
+    problems.push("candidateSha must be a 40-character lowercase hex commit");
+  } else {
+    if (!isAncestorOfHead(root, sha)) problems.push(`candidateSha ${sha} is not an ancestor of HEAD`);
+    const allowed = (p: string): boolean =>
+      p.startsWith(`.ngrace/changes/active/${WINDOWS_EVIDENCE_BUNDLE_ID}/`) ||
+      p.startsWith(`.ngrace/changes/archive/${WINDOWS_EVIDENCE_BUNDLE_ID}/`) ||
+      p === WINDOWS_EVIDENCE_GUARD_FILE;
+    try {
+      for (const changed of changedPathsSince(root, sha, run)) {
+        if (!allowed(changed)) problems.push(`path changed since candidateSha is outside the allowed set: ${changed}`);
+      }
+    } catch (error) {
+      problems.push(`changed-path inventory failed: ${(error as Error).message}`);
+    }
+  }
+
+  if (!isPositiveInteger(record.runId)) problems.push("runId must be a positive integer");
+
+  if (!Array.isArray(record.jobs)) {
+    problems.push("jobs must be an array");
+  } else {
+    const names = new Set<string>();
+    const ids = new Set<number>();
+    for (const raw of record.jobs as Array<Record<string, unknown>>) {
+      const name = raw?.name;
+      if (typeof name !== "string") {
+        problems.push("job name must be a string");
+        continue;
+      }
+      if (names.has(name)) problems.push(`duplicate job name ${name}`);
+      names.add(name);
+      if (!isPositiveInteger(raw.id)) problems.push(`job ${name} id must be a positive integer`);
+      else if (ids.has(raw.id)) problems.push(`duplicate job id ${raw.id}`);
+      else ids.add(raw.id);
+      if (raw.conclusion !== "success") problems.push(`job ${name} conclusion must be success`);
+      for (const tally of ["pass", "skip", "fail"] as const) {
+        const value = raw[tally];
+        if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+          problems.push(`job ${name} ${tally} must be a nonnegative integer`);
+        }
+      }
+      if (raw.fail !== 0) problems.push(`job ${name} fail must be 0`);
+      if (!(typeof raw.pass === "number" && raw.pass > 0)) problems.push(`job ${name} pass must be greater than 0`);
+    }
+    for (const required of WINDOWS_EVIDENCE_REQUIRED_JOBS) {
+      if (!names.has(required)) problems.push(`missing required job ${required}`);
+    }
+  }
+
+  if (!Array.isArray(record.directions)) {
+    problems.push("directions must be an array");
+  } else {
+    const directions = record.directions as Array<Record<string, unknown>>;
+    for (const required of WINDOWS_EVIDENCE_REQUIRED_DIRECTIONS) {
+      const matches = directions.filter((d) => typeof d.selector === "string" && d.selector.startsWith(required));
+      if (matches.length === 0) {
+        problems.push(`missing required direction ${required}`);
+        continue;
+      }
+      for (const match of matches) {
+        if (!isPositiveInteger(match.executed)) problems.push(`direction ${required} executed must be at least 1`);
+        if (match.skipped !== 0) problems.push(`direction ${required} skipped must be 0`);
+      }
+    }
+  }
+
+  for (const file of collectBundleFiles(bundle)) {
+    const link = findActionsLink(readFileSync(file, "utf8"));
+    if (link) problems.push(`full GitHub Actions link in ${path.relative(root, file)}`);
+  }
+
+  return problems;
+}
+
+describe("C-LINUX-VALIDATION-REPAIR-6-62765C22 Windows evidence record guard", () => {
+  it("the successor bundle carries a well-formed, URL-free, provenance-checked CI record", () => {
+    const problems = windowsEvidenceProblems(repoRoot);
+    expect(problems, problems.join("; ")).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Throwaway-fixture self-tests: each mutation is planted in its own temp git
+// repo, asserted red, restored, and re-asserted green. Negative links are
+// assembled at runtime so no literal repository URL is stored.
+// ---------------------------------------------------------------------------
+
+function gitRun(root: string, args: string[]): string {
+  const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  if (result.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
+  return result.stdout ?? "";
+}
+
+function evidenceBundlePath(root: string): string {
+  return path.join(root, ".ngrace", "changes", "active", WINDOWS_EVIDENCE_BUNDLE_ID);
+}
+
+function evidenceSidecarPath(root: string): string {
+  return path.join(evidenceBundlePath(root), "ci-evidence.json");
+}
+
+function cleanSidecarRecord(candidateSha: string): Record<string, unknown> {
+  return {
+    schemaVersion: "1.0.0",
+    candidateSha,
+    runId: 36196836553,
+    jobs: WINDOWS_EVIDENCE_REQUIRED_JOBS.map((name, index) => ({
+      name,
+      id: 108274492060 + index,
+      conclusion: "success",
+      pass: 10 + index,
+      skip: 0,
+      fail: 0,
+    })),
+    directions: WINDOWS_EVIDENCE_REQUIRED_DIRECTIONS.map((selector) => ({ selector, executed: 1, skipped: 0 })),
+  };
+}
+
+/** A throwaway git repo with exactly the C6 active bundle and a clean sidecar. */
+function makeEvidenceFixture(): { root: string; sidecarText: string } {
+  const root = mkdtempSync(path.join(os.tmpdir(), "c6-evidence-fixture-"));
+  const bundle = evidenceBundlePath(root);
+  mkdirSync(bundle, { recursive: true });
+  mkdirSync(path.join(root, ".github", "workflows"), { recursive: true });
+  writeFileSync(path.join(root, ".github", "workflows", "validate.yml"), "name: Validate\n");
+  writeFileSync(path.join(root, "src-keep.ts"), "export const keep = 1;\n");
+  gitRun(root, ["init", "-q"]);
+  gitRun(root, ["config", "user.email", "fixture"]);
+  gitRun(root, ["config", "user.name", "fixture"]);
+  gitRun(root, ["add", "-A"]);
+  gitRun(root, ["commit", "-q", "-m", "fixture candidate"]);
+  const sha = gitRun(root, ["rev-parse", "HEAD"]).trim();
+  const sidecarText = `${JSON.stringify(cleanSidecarRecord(sha), null, 2)}\n`;
+  writeFileSync(evidenceSidecarPath(root), sidecarText);
+  return { root, sidecarText };
+}
+
+function mutateSidecar(root: string, mutate: (record: Record<string, unknown>) => void): void {
+  const record = JSON.parse(readFileSync(evidenceSidecarPath(root), "utf8")) as Record<string, unknown>;
+  mutate(record);
+  writeFileSync(evidenceSidecarPath(root), `${JSON.stringify(record, null, 2)}\n`);
+}
+
+function makeRuntimeActionsLink(suffix = ""): string {
+  return ["https://", "github.com", "/example/example", "/actions/runs/123", suffix].join("");
+}
+
+describe("C-LINUX-VALIDATION-REPAIR-6-62765C22 Windows evidence guard self-tests", () => {
+  function withFixture(body: (fixture: { root: string; sidecarText: string }) => void): void {
+    const fixture = makeEvidenceFixture();
+    try {
+      expect(windowsEvidenceProblems(fixture.root), "clean evidence greens the guard").toEqual([]);
+      body(fixture);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  }
+
+  it("reddens on an absent sidecar and greens when restored", () => {
+    withFixture(({ root }) => {
+      const sidecar = evidenceSidecarPath(root);
+      const saved = readFileSync(sidecar, "utf8");
+      rmSync(sidecar);
+      expect(windowsEvidenceProblems(root), "absent sidecar reddens").not.toEqual([]);
+      writeFileSync(sidecar, saved);
+      expect(windowsEvidenceProblems(root), "restored sidecar greens").toEqual([]);
+    });
+  });
+
+  it("reddens on a wrong schemaVersion and greens when restored", () => {
+    withFixture(({ root, sidecarText }) => {
+      mutateSidecar(root, (record) => {
+        record.schemaVersion = "9.9.9";
+      });
+      expect(windowsEvidenceProblems(root), "wrong schemaVersion reddens").toContain("schemaVersion must be exactly 1.0.0");
+      writeFileSync(evidenceSidecarPath(root), sidecarText);
+      expect(windowsEvidenceProblems(root), "restored schemaVersion greens").toEqual([]);
+    });
+  });
+
+  it("reddens on a removed schemaVersion and greens when restored", () => {
+    withFixture(({ root, sidecarText }) => {
+      mutateSidecar(root, (record) => {
+        delete record.schemaVersion;
+      });
+      expect(windowsEvidenceProblems(root), "removed schemaVersion reddens").toContain("schemaVersion must be exactly 1.0.0");
+      writeFileSync(evidenceSidecarPath(root), sidecarText);
+      expect(windowsEvidenceProblems(root), "restored schemaVersion greens").toEqual([]);
+    });
+  });
+
+  it("reddens on a failed windows-compatibility conclusion and greens when restored", () => {
+    withFixture(({ root, sidecarText }) => {
+      mutateSidecar(root, (record) => {
+        const jobs = record.jobs as Array<Record<string, unknown>>;
+        const windows = jobs.find((job) => job.name === "windows-compatibility")!;
+        windows.conclusion = "failure";
+      });
+      expect(windowsEvidenceProblems(root), "failed conclusion reddens").toContain(
+        "job windows-compatibility conclusion must be success",
+      );
+      writeFileSync(evidenceSidecarPath(root), sidecarText);
+      expect(windowsEvidenceProblems(root), "restored conclusion greens").toEqual([]);
+    });
+  });
+
+  it("reddens when a required direction executed zero and greens when restored", () => {
+    withFixture(({ root, sidecarText }) => {
+      mutateSidecar(root, (record) => {
+        const directions = record.directions as Array<Record<string, unknown>>;
+        directions[0]!.executed = 0;
+      });
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("executed must be at least 1")), "executed=0 reddens").toBe(true);
+      writeFileSync(evidenceSidecarPath(root), sidecarText);
+      expect(windowsEvidenceProblems(root), "restored direction greens").toEqual([]);
+    });
+  });
+
+  it("reddens on a malformed tally and greens when restored", () => {
+    withFixture(({ root, sidecarText }) => {
+      mutateSidecar(root, (record) => {
+        const jobs = record.jobs as Array<Record<string, unknown>>;
+        jobs[0]!.pass = "lots";
+      });
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("pass must be a nonnegative integer")), "malformed tally reddens").toBe(true);
+      writeFileSync(evidenceSidecarPath(root), sidecarText);
+      expect(windowsEvidenceProblems(root), "restored tally greens").toEqual([]);
+    });
+  });
+
+  it("reddens on an uncommitted workflow mutation with src unchanged and greens when restored", () => {
+    withFixture(({ root }) => {
+      const workflow = path.join(root, ".github", "workflows", "validate.yml");
+      writeFileSync(workflow, `${readFileSync(workflow, "utf8")}# uncommitted probe\n`);
+      expect(
+        windowsEvidenceProblems(root).some((problem) => problem.includes(".github/workflows/validate.yml")),
+        "uncommitted workflow mutation reddens",
+      ).toBe(true);
+      gitRun(root, ["reset", "-q", "--hard"]);
+      expect(windowsEvidenceProblems(root), "restored workflow greens").toEqual([]);
+    });
+  });
+
+  it("reddens on a forbidden workflow path renamed into the bundle and greens when restored", () => {
+    withFixture(({ root }) => {
+      gitRun(root, ["mv", ".github/workflows/validate.yml", path.join(".ngrace", "changes", "active", WINDOWS_EVIDENCE_BUNDLE_ID, "moved-validate.yml")]);
+      expect(
+        windowsEvidenceProblems(root).some((problem) => problem.includes(".github/workflows/validate.yml")),
+        "forbidden source endpoint reddens",
+      ).toBe(true);
+      gitRun(root, ["reset", "-q", "--hard"]);
+      expect(windowsEvidenceProblems(root), "restored rename greens").toEqual([]);
+    });
+  });
+
+  it("reddens on a run-only link in a temporary design-context.xml and greens when removed", () => {
+    withFixture(({ root }) => {
+      const artifact = path.join(evidenceBundlePath(root), "design-context.xml");
+      writeFileSync(artifact, `<x>${makeRuntimeActionsLink()}</x>\n`);
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("design-context.xml")), "run-only link reddens").toBe(true);
+      rmSync(artifact);
+      expect(windowsEvidenceProblems(root), "removed design-context greens").toEqual([]);
+    });
+  });
+
+  it("reddens on a /job/ link in a temporary design-context.xml and greens when removed", () => {
+    withFixture(({ root }) => {
+      const artifact = path.join(evidenceBundlePath(root), "design-context.xml");
+      writeFileSync(artifact, `<x>${makeRuntimeActionsLink("/job/456")}</x>\n`);
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("design-context.xml")), "job link reddens").toBe(true);
+      rmSync(artifact);
+      expect(windowsEvidenceProblems(root), "removed design-context greens").toEqual([]);
+    });
+  });
+
+  it("reddens on a full link in a temporary run-ledger.xml and greens when removed", () => {
+    withFixture(({ root }) => {
+      const artifact = path.join(evidenceBundlePath(root), "run-ledger.xml");
+      writeFileSync(artifact, `<ledger>${makeRuntimeActionsLink("/job/789")}</ledger>\n`);
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("run-ledger.xml")), "full ledger link reddens").toBe(true);
+      rmSync(artifact);
+      expect(windowsEvidenceProblems(root), "removed ledger greens").toEqual([]);
+    });
+  });
+
+  it("reddens on a prefixed forged selector and greens when restored", () => {
+    withFixture(({ root, sidecarText }) => {
+      mutateSidecar(root, (record) => {
+        const directions = record.directions as Array<Record<string, unknown>>;
+        directions[0]!.selector = `not executed: ${String(directions[0]!.selector)}`;
+      });
+      expect(
+        windowsEvidenceProblems(root).some((problem) => problem.includes("missing required direction")),
+        "a selector that merely contains the required text reddens",
+      ).toBe(true);
+      writeFileSync(evidenceSidecarPath(root), sidecarText);
+      expect(windowsEvidenceProblems(root), "restored selector greens").toEqual([]);
+    });
+  });
+
+  it("reddens on an ambiguous duplicate required direction and greens when restored", () => {
+    withFixture(({ root, sidecarText }) => {
+      mutateSidecar(root, (record) => {
+        const directions = record.directions as Array<Record<string, unknown>>;
+        directions.push({ selector: `${String(directions[0]!.selector)} (shadow, not executed)`, executed: 0, skipped: 0 });
+      });
+      expect(
+        windowsEvidenceProblems(root).some((problem) => problem.includes("executed must be at least 1")),
+        "a shadowing duplicate reddens even when a good match exists",
+      ).toBe(true);
+      writeFileSync(evidenceSidecarPath(root), sidecarText);
+      expect(windowsEvidenceProblems(root), "restored directions green").toEqual([]);
+    });
+  });
+
+  it("reddens on a mixed-case full Actions link and greens when removed", () => {
+    withFixture(({ root }) => {
+      const artifact = path.join(evidenceBundlePath(root), "design-context.xml");
+      const mixedCaseLink = ["HTTPS://", "GitHub.CoM", "/example/example", "/actions/runs/123"].join("");
+      writeFileSync(artifact, `<x>${mixedCaseLink}</x>\n`);
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("design-context.xml")), "mixed-case link reddens").toBe(true);
+      rmSync(artifact);
+      expect(windowsEvidenceProblems(root), "removed mixed-case link greens").toEqual([]);
+    });
+  });
+
+  it("reddens when the untracked-path inventory fails with a forbidden path present", () => {
+    withFixture(({ root }) => {
+      mkdirSync(path.join(root, "src"), { recursive: true });
+      writeFileSync(path.join(root, "src", "forbidden.ts"), "export const forbidden = 1;\n");
+      const failingLsFiles = ((r: string, args: string[]) => {
+        if (args[0] === "ls-files") return { status: 128, stdout: "", stderr: "inventory unavailable" };
+        const result = spawnSync("git", args, { cwd: r, encoding: "utf8" });
+        return { status: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
+      }) as GitRunner;
+      expect(
+        windowsEvidenceProblems(root, failingLsFiles).some((problem) => problem.includes("inventory failed")),
+        "a failed inventory reddens rather than greening",
+      ).toBe(true);
+      expect(
+        windowsEvidenceProblems(root).some((problem) => problem.includes("src/forbidden.ts")),
+        "the normal inventory still sees the forbidden untracked path",
+      ).toBe(true);
+    });
   });
 });
