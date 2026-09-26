@@ -12,6 +12,8 @@ Roadmap-level plans for this repository. **Read this index before starting work.
 | `RM-VERIFIED-APPROVAL` | Verified approval: making ratification something the agent cannot assert | `draft` | — | — | _not written_ — see [review.md](./active/RM-VERIFIED-APPROVAL/review.md) |
 | `RM-DESIGN-EVIDENCE` | Design evidence an agent can actually use: visual references, recordings, and the behaviour text that carries them | `draft` | — | — | _not written_ — see [review.md](./active/RM-DESIGN-EVIDENCE/review.md) |
 | `RM-PILOT-APPROVAL` | Pilot approval: a ratified artifact that may be amended a bounded number of times | `draft` | — | — | _not written_ — see [review.md](./active/RM-PILOT-APPROVAL/review.md) |
+| `RM-COMMITTED-STAGE-BOUNDARIES` | Committed stage boundaries: make each approved or implemented stage the next stage's baseline | `draft` | — | — | _not written_ — see [review.md](./active/RM-COMMITTED-STAGE-BOUNDARIES/review.md) |
+| `RM-ADAPTIVE-BUNDLE-SIZING` | Adaptive bundle sizing: use structural pressure and corrective turns to revisit bundle boundaries | `draft` | — | — | _not written_ — see [review.md](./active/RM-ADAPTIVE-BUNDLE-SIZING/review.md) |
 
 A row with no `plan.md` is exploration, not a commitment: the explanatory document
 exists and nothing has been approved or scheduled. See rule 6.
@@ -51,6 +53,44 @@ and implementation bundles. See the archive row for links.
 Recorded, not scheduled. Each has an explanatory `review.md` and **no `plan.md`** — per rule 6 that
 means exploration, not a commitment. They are independent of each other and of one another's
 sequencing; nothing here is blocked by anything else on this page.
+
+### `RM-ADAPTIVE-BUNDLE-SIZING` — recorded 2026-09-20
+
+`C-SUPERSEDE-MEMBERSHIP-2-C459A20C` reached 41 acceptance criteria, 10 serial tasks,
+46 task verification commands, 31 exact scope files, and twelve corrective review turns
+while T-006 through T-008 and the close rehearsal were still open. Against the archive,
+its criteria exceed the prior maximum of 22; its task and command counts tie the maxima.
+
+The queued discussion treats **corrective turns as a valid dynamic sizing signal** beside
+static structure. The recommended direction is a hybrid skill rule: structural outliers
+trigger a keep-or-split review before approval, and repeated material corrections reopen
+that decision during draft planning or prototyping. No threshold or runtime gate is
+approved. The future work must define what counts as a corrective turn, preserve an
+exception for indivisible atomic mechanisms, and partition criteria and finding payments
+without turning a split into deferred debt.
+
+**Not scheduled.** The measurement and variants are recorded in
+[review.md](./active/RM-ADAPTIVE-BUNDLE-SIZING/review.md). Implementation belongs in the
+canonical skills and packaged mirrors under a separate governed bundle.
+
+### `RM-COMMITTED-STAGE-BOUNDARIES` — recorded 2026-09-20
+
+An approved spec was left outside git while plan work advanced, so the repository did not carry the
+approved contract as a stable baseline. The governing rule is now explicit: **commit every approved
+or implemented stage before beginning the next stage.** The boundary covers approved specs,
+approved plans, completed implementation tasks or waves, and the completed apply/archive transition.
+Each commit contains only the stage being closed; draft or next-stage work does not enter it.
+
+The current skills teach one copy-specific instance — commit an approved plan before opening a
+prototype epoch — but do not state the production lifecycle rule across spec, plan, execute, and
+close. The queued work will update the canonical skills and packaged mirrors with a VCS-neutral
+stage-checkpoint rule. Use the project's native VCS when one exists; without VCS, require an existing
+restorable snapshot mechanism and record its digest. When neither exists, the skill reports that the
+boundary cannot be verified and does not claim a commit occurred. No new CLI control surface is
+proposed.
+
+**Not scheduled.** The policy is decided; the implementation shape and enforcement belong to a
+separate governed bundle after the active supersede-membership bundle closes.
 
 ### `RM-VERIFIED-APPROVAL` — recorded 2026-08-14
 

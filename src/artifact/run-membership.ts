@@ -14,12 +14,13 @@
 //   RunOrphan
 //   listLooseEvents
 //   listRunOrphans
+//   setLooseEventReadProbeForTests
 // END_MODULE_MAP
 
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-import { childText, cloneXmlNode, readGraceXmlArtifact, type GraceXmlNode } from "./xml";
+import { childText, cloneXmlNode, readGraceXmlArtifact, type GraceXmlNode, type ParsedGraceXmlArtifact } from "./xml";
 
 export type RangeAllocation = { worker: string; from: number; to: number };
 
@@ -37,6 +38,12 @@ export type LooseEvent = {
   attributes: Record<string, string>;
   /** Root children (Allocation, FailureSignature, WriteEvidence, Wave, …). */
   children: GraceXmlNode[];
+  /**
+   * Reader parse diagnostic (F315). Set when the file exists but does not parse
+   * (`xml.parse`, root null); never set for `xml.missing-file` (that entry is
+   * omitted) or for a parseable event with omitted attributes.
+   */
+  parseIssue?: { code: "xml.parse"; message: string };
 };
 
 /**
@@ -46,6 +53,41 @@ export type LooseEvent = {
  * steals the kind's hyphens (A19.1).
  */
 const EVENT_FILENAME = /^(\d+)-(T-[0-9]{3})-(.+)\.xml$/;
+
+/**
+ * Test-only seam at the loose-event read boundary (F295 early window). The probe
+ * runs immediately before `readGraceXmlArtifact`, so a test can delete the file
+ * (typed `xml.missing-file`) or raise a read error, and prove it fired. Bounded to
+ * this read boundary; never a production behavior switch.
+ */
+let looseEventReadProbeForTests: ((file: string) => void) | undefined;
+
+export function setLooseEventReadProbeForTests(probe: ((file: string) => void) | undefined): void {
+  looseEventReadProbeForTests = probe;
+}
+
+/**
+ * F295 tolerance at the reader boundary. A file that vanished after enumeration —
+ * either before the existence check (typed `xml.missing-file`) or between that
+ * check and the read (a thrown `ENOENT`) — returns `null` and is omitted. Any
+ * other read failure (e.g. `EISDIR`, `EACCES`) still propagates as the same
+ * error, and its diagnostic is amended to name the unreadable path so the
+ * failure is never silent and the offending loose event is identifiable.
+ */
+function tryReadLooseArtifact(file: string): ParsedGraceXmlArtifact | null {
+  let parsed: ParsedGraceXmlArtifact;
+  try {
+    looseEventReadProbeForTests?.(file);
+    parsed = readGraceXmlArtifact(file);
+  } catch (error) {
+    const failure = error as NodeJS.ErrnoException;
+    if (failure?.code === "ENOENT") return null;
+    failure.message = `${failure.message} (loose event: ${file})`;
+    throw failure;
+  }
+  if (parsed.issues.some((issue) => issue.code === "xml.missing-file")) return null;
+  return parsed;
+}
 
 function parseAllocationNode(node: GraceXmlNode): RangeAllocation | null {
   const worker = node.attributes.worker?.trim() || childText(node, "Worker")?.trim();
@@ -67,7 +109,10 @@ export function listLooseEvents(bundlePath: string): LooseEvent[] {
     const idFromName = Number(match[1]);
     const taskFromName = match[2]!;
     const kindFromName = match[3]!;
-    const parsed = readGraceXmlArtifact(file);
+    const parsed = tryReadLooseArtifact(file);
+    // F295: the file vanished between enumeration and read — omit it entirely;
+    // a filename-derived entry would be a fabricated event, not a recovery.
+    if (parsed === null) continue;
     // Prefer XML attributes when present (authoritative payload); filename is discovery.
     const id = parsed.root?.attributes.id ? Number(parsed.root.attributes.id) : idFromName;
     const task = (parsed.root?.attributes.task ?? taskFromName).trim() || taskFromName;
@@ -80,6 +125,7 @@ export function listLooseEvents(bundlePath: string): LooseEvent[] {
     attributes.task = task;
     attributes.kind = kind;
     const children = parsed.root ? parsed.root.children.map(cloneXmlNode) : [];
+    const parseIssue = parsed.issues.find((issue) => issue.code === "xml.parse");
     const allocations =
       kind === "opened"
         ? children
@@ -87,7 +133,16 @@ export function listLooseEvents(bundlePath: string): LooseEvent[] {
             .map(parseAllocationNode)
             .filter((entry): entry is RangeAllocation => entry !== null)
         : undefined;
-    events.push({ id, task, kind, file, allocations, attributes, children });
+    events.push({
+      id,
+      task,
+      kind,
+      file,
+      allocations,
+      attributes,
+      children,
+      ...(parseIssue ? { parseIssue: { code: "xml.parse", message: parseIssue.message } } : {}),
+    });
   }
   return events.sort((a, b) => a.id - b.id);
 }
@@ -143,7 +198,9 @@ export function listRunOrphans(bundlePath: string): RunOrphan[] {
       continue;
     }
     const idFromName = Number(match[1]);
-    const parsed = readGraceXmlArtifact(file);
+    const parsed = tryReadLooseArtifact(file);
+    // F295: a vanished well-named file is not an orphan; omit it.
+    if (parsed === null) continue;
     const rawId = parsed.root?.attributes.id;
     const id = rawId !== undefined && rawId !== "" ? Number(rawId) : idFromName;
     if (Number.isInteger(id) && id > 0) continue;

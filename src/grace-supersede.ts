@@ -12,14 +12,13 @@
 //   supersedeCommand
 // END_MODULE_MAP
 
-import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { type CommandDef, runMain } from "citty";
 
 import { ARTIFACT_DIR } from "./artifact/paths";
-import { ANCHOR_PATTERNS, nextBundleLineage, parseBundleId } from "./artifact/types";
-import { mintBundle } from "./grace-generate";
+import { ANCHOR_PATTERNS } from "./artifact/types";
+import { mintResolvedBundle, resolveSpecMint } from "./grace-generate";
 import { supersedeChangeBundle } from "./gates/ledger";
 import { defineGraceCommand } from "./query/command";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
@@ -33,29 +32,6 @@ function requireChangeId(raw: unknown, label: string): string {
     );
   }
   return changeId;
-}
-
-function changeLocationDir(projectRoot: string, location: "active" | "archive", changeId: string): string {
-  return path.join(projectRoot, ARTIFACT_DIR, "changes", location, changeId);
-}
-
-function replacementDirectoryExists(projectRoot: string, replacementId: string): boolean {
-  return (
-    existsSync(changeLocationDir(projectRoot, "active", replacementId))
-    || existsSync(changeLocationDir(projectRoot, "archive", replacementId))
-  );
-}
-
-/** The replacement must be the predecessor's lineage successor: same slug, next lineage (D38). */
-function requireLineageSuccessor(changeId: string, replacementId: string): void {
-  const predecessor = parseBundleId(changeId);
-  const successor = parseBundleId(replacementId);
-  if (successor.slug !== predecessor.slug || successor.lineage !== nextBundleLineage(changeId)) {
-    throw new GraceCommandError(
-      "invalid-arguments",
-      `Replacement ${replacementId} is not the lineage successor of ${changeId} (same slug, lineage ${nextBundleLineage(changeId)}).`,
-    );
-  }
 }
 
 export const supersedeCommand = defineGraceCommand({
@@ -94,31 +70,30 @@ export const supersedeCommand = defineGraceCommand({
       const projectRoot = path.resolve(String(context.args.path ?? "."));
       const changeId = requireChangeId(context.args.change, "Change id");
       const rawReplacement = String(context.args.replacement ?? "").trim();
-      let replacementId: string;
       if (rawReplacement !== "") {
-        replacementId = requireChangeId(rawReplacement, "Replacement id");
-        if (replacementId === changeId) {
+        const explicitId = requireChangeId(rawReplacement, "Replacement id");
+        if (explicitId === changeId) {
           throw new GraceCommandError(
             "invalid-arguments",
-            `Replacement ${replacementId} equals the change being superseded.`,
+            `Replacement ${explicitId} equals the change being superseded.`,
           );
         }
-        if (!replacementDirectoryExists(projectRoot, replacementId)) {
-          throw new GraceCommandError(
-            "invalid-arguments",
-            `Replacement ${replacementId} is missing as a directory under active/ or archive/.`,
-          );
-        }
-        requireLineageSuccessor(changeId, replacementId);
+        // Existence/location and lineage validation live inside the transaction,
+        // under the sorted candidate locks.
+        supersedeChangeBundle(projectRoot, changeId, { kind: "explicit", id: explicitId });
       } else {
-        const minted = mintBundle(projectRoot, {
-          supersedes: changeId,
-          timestamp: context.args.timestamp,
-          branch: context.args.branch,
+        // Resolve the implicit id once, before any write, so the id the successor
+        // lock is held for is exactly the id the mint writes.
+        const resolved = resolveSpecMint(
+          { supersedes: changeId, timestamp: context.args.timestamp, branch: context.args.branch },
+          projectRoot,
+        );
+        supersedeChangeBundle(projectRoot, changeId, {
+          kind: "mint",
+          id: resolved.id,
+          mint: () => mintResolvedBundle(projectRoot, resolved).acquired,
         });
-        replacementId = minted.id;
       }
-      supersedeChangeBundle(projectRoot, changeId, replacementId);
       const relative = path
         .join(ARTIFACT_DIR, "changes", "archive", changeId)
         .replaceAll(path.sep, "/");

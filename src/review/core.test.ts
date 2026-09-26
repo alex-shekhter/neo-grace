@@ -2485,6 +2485,92 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     expect(findings.some((f) => f.code === "review.scope-outside-write-scope")).toBe(false);
   });
 
+  // AC-EVIDENCE-AUDIT-CANONICAL-ONLY: the durable read filters only the exact
+  // canonical engine candidate lock, without widening isCliLifecyclePath.
+  const canonicalCandidateLock = ".ngrace/changes/active/.candidate-C-LOCK-EVIDENCE.lock";
+  const candidateLockNearMisses = [
+    ".ngrace/changes/archive/.candidate-C-LOCK-EVIDENCE.lock",
+    ".ngrace/changes/active/sub/.candidate-C-LOCK-EVIDENCE.lock",
+    "src/.candidate-C-LOCK-EVIDENCE.lock",
+    "other/.candidate-C-LOCK-EVIDENCE.lock",
+    ".ngrace/changes/active/.candidate-not-a-change.lock",
+  ];
+
+  it("AC-EVIDENCE-AUDIT-CANONICAL-ONLY: the exact canonical engine candidate lock is filtered", () => {
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: [canonicalCandidateLock, "src/ok.ts"],
+      scopeFiles: ["src/ok.ts"],
+      scopeGlobs: [],
+    });
+    expect(findings).toHaveLength(0);
+  });
+
+  it("AC-EVIDENCE-AUDIT-CANONICAL-ONLY: every candidate-lock near miss still raises", () => {
+    for (const nearMiss of candidateLockNearMisses) {
+      const findings = auditWriteEvidenceOutsideScope({
+        changeId: "C-X",
+        writeEvidencePaths: [nearMiss, "src/ok.ts"],
+        scopeFiles: ["src/ok.ts"],
+        scopeGlobs: [],
+      });
+      expect(findings.map((f) => f.file), nearMiss).toEqual([nearMiss]);
+      expect(findings[0]!.code).toBe(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
+    }
+  });
+
+  it("AC-EVIDENCE-AUDIT-CANONICAL-ONLY: non-lock bundle artifacts still raise", () => {
+    const findings = auditWriteEvidenceOutsideScope({
+      changeId: "C-X",
+      writeEvidencePaths: [
+        ".ngrace/changes/active/C-X/spec.xml",
+        ".ngrace/changes/active/C-X/plan.xml",
+      ],
+      scopeFiles: [],
+      scopeGlobs: [],
+    });
+    expect(findings.map((f) => f.file).sort()).toEqual([
+      ".ngrace/changes/active/C-X/plan.xml",
+      ".ngrace/changes/active/C-X/spec.xml",
+    ]);
+  });
+
+  it("AC-EVIDENCE-AUDIT-CANONICAL-ONLY: the live archived lineage-1 lock is filtered and its archived bytes are not edited", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const archiveDir = path.join(
+      repoRoot,
+      ".ngrace/changes/archive/C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8",
+    );
+    const digestArchive = (): string => {
+      const walk = (abs: string, rel: string): string => {
+        const stat = statSync(abs);
+        if (stat.isDirectory()) {
+          return readdirSync(abs)
+            .sort()
+            .map((name) => walk(path.join(abs, name), rel ? `${rel}/${name}` : name))
+            .join("\n");
+        }
+        return `${rel}\t${createHash("sha256").update(readFileSync(abs)).digest("hex")}`;
+      };
+      return walk(archiveDir, "");
+    };
+    const before = digestArchive();
+    const report = runReview(repoRoot, {
+      changeId: "C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8",
+      changedFiles: [],
+      patterns: false,
+      joinEngine: false,
+    });
+    expect(
+      report.findings.find(
+        (f) =>
+          f.file
+          === ".ngrace/changes/active/.candidate-C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8.lock",
+      ),
+    ).toBeUndefined();
+    expect(digestArchive()).toBe(before);
+  });
+
   it("unscoped review: WriteEvidence scope audit not-run naming missing --change", () => {
     const repoRoot = path.resolve(import.meta.dir, "../..");
     const report = runReview(repoRoot, { patterns: false, joinEngine: false });
@@ -2526,7 +2612,7 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     expect(we.every((f) => !f.file.startsWith("docs/plans/"))).toBe(true);
   });
 
-  it("archive ratchet: exact product multiset of three pairs; non-lifecycle .ngrace/ exactly 0", () => {
+  it("archive ratchet: exact product multiset of three pairs; exact C3 non-lifecycle .ngrace/ triple", () => {
     const repoRoot = path.resolve(import.meta.dir, "../..");
     const archiveDir = path.join(repoRoot, ".ngrace/changes/archive");
     // Dynamic enumeration — no expect(dirs.length).toBe(N) (F33).
@@ -2536,7 +2622,7 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     });
 
     const productPairs: Array<[string, string]> = [];
-    let nonLifecycleNgraceFindings = 0;
+    const ngracPairs: Array<[string, string]> = [];
     /** Bundles with no comparable WriteEvidence (F27.1 "11" class — not scored clean ran). */
     const AUTHORING_UNEVALUABLE = [
       "C-ABSENCE-VALUE",
@@ -2575,7 +2661,7 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
         const isNgrace = f.file === ".ngrace" || f.file.startsWith(".ngrace/");
         // Lifecycle would not have been emitted; any .ngrace finding is non-lifecycle.
         if (isNgrace) {
-          nonLifecycleNgraceFindings += 1;
+          ngracPairs.push([id, f.file]);
         } else {
           productPairs.push([id, f.file]);
         }
@@ -2586,7 +2672,14 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     const expected = [...WRITE_EVIDENCE_SCOPE_PRODUCT_RATCHET].map(([c, p]) => [c, p] as [string, string]);
     expected.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
     expect(productPairs).toEqual(expected);
-    expect(nonLifecycleNgraceFindings).toBe(0);
+    const expectedNgracePairs: Array<[string, string]> = [
+      ["C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3", ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/spec.xml"],
+      ["C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3", ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/plan.xml"],
+      ["C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3", ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/design-context.xml"],
+    ];
+    expectedNgracePairs.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+    ngracPairs.sort((a, b) => a[0].localeCompare(b[0]) || a[1].localeCompare(b[1]));
+    expect(ngracPairs).toEqual(expectedNgracePairs);
     // Unevaluable authoring set must not score as clean ran (F31).
     for (const id of AUTHORING_UNEVALUABLE) {
       expect(dirs).toContain(id);

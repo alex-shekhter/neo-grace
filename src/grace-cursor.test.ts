@@ -1,13 +1,17 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import type { GraceXmlNode } from "./artifact/xml";
 import os from "node:os";
+import { pathToFileURL } from "node:url";
 import path from "node:path";
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, afterAll } from "bun:test";
 
 import { ARTIFACT_DIR } from "./artifact/paths";
 import {
   writeChangeBundleFixture,
   writeMinimalNgraceProject,
 } from "./artifact/test-fixtures";
+import { setLooseEventReadProbeForTests } from "./artifact/run-membership";
 import { RANGE_CLOSING_KINDS, validateNgraceProject } from "./artifact/grammar";
 import { snapshotProjectTree } from "./test-support/fixtures";
 import {
@@ -19,6 +23,7 @@ import {
   decideFixBudgetEscalation,
   deriveAttemptOrdinal,
   deriveStateFromEvents,
+  discardAndFoldEpoch,
   expectedLedgerEventAttributes,
   FIX_DISTINCT_SIGNATURE_BUDGET,
   FIX_ESCALATION_CEILING,
@@ -34,6 +39,7 @@ import {
   listLedgerEvents,
   listLooseEvents,
   listRunOrphans,
+  type LooseEvent,
   listUnresolvedCircuitTrippedTasks,
   listUnresolvedEscalatedTasks,
   listWindowFailSignatures,
@@ -55,6 +61,37 @@ import * as graceCursorModule from "./grace-cursor";
 import { GraceCommandError } from "./query/errors";
 import { collectProjectStatus, formatStatusText } from "./grace-status";
 import { lintGraceProject } from "./lint/core";
+
+/**
+ * Does the filesystem hosting TMPDIR recycle device/inode pairs for the file and
+ * directory shapes this suite replaces? Computed once so the recycled-identity
+ * controls can register a real skip on filesystems that do not recycle, instead of
+ * printing `SKIP` and passing.
+ */
+function filesystemRecyclesInodes(): boolean {
+  const probe = mkdtempSync(path.join(os.tmpdir(), "ngrace-recycle-probe-"));
+  try {
+    const file = path.join(probe, "f");
+    writeFileSync(file, "x");
+    const fileFirst = statSync(file).ino;
+    rmSync(file);
+    writeFileSync(file, "x");
+    const fileSecond = statSync(file).ino;
+    const dir = path.join(probe, "d");
+    mkdirSync(dir);
+    const dirFirst = statSync(dir).ino;
+    rmSync(dir, { recursive: true });
+    mkdirSync(dir);
+    const dirSecond = statSync(dir).ino;
+    return fileFirst === fileSecond && dirFirst === dirSecond;
+  } finally {
+    rmSync(probe, { recursive: true, force: true });
+  }
+}
+const FS_RECYCLES = filesystemRecyclesInodes();
+if (!FS_RECYCLES) {
+  console.log("SKIP recycled-identity controls: filesystem does not recycle device/inode pairs");
+}
 
 /** Test helper: path list → write evidence with stable synthetic content digests. */
 function evidencePaths(paths: string[], digests?: Record<string, string>): WriteEvidenceSnapshot {
@@ -563,13 +600,15 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
       .map((line) => line.trim())
       .filter(Boolean);
     // Import lines plus call sites: fold delete, ledger post-write rollback (A31.5), dart temp,
-    // review scorer temp-project cleanup (Phase 6 corpus scoring).
+    // review scorer temp-project cleanup (Phase 6 corpus scoring), and the
+    // C-SUPERSEDE-MEMBERSHIP candidate cleanup + lock surface in grace-generate/grace-cursor.
     for (const line of lines) {
       expect(
         line.startsWith("src/grace-cursor.ts:")
           || line.startsWith("src/gates/ledger.ts:")
           || line.startsWith("src/lint/adapters/dart.ts:")
-          || line.startsWith("src/review/scorer.ts:"),
+          || line.startsWith("src/review/scorer.ts:")
+          || line.startsWith("src/grace-generate.ts:"),
       ).toBe(true);
     }
     const callSites = lines.filter((line) => /(?:unlinkSync|rmSync|rmdirSync)\s*\(/.test(line)).sort();
@@ -582,16 +621,21 @@ describe("write-surface inventory (AC-WRITE-SURFACE grep)", () => {
     const ledgerUnlink = callSites.find((line) => line.startsWith("src/gates/ledger.ts:"));
     const dartRm = callSites.find((line) => line.startsWith("src/lint/adapters/dart.ts:"));
     const scorerRm = callSites.find((line) => line.startsWith("src/review/scorer.ts:"));
-    // F288 adds the loose-event writer lock: two unlinkSync(lockPath) sites (stale-holder
-    // steal and finally release) beside the two contained-path deletes (fold delete and the
-    // writer's renumber of the file it just created).
-    expect(cursorContained).toHaveLength(2);
-    expect(cursorLock).toHaveLength(2);
+    // F288 adds the loose-event writer lock (stale-holder steal and finally release);
+    // B1 (C-SUPERSEDE-MEMBERSHIP-4-20941257) adds the candidate lock reclaim and
+    // release in grace-cursor, and the candidate cleanup surface in grace-generate.
+    // F313 (C-FOLD-RETRY-CORE) added one contained-path delete in grace-cursor: the
+    // interrupted-fold resume. C-FOLD-MIXED-RECOVERY adds the mixed-path residue
+    // delete. The lock sites name `lockPath`; the contained-path sites are the fold
+    // delete, the writer's own-file renumber, the F313 resume delete, and the
+    // mixed-path residue delete.
+    expect(cursorContained).toHaveLength(4);
+    expect(cursorLock).toHaveLength(4);
     expect(ledgerUnlink).toMatch(/^src\/gates\/ledger\.ts:\d+:\s*unlinkSync\(ledgerPath\);$/);
     expect(dartRm).toMatch(/^src\/lint\/adapters\/dart\.ts:\d+:\s*rmSync\(temporaryDirectory, \{ recursive: true, force: true \}\);$/);
     expect(scorerRm).toMatch(/^src\/review\/scorer\.ts:\d+:\s*rmSync\(root, \{ recursive: true, force: true \}\);$/);
-    expect(callSites).toHaveLength(7);
-    expect(lines.some((line) => line.includes("rmdirSync"))).toBe(false);
+    expect(callSites).toHaveLength(11);
+    expect(lines.some((line) => line.includes("rmdirSync"))).toBe(true);
   });
 });
 
@@ -1346,14 +1390,18 @@ describe("CLI attempt surface (A20.4 / correction 40)", () => {
 
   it("AC-DISCARDED-CALLER: kind discarded write is only inside discardAndFoldEpoch", () => {
     const hits = productionSourceHits('kind: "discarded"');
-    expect(hits).toHaveLength(1);
-    expect(hits[0]!.file).toBe("src/grace-cursor.ts");
+    // C-DISCARD-PREFLIGHT: the deterministic preflight constructs the prospective
+    // `discarded` in memory, so the literal now appears twice — both inside the
+    // discard operation, still the engine's only abandonment surface.
+    expect(hits).toHaveLength(2);
+    expect([...new Set(hits.map((hit) => hit.file))]).toEqual(["src/grace-cursor.ts"]);
     const cursorSrc = readFileSync(path.join(import.meta.dir, "grace-cursor.ts"), "utf8");
     const fnStart = cursorSrc.indexOf("export function discardAndFoldEpoch");
     const fnEnd = cursorSrc.indexOf("\nexport function", fnStart + 1);
     expect(fnStart).toBeGreaterThanOrEqual(0);
     expect(fnEnd).toBeGreaterThan(fnStart);
-    expect(cursorSrc.slice(fnStart, fnEnd)).toContain('kind: "discarded"');
+    const discardRegion = cursorSrc.slice(fnStart, fnEnd);
+    expect(discardRegion.match(/kind: "discarded"/g)).toHaveLength(2);
   });
 
   it("fold accepts a discarded-closed allocation written as loose events", () => {
@@ -4530,5 +4578,2322 @@ describe("C-CURSOR-STATE-HONESTY-1-53C5EC0B: recover --fix refuses a lost event 
     expect(fixed.fixApplied).toBe(false);
     expect(listLooseEvents(bundle).map((event) => event.file).sort()).toEqual(before);
     expect(() => foldEpoch(root, "C-MIDPRESENT")).toThrow(/range hole at 3/);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8 T-001: candidate coordination primitives.
+describe("candidate lock primitive", () => {
+  const lockDirFor = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
+  const lockPathFor = (root: string, id: string) => path.join(lockDirFor(root), `.candidate-${id}.lock`);
+
+  const createdRoots: string[] = [];
+  afterAll(() => {
+    for (const root of createdRoots) rmSync(root, { recursive: true, force: true });
+  });
+
+  function candidateRoot(label: string): string {
+    const root = mkdtempSync(path.join(os.tmpdir(), `grace-candidate-lock-${label}-`));
+    mkdirSync(lockDirFor(root), { recursive: true });
+    createdRoots.push(root);
+    return root;
+  }
+
+  it("exports withCandidateLock and setCandidateLockTtlForTests", () => {
+    expect(typeof graceCursorModule.withCandidateLock).toBe("function");
+    expect(typeof graceCursorModule.setCandidateLockTtlForTests).toBe("function");
+  });
+
+  it("acquires, runs, and releases its own lock", () => {
+    const root = candidateRoot("basic");
+    const lock = lockPathFor(root, "C-LOCK-BASIC");
+    let inside = false;
+    graceCursorModule.withCandidateLock(root, "C-LOCK-BASIC", () => {
+      inside = existsSync(lock);
+    });
+    expect(inside).toBe(true);
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  it("reclaims a dead fresh holder immediately", () => {
+    const root = candidateRoot("dead");
+    const lock = lockPathFor(root, "C-LOCK-DEAD");
+    writeFileSync(lock, `2147483647\n${Date.now()}\ndead-token\n`, { flag: "wx" });
+    let ran = false;
+    graceCursorModule.withCandidateLock(root, "C-LOCK-DEAD", () => {
+      ran = true;
+    });
+    expect(ran).toBe(true);
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  it("waits out then reclaims an unknown holder bounded by the TTL", () => {
+    const root = candidateRoot("unknown");
+    const lock = lockPathFor(root, "C-LOCK-UNKNOWN");
+    writeFileSync(lock, "not-a-pid\nnot-a-stamp\n", { flag: "wx" });
+    graceCursorModule.setCandidateLockTtlForTests(1);
+    try {
+      let ran = false;
+      graceCursorModule.withCandidateLock(root, "C-LOCK-UNKNOWN", () => {
+        ran = true;
+      });
+      expect(ran).toBe(true);
+    } finally {
+      graceCursorModule.setCandidateLockTtlForTests(null);
+    }
+  });
+
+  it("never steals a known-live holder for age (waits for release)", async () => {
+    const root = candidateRoot("live");
+    const lock = lockPathFor(root, "C-LOCK-LIVE");
+    const lockLiteral = JSON.stringify(lock);
+    const body =
+      "const fs=require('node:fs');"
+      + `fs.writeFileSync(${lockLiteral}, String(process.pid) + '\\n' + String(Date.now() - 31000) + '\\nlive-token\\n', {flag:'wx'});`
+      + "await Bun.sleep(400);"
+      + `try { fs.unlinkSync(${lockLiteral}); } catch {}`;
+    const child = Bun.spawn({ cmd: [process.execPath, "-e", body], stdout: "pipe", stderr: "pipe" });
+    for (let i = 0; i < 200 && !existsSync(lock); i += 1) await Bun.sleep(5);
+    expect(existsSync(lock)).toBe(true);
+    graceCursorModule.setCandidateLockTtlForTests(1);
+    const started = Date.now();
+    try {
+      let ran = false;
+      graceCursorModule.withCandidateLock(root, "C-LOCK-LIVE", () => {
+        ran = true;
+      });
+      expect(ran).toBe(true);
+    } finally {
+      graceCursorModule.setCandidateLockTtlForTests(null);
+    }
+    const elapsed = Date.now() - started;
+    await child.exited;
+    // A live-but-old holder may not be stolen by the 1ms TTL: acquisition waits
+    // for the holder to release at ~400ms.
+    expect(elapsed).toBeGreaterThanOrEqual(250);
+  });
+
+  it("releases on throw", () => {
+    const root = candidateRoot("throw");
+    const lock = lockPathFor(root, "C-LOCK-THROW");
+    expect(() =>
+      graceCursorModule.withCandidateLock(root, "C-LOCK-THROW", () => {
+        throw new Error("boom");
+      }),
+    ).toThrow(/boom/);
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  it("a token-mismatched release preserves a successor's lock", () => {
+    const root = candidateRoot("token");
+    const lock = lockPathFor(root, "C-LOCK-TOKEN");
+    graceCursorModule.withCandidateLock(root, "C-LOCK-TOKEN", () => {
+      writeFileSync(lock, `999999\n${Date.now()}\nsuccessor-token\n`);
+    });
+    expect(existsSync(lock)).toBe(true);
+    expect(readFileSync(lock, "utf8")).toContain("successor-token");
+  });
+
+  it("is reentrant per (root, changeId) without re-opening or re-removing", () => {
+    const root = candidateRoot("reentrant");
+    const lock = lockPathFor(root, "C-LOCK-REENTRANT");
+    let innerSawLock = false;
+    graceCursorModule.withCandidateLock(root, "C-LOCK-REENTRANT", () => {
+      graceCursorModule.withCandidateLock(root, "C-LOCK-REENTRANT", () => {
+        innerSawLock = existsSync(lock);
+      });
+      expect(existsSync(lock)).toBe(true);
+    });
+    expect(innerSawLock).toBe(true);
+    expect(existsSync(lock)).toBe(false);
+  });
+
+  it("is never captured as WriteEvidence", () => {
+    const root = createProject();
+    mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+    writeFileSync(path.join(root, "seed.txt"), "seed\n");
+    initGitBaseline(root);
+    writeFileSync(lockPathFor(root, "C-LOCK-EVIDENCE"), `99999\n${Date.now()}\ntok\n`, { flag: "wx" });
+    const evidence = graceCursorModule.snapshotWriteEvidence(root);
+    expect(evidence.available).toBe(true);
+    const paths = evidence.available ? evidence.files.map((file) => file.path) : [];
+    expect(paths.some((file) => file.includes(".candidate-C-LOCK-EVIDENCE.lock"))).toBe(false);
+  });
+
+  it("AC-EVIDENCE-FILTER-CANONICAL-ONLY: the exact canonical lock is filtered and every near miss stays visible", () => {
+    const root = createProject();
+    for (const dir of [
+      path.join(root, ARTIFACT_DIR, "changes", "active"),
+      path.join(root, ARTIFACT_DIR, "changes", "active", "sub"),
+      path.join(root, ARTIFACT_DIR, "changes", "archive"),
+      path.join(root, "src"),
+      path.join(root, "other"),
+    ]) {
+      mkdirSync(dir, { recursive: true });
+    }
+    writeFileSync(path.join(root, "seed.txt"), "seed\n");
+    initGitBaseline(root);
+    const canonical = ".ngrace/changes/active/.candidate-C-LOCK-EVIDENCE.lock";
+    const nearMisses = [
+      ".ngrace/changes/archive/.candidate-C-LOCK-EVIDENCE.lock",
+      ".ngrace/changes/active/sub/.candidate-C-LOCK-EVIDENCE.lock",
+      "src/.candidate-C-LOCK-EVIDENCE.lock",
+      "other/.candidate-C-LOCK-EVIDENCE.lock",
+      ".ngrace/changes/active/.candidate-not-a-change.lock",
+    ];
+    for (const relative of [canonical, ...nearMisses]) {
+      writeFileSync(path.join(root, relative), `1\n${Date.now()}\ntok\n`, { flag: "wx" });
+    }
+    const evidence = graceCursorModule.snapshotWriteEvidence(root);
+    expect(evidence.available).toBe(true);
+    const paths = evidence.available ? evidence.files.map((file) => file.path) : [];
+    expect(paths).not.toContain(canonical);
+    for (const nearMiss of nearMisses) {
+      expect(paths, nearMiss).toContain(nearMiss);
+    }
+  });
+
+  // C-LINUX-VALIDATION-REPAIR-6-62765C22: the exclusive create's permission-code
+  // boundary. A permission code is possible contention; an observable holder takes
+  // the unchanged wait/reclaim path, an unobservable one is bounded. Every contender
+  // and releaser runs in a bounded, reaped child so a failed release cannot hang the run.
+  const moduleUrl = pathToFileURL(path.resolve(import.meta.dir, "grace-cursor.ts")).href;
+
+  function unreadableIsEnforced(): boolean {
+    const probeRoot = mkdtempSync(path.join(os.tmpdir(), "grace-candidate-lock-unreadable-"));
+    const probe = path.join(probeRoot, "probe");
+    writeFileSync(probe, "probe");
+    try {
+      chmodSync(probe, 0o000);
+      try {
+        readFileSync(probe, "utf8");
+        return false;
+      } catch {
+        return true;
+      }
+    } finally {
+      try {
+        chmodSync(probe, 0o600);
+      } catch {
+        // best-effort
+      }
+      rmSync(probeRoot, { recursive: true, force: true });
+    }
+  }
+  // Explicit skip reason: chmod(000) is not the Windows access model, and an elevated POSIX
+  // runner (root) can still read a 000 file, so the fixture would otherwise be vacuous.
+  const UNREADABLE_SKIP = process.platform === "win32" || !unreadableIsEnforced();
+
+  function contenderScript(): string {
+    return [
+      `import { existsSync, readFileSync } from "node:fs";`,
+      `import { withCandidateLock, setCandidateLockOpenForTests } from ${JSON.stringify(moduleUrl)};`,
+      `const [root, id, mode] = process.argv.slice(2);`,
+      `if (mode === "eperm-when-present") {`,
+      `  setCandidateLockOpenForTests((lockPath) => {`,
+      `    if (existsSync(lockPath)) { const e = new Error("EPERM probe"); e.code = "EPERM"; throw e; }`,
+      `  });`,
+      `} else if (mode === "eperm-always") {`,
+      `  setCandidateLockOpenForTests(() => { throw Object.assign(new Error("EPERM probe"), { code: "EPERM" }); });`,
+      `}`,
+      `const flush = (code, message, stream = process.stdout) => new Promise((resolve) => {`,
+      `  process.exitCode = code;`,
+      `  stream.write(message, () => resolve());`,
+      `});`,
+      `let owned = false;`,
+      `try {`,
+      `  withCandidateLock(root, id, () => {`,
+      `    const lockPath = root + "/.ngrace/changes/active/.candidate-" + id + ".lock";`,
+      `    owned = existsSync(lockPath) && readFileSync(lockPath, "utf8").split("\\n")[0] === String(process.pid);`,
+      `  });`,
+      `  await flush(0, "acquired owned=" + owned + "\\n");`,
+      `} catch (error) { await flush(2, "refused " + ((error && error.code) || "unknown") + "\\n"); }`,
+      ``,
+    ].join("\n");
+  }
+
+  /** Run the contender in its own process and bound every wait: a hang fails, never stalls the runner. */
+  async function runContender(root: string, id: string, mode: string, timeoutMs: number) {
+    const script = path.join(root, `contender-${Math.random().toString(16).slice(2)}.ts`);
+    writeFileSync(script, contenderScript());
+    const proc = Bun.spawn({ cmd: [process.execPath, script, root, id, mode], stdout: "pipe", stderr: "pipe" });
+    const stdout = new Response(proc.stdout).text();
+    try {
+      const exited = proc.exited.then(async (code) => ({ code, out: await stdout }));
+      const outcome = await Promise.race([exited, Bun.sleep(timeoutMs).then(() => undefined)]);
+      if (!outcome) {
+        proc.kill();
+        const reaped = await Promise.race([proc.exited, Bun.sleep(2000).then(() => undefined)]);
+        if (reaped === undefined) {
+          throw new Error(`contender for ${mode} did not exit within ${timeoutMs}ms and could not be reaped`);
+        }
+        throw new Error(`contender for ${mode} did not exit within ${timeoutMs}ms (reaped with code ${reaped})`);
+      }
+      return outcome;
+    } finally {
+      // Deterministic cleanup; a cleanup error must not replace the primary failure.
+      try {
+        rmSync(script, { force: true });
+      } catch {
+        // best-effort
+      }
+    }
+  }
+
+  interface Releaser {
+    proc: ReturnType<typeof Bun.spawn>;
+    script: string;
+  }
+
+  /** Reliable releaser: retries until the lock is gone and exits non-zero if it never is. */
+  function releaseAfter(lockPath: string, ms: number): Releaser {
+    const script = path.join(os.tmpdir(), `c6-lock-releaser-${Math.random().toString(16).slice(2)}.ts`);
+    const source =
+      `import { existsSync, chmodSync, unlinkSync } from "node:fs";`
+      + `const target = ${JSON.stringify(lockPath)};`
+      + `await Bun.sleep(${JSON.stringify(ms)});`
+      + `const deadline = Date.now() + 3000;`
+      + `while (existsSync(target) && Date.now() < deadline) {`
+      + `  try { chmodSync(target, 0o600); } catch {}`
+      + `  try { unlinkSync(target); } catch {}`
+      + `  if (existsSync(target)) await Bun.sleep(10);`
+      + `}`
+      + `const flush = (code, message, stream = process.stdout) => new Promise((resolve) => {`
+      + `  process.exitCode = code;`
+      + `  stream.write(message, () => resolve());`
+      + `});`
+      + `if (existsSync(target)) { await flush(3, "release failed\\n", process.stderr); }`
+      + `else { await flush(0, "released\\n"); }`;
+    writeFileSync(script, source);
+    const proc = Bun.spawn({ cmd: [process.execPath, script], stdout: "pipe", stderr: "pipe" });
+    return { proc, script };
+  }
+
+  /** Bounded, checked releaser teardown: terminate and reap a stuck releaser, or fail explicitly. */
+  async function disposeReleaser(releaser: Releaser): Promise<number> {
+    let code = await Promise.race([releaser.proc.exited, Bun.sleep(4000).then(() => undefined)]);
+    if (code === undefined) {
+      releaser.proc.kill();
+      code = await Promise.race([releaser.proc.exited, Bun.sleep(2000).then(() => undefined)]);
+      if (code === undefined) throw new Error("releaser did not exit and could not be reaped");
+    }
+    try {
+      rmSync(releaser.script, { force: true });
+    } catch {
+      // best-effort
+    }
+    return code;
+  }
+
+  it("AC-CANDIDATE-LOCK-OPEN-BOUNDARY: a permission code with a real live holder waits and acquires", async () => {
+    const root = candidateRoot("perm-contention");
+    const lock = lockPathFor(root, "C-LOCK-PERM");
+    writeFileSync(lock, `${process.pid}\n${Date.now()}\nholder-token\n`, { flag: "wx" });
+    const releaser = releaseAfter(lock, 150);
+    const started = Date.now();
+    let releaseCode: number | undefined;
+    try {
+      const outcome = await runContender(root, "C-LOCK-PERM", "eperm-when-present", 5000);
+      expect(outcome.code, "the contender acquired rather than refusing").toBe(0);
+      expect(outcome.out).toContain("acquired");
+      expect(outcome.out, "the contender genuinely held the lock it wrote").toContain("owned=true");
+    } finally {
+      releaseCode = await disposeReleaser(releaser);
+    }
+    expect(releaseCode, "the holder released reliably").toBe(0);
+    expect(existsSync(lock), "the contender's lock was released").toBe(false);
+    expect(Date.now() - started, "waited for the live holder").toBeGreaterThanOrEqual(100);
+  });
+
+  it("AC-CANDIDATE-LOCK-OPEN-BOUNDARY: a persistent permission denial with no holder fails closed and bounded", async () => {
+    const root = candidateRoot("perm-denied");
+    const started = Date.now();
+    const outcome = await runContender(root, "C-LOCK-DENIED", "eperm-always", 5000);
+    expect(outcome.code, "refused rather than acquired").toBe(2);
+    expect(outcome.out).toContain("refused");
+    expect(Date.now() - started, "bounded, not a hang").toBeLessThan(3000);
+  });
+
+  it.skipIf(UNREADABLE_SKIP)("AC-CANDIDATE-LOCK-OPEN-BOUNDARY: a permission code whose real holder exists but cannot be observed is bounded", async () => {
+    const root = candidateRoot("perm-unobservable");
+    const lock = lockPathFor(root, "C-LOCK-PERM-UNREADABLE");
+    writeFileSync(lock, "unreadable holder");
+    chmodSync(lock, 0o000);
+    expect(() => readFileSync(lock, "utf8"), "fixture must be unreadable").toThrow();
+    const started = Date.now();
+    try {
+      const outcome = await runContender(root, "C-LOCK-PERM-UNREADABLE", "eperm-when-present", 5000);
+      expect(outcome.code, "refused rather than acquired").toBe(2);
+      expect(Date.now() - started, "bounded, not a hang").toBeLessThan(3000);
+    } finally {
+      if (existsSync(lock)) {
+        try {
+          chmodSync(lock, 0o600);
+        } catch {
+          // best-effort
+        }
+      }
+    }
+  });
+
+  it.skipIf(UNREADABLE_SKIP)("AC-CANDIDATE-LOCK-OPEN-BOUNDARY: an unobservable EEXIST holder is waited on until it is really released", async () => {
+    const root = candidateRoot("unobservable");
+    const lock = lockPathFor(root, "C-LOCK-UNREADABLE");
+    writeFileSync(lock, "unreadable holder");
+    chmodSync(lock, 0o000);
+    expect(() => readFileSync(lock, "utf8"), "fixture must be unreadable").toThrow();
+    const releaser = releaseAfter(lock, 200);
+    const started = Date.now();
+    let releaseCode: number | undefined;
+    try {
+      const outcome = await runContender(root, "C-LOCK-UNREADABLE", "none", 5000);
+      expect(outcome.code, "the contender acquired").toBe(0);
+      expect(outcome.out).toContain("acquired");
+      expect(outcome.out, "the contender genuinely held the lock it wrote").toContain("owned=true");
+    } finally {
+      releaseCode = await disposeReleaser(releaser);
+    }
+    expect(releaseCode, "the holder released reliably").toBe(0);
+    expect(Date.now() - started, "waited on the unobservable holder").toBeGreaterThanOrEqual(150);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-1-7D8B2BE8 T-002: candidate-lock cooperation.
+describe("candidate-lock cooperation", () => {
+  const markerOf = (bundle: string) => path.join(bundle, ".ngrace-mint-owner");
+  const repoRoot = path.resolve(import.meta.dir, "..");
+  const graceBin = path.join(repoRoot, "src", "grace.ts");
+
+  function openedBundle(root: string, id: string): string {
+    const bundle = seedBundle(root, id);
+    advanceCursor(root, id, { task: "T-001", openEpoch: true, from: 1, to: 10 });
+    advanceCursor(root, id, { task: "T-001", kind: "progress" });
+    advanceCursor(root, id, { task: "T-001", kind: "terminal" });
+    return bundle;
+  }
+
+  it("foldEpoch refuses an unpublished candidate before any write", () => {
+    const root = createProject();
+    const bundle = openedBundle(root, "C-UNPUB");
+    const ledger = path.join(bundle, "run-ledger.xml");
+    const runBefore = readdirSync(path.join(bundle, "run")).sort();
+    const ledgerBefore = existsSync(ledger) ? readFileSync(ledger, "utf8") : "";
+    writeFileSync(markerOf(bundle), "token\n");
+    expect(() => foldEpoch(root, "C-UNPUB")).toThrow(/unpublished candidate/i);
+    expect(readdirSync(path.join(bundle, "run")).sort()).toEqual(runBefore);
+    expect(existsSync(ledger) ? readFileSync(ledger, "utf8") : "").toBe(ledgerBefore);
+  });
+
+  it("advanceCursor refuses an unpublished candidate before creating run/", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-UNPUB2");
+    writeFileSync(markerOf(bundle), "token\n");
+    expect(() =>
+      advanceCursor(root, "C-UNPUB2", { task: "T-001", openEpoch: true, from: 1, to: 10 }),
+    ).toThrow(/unpublished candidate/i);
+    expect(existsSync(path.join(bundle, "run"))).toBe(false);
+  });
+
+  it("recordAttempt refuses an unpublished candidate", () => {
+    const root = createProject();
+    const bundle = openedBundle(root, "C-UNPUB3");
+    writeFileSync(markerOf(bundle), "token\n");
+    expect(() => recordAttempt(root, "C-UNPUB3", { task: "T-001", outcome: "pass" })).toThrow(
+      /unpublished candidate/i,
+    );
+    expect(readdirSync(path.join(bundle, "run")).sort()).toEqual([
+      "1-T-001-opened.xml",
+      "2-T-001-progress.xml",
+      "3-T-001-terminal.xml",
+    ]);
+  });
+
+  it("a live publisher is waited on, then the contender proceeds", async () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+    const pauseFile = path.join(root, "release-candidate");
+    const env = { ...process.env, NGRACE_PAUSE_CANDIDATE_FILE: pauseFile };
+    const publisher = Bun.spawn({
+      cmd: [
+        process.execPath,
+        graceBin,
+        "spec",
+        "new",
+        "T002-LIVE",
+        "--timestamp",
+        "2026-09-19T00:00:00Z",
+        "--branch",
+        "probe",
+        "--path",
+        root,
+      ],
+      cwd: repoRoot,
+      env,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    // Wait until the publisher has written its exclusive spec.xml (paused before publish).
+    const activeDir = path.join(root, ARTIFACT_DIR, "changes", "active");
+    let bundle: string | undefined;
+    for (let i = 0; i < 400 && !bundle; i += 1) {
+      const found = existsSync(activeDir)
+        ? readdirSync(activeDir).find((name) => name.startsWith("C-T002-LIVE-1-"))
+        : undefined;
+      if (found && existsSync(path.join(activeDir, found, "spec.xml"))) bundle = path.join(activeDir, found);
+      if (!bundle) await Bun.sleep(5);
+    }
+    expect(bundle).toBeDefined();
+    const changeId = path.basename(bundle!);
+    // Contender: open an epoch. Must wait on the held candidate lock.
+    const contender = Bun.spawn({
+      cmd: [process.execPath, graceBin, "cursor", "advance", "--change", changeId, "--task", "T-001", "--open-epoch", "--path", root],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    await Bun.sleep(250);
+    const exitedWhileHeld = await Promise.race([contender.exited, Bun.sleep(1).then(() => null)]);
+    expect(exitedWhileHeld).toBeNull();
+    expect(existsSync(path.join(bundle!, "run"))).toBe(false);
+    // Release the publisher; it publishes, the contender then acquires and proceeds.
+    writeFileSync(pauseFile, "go");
+    const pubExit = await publisher.exited;
+    const conExit = await contender.exited;
+    expect(pubExit).toBe(0);
+    expect(conExit).toBe(0);
+    expect(existsSync(markerOf(bundle!))).toBe(false);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-002: under-lock attempt snapshot.
+describe("attempt snapshot placement", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+  const graceBin = path.join(repoRoot, "src", "grace.ts");
+
+  it("AC-ATTEMPT-SNAPSHOT-UNDER-LOCK: a file changed while the attempt waits is recorded", async () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+    initGitBaseline(root);
+    const pauseFile = path.join(root, "release-publisher");
+    const env = { ...process.env, NGRACE_PAUSE_CANDIDATE_FILE: pauseFile };
+    const publisher = Bun.spawn({
+      cmd: [process.execPath, graceBin, "spec", "new", "SNAP", "--timestamp", "2026-09-19T00:00:00Z", "--branch", "probe", "--path", root],
+      cwd: repoRoot,
+      env,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const activeDir = path.join(root, ARTIFACT_DIR, "changes", "active");
+    let id: string | undefined;
+    for (let i = 0; i < 400 && !id; i += 1) {
+      const found = existsSync(activeDir) ? readdirSync(activeDir).find((name) => name.startsWith("C-SNAP-1-")) : undefined;
+      if (found && existsSync(path.join(activeDir, found, "spec.xml"))) id = found;
+      if (!id) await Bun.sleep(5);
+    }
+    expect(id).toBeDefined();
+    const bundle = path.join(activeDir, id!);
+    const contender = Bun.spawn({
+      cmd: [process.execPath, graceBin, "cursor", "attempt", "--change", id!, "--task", "T-001", "--outcome", "pass", "--path", root],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    await Bun.sleep(300);
+    // Pending while the publisher holds the lock: no attempt event written yet.
+    expect(listLooseEvents(bundle).some((event) => event.kind === "attempt")).toBe(false);
+    // Written only AFTER the contender queued on the held lock: a pre-lock snapshot
+    // cannot have seen it.
+    writeFileSync(path.join(root, "wait-marker.txt"), "changed during wait\n");
+    writeFileSync(pauseFile, "go\n");
+    await publisher.exited;
+    const code = await contender.exited;
+    expect(code).toBe(0);
+    const attempt = listLooseEvents(bundle).find((event) => event.kind === "attempt");
+    expect(attempt).toBeDefined();
+    const payload = readAttemptPayload(attempt!);
+    const evidence = payload.writeEvidence;
+    const paths = evidence && evidence.available ? evidence.files.map((file) => file.path) : [];
+    expect(paths).toContain("wait-marker.txt");
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-002: token/identity-checked reclaim scheduling.
+describe("candidate reclaim exclusivity", () => {
+  const lockDirFor = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
+  const lockPathFor = (root: string, id: string) => path.join(lockDirFor(root), `.candidate-${id}.lock`);
+
+  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE: a stale observer cannot unlink a replacement holder (B/A/B)", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-race-"));
+    mkdirSync(lockDirFor(root), { recursive: true });
+    const lockPath = lockPathFor(root, "C-RACE");
+    writeFileSync(lockPath, `2147483647\n${Date.now()}\ndead-token\n`, { flag: "wx" });
+    const bObserved = path.join(root, "b-observed");
+    const bRelease = path.join(root, "b-release");
+    const bBeforeUnlink = path.join(root, "b-before-unlink");
+    const bAcquired = path.join(root, "b-acquired");
+    const bDone = path.join(root, "b-done");
+    const body = `
+      const fs = require('node:fs');
+      const mod = await import(${JSON.stringify(path.join(import.meta.dir, "grace-cursor.ts"))});
+      mod.setCandidateReclaimProbeForTests((phase, lockPath, observedRaw) => {
+        if (phase === 'observed') {
+          fs.writeFileSync(${JSON.stringify(bObserved)}, '1');
+          while (!fs.existsSync(${JSON.stringify(bRelease)})) Bun.sleep(5);
+        } else {
+          fs.writeFileSync(${JSON.stringify(bBeforeUnlink)}, observedRaw);
+        }
+      });
+      mod.withCandidateLock(${JSON.stringify(root)}, 'C-RACE', () => { fs.writeFileSync(${JSON.stringify(bAcquired)}, '1'); });
+      fs.writeFileSync(${JSON.stringify(bDone)}, '1');
+    `;
+    const b = Bun.spawn({ cmd: [process.execPath, "-e", body], stdout: "pipe", stderr: "pipe" });
+    for (let i = 0; i < 400 && !existsSync(bObserved); i += 1) await Bun.sleep(5);
+    expect(existsSync(bObserved)).toBe(true);
+
+    let heldBytes = "";
+    graceCursorModule.withCandidateLock(root, "C-RACE", () => {
+      heldBytes = readFileSync(lockPath, "utf8");
+      // Let B resume from its stale observation and attempt to reclaim.
+      writeFileSync(bRelease, "go");
+      Bun.sleepSync(500);
+      // B observed the dead bytes; A replaced them. B must not unlink A's bytes.
+      expect(existsSync(lockPath)).toBe(true);
+      expect(readFileSync(lockPath, "utf8")).toBe(heldBytes);
+      expect(existsSync(bBeforeUnlink)).toBe(false);
+      expect(existsSync(bAcquired)).toBe(false);
+    });
+    // A released: B acquires on its own retry and removes only its own lock.
+    for (let i = 0; i < 1000 && !existsSync(bDone); i += 1) await Bun.sleep(5);
+    expect(existsSync(bDone)).toBe(true);
+    expect(existsSync(bAcquired)).toBe(true);
+    expect(existsSync(lockPath)).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+    await b.exited;
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-002: regenerate entry locking and alias mapping.
+describe("regenerate entry lock", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+  const graceBin = path.join(repoRoot, "src", "grace.ts");
+
+  it("AC-REGEN-ENTRY-LOCK: pending under a live publisher, then post-lock dirty refusal with default allowDirty:false", async () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    mkdirSync(path.join(root, ARTIFACT_DIR, "changes", "active"), { recursive: true });
+    initGitBaseline(root);
+    const pauseFile = path.join(root, "release-publisher");
+    const env = { ...process.env, NGRACE_PAUSE_CANDIDATE_FILE: pauseFile };
+    const publisher = Bun.spawn({
+      cmd: [process.execPath, graceBin, "spec", "new", "REGEN", "--timestamp", "2026-09-19T00:00:00Z", "--branch", "probe", "--path", root],
+      cwd: repoRoot,
+      env,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const activeDir = path.join(root, ARTIFACT_DIR, "changes", "active");
+    let id: string | undefined;
+    for (let i = 0; i < 400 && !id; i += 1) {
+      const found = existsSync(activeDir) ? readdirSync(activeDir).find((name) => name.startsWith("C-REGEN-1-")) : undefined;
+      if (found && existsSync(path.join(activeDir, found, "spec.xml"))) id = found;
+      if (!id) await Bun.sleep(5);
+    }
+    expect(id).toBeDefined();
+    const bundle = path.join(activeDir, id!);
+    const cursorPath = path.join(bundle, "run.xml");
+    // Dirt created while the publisher holds the lock.
+    writeFileSync(path.join(root, "regen-dirt.txt"), "dirty\n");
+    const contender = Bun.spawn({
+      cmd: [process.execPath, graceBin, "cursor", "regenerate", "--change", id!, "--apply", "--path", root],
+      cwd: repoRoot,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    await Bun.sleep(300);
+    // Pending and byte-invariant: no run.xml written while the lock is held.
+    expect(existsSync(cursorPath)).toBe(false);
+    writeFileSync(pauseFile, "go\n");
+    await publisher.exited;
+    const code = await contender.exited;
+    expect(code).not.toBe(0);
+    // Post-lock dirty refusal, not the pre-lock one; no write.
+    expect(existsSync(cursorPath)).toBe(false);
+  });
+
+  it("AC-REGEN-ENTRY-LOCK controls: clean tree writes; allowDirty:true writes over dirt", () => {
+    const clean = createProject();
+    writeMinimalNgraceProject(clean);
+    seedBundle(clean, "C-REGEN-CLEAN");
+    initGitBaseline(clean);
+    const applied = graceCursorModule.regenerateCursor(clean, "C-REGEN-CLEAN", { apply: true });
+    expect(applied.applied).toBe(true);
+    expect(existsSync(path.join(clean, ARTIFACT_DIR, "changes", "active", "C-REGEN-CLEAN", "run.xml"))).toBe(true);
+
+    const dirty = createProject();
+    writeMinimalNgraceProject(dirty);
+    seedBundle(dirty, "C-REGEN-DIRTY");
+    initGitBaseline(dirty);
+    writeFileSync(path.join(dirty, "dirt.txt"), "dirty\n");
+    const allowed = graceCursorModule.regenerateCursor(dirty, "C-REGEN-DIRTY", { apply: true, allowDirty: true });
+    expect(allowed.applied).toBe(true);
+  });
+});
+
+describe("pause/resume alias mapping", () => {
+  it("AC-ALIAS-MAPPING: pauseCursor and resumeCursor are exported and delegate to advanceCursor", () => {
+    const src = readFileSync(path.join(import.meta.dir, "grace-cursor.ts"), "utf8");
+    expect(typeof graceCursorModule.pauseCursor).toBe("function");
+    expect(typeof graceCursorModule.resumeCursor).toBe("function");
+    expect(src).toMatch(/export function pauseCursor\([\s\S]*?return advanceCursor\(projectRoot, changeId, \{ task, kind: "pause" \}\);/);
+    expect(src).toMatch(/export function resumeCursor\([\s\S]*?return advanceCursor\(projectRoot, changeId, \{[\s\S]*?kind: "resume"/);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-002: filesystem-identity reclaim control.
+describe("candidate reclaim identity", () => {
+  it.skipIf(!FS_RECYCLES)("AC-CANDIDATE-RECLAIM-EXCLUSIVE: a same-bytes replacement inode is not unlinked", async () => {
+    const lockDirFor = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
+    const lockPathFor = (root: string, id: string) => path.join(lockDirFor(root), `.candidate-${id}.lock`);
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-ident-"));
+    mkdirSync(lockDirFor(root), { recursive: true });
+    const lockPath = lockPathFor(root, "C-IDENT");
+    const stale = `2147483647\n${Date.now()}\ndead-token\n`;
+    writeFileSync(lockPath, stale, { flag: "wx" });
+    const observedStat = statSync(lockPath);
+    const observedPair = `${observedStat.dev}:${observedStat.ino}`;
+    const bReplaced = path.join(root, "b-replaced");
+    const bSecond = path.join(root, "b-second-observed");
+    const bAcquired = path.join(root, "b-acquired");
+    const body = `
+      const fs = require('node:fs');
+      const mod = await import(${JSON.stringify(path.join(import.meta.dir, "grace-cursor.ts"))});
+      let observed = 0;
+      let replaced = false;
+      mod.setCandidateReclaimProbeForTests((phase, lockPath) => {
+        if (phase === 'observed') {
+          observed += 1;
+          if (observed >= 2) { fs.writeFileSync(${JSON.stringify(bSecond)}, '1'); while (true) Bun.sleep(50); }
+        } else if (!replaced) {
+          replaced = true;
+          const bytes = fs.readFileSync(lockPath, 'utf8');
+          fs.unlinkSync(lockPath);
+          fs.writeFileSync(lockPath, bytes, { flag: 'wx' });
+          const st = fs.statSync(lockPath);
+          fs.writeFileSync(${JSON.stringify(bReplaced)}, st.dev + ':' + st.ino);
+        }
+      });
+      mod.withCandidateLock(${JSON.stringify(root)}, 'C-IDENT', () => { fs.writeFileSync(${JSON.stringify(bAcquired)}, '1'); });
+    `;
+    const b = Bun.spawn({ cmd: [process.execPath, "-e", body], stdout: "pipe", stderr: "pipe" });
+    try {
+      for (let i = 0; i < 400 && !existsSync(bReplaced); i += 1) await Bun.sleep(5);
+      expect(existsSync(bReplaced)).toBe(true);
+      const recreatedPair = readFileSync(bReplaced, "utf8");
+      const [recreatedDev, recreatedIno] = recreatedPair.split(":").map(Number);
+      expect(recreatedDev, `same filesystem (observed ${observedPair}, recreated ${recreatedPair})`).toBe(observedStat.dev);
+      expect(recreatedIno, `the held pin forces a recycled pair to differ (observed ${observedPair}, recreated ${recreatedPair})`).not.toBe(observedStat.ino);
+      for (let i = 0; i < 800 && !existsSync(bSecond); i += 1) await Bun.sleep(5);
+      expect(existsSync(bSecond), "B retried and observed the replacement").toBe(true);
+      expect(existsSync(bAcquired), "B never acquired by unlinking the replacement inode").toBe(false);
+      const afterStat = statSync(lockPath);
+      expect(`${afterStat.dev}:${afterStat.ino}`, `the replacement pair survives (observed ${observedPair})`).toBe(recreatedPair);
+      expect(readFileSync(lockPath, "utf8")).toBe(stale);
+    } finally {
+      b.kill();
+      await b.exited;
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-002: the exact-path dirty filter.
+describe("dirty filter exact path", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..");
+
+  function dirtyFixture(changeId: string, nearRel: string): string {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    seedBundle(root, changeId);
+    // Track the near-miss so its full path (not a collapsed untracked directory) is
+    // what git status reports, then modify it so the tree is dirty.
+    const near = path.join(root, nearRel);
+    mkdirSync(path.dirname(near), { recursive: true });
+    writeFileSync(near, "committed\n");
+    initGitBaseline(root);
+    writeFileSync(near, "modified\n");
+    return root;
+  }
+
+  it("AC-REGEN-ENTRY-LOCK: a tracked nested near-miss lock basename keeps the tree dirty", () => {
+    const changeId = "C-REGEN-MISS";
+    const root = dirtyFixture(changeId, path.join("nested", ".ngrace", "changes", "active", `.candidate-${changeId}.lock`));
+    const cursorPath = path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run.xml");
+    expect(() => graceCursorModule.regenerateCursor(root, changeId, { apply: true })).toThrow(/dirty/i);
+    expect(existsSync(cursorPath)).toBe(false);
+  });
+
+  it("AC-REGEN-ENTRY-LOCK: a quoted path with a space still counts as dirt", () => {
+    const changeId = "C-REGEN-QUOTED";
+    const root = dirtyFixture(changeId, path.join("nested dir", "user note.txt"));
+    const cursorPath = path.join(root, ARTIFACT_DIR, "changes", "active", changeId, "run.xml");
+    expect(() => graceCursorModule.regenerateCursor(root, changeId, { apply: true })).toThrow(/dirty/i);
+    expect(existsSync(cursorPath)).toBe(false);
+  });
+});
+
+// C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-006: exact epoch payload preservation.
+describe("epoch payload preservation", () => {
+  function canonicalNode(node: GraceXmlNode): unknown {
+    const attrs = Object.fromEntries(Object.entries(node.attributes ?? {}).sort(([a], [b]) => a.localeCompare(b)));
+    return { tag: node.tag, attrs, text: node.text ?? "", children: (node.children ?? []).map(canonicalNode) };
+  }
+  const canonicalChildren = (children: GraceXmlNode[]): string => JSON.stringify(children.map(canonicalNode));
+
+  it("each folded event matches its loose event under expectedLedgerEventAttributes plus complete child subtrees", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-PAYLOAD");
+    advanceCursor(root, "C-PAYLOAD", { task: "T-001", openEpoch: true, from: 1, to: 10 });
+    recordAttempt(root, "C-PAYLOAD", {
+      task: "T-001",
+      outcome: "fail",
+      signature: { kind: "compile", key: "T-001" },
+      writeEvidence: { available: true, files: [{ path: "src/example.ts", kind: "content", digest: "digest-abc" }] },
+    });
+    advanceCursor(root, "C-PAYLOAD", { task: "T-001", kind: "terminal" });
+    const loose = listLooseEvents(bundle);
+    expect(loose.some((event) => event.children.length > 0), "fixture has nontrivial children").toBe(true);
+    foldEpoch(root, "C-PAYLOAD");
+    const folded = listLedgerEvents(bundle);
+    expect(folded).toHaveLength(loose.length);
+    for (const event of loose) {
+      const written = folded.find((candidate) => candidate.id === event.id);
+      expect(written, `event ${event.id} folded`).toBeDefined();
+      expect(expectedLedgerEventAttributes(written!)).toEqual(expectedLedgerEventAttributes(event));
+      expect(canonicalChildren(written!.children), `event ${event.id} child subtrees`).toBe(canonicalChildren(event.children));
+    }
+    expect(folded.filter((event) => event.id === 1)).toHaveLength(1);
+    // Non-vacuity: the comparator detects a mutated child attribute (the fold's own
+    // verify already rejects such a write, so this proves the test layer too).
+    const withChild = loose.find((event) => event.children.length > 0)!;
+    const mutated = withChild.children.map((child) => ({ ...child, attributes: { ...child.attributes, to: "999" } }));
+    expect(canonicalChildren(mutated as GraceXmlNode[])).not.toBe(canonicalChildren(withChild.children));
+  });
+
+  it("negative controls: the comparator detects attribute, text-whitespace, order, and nested-descendant changes", () => {
+    const node = (tag: string, attributes: Record<string, string>, text: string, children: GraceXmlNode[] = []): GraceXmlNode =>
+      ({ tag, attributes, text, children });
+    const childA = node("Note", { key: "a" }, "A");
+    const childB = node("Note", { key: "b" }, "B");
+    const base = node("Allocation", { worker: "w0", from: "1", to: "10" }, "", [childA, childB]);
+    const reversed = node("Allocation", { worker: "w0", from: "1", to: "10" }, "", [childB, childA]);
+    const extra = node("Allocation", { worker: "w0", from: "1", to: "10" }, "", [childA, childB, node("Note", { key: "c" }, "C")]);
+    const changedAttr = node("Allocation", { worker: "w0", from: "1", to: "999" }, "", [childA, childB]);
+    const changedTextWhitespace = node("Allocation", { worker: "w0", from: "1", to: "10" }, "", [childA, node("Note", { key: "b" }, " B ")]);
+    const nested = node("Allocation", { worker: "w0", from: "1", to: "10" }, "", [childA, node("Note", { key: "b" }, "B", [node("Deep", {}, "d")])]);
+    expect(canonicalChildren([reversed]), "same two children reversed").not.toBe(canonicalChildren([base]));
+    expect(canonicalChildren([extra]), "one extra child").not.toBe(canonicalChildren([base]));
+    expect(canonicalChildren([changedAttr]), "attribute change").not.toBe(canonicalChildren([base]));
+    expect(canonicalChildren([changedTextWhitespace]), "leading/trailing whitespace change").not.toBe(canonicalChildren([base]));
+    expect(canonicalChildren([nested]), "nested descendant").not.toBe(canonicalChildren([base]));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// F295 fold consequences (C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5 T-002)
+// ---------------------------------------------------------------------------
+
+const FOLD_REPO_ROOT = path.resolve(import.meta.dir, "..");
+const FOLD_INSTRUMENT_DIR = mkdtempSync(path.join(os.tmpdir(), "fold-instrument-"));
+const FOLD_LATE_PRELOAD = path.join(FOLD_INSTRUMENT_DIR, "late-preload.ts");
+writeFileSync(
+  FOLD_LATE_PRELOAD,
+  [
+    'import fs from "node:fs";',
+    'import { mock } from "bun:test";',
+    "let fired = false;",
+    "const realExists = fs.existsSync;",
+    "const realRead = fs.readFileSync;",
+    "const target = process.env.LATE_TARGET!;",
+    "const instrumented = function (file: any, ...args: any[]) {",
+    "  if (!fired && String(file) === target && realExists(target)) {",
+    "    fired = true;",
+    '    fs.rmSync(target, { force: true });',
+    '    process.stderr.write("LATE_FIRED\\n");',
+    "  }",
+    "  return realRead.call(fs, file, ...args);",
+    "};",
+    'mock.module("node:fs", () => ({ ...fs, readFileSync: instrumented }));',
+    'process.on("exit", () => { if (!fired) { process.stderr.write("LATE_NOT_FIRED\\n"); process.exitCode = 97; } });',
+  ].join("\n"),
+);
+
+function foldGrace(
+  root: string,
+  args: string[],
+  options: { preload?: string; env?: Record<string, string> } = {},
+): { exit: number; stdout: string; stderr: string; fired: boolean } {
+  const cmd = [
+    process.execPath,
+    ...(options.preload ? ["--preload", options.preload] : []),
+    "./src/grace.ts",
+    ...args,
+    "--path",
+    root,
+  ];
+  const result = Bun.spawnSync({
+    cmd,
+    cwd: FOLD_REPO_ROOT,
+    stdout: "pipe",
+    stderr: "pipe",
+    env: { ...process.env, ...options.env },
+  });
+  const stdout = Buffer.from(result.stdout).toString("utf8");
+  const stderr = Buffer.from(result.stderr).toString("utf8");
+  return { exit: result.exitCode, stdout, stderr, fired: stderr.includes("LATE_FIRED") };
+}
+
+/** Recursive snapshot of run/ that records directory entries as well as file bytes. */
+function snapshotRun(run: string): Record<string, string> {
+  const acc: Record<string, string> = {};
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      const rel = path.relative(run, full);
+      if (entry.isDirectory()) {
+        acc[rel] = "DIR";
+        walk(full);
+      } else if (entry.isFile()) {
+        acc[rel] = readFileSync(full, "utf8");
+      } else {
+        acc[rel] = "OTHER";
+      }
+    }
+  };
+  walk(run);
+  return acc;
+}
+
+const foldOpened = (id: number) =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="opened"><Allocation worker="w0" from="${id}" to="99"/></NgraceRunEvent>`;
+const foldEvent = (id: number, kind: string) =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="${kind}"/>`;
+
+describe("F295 fold consequences (AC-MEMBER-FOLD-CONSEQUENCES)", () => {
+  it("(a) an interior hole refuses with a byte-identical run/ listing and no ledger", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-HOLE");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "3-T-001-terminal.xml"), foldEvent(3, "terminal"));
+    const before = snapshotRun(run);
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-HOLE"]);
+    expect(fold.exit).not.toBe(0);
+    expect(fold.stdout + fold.stderr).toMatch(/range hole at 2 for w0/);
+    expect(snapshotRun(run)).toEqual(before);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("(b) a trailing event removed in the true late window folds the survivors with no ghost", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-TRAIL");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), foldEvent(2, "progress"));
+    writeFileSync(path.join(run, "3-T-001-terminal.xml"), foldEvent(3, "terminal"));
+    const target = path.join(run, "4-T-001-progress.xml");
+    writeFileSync(target, foldEvent(4, "progress"));
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-TRAIL"], {
+      preload: FOLD_LATE_PRELOAD,
+      env: { LATE_TARGET: target },
+    });
+    expect(fold.fired, "the after-existsSync interceptor must report it fired").toBe(true);
+    expect(fold.exit).toBe(0);
+    expect(readdirSync(run)).toEqual([]);
+    const ledger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(ledger).toContain('Event id="1" task="T-001" kind="opened"');
+    expect(ledger).toContain('Event id="2" task="T-001" kind="progress"');
+    expect(ledger).toContain('Event id="3" task="T-001" kind="terminal"');
+    expect(ledger).not.toContain('Event id="4"');
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("(c) a vanished opened folds with only one fresh covering opened", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-VANISH");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), foldEvent(2, "progress"));
+    writeFileSync(path.join(run, "3-T-001-terminal.xml"), foldEvent(3, "terminal"));
+    rmSync(path.join(run, "1-T-001-opened.xml"), { force: true });
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-VANISH"]);
+    expect(fold.exit).toBe(0);
+    const ledger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(ledger).toContain('Event id="2" task="T-001" kind="progress"');
+    expect(ledger).toContain('Event id="3" task="T-001" kind="terminal"');
+    expect(ledger).not.toContain('Event id="1"');
+    const openedIds = [...ledger.matchAll(/Event id="(\d+)"[^>]*kind="opened"/g)].map((match) => Number(match[1]));
+    expect(openedIds).toHaveLength(1);
+    expect(openedIds[0]).toBeGreaterThanOrEqual(4);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// F315 malformed/unreadable input at both write boundaries (C-LOOSE-MALFORMED-FOLD-1-4C18E876 T-001)
+// ---------------------------------------------------------------------------
+
+/** Recursive project snapshot: directory entries, symlinks, relative paths, and per-file sha256. */
+function snapshotTree(root: string): Record<string, string> {
+  const acc: Record<string, string> = {};
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const full = path.join(dir, entry.name);
+      const rel = path.relative(root, full);
+      if (entry.isSymbolicLink()) {
+        acc[rel] = "SYMLINK:" + readlinkSync(full);
+      } else if (entry.isDirectory()) {
+        acc[rel] = "DIR";
+        walk(full);
+      } else if (entry.isFile()) {
+        acc[rel] = "FILE:" + createHash("sha256").update(readFileSync(full)).digest("hex");
+      } else {
+        acc[rel] = "OTHER";
+      }
+    }
+  };
+  walk(root);
+  return acc;
+}
+
+describe("F315 fold/discard refusal (AC-MEMBER-MALFORMED-AND-UNREADABLE)", () => {
+  it("ordinary fold refuses a malformed closer before any write, naming the file and xml.parse", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-MALFOLD");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-terminal.xml"), "<broken");
+    const before = snapshotTree(root);
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-MALFOLD"]);
+    expect(fold.exit).not.toBe(0);
+    expect(fold.stdout + fold.stderr).toContain("2-T-001-terminal.xml");
+    expect(fold.stdout + fold.stderr).toContain("xml.parse");
+    expect(snapshotTree(root)).toEqual(before);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("ordinary fold refuses a malformed progress with a valid later terminal before any write", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-MALPROG");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), "<broken");
+    writeFileSync(path.join(run, "3-T-001-terminal.xml"), foldEvent(3, "terminal"));
+    const before = snapshotTree(root);
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-MALPROG"]);
+    expect(fold.exit).not.toBe(0);
+    expect(fold.stdout + fold.stderr).toContain("2-T-001-progress.xml");
+    expect(fold.stdout + fold.stderr).toContain("xml.parse");
+    expect(snapshotTree(root)).toEqual(before);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("valid closer folds successfully (positive control)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-VALID");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-terminal.xml"), foldEvent(2, "terminal"));
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-VALID"]);
+    expect(fold.exit).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a simply absent trailing file is tolerated (F295 control)", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-ABSENT");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), foldEvent(2, "progress"));
+    writeFileSync(path.join(run, "3-T-001-terminal.xml"), foldEvent(3, "terminal"));
+    writeFileSync(path.join(run, "4-T-001-progress.xml"), foldEvent(4, "progress"));
+    rmSync(path.join(run, "4-T-001-progress.xml"), { force: true });
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-ABSENT"]);
+    expect(fold.exit).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a parseable event with omitted attributes keeps the filename fallback", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-OMIT");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), `<NgraceRunEvent graceVersion="1.0"/>`);
+    writeFileSync(path.join(run, "3-T-001-terminal.xml"), foldEvent(3, "terminal"));
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-OMIT"]);
+    expect(fold.exit).toBe(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a directory at the event path exits non-zero, preserves EISDIR, and names the path", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-DIR");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    const eventDir = path.join(run, "2-T-001-progress.xml");
+    mkdirSync(eventDir);
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-DIR"]);
+    expect(fold.exit).not.toBe(0);
+    expect(fold.stdout + fold.stderr).toMatch(/EISDIR|illegal operation on a directory/i);
+    expect(fold.stdout + fold.stderr).toContain(eventDir);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("real ngrace supersede refuses malformed input before writing discarded and leaves both bundles in place", () => {
+    const root = createProject();
+    seedBundle(root, "C-OLD");
+    writeChangeBundleFixture(root, { changeId: "C-OLD-2", location: "active", specStatus: "draft", planStatus: "draft" });
+    const run = path.join(root, ".ngrace", "changes", "active", "C-OLD", "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), foldOpened(1));
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), "<broken"); // no closer
+    const before = snapshotTree(root);
+    const result = foldGrace(root, ["supersede", "--change", "C-OLD", "--replacement", "C-OLD-2"]);
+    expect(result.exit).not.toBe(0);
+    expect(result.stdout + result.stderr).toContain("2-T-001-progress.xml");
+    expect(result.stdout + result.stderr).toContain("xml.parse");
+    expect(readdirSync(run).some((name) => name.includes("discarded"))).toBe(false);
+    expect(existsSync(path.join(root, ".ngrace/changes/active/C-OLD/spec.xml"))).toBe(true);
+    expect(existsSync(path.join(root, ".ngrace/changes/active/C-OLD-2/spec.xml"))).toBe(true);
+    expect(existsSync(path.join(root, ".ngrace/changes/archive/C-OLD/spec.xml"))).toBe(false);
+    expect(snapshotTree(root)).toEqual(before);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-FOLD-RETRY-CORE-1-000C564C T-001: interrupted-fold recovery (F313)
+// ---------------------------------------------------------------------------
+
+function b3EpochNumbers(bundle: string): number[] {
+  const ledger = path.join(bundle, "run-ledger.xml");
+  if (!existsSync(ledger)) return [];
+  return [...readFileSync(ledger, "utf8").matchAll(/<Epoch-(\d+)>/g)]
+    .map((match) => Number(match[1]))
+    .sort((a, b) => a - b);
+}
+
+function b3EpochSlice(bundle: string, epoch: number): string {
+  const text = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+  const match = new RegExp(`<Epoch-${epoch}>[\\s\\S]*?</Epoch-${epoch}>`).exec(text);
+  return match ? match[0] : "";
+}
+
+const b3Opened = (id: number) =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="opened"><Allocation worker="w0" from="${id}" to="99"/></NgraceRunEvent>`;
+const b3Event = (id: number, kind: string) =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="${kind}"/>`;
+
+/** Independent payload comparison: expectedLedgerEventAttributes plus complete children. */
+function b3Payload(event: any): string {
+  const attributes = expectedLedgerEventAttributes(event);
+  return JSON.stringify({
+    attributes: Object.keys(attributes)
+      .sort()
+      .map((key) => [key, attributes[key]]),
+    children: event.children,
+  });
+}
+
+function b3Seed(changeId: string) {
+  const root = createProject();
+  const bundle = seedBundle(root, changeId);
+  const run = path.join(bundle, "run");
+  mkdirSync(run, { recursive: true });
+  writeFileSync(path.join(run, "1-T-001-opened.xml"), b3Opened(1));
+  writeFileSync(path.join(run, "2-T-001-terminal.xml"), b3Event(2, "terminal"));
+  return { root, bundle, run };
+}
+
+describe("F313 interrupted-fold recovery (AC-FOLD-RETRY-IDEMPOTENT)", () => {
+  for (const hook of ["injectFailureBeforeVerify", "injectFailureAfterWrite"] as const) {
+    it(`${hook}: the real-CLI retry reuses the written epoch once and empties run/`, () => {
+      const { root, bundle } = b3Seed("C-RETRY");
+      expect(() => foldEpoch(root, "C-RETRY", hook === "injectFailureBeforeVerify" ? { injectFailureBeforeVerify: true } : { injectFailureAfterWrite: true })).toThrow();
+      expect(b3EpochNumbers(bundle)).toEqual([1]);
+      expect(listLooseEvents(bundle)).toHaveLength(2);
+      const retry = foldGrace(root, ["cursor", "fold", "--change", "C-RETRY"]);
+      expect(retry.exit).toBe(0);
+      expect(b3EpochNumbers(bundle)).toEqual([1]);
+      expect(listLooseEvents(bundle)).toHaveLength(0);
+      rmSync(root, { recursive: true, force: true });
+    });
+  }
+
+  for (const hook of ["injectFailureBeforeVerify", "injectFailureAfterWrite"] as const) {
+    it(`${hook}: same-hook interruption/recovery on two successive fresh epochs keeps each logical epoch once`, () => {
+      const { root, bundle, run } = b3Seed("C-SUCC");
+      const injection = hook === "injectFailureBeforeVerify" ? { injectFailureBeforeVerify: true } : { injectFailureAfterWrite: true };
+      expect(() => foldEpoch(root, "C-SUCC", injection)).toThrow();
+      expect(foldGrace(root, ["cursor", "fold", "--change", "C-SUCC"]).exit).toBe(0);
+      const epoch1 = b3EpochSlice(bundle, 1);
+      writeFileSync(path.join(run, "3-T-001-opened.xml"), b3Opened(3));
+      writeFileSync(path.join(run, "4-T-001-terminal.xml"), b3Event(4, "terminal"));
+      expect(() => foldEpoch(root, "C-SUCC", injection)).toThrow();
+      expect(foldGrace(root, ["cursor", "fold", "--change", "C-SUCC"]).exit).toBe(0);
+      expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+      expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+      expect(listLooseEvents(bundle)).toHaveLength(0);
+      rmSync(root, { recursive: true, force: true });
+    });
+  }
+
+  it("the third empty fold is a no-op returning the same last epoch with eventCount 0", () => {
+    const { root, bundle } = b3Seed("C-EMPTY");
+    expect(() => foldEpoch(root, "C-EMPTY", { injectFailureAfterWrite: true })).toThrow();
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-EMPTY"]).exit).toBe(0);
+    const empty = foldEpoch(root, "C-EMPTY");
+    expect(empty.eventCount).toBe(0);
+    expect(empty.epoch).toBe(1);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a partial verified deletion (first delete-loop event) resumes with the recorded ledger bytes and payload preserved", () => {
+    const { root, bundle, run } = b3Seed("C-PARTIAL");
+    const looseTerminal = b3Payload(listLooseEvents(bundle).find((event) => event.id === 2)!);
+    expect(() => foldEpoch(root, "C-PARTIAL", { injectFailureAfterWrite: true })).toThrow();
+    const recordedLedger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    rmSync(path.join(run, "1-T-001-opened.xml"), { force: true });
+    const retry = foldGrace(root, ["cursor", "fold", "--change", "C-PARTIAL"]);
+    expect(retry.exit).toBe(0);
+    expect(readFileSync(path.join(bundle, "run-ledger.xml"), "utf8")).toBe(recordedLedger);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+    const recorded = listLedgerEvents(bundle);
+    expect(recorded.filter((event) => event.kind === "opened")).toHaveLength(1);
+    expect(b3Payload(recorded.find((event) => event.id === 2)!)).toBe(looseTerminal);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a prior completed epoch stays byte-identical across a later recovery, and a fresh-only set folds normally", () => {
+    const { root, bundle, run } = b3Seed("C-PRIOR");
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-PRIOR"]).exit).toBe(0);
+    const epoch1 = b3EpochSlice(bundle, 1);
+    writeFileSync(path.join(run, "3-T-001-opened.xml"), b3Opened(3));
+    writeFileSync(path.join(run, "4-T-001-terminal.xml"), b3Event(4, "terminal"));
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-PRIOR"]).exit).toBe(0);
+    expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a genuine payload conflict refuses naming the id and the mismatch, with the whole tree unchanged", () => {
+    const { root, bundle, run } = b3Seed("C-CONFLICT");
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-CONFLICT"]).exit).toBe(0);
+    writeFileSync(
+      path.join(run, "1-T-001-opened.xml"),
+      `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened" outcome="different"><Allocation worker="w0" from="1" to="99"/></NgraceRunEvent>`,
+    );
+    const before = snapshotTree(root);
+    const conflict = foldGrace(root, ["cursor", "fold", "--change", "C-CONFLICT"]);
+    expect(conflict.exit).not.toBe(0);
+    expect(conflict.stdout + conflict.stderr).toMatch(/\b1\b/);
+    expect(conflict.stdout + conflict.stderr).toMatch(/payload|mismatch/i);
+    expect(snapshotTree(root)).toEqual(before);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("an older-epoch id reuse refuses naming the id and the older epoch, with the whole tree unchanged", () => {
+    const { root, bundle, run } = b3Seed("C-OLDER");
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-OLDER"]).exit).toBe(0);
+    writeFileSync(path.join(run, "3-T-001-opened.xml"), b3Opened(3));
+    writeFileSync(path.join(run, "4-T-001-terminal.xml"), b3Event(4, "terminal"));
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-OLDER"]).exit).toBe(0);
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), b3Opened(1));
+    writeFileSync(path.join(run, "2-T-001-terminal.xml"), b3Event(2, "terminal"));
+    const before = snapshotTree(root);
+    const older = foldGrace(root, ["cursor", "fold", "--change", "C-OLDER"]);
+    expect(older.exit).not.toBe(0);
+    expect(older.stdout + older.stderr).toMatch(/\b1\b/);
+    expect(older.stdout + older.stderr).toMatch(/Epoch-1|older/i);
+    expect(snapshotTree(root)).toEqual(before);
+    expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a post-ledger interruption preserves the written ledger across the retry and a second retry", () => {
+    const { root, bundle } = b3Seed("C-POSTLEDGER");
+    expect(() => foldEpoch(root, "C-POSTLEDGER", { injectFailureAfterWrite: true })).toThrow();
+    const written = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-POSTLEDGER"]).exit).toBe(0);
+    expect(readFileSync(path.join(bundle, "run-ledger.xml"), "utf8")).toBe(written);
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-POSTLEDGER"]).exit).toBe(0);
+    expect(readFileSync(path.join(bundle, "run-ledger.xml"), "utf8")).toBe(written);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    expect(listLooseEvents(bundle)).toHaveLength(0);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// C-FOLD-MIXED-RECOVERY-1-62A1B852 T-001: mixed residue-plus-fresh recovery
+// ---------------------------------------------------------------------------
+
+/**
+ * The two bundle-4 stage hooks are test-only and land with the T-001 mechanism.
+ * The intersection keeps this test file type-compatible with the pre-mechanism
+ * base, so the base red is behavioral rather than a compile error.
+ */
+type FoldInjectionOptions = NonNullable<Parameters<typeof foldEpoch>[2]> & {
+  injectFailureAfterResidueDelete?: boolean;
+  injectFailureAfterAutoOpen?: boolean;
+};
+
+/** Measured fixture opened: Epoch-1 allocation is exactly w0[1,2]. */
+const b4Opened = (id: number) =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="opened"><Allocation worker="w0" from="${id}" to="${id + 1}"/></NgraceRunEvent>`;
+
+/**
+ * The measured mixed fixture, reached through the product path: the initial loose
+ * epoch {1:opened w0[1,2], 2:terminal} is folded and interrupted after the ledger
+ * write, the shipped delete-loop's first delete (1-opened) leaves the matching
+ * residue {2:terminal}, and F is later allocated by the real CLI.
+ */
+function b4MixedFixture(changeId: string) {
+  const root = createProject();
+  const bundle = seedBundle(root, changeId);
+  const run = path.join(bundle, "run");
+  mkdirSync(run, { recursive: true });
+  writeFileSync(path.join(run, "1-T-001-opened.xml"), b4Opened(1));
+  writeFileSync(path.join(run, "2-T-001-terminal.xml"), b3Event(2, "terminal"));
+  expect(() => foldEpoch(root, changeId, { injectFailureAfterWrite: true })).toThrow();
+  expect(b3EpochNumbers(bundle)).toEqual([1]);
+  expect(listLooseEvents(bundle)).toHaveLength(2);
+  rmSync(path.join(run, "1-T-001-opened.xml"), { force: true });
+  expect(listLooseEvents(bundle).map((event) => event.id)).toEqual([2]);
+  return { root, bundle, run };
+}
+
+/** Allocate F={3:progress, 4:terminal} through the real CLI (the allocator, not a direct write). */
+function b4AllocateFresh(root: string, changeId: string): void {
+  expect(foldGrace(root, ["cursor", "advance", "--change", changeId, "--task", "T-001"]).exit).toBe(0);
+  expect(
+    foldGrace(root, ["cursor", "advance", "--change", changeId, "--task", "T-001", "--kind", "terminal"]).exit,
+  ).toBe(0);
+}
+
+/** Epoch Event ids+kinds, parsed from the durable ledger slice. */
+function b4EpochEvents(bundle: string, epoch: number): Array<{ id: number; kind: string }> {
+  return [...b3EpochSlice(bundle, epoch).matchAll(/<Event\b([^>]*?)\/?>/g)].map((match) => ({
+    id: Number(/\bid="(\d+)"/.exec(match[1]!)?.[1] ?? "0"),
+    kind: /\bkind="([^"]*)"/.exec(match[1]!)?.[1] ?? "",
+  }));
+}
+
+/** Byte snapshot of every file in run/, keyed by filename. */
+function b4RunBytes(run: string): Record<string, string> {
+  const acc: Record<string, string> = {};
+  for (const entry of readdirSync(run)) acc[entry] = readFileSync(path.join(run, entry), "utf8");
+  return acc;
+}
+
+/** The captured bytes of F={3:progress, 4:terminal} alone. */
+const b4FBytes = (run: string) => ({
+  "3-T-001-progress.xml": readFileSync(path.join(run, "3-T-001-progress.xml"), "utf8"),
+  "4-T-001-terminal.xml": readFileSync(path.join(run, "4-T-001-terminal.xml"), "utf8"),
+});
+
+describe("C-FOLD-MIXED-RECOVERY mixed residue-plus-fresh (AC-FOLD-MIXED-RECOVERY)", () => {
+  it("real CLI folds exactly F union A once, leaves Epoch-1 byte-identical, and never re-folds the residue", () => {
+    const { root, bundle, run } = b4MixedFixture("C-MIXED");
+    b4AllocateFresh(root, "C-MIXED");
+    expect(listLooseEvents(bundle).map((event) => event.id)).toEqual([2, 3, 4]);
+    const epoch1 = b3EpochSlice(bundle, 1);
+    const looseF = new Map(
+      listLooseEvents(bundle)
+        .filter((event) => event.id === 3 || event.id === 4)
+        .map((event) => [event.id, b3Payload(event)]),
+    );
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-MIXED"]);
+    expect(fold.exit).toBe(0);
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+    expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+    const epoch2 = b4EpochEvents(bundle, 2);
+    // No already-recorded event is duplicated; only the fresh set is folded.
+    expect(epoch2.map((event) => event.id).sort((a, b) => a - b)).toEqual([3, 4, 5]);
+    expect(epoch2.filter((event) => event.id === 1 || event.id === 2)).toEqual([]);
+    // No opened is synthesized for the already-recorded epoch; exactly one fresh A.
+    expect(epoch2.filter((event) => event.kind === "opened").map((event) => event.id)).toEqual([5]);
+    // The measured covering allocation runs from the fresh minimum 3, not the residue id 2.
+    expect(b3EpochSlice(bundle, 2)).toContain('Allocation worker="w0" from="3" to="103"');
+    // Independent payload comparison of F through the recorded ledger, never the writer's transform.
+    for (const event of listLedgerEvents(bundle).filter((entry) => entry.id === 3 || entry.id === 4)) {
+      expect(b3Payload(event)).toBe(looseF.get(event.id)!);
+    }
+    expect(readdirSync(run)).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("progress-only F_bad refuses unterminated range with a byte-complete snapshot and no synthesized opened", () => {
+    const { root, bundle, run } = b4MixedFixture("C-BADFRESH");
+    expect(foldGrace(root, ["cursor", "advance", "--change", "C-BADFRESH", "--task", "T-001"]).exit).toBe(0);
+    expect(listLooseEvents(bundle).map((event) => event.id)).toEqual([2, 3]);
+    const ledgerBefore = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    const before = snapshotTree(root);
+    const fold = foldGrace(root, ["cursor", "fold", "--change", "C-BADFRESH"]);
+    expect(fold.exit).not.toBe(0);
+    expect(fold.stdout + fold.stderr).toContain("unterminated range for w0");
+    expect(readFileSync(path.join(bundle, "run-ledger.xml"), "utf8")).toBe(ledgerBefore);
+    expect(snapshotTree(root)).toEqual(before);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    expect(readdirSync(run).sort()).toEqual(["2-T-001-terminal.xml", "3-T-001-progress.xml"]);
+    expect(listLooseEvents(bundle).some((event) => event.kind === "opened")).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("injectFailureAfterResidueDelete leaves exactly F, and a real-CLI retry writes Epoch-2 once with no second opened", () => {
+    const { root, bundle, run } = b4MixedFixture("C-RESIDUE");
+    b4AllocateFresh(root, "C-RESIDUE");
+    const epoch1 = b3EpochSlice(bundle, 1);
+    const f = b4FBytes(run);
+    const inject: FoldInjectionOptions = { injectFailureAfterResidueDelete: true };
+    expect(() => foldEpoch(root, "C-RESIDUE", inject)).toThrow();
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    // Hash-exact F: the residue entry is absent and the fresh bytes are unchanged.
+    expect(b4RunBytes(run)).toEqual(f);
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-RESIDUE"]).exit).toBe(0);
+    expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+    const epoch2 = b4EpochEvents(bundle, 2);
+    expect(epoch2.map((event) => event.id).sort((a, b) => a - b)).toEqual([3, 4, 5]);
+    expect(epoch2.filter((event) => event.kind === "opened").map((event) => event.id)).toEqual([5]);
+    expect(readdirSync(run)).toEqual([]);
+    // Second real-CLI retry is idempotent and writes no Epoch-3.
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-RESIDUE"]).exit).toBe(0);
+    expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("injectFailureAfterAutoOpen leaves exactly F union A, and a real-CLI retry reuses A and writes Epoch-2 once", () => {
+    const { root, bundle, run } = b4MixedFixture("C-AUTOOPEN");
+    b4AllocateFresh(root, "C-AUTOOPEN");
+    const epoch1 = b3EpochSlice(bundle, 1);
+    const f = b4FBytes(run);
+    const inject: FoldInjectionOptions = { injectFailureAfterAutoOpen: true };
+    expect(() => foldEpoch(root, "C-AUTOOPEN", inject)).toThrow();
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+    expect(b3EpochNumbers(bundle)).toEqual([1]);
+    // Hash-exact F union A: F bytes preserved, exactly one generated opened.
+    const afterHook = b4RunBytes(run);
+    expect(Object.keys(afterHook).sort()).toEqual([
+      "3-T-001-progress.xml",
+      "4-T-001-terminal.xml",
+      "5-T-001-opened.xml",
+    ]);
+    expect(afterHook["3-T-001-progress.xml"]).toBe(f["3-T-001-progress.xml"]);
+    expect(afterHook["4-T-001-terminal.xml"]).toBe(f["4-T-001-terminal.xml"]);
+    const looseA = listLooseEvents(bundle).find((event) => event.id === 5)!;
+    const aPayload = b3Payload(looseA);
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-AUTOOPEN"]).exit).toBe(0);
+    const epoch2 = b4EpochEvents(bundle, 2);
+    expect(epoch2.map((event) => event.id).sort((a, b) => a - b)).toEqual([3, 4, 5]);
+    expect(epoch2.filter((event) => event.kind === "opened").map((event) => event.id)).toEqual([5]);
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+    expect(readdirSync(run)).toEqual([]);
+    // Independent payload comparison: the generated A is the recorded Epoch-2 event.
+    const recordedA = listLedgerEvents(bundle).find((event) => event.id === 5)!;
+    expect(b3Payload(recordedA)).toBe(aPayload);
+    expect(foldGrace(root, ["cursor", "fold", "--change", "C-AUTOOPEN"]).exit).toBe(0);
+    expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  for (const hook of ["injectFailureBeforeVerify", "injectFailureAfterWrite"] as const) {
+    it(`${hook} on the mixed path leaves Epoch-1 unchanged and F union A, then real-CLI retries are idempotent`, () => {
+      const changeId = hook === "injectFailureBeforeVerify" ? "C-MIXED-BV" : "C-MIXED-AW";
+      const { root, bundle, run } = b4MixedFixture(changeId);
+      b4AllocateFresh(root, changeId);
+      const epoch1 = b3EpochSlice(bundle, 1);
+      const f = b4FBytes(run);
+      const inject: FoldInjectionOptions =
+        hook === "injectFailureBeforeVerify"
+          ? { injectFailureBeforeVerify: true }
+          : { injectFailureAfterWrite: true };
+      expect(() => foldEpoch(root, changeId, inject)).toThrow();
+      // Epoch-1 is captured before the injected fold and asserted byte-identical after it.
+      expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+      expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+      const epoch2 = b3EpochSlice(bundle, 2);
+      // The written Epoch-2 holds F union A; F bytes are preserved and A is one generated opened.
+      const afterInjection = b4RunBytes(run);
+      expect(Object.keys(afterInjection).sort()).toEqual([
+        "3-T-001-progress.xml",
+        "4-T-001-terminal.xml",
+        "5-T-001-opened.xml",
+      ]);
+      expect(afterInjection["3-T-001-progress.xml"]).toBe(f["3-T-001-progress.xml"]);
+      expect(afterInjection["4-T-001-terminal.xml"]).toBe(f["4-T-001-terminal.xml"]);
+      const looseA = listLooseEvents(bundle).find((event) => event.id === 5)!;
+      const aPayload = b3Payload(looseA);
+      const recordedA = listLedgerEvents(bundle).find((event) => event.id === 5)!;
+      expect(b3Payload(recordedA)).toBe(aPayload);
+      // First real-CLI retry deletes the matching residue and writes no Epoch-3.
+      expect(foldGrace(root, ["cursor", "fold", "--change", changeId]).exit).toBe(0);
+      expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+      expect(b3EpochSlice(bundle, 1)).toBe(epoch1);
+      expect(b3EpochSlice(bundle, 2)).toBe(epoch2);
+      expect(readdirSync(run)).toEqual([]);
+      // Second real-CLI retry is idempotent.
+      expect(foldGrace(root, ["cursor", "fold", "--change", changeId]).exit).toBe(0);
+      expect(b3EpochNumbers(bundle)).toEqual([1, 2]);
+      expect(b3EpochSlice(bundle, 2)).toBe(epoch2);
+      expect(readdirSync(run)).toEqual([]);
+      rmSync(root, { recursive: true, force: true });
+    });
+  }
+});
+
+
+// ---------------------------------------------------------------------------
+// C-DISCARD-PREFLIGHT-1-5087B21A: deterministic discard preflight (F158 / F292.1)
+// ---------------------------------------------------------------------------
+
+const b5Opened = (id: number, from: number, to: number) =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="T-001" kind="opened"><Allocation worker="w0" from="${from}" to="${to}"/></NgraceRunEvent>`;
+const b5Event = (id: number, kind: string, task = "T-001") =>
+  `<NgraceRunEvent graceVersion="1.0" id="${id}" task="${task}" kind="${kind}"/>`;
+
+function b5Seed(changeId: string, events: Array<[string, string]>) {
+  const root = createProject();
+  const bundle = seedBundle(root, changeId);
+  const run = path.join(bundle, "run");
+  mkdirSync(run, { recursive: true });
+  for (const [name, body] of events) writeFileSync(path.join(run, name), body);
+  return { root, bundle, run };
+}
+
+function b5SeedPair(changeId: string, events: Array<[string, string]>) {
+  const { root, bundle, run } = b5Seed(changeId, events);
+  seedBundleReplacement(root);
+  return { root, bundle, run };
+}
+
+function seedBundleReplacement(root: string) {
+  writeChangeBundleFixture(root, {
+    changeId: "C-OLD-2",
+    location: "active",
+    specStatus: "draft",
+    planStatus: "draft",
+  });
+}
+
+function b5Loose(bundle: string): string[] {
+  const run = path.join(bundle, "run");
+  return existsSync(run) ? readdirSync(run).sort() : [];
+}
+
+/** Test-only seam: the candidate accepts it; the untouched base ignores the extra arg. */
+const discardWithSeam = discardAndFoldEpoch as unknown as (
+  root: string,
+  changeId: string,
+  options: { afterPreflight?: () => void },
+) => unknown;
+
+/**
+ * Complete ledger projection: every event's full expected attributes (independent
+ * `expectedLedgerEventAttributes`, never the writer transform) plus its complete child
+ * subtree. Two projections compare the whole payload, not a regex count.
+ */
+function b5Normalize(nodes: GraceXmlNode[]): unknown {
+  return nodes.map((node) => ({
+    tag: node.tag,
+    text: node.text,
+    attributes: Object.entries(node.attributes).sort(),
+    children: b5Normalize(node.children),
+  }));
+}
+
+function b5Projection(events: LooseEvent[]): string {
+  return JSON.stringify(
+    events.map((event) => ({
+      attributes: Object.entries(expectedLedgerEventAttributes(event)).sort(),
+      children: b5Normalize(event.children),
+    })),
+  );
+}
+
+
+function b5LedgerDiscarded(bundle: string): LooseEvent[] {
+  return listLedgerEvents(bundle).filter((event) => event.kind === "discarded");
+}
+
+describe("C-DISCARD-PREFLIGHT deterministic refusal (AC-DISCARD-NOT-WRITTEN-ON-PREWRITE-REFUSE)", () => {
+  const rows: Array<{ changeId: string; events: Array<[string, string]>; match: RegExp }> = [
+    {
+      changeId: "C-B5-NARROW",
+      events: [
+        ["1-T-001-opened.xml", b5Opened(1, 1, 1)],
+        ["2-T-001-progress.xml", b5Event(2, "progress")],
+      ],
+      match: /unterminated range for w0/,
+    },
+    {
+      changeId: "C-B5-DUP",
+      events: [
+        ["1-T-001-opened.xml", b5Opened(1, 1, 99)],
+        ["2-T-001-progress.xml", b5Event(2, "progress")],
+        ["2-T-001-progress-b.xml", b5Event(2, "progress")],
+      ],
+      match: /duplicate event id 2 appears 2 times/,
+    },
+    {
+      changeId: "C-B5-HOLE",
+      events: [
+        ["1-T-001-opened.xml", b5Opened(1, 1, 99)],
+        ["3-T-001-terminal.xml", b5Event(3, "terminal")],
+      ],
+      match: /range hole at 2 for w0/,
+    },
+  ];
+
+  for (const row of rows) {
+    it(`${row.changeId}: refuses before any discarded write and preserves the whole tree`, () => {
+      const { root, bundle } = b5Seed(row.changeId, row.events);
+      const before = snapshotTree(root);
+      let thrown: string | undefined;
+      try {
+        discardAndFoldEpoch(root, row.changeId);
+      } catch (error) {
+        thrown = (error as Error).message;
+      }
+      expect(thrown, `expected a refusal for ${row.changeId}`).toMatch(row.match);
+      expect(snapshotTree(root)).toEqual(before);
+      expect(b5Loose(bundle).some((name) => name.endsWith("-discarded.xml"))).toBe(false);
+      expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+      rmSync(root, { recursive: true, force: true });
+    });
+  }
+
+  it("a repaired dense uniquely-identified stream still writes exactly one discarded and folds", () => {
+    const { root, bundle } = b5Seed("C-B5-POS", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 99)],
+      ["2-T-001-progress.xml", b5Event(2, "progress")],
+    ]);
+    const looseBefore = listLooseEvents(bundle);
+    const expected = b5Projection([
+      ...looseBefore,
+      { id: 3, task: "T-001", kind: "discarded", file: "", attributes: {}, children: [] },
+    ].sort((a, b) => a.id - b.id));
+    const result = discardAndFoldEpoch(root, "C-B5-POS") as { applied?: boolean; eventCount?: number };
+    expect(result.applied).toBe(true);
+    expect(b5Loose(bundle)).toEqual([]);
+    expect(b5LedgerDiscarded(bundle)).toHaveLength(1);
+    expect(b5Projection(listLedgerEvents(bundle))).toBe(expected);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("C-DISCARD-PREFLIGHT no-allocation stream (AC-DISCARD-PREFLIGHT-NO-ALLOC)", () => {
+  it("{1:progress, 3:progress} refuses the range hole with no discarded and no synthesized opened", () => {
+    const { root, bundle } = b5Seed("C-B5-NOALLOC", [
+      ["1-T-001-progress.xml", b5Event(1, "progress")],
+      ["3-T-001-progress.xml", b5Event(3, "progress")],
+    ]);
+    const before = snapshotTree(root);
+    let thrown: string | undefined;
+    try {
+      discardAndFoldEpoch(root, "C-B5-NOALLOC");
+    } catch (error) {
+      thrown = (error as Error).message;
+    }
+    expect(thrown).toMatch(/range hole at 2 for w0/);
+    expect(snapshotTree(root)).toEqual(before);
+    expect(b5Loose(bundle)).toEqual(["1-T-001-progress.xml", "3-T-001-progress.xml"]);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("an empty run/ remains the no-op and writes nothing", () => {
+    const { root, bundle } = b5Seed("C-B5-EMPTY", []);
+    const before = snapshotTree(root);
+    expect(discardAndFoldEpoch(root, "C-B5-EMPTY")).toBeUndefined();
+    expect(snapshotTree(root)).toEqual(before);
+    expect(b5Loose(bundle)).toEqual([]);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("C-DISCARD-PREFLIGHT competing-writer seam (AC-DISCARD-NOT-WRITTEN-ON-PREWRITE-REFUSE)", () => {
+  it("a pre-ledger conflict leaves exactly one discarded that a real-CLI retry consumes once unchanged", () => {
+    const { root, bundle } = b5Seed("C-B5-RACE", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 99)],
+      ["2-T-001-progress.xml", b5Event(2, "progress")],
+    ]);
+    let actorAdded = false;
+    let thrown: string | undefined;
+    try {
+      discardWithSeam(root, "C-B5-RACE", {
+        afterPreflight: () => {
+          writeFileSync(path.join(bundle, "run", "2-T-002-progress.xml"), b5Event(2, "progress", "T-002"));
+          actorAdded = true;
+        },
+      });
+    } catch (error) {
+      thrown = (error as Error).message;
+    }
+    expect(actorAdded, "the pre-write seam must fire on the candidate").toBe(true);
+    expect(thrown).toMatch(/duplicate event id 2 appears 2 times/);
+    expect(existsSync(path.join(bundle, "run-ledger.xml"))).toBe(false);
+
+    // Capture the preserved residue's complete payload before the retry.
+    const discardedResidue = listLooseEvents(bundle).filter((event) => event.kind === "discarded");
+    expect(discardedResidue).toHaveLength(1);
+    const residueProjection = b5Projection(discardedResidue);
+
+    // The same actor removes only its own mutation; capture the whole loose population
+    // from which the complete expected ledger projection is built independently.
+    rmSync(path.join(bundle, "run", "2-T-002-progress.xml"), { force: true });
+    const looseBeforeRetry = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(looseBeforeRetry.map((event) => `${event.id}:${event.kind}`)).toEqual([
+      "1:opened",
+      "2:progress",
+      "3:discarded",
+    ]);
+    const expectedLedgerProjection = b5Projection(looseBeforeRetry);
+
+    const retry = foldGrace(root, ["cursor", "fold", "--change", "C-B5-RACE"]);
+    expect(retry.exit).toBe(0);
+    expect(b5Loose(bundle)).toEqual([]);
+    const ledger = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    expect([...new Set([...ledger.matchAll(/<Epoch-(\d+)>/g)].map((match) => Number(match[1])))].sort()).toEqual([1]);
+
+    // Complete population, attributes, and children: the recorded ledger equals the
+    // independently captured loose population; no event is lost, added, or changed.
+    const recorded = listLedgerEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(b5Projection(recorded)).toBe(expectedLedgerProjection);
+    const discarded = recorded.filter((event) => event.kind === "discarded");
+    expect(discarded).toHaveLength(1);
+    // Consumed exactly once and unchanged: the recorded payload equals the captured residue.
+    expect(b5Projection(discarded)).toBe(residueProjection);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("C-DISCARD-PREFLIGHT recovery preservation through the changed caller (AC-DISCARD-NOT-WRITTEN-ON-PREWRITE-REFUSE)", () => {
+  it("a partial-deletion residue hole resumes through discardAndFoldEpoch and preserves the recorded epoch payload", () => {
+    const { root, bundle } = b5Seed("C-B5-PARTIAL", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 99)],
+      ["2-T-001-progress.xml", b5Event(2, "progress")],
+      ["3-T-001-terminal.xml", b5Event(3, "terminal")],
+    ]);
+    expect(() => foldEpoch(root, "C-B5-PARTIAL", { injectFailureAfterWrite: true })).toThrow();
+    const recordedLoose = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(recordedLoose.map((event) => `${event.id}:${event.kind}`)).toEqual([
+      "1:opened",
+      "2:progress",
+      "3:terminal",
+    ]);
+    const expectedLedgerProjection = b5Projection(recordedLoose);
+    // A deliberately selected supported matching subset of the recorded epoch: an interior
+    // progress event is removed. This is not evidence that id 2 is first in the shipped
+    // delete loop, which iterates the ordered event set (`src/grace-cursor.ts:1750-1756`).
+    rmSync(path.join(bundle, "run", "2-T-001-progress.xml"), { force: true });
+    const ledgerBefore = readFileSync(path.join(bundle, "run-ledger.xml"), "utf8");
+    const result = discardAndFoldEpoch(root, "C-B5-PARTIAL") as { applied?: boolean; epoch?: number };
+    expect(result.applied).toBe(true);
+    expect(result.epoch).toBe(1);
+    expect(b5Loose(bundle)).toEqual([]);
+    expect(b5LedgerDiscarded(bundle)).toHaveLength(0);
+    expect(readFileSync(path.join(bundle, "run-ledger.xml"), "utf8")).toBe(ledgerBefore);
+    // Complete payload preservation: the recorded ledger equals the captured epoch projection.
+    expect(b5Projection(listLedgerEvents(bundle).sort((a, b) => a.id - b.id))).toBe(expectedLedgerProjection);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("a mixed residue-plus-fresh set through discardAndFoldEpoch writes the complete expected epoch", () => {
+    const { root, bundle, run } = b5Seed("C-B5-MIXED", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 2)],
+      ["2-T-001-terminal.xml", b5Event(2, "terminal")],
+    ]);
+    expect(() => foldEpoch(root, "C-B5-MIXED", { injectFailureAfterWrite: true })).toThrow();
+    const epoch1Loose = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(epoch1Loose.map((event) => `${event.id}:${event.kind}`)).toEqual(["1:opened", "2:terminal"]);
+    const epoch1Before = b3EpochSlice(bundle, 1);
+    rmSync(path.join(run, "1-T-001-opened.xml"), { force: true });
+    expect(foldGrace(root, ["cursor", "advance", "--change", "C-B5-MIXED", "--task", "T-001"]).exit).toBe(0);
+    expect(
+      foldGrace(root, ["cursor", "advance", "--change", "C-B5-MIXED", "--task", "T-001", "--kind", "terminal"]).exit,
+    ).toBe(0);
+    const looseBefore = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(looseBefore.map((event) => `${event.id}:${event.kind}`)).toEqual([
+      "2:terminal",
+      "3:progress",
+      "4:terminal",
+    ]);
+    const fresh = looseBefore.filter((event) => event.id !== 2);
+
+    const result = discardAndFoldEpoch(root, "C-B5-MIXED") as { applied?: boolean };
+    expect(result.applied).toBe(true);
+    expect(b5Loose(bundle)).toEqual([]);
+    expect(b3EpochSlice(bundle, 1)).toBe(epoch1Before);
+
+    // The complete expected population, built independently from the captured epoch-1 and
+    // fresh events plus the engine's derived synthetic events — never from the result.
+    const discardedId = Math.max(...looseBefore.map((event) => event.id)) + 1;
+    const openedId = discardedId + 1;
+    const allocFrom = Math.min(Math.min(...fresh.map((event) => event.id)), openedId);
+    const allocTo = Math.max(Math.max(...looseBefore.map((event) => event.id), openedId), openedId + 98);
+    const synthetic: LooseEvent[] = [
+      { id: discardedId, task: "T-001", kind: "discarded", file: "", attributes: {}, children: [] },
+      {
+        id: openedId,
+        task: "T-001",
+        kind: "opened",
+        file: "",
+        attributes: {},
+        children: [
+          { tag: "Allocation", attributes: { worker: "w0", from: String(allocFrom), to: String(allocTo) }, children: [], text: "" },
+        ],
+      },
+    ];
+    const expected = b5Projection([...epoch1Loose, ...fresh, ...synthetic].sort((a, b) => a.id - b.id));
+    expect(b5Projection(listLedgerEvents(bundle).sort((a, b) => a.id - b.id))).toBe(expected);
+    expect(b5LedgerDiscarded(bundle)).toHaveLength(1);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("real CLI supersede refuses the too-narrow stream with the whole tree unchanged", () => {
+    const { root, bundle } = b5SeedPair("C-OLD", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 1)],
+      ["2-T-001-progress.xml", b5Event(2, "progress")],
+    ]);
+    const before = snapshotTree(root);
+    const result = foldGrace(root, ["supersede", "--change", "C-OLD", "--replacement", "C-OLD-2"]);
+    expect(result.exit).not.toBe(0);
+    expect(result.stdout + result.stderr).toMatch(/unterminated range for w0/);
+    expect(snapshotTree(root)).toEqual(before);
+    expect(b5Loose(bundle).some((name) => name.endsWith("-discarded.xml"))).toBe(false);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("real CLI supersede archives the predecessor from a partial-deletion residue hole with the recorded epoch intact", () => {
+    const { root, bundle } = b5SeedPair("C-OLD", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 99)],
+      ["2-T-001-progress.xml", b5Event(2, "progress")],
+      ["3-T-001-terminal.xml", b5Event(3, "terminal")],
+    ]);
+    expect(() => foldEpoch(root, "C-OLD", { injectFailureAfterWrite: true })).toThrow();
+    const recordedLoose = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    const expectedLedgerProjection = b5Projection(recordedLoose);
+    rmSync(path.join(bundle, "run", "2-T-001-progress.xml"), { force: true });
+    const result = foldGrace(root, ["supersede", "--change", "C-OLD", "--replacement", "C-OLD-2"]);
+    expect(result.exit).toBe(0);
+    const archived = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD");
+    expect(existsSync(archived)).toBe(true);
+    expect(b5Projection(listLedgerEvents(archived).sort((a, b) => a.id - b.id))).toBe(expectedLedgerProjection);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("real CLI supersede archives the predecessor from a mixed residue-plus-fresh set with the complete expected epoch", () => {
+    const { root, bundle } = b5SeedPair("C-OLD", [
+      ["1-T-001-opened.xml", b5Opened(1, 1, 2)],
+      ["2-T-001-terminal.xml", b5Event(2, "terminal")],
+    ]);
+    expect(() => foldEpoch(root, "C-OLD", { injectFailureAfterWrite: true })).toThrow();
+    const epoch1Loose = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    rmSync(path.join(bundle, "run", "1-T-001-opened.xml"), { force: true });
+    expect(foldGrace(root, ["cursor", "advance", "--change", "C-OLD", "--task", "T-001"]).exit).toBe(0);
+    expect(foldGrace(root, ["cursor", "advance", "--change", "C-OLD", "--task", "T-001", "--kind", "terminal"]).exit).toBe(0);
+    const looseBefore = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    const fresh = looseBefore.filter((event) => event.id !== 2);
+    const discardedId = Math.max(...looseBefore.map((event) => event.id)) + 1;
+    const openedId = discardedId + 1;
+    const allocFrom = Math.min(Math.min(...fresh.map((event) => event.id)), openedId);
+    const allocTo = Math.max(Math.max(...looseBefore.map((event) => event.id), openedId), openedId + 98);
+    const synthetic: LooseEvent[] = [
+      { id: discardedId, task: "T-001", kind: "discarded", file: "", attributes: {}, children: [] },
+      {
+        id: openedId,
+        task: "T-001",
+        kind: "opened",
+        file: "",
+        attributes: {},
+        children: [
+          { tag: "Allocation", attributes: { worker: "w0", from: String(allocFrom), to: String(allocTo) }, children: [], text: "" },
+        ],
+      },
+    ];
+    const expected = b5Projection([...epoch1Loose, ...fresh, ...synthetic].sort((a, b) => a.id - b.id));
+
+    const result = foldGrace(root, ["supersede", "--change", "C-OLD", "--replacement", "C-OLD-2"]);
+    expect(result.exit).toBe(0);
+    const archived = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OLD");
+    expect(existsSync(archived)).toBe(true);
+    expect(b5Projection(listLedgerEvents(archived).sort((a, b) => a.id - b.id))).toBe(expected);
+    rmSync(root, { recursive: true, force: true });
+  });
+});
+
+// --- C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC plan rehearsal rows (T-005..T-006) ---
+function b3cGitInit(root: string): void {
+  const g = (args: string[]) => {
+    const result = Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "pipe", stderr: "pipe" });
+    if (result.exitCode !== 0) {
+      throw new Error(
+        `b3c git ${args.join(" ")} failed (exit ${result.exitCode}): ${Buffer.from(result.stderr).toString("utf8").trim()}`,
+      );
+    }
+    return result;
+  };
+  g(["init"]);
+  g(["config", "user.email", "b3@example.test"]);
+  g(["config", "user.name", "B3 Rehearsal"]);
+  g(["config", "commit.gpgsign", "false"]);
+  g(["add", "."]);
+  g(["commit", "-m", "baseline"]);
+  const head = Buffer.from(g(["rev-parse", "HEAD"]).stdout).toString("utf8").trim();
+  expect(head, "real-.git subject fixture has a baseline commit").toMatch(/^[0-9a-f]{40}$/);
+}
+function b3cSnap(root: string): Map<string, string> {
+  const out = new Map<string, string>();
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const abs = path.join(dir, entry.name);
+      const rel = path.relative(root, abs).replaceAll("\\", "/");
+      const st = lstatSync(abs);
+      if (st.isSymbolicLink()) out.set(rel, `SYMLINK:${readlinkSync(abs)}`);
+      else if (st.isDirectory()) { out.set(rel, "DIR"); walk(abs); }
+      else out.set(rel, `FILE:${createHash("sha256").update(readFileSync(abs)).digest("hex")}`);
+    }
+  };
+  walk(root);
+  return out;
+}
+function b3cDelta(before: Map<string, string>, after: Map<string, string>): string[] {
+  const keys = [...new Set([...before.keys(), ...after.keys()])].sort();
+  const d: string[] = [];
+  for (const k of keys) {
+    const b = before.get(k); const a = after.get(k);
+    if (b === a) continue;
+    d.push(b === undefined ? `ADDED ${k}` : a === undefined ? `DELETED ${k}` : `CHANGED ${k}`);
+  }
+  return d;
+}
+function b3cCanon(children: GraceXmlNode[]): unknown {
+  return children.map((c) => ({ tag: c.tag, attrs: Object.entries(c.attributes).sort(), text: c.text, children: b3cCanon(c.children) }));
+}
+function b3cProjection(events: Array<{ id: number; kind: string; task: string; file: string; attributes: Record<string, string>; children: GraceXmlNode[] }>): string {
+  return JSON.stringify(events.sort((a, b) => a.id - b.id).map((e) => ({ attrs: Object.entries(expectedLedgerEventAttributes(e)).sort(), children: b3cCanon(e.children) })));
+}
+
+describe("AC-LOCK-AND-ALLOCATOR-KEPT (C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC)", () => {
+  it("AC-LOCK-AND-ALLOCATOR-KEPT: structural pin keeps the event lock, uniqueness scan, and own-file unlink in src/grace-cursor.ts", () => {
+    const src = readFileSync(path.join(FOLD_REPO_ROOT, "src", "grace-cursor.ts"), "utf8");
+    expect(src).toContain("const EVENT_WRITE_LOCK = \".run-write.lock\";");
+    expect(src).toContain("function withEventWriteLock");
+    expect(src).toContain("const existing = listLooseEvents(bundlePath)");
+    expect(src).toContain("unlinkSync(contained.absolutePath)");
+  });
+
+  it("AC-LOCK-AND-ALLOCATOR-KEPT: twelve concurrent real-CLI writers then an explicit-replacement supersede exit 0", async () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-B3-LOCK");
+    writeChangeBundleFixture(root, { changeId: "C-B3-LOCK-2", location: "active", specStatus: "draft", planStatus: "draft" });
+    advanceCursor(root, "C-B3-LOCK", { task: "T-001", openEpoch: true, from: 1, to: 199 });
+    b3cGitInit(root);
+    const tasks = Array.from({ length: 12 }, (_, i) => `T-${String(i + 2).padStart(3, "0")}`);
+    const procs = tasks.map((task) =>
+      Bun.spawn({ cmd: [process.execPath, "./src/grace.ts", "cursor", "advance", "--change", "C-B3-LOCK", "--task", task, "--path", root], cwd: FOLD_REPO_ROOT, stdout: "ignore", stderr: "ignore" }),
+    );
+    const codes = await Promise.all(procs.map((p) => p.exited));
+    expect(codes.every((code: number) => code === 0)).toBe(true);
+    const events = listLooseEvents(bundle);
+    expect(events).toHaveLength(13);
+    expect(new Set(events.map((e) => e.id)).size).toBe(13);
+    expect(events.map((e) => e.id).sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
+    const r = foldGrace(root, ["supersede", "--change", "C-B3-LOCK", "--replacement", "C-B3-LOCK-2"]);
+    expect(r.exit, r.stdout + r.stderr).toBe(0);
+    expect(existsSync(path.join(root, ARTIFACT_DIR, "changes", "archive", "C-B3-LOCK"))).toBe(true);
+  });
+});
+
+describe("AC-MEMBER-MATRIX-COMPLETE item17 (C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC)", () => {
+  it("AC-MEMBER-MATRIX-COMPLETE item17: an early-vanished entry is omitted without fabricating an event", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-B3-VAN");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="99"/></NgraceRunEvent>`);
+    writeFileSync(path.join(run, "2-T-001-progress.xml"), `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="progress"/>`);
+    b3cGitInit(root);
+    rmSync(path.join(run, "2-T-001-progress.xml"), { force: true });
+    const direct = listLooseEvents(bundle);
+    expect(direct.map((e) => e.id)).toEqual([1]);
+    expect(direct.some((e) => e.id === 2)).toBe(false);
+    const r = foldGrace(root, ["cursor", "show", "--change", "C-B3-VAN"]);
+    expect(r.exit, r.stdout + r.stderr).toBe(0);
+  });
+
+  it("AC-MEMBER-MATRIX-COMPLETE item17: a late ENOENT between enumeration and read is tolerated with the probe fired", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-B3-LATE");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    const victim = path.join(run, "2-T-001-progress.xml");
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="99"/></NgraceRunEvent>`);
+    writeFileSync(victim, `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="progress"/>`);
+    b3cGitInit(root);
+    let fired = false;
+    setLooseEventReadProbeForTests((file) => {
+      if (file === victim) { fired = true; rmSync(victim, { force: true }); }
+    });
+    try {
+      const direct = listLooseEvents(bundle);
+      expect(fired, "the read-boundary probe fired on the victim").toBe(true);
+      expect(direct.map((e) => e.id)).toEqual([1]);
+    } finally {
+      setLooseEventReadProbeForTests(undefined);
+    }
+  });
+
+  it("AC-MEMBER-MATRIX-COMPLETE item17: a malformed closer refuses fold with a union-key byte-identical tree", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-B3-MAL");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="99"/></NgraceRunEvent>`);
+    writeFileSync(path.join(run, "2-T-001-terminal.xml"), "<broken");
+    b3cGitInit(root);
+    const before = b3cSnap(bundle);
+    const r = foldGrace(root, ["cursor", "fold", "--change", "C-B3-MAL"]);
+    expect(r.exit).not.toBe(0);
+    expect(r.stdout + r.stderr).toMatch(/xml\.parse|not parseable|Cannot fold or abandon/);
+    expect(b3cDelta(before, b3cSnap(bundle))).toEqual([]);
+  });
+
+  it("AC-MEMBER-MATRIX-COMPLETE item17: mixed residue-plus-fresh recovery writes the complete expected epoch", () => {
+    const root = createProject();
+    const bundle = seedBundle(root, "C-B3-MIXED");
+    const run = path.join(bundle, "run");
+    mkdirSync(run, { recursive: true });
+    writeFileSync(path.join(run, "1-T-001-opened.xml"), `<NgraceRunEvent graceVersion="1.0" id="1" task="T-001" kind="opened"><Allocation worker="w0" from="1" to="2"/></NgraceRunEvent>`);
+    writeFileSync(path.join(run, "2-T-001-terminal.xml"), `<NgraceRunEvent graceVersion="1.0" id="2" task="T-001" kind="terminal"/>`);
+    expect(() => foldEpoch(root, "C-B3-MIXED", { injectFailureAfterWrite: true })).toThrow();
+    const epoch1 = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(epoch1.map((e) => `${e.id}:${e.kind}`)).toEqual(["1:opened", "2:terminal"]);
+    b3cGitInit(root);
+    rmSync(path.join(run, "1-T-001-opened.xml"), { force: true });
+    expect(foldGrace(root, ["cursor", "advance", "--change", "C-B3-MIXED", "--task", "T-001"]).exit).toBe(0);
+    expect(foldGrace(root, ["cursor", "advance", "--change", "C-B3-MIXED", "--task", "T-001", "--kind", "terminal"]).exit).toBe(0);
+    const looseBefore = listLooseEvents(bundle).sort((a, b) => a.id - b.id);
+    expect(looseBefore.map((e) => `${e.id}:${e.kind}`)).toEqual(["2:terminal", "3:progress", "4:terminal"]);
+    const fresh = looseBefore.filter((e) => e.id !== 2);
+    const discardedId = Math.max(...looseBefore.map((e) => e.id)) + 1;
+    const openedId = discardedId + 1;
+    const allocFrom = Math.min(Math.min(...fresh.map((e) => e.id)), openedId);
+    const allocTo = Math.max(Math.max(...looseBefore.map((e) => e.id), openedId), openedId + 98);
+    const expected = b3cProjection([
+      ...epoch1,
+      ...fresh,
+      { id: discardedId, task: "T-001", kind: "discarded", file: "", attributes: {}, children: [] as never },
+      { id: openedId, task: "T-001", kind: "opened", file: "", attributes: {}, children: [{ tag: "Allocation", attributes: { worker: "w0", from: String(allocFrom), to: String(allocTo) }, children: [], text: "" }] },
+    ]);
+    const result = discardAndFoldEpoch(root, "C-B3-MIXED") as { applied?: boolean };
+    expect(result.applied).toBe(true);
+    expect(readdirSync(run)).toEqual([]);
+    expect(b3cProjection(listLedgerEvents(bundle))).toBe(expected);
+  });
+});
+
+// C-LINUX-VALIDATION-REPAIR-1-DE5A1A05: pre-pin recycled-identity control and timeout diagnostic.
+describe("candidate reclaim pin controls (C-LINUX-VALIDATION-REPAIR-1-DE5A1A05)", () => {
+  const lockDirFor = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
+  const lockPathFor = (root: string, id: string) => path.join(lockDirFor(root), `.candidate-${id}.lock`);
+
+  async function readStderrBounded(child: Bun.Subprocess, limitMs: number): Promise<string> {
+    const read = (async () => {
+      try {
+        return Buffer.from(await new Response(child.stderr as ReadableStream<Uint8Array>).arrayBuffer()).toString("utf8");
+      } catch {
+        return "";
+      }
+    })();
+    const outcome = await Promise.race([
+      read.then((text) => ({ text })),
+      Bun.sleep(limitMs).then(() => ({ text: "" })),
+    ]);
+    return outcome.text;
+  }
+
+  async function reclaimFixtureDiagnostic(
+    child: Bun.Subprocess,
+    awaited: string,
+    markerPaths: Record<string, string>,
+    timeoutMs = 200,
+    reapTimeoutMs = 1000,
+  ): Promise<{ state: string; exitCode: number | null; signal: string | null; stderrTail: string; markers: Record<string, boolean>; message: string; reapFailure: string | null }> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline && !existsSync(awaited)) await Bun.sleep(5);
+    const wasRunning = child.exitCode === null;
+    let killSignal: string | null = null;
+    let reapFailure: string | null = null;
+    if (wasRunning) {
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        // best-effort
+      }
+      const reaped = await Promise.race([child.exited.then(() => true), Bun.sleep(reapTimeoutMs).then(() => false)]);
+      if (reaped) {
+        killSignal = child.signalCode ?? null;
+      } else {
+        reapFailure = `bounded reap failed after ${reapTimeoutMs}ms; child pid ${child.pid} still running`;
+        try {
+          child.kill("SIGKILL");
+        } catch {
+          // last-effort termination attempt
+        }
+      }
+    }
+    const state = wasRunning ? "running" : "exited";
+    const exitCode = wasRunning ? null : child.exitCode;
+    const signal = wasRunning ? killSignal : null;
+    const markers = Object.fromEntries(Object.entries(markerPaths).map(([name, markerPath]) => [name, existsSync(markerPath)]));
+    // Bound the stderr read: a still-running child (including one that refused the kill)
+    // can hold stderr open forever.
+    const stderr = await readStderrBounded(child, reapTimeoutMs);
+    const stderrTail = stderr.trim().split("\n").slice(-3).join("\n");
+    const message = reapFailure !== null
+      ? `reclaim fixture wait expired: bounded reap failed; ${reapFailure}; markers ${JSON.stringify(markers)}; stderr tail ${JSON.stringify(stderrTail)}`
+      : state === "running"
+        ? `reclaim fixture wait expired: child state running; killed with signal ${signal}; markers ${JSON.stringify(markers)}; stderr tail ${JSON.stringify(stderrTail)}`
+        : `reclaim fixture wait expired: child state exited; exit code ${exitCode}; markers ${JSON.stringify(markers)}; stderr tail ${JSON.stringify(stderrTail)}`;
+    return { state, exitCode, signal, stderrTail, markers, message, reapFailure };
+  }
+
+  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE: the observed lock identity is captured open → fstat → read", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-lock-order-"));
+    mkdirSync(lockDirFor(root), { recursive: true });
+    const lockPath = lockPathFor(root, "C-ORDER");
+    writeFileSync(lockPath, `2147483647\n${Date.now()}\ndead-token\n`, { flag: "wx" });
+    const order: string[] = [];
+    graceCursorModule.setCandidateLockCaptureOrderForTests(order);
+    try {
+      graceCursorModule.withCandidateLock(root, "C-ORDER", () => {});
+    } finally {
+      graceCursorModule.setCandidateLockCaptureOrderForTests(undefined);
+      rmSync(root, { recursive: true, force: true });
+    }
+    expect(order.slice(0, 3), "open → fstat → read-from-handle").toEqual(["open", "fstat", "read"]);
+    expect(order.indexOf("fstat"), "fstat precedes the handle read").toBeLessThan(order.indexOf("read"));
+  });
+
+  it.skipIf(!FS_RECYCLES)("AC-CANDIDATE-RECLAIM-EXCLUSIVE pre-pin control: b53d13d unlinks the recycled replacement", async () => {
+    const worktree = mkdtempSync(path.join(os.tmpdir(), "reclaim-baseline-"));
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const add = Bun.spawnSync({ cmd: ["git", "worktree", "add", "--detach", worktree, "b53d13df47cdf8d85f75b33502c6ecd9e97ff262"], cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
+    expect(add.exitCode, Buffer.from(add.stderr).toString("utf8")).toBe(0);
+    let childForCleanup: Bun.Subprocess | undefined;
+    try {
+      symlinkSync(path.join(repoRoot, "node_modules"), path.join(worktree, "node_modules"));
+      const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-prepin-"));
+      mkdirSync(lockDirFor(root), { recursive: true });
+      const lockPath = lockPathFor(root, "C-PREPIN");
+      writeFileSync(lockPath, `2147483647\n${Date.now()}\ndead-token\n`, { flag: "wx" });
+      const observedStat = statSync(lockPath);
+      const observedPair = `${observedStat.dev}:${observedStat.ino}`;
+      const bAcquired = path.join(root, "b-acquired");
+      const bReplaced = path.join(root, "b-replaced");
+      const modulePath = JSON.stringify(path.join(worktree, "src", "grace-cursor.ts"));
+      const body = `
+        const fs = require('node:fs');
+        const mod = await import(${modulePath});
+        let replaced = false;
+        mod.setCandidateReclaimProbeForTests((phase, lockPath) => {
+          if (phase !== 'observed' && !replaced) {
+            replaced = true;
+            const bytes = fs.readFileSync(lockPath, 'utf8');
+            fs.unlinkSync(lockPath);
+            fs.writeFileSync(lockPath, bytes, { flag: 'wx' });
+            const st = fs.statSync(lockPath);
+            fs.writeFileSync(${JSON.stringify(bReplaced)}, st.dev + ':' + st.ino);
+          }
+        });
+        mod.withCandidateLock(${JSON.stringify(root)}, 'C-PREPIN', () => { fs.writeFileSync(${JSON.stringify(bAcquired)}, '1'); });
+      `;
+      const child = Bun.spawn({ cmd: [process.execPath, "-e", body], stdout: "pipe", stderr: "pipe" });
+      childForCleanup = child;
+      for (let i = 0; i < 600 && !existsSync(bAcquired); i += 1) {
+        if (child.exitCode !== null) break;
+        await Bun.sleep(5);
+      }
+      if (child.exitCode === null) {
+        try {
+          child.kill("SIGKILL");
+        } catch {
+          // best-effort
+        }
+        await Promise.race([child.exited, Bun.sleep(1000)]);
+      }
+      expect(existsSync(bReplaced), "the pre-pin replacement was recorded").toBe(true);
+      const recreatedPair = readFileSync(bReplaced, "utf8");
+      const [recreatedDev, recreatedIno] = recreatedPair.split(":").map(Number);
+      expect(recreatedDev, `same filesystem (observed ${observedPair}, recreated ${recreatedPair})`).toBe(observedStat.dev);
+      expect(recreatedIno, `recycling established at the exact lock (observed ${observedPair}, recreated ${recreatedPair})`).toBe(observedStat.ino);
+      expect(existsSync(bAcquired), "the pre-pin comparison unlinks the recycled replacement and B acquires").toBe(true);
+      rmSync(root, { recursive: true, force: true });
+    } finally {
+      if (childForCleanup && childForCleanup.exitCode === null) {
+        try {
+          childForCleanup.kill("SIGKILL");
+        } catch {
+          // best-effort
+        }
+        await Promise.race([childForCleanup.exited, Bun.sleep(1000)]);
+      }
+      Bun.spawnSync({ cmd: ["git", "worktree", "remove", "--force", worktree], cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
+      rmSync(worktree, { recursive: true, force: true });
+    }
+  });
+
+  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE timeout diagnostic: running child, signal, stderr and markers", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-diag-"));
+    mkdirSync(lockDirFor(root), { recursive: true });
+    const lockPath = lockPathFor(root, "C-DIAG");
+    writeFileSync(lockPath, `2147483647\n${Date.now()}\ndead-token\n`, { flag: "wx" });
+    const bSecond = path.join(root, "b-second-observed");
+    const bNever = path.join(root, "b-never-observed");
+    const markerPaths = {
+      "b-replaced": path.join(root, "b-replaced"),
+      "b-second-observed": bSecond,
+      "b-acquired": path.join(root, "b-acquired"),
+      "b-error": path.join(root, "b-error"),
+    };
+    const body = `
+      const fs = require('node:fs');
+      const mod = await import(${JSON.stringify(path.join(import.meta.dir, "grace-cursor.ts"))});
+      let observed = 0;
+      let replaced = false;
+      mod.setCandidateReclaimProbeForTests((phase, lockPath) => {
+        if (phase === 'observed') {
+          observed += 1;
+          if (observed >= 2) { fs.writeFileSync(${JSON.stringify(bSecond)}, '1'); process.stderr.write('diag-child-running\\n'); while (true) Bun.sleep(50); }
+        } else if (!replaced) {
+          replaced = true;
+          process.stderr.write('diag-child-replaced\\n');
+          fs.writeFileSync(${JSON.stringify(path.join(root, "b-replaced"))}, '1');
+          const bytes = fs.readFileSync(lockPath, 'utf8');
+          fs.unlinkSync(lockPath);
+          fs.writeFileSync(lockPath, bytes, { flag: 'wx' });
+        }
+      });
+      mod.withCandidateLock(${JSON.stringify(root)}, 'C-DIAG', () => {});
+    `;
+    const child = Bun.spawn({ cmd: [process.execPath, "-e", body], stdout: "pipe", stderr: "pipe" });
+    try {
+      // Wait for the child to reach its second observation (the marker write) so the
+      // "running" state is established before the bounded wait under test expires.
+      for (let i = 0; i < 1200 && !existsSync(bSecond); i += 1) {
+        if (child.exitCode !== null) break;
+        await Bun.sleep(5);
+      }
+      expect(existsSync(bSecond), "the child reached the second observation").toBe(true);
+      const diagnostic = await reclaimFixtureDiagnostic(child, bNever, markerPaths);
+      expect(diagnostic.state, JSON.stringify(diagnostic)).toBe("running");
+      expect(diagnostic.signal, JSON.stringify(diagnostic)).toBe("SIGKILL");
+      expect(diagnostic.markers, JSON.stringify(diagnostic)).toEqual({
+        "b-replaced": true,
+        "b-second-observed": true,
+        "b-acquired": false,
+        "b-error": false,
+      });
+      expect(diagnostic.stderrTail, JSON.stringify(diagnostic)).toContain("diag-child-running");
+      expect(diagnostic.message).toContain("running");
+      expect(diagnostic.message).toContain("SIGKILL");
+      expect(diagnostic.message).toContain('"b-second-observed":true');
+      expect(diagnostic.message).toContain("diag-child-running");
+    } finally {
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        // already reaped
+      }
+      await Promise.race([child.exited, Bun.sleep(1000)]);
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE timeout diagnostic: an unkillable child yields a bounded-reap failure", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-diag-reap-"));
+    const neverExits = {
+      exitCode: null,
+      signalCode: null,
+      pid: 999999,
+      kill() {
+        // refuse to die
+      },
+      exited: new Promise<number>(() => {}),
+      stderr: new ReadableStream<Uint8Array>({ start() { /* never closes */ } }),
+    } as unknown as Bun.Subprocess;
+    const started = Date.now();
+    const diagnostic = await reclaimFixtureDiagnostic(
+      neverExits,
+      path.join(root, "never"),
+      { "b-replaced": path.join(root, "b-replaced") },
+      50,
+      100,
+    );
+    const elapsed = Date.now() - started;
+    expect(diagnostic.reapFailure, JSON.stringify(diagnostic)).not.toBeNull();
+    expect(diagnostic.state, JSON.stringify(diagnostic)).toBe("running");
+    expect(diagnostic.exitCode, JSON.stringify(diagnostic)).toBeNull();
+    expect(diagnostic.signal, JSON.stringify(diagnostic)).toBeNull();
+    expect(diagnostic.markers["b-replaced"], JSON.stringify(diagnostic)).toBe(false);
+    expect(diagnostic.message).toContain("bounded reap failed");
+    expect(elapsed, `the helper returned within its bound (${elapsed}ms)`).toBeLessThan(1000);
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE timeout diagnostic: already-exited child reports its numeric code", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-diag-exit-"));
+    const bError = path.join(root, "b-error");
+    const markerPaths = {
+      "b-replaced": path.join(root, "b-replaced"),
+      "b-second-observed": path.join(root, "b-second-observed"),
+      "b-acquired": path.join(root, "b-acquired"),
+      "b-error": bError,
+    };
+    const child = Bun.spawn({
+      cmd: [process.execPath, "-e", `require('node:fs').writeFileSync(${JSON.stringify(bError)}, '1'); process.stderr.write('diag-child-exited\\n'); process.exit(7);`],
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    try {
+      const diagnostic = await reclaimFixtureDiagnostic(child, path.join(root, "never"), markerPaths);
+      expect(diagnostic.state, JSON.stringify(diagnostic)).toBe("exited");
+      expect(diagnostic.exitCode, JSON.stringify(diagnostic)).toBe(7);
+      expect(diagnostic.signal, JSON.stringify(diagnostic)).toBeNull();
+      expect(diagnostic.markers["b-error"], JSON.stringify(diagnostic)).toBe(true);
+      expect(diagnostic.markers["b-replaced"], JSON.stringify(diagnostic)).toBe(false);
+      expect(diagnostic.stderrTail, JSON.stringify(diagnostic)).toContain("diag-child-exited");
+      expect(diagnostic.message).toContain("exit code 7");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

@@ -476,4 +476,40 @@
     <Pays>F284 F297 F299</Pays>
     <StatusText>Three findings paid: CI now lints the governance surfaces honestly, a declared-but-absent file warns instead of erring, and the suite runs once at the close.</StatusText>
   </Row>
+  <Row name="C-SUPERSEDE-MEMBERSHIP-4-20941257" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 1 active, 2 archive prior bundle(s) share slug SUPERSEDE-MEMBERSHIP. </Charter>
+    <Pays>F314</Pays>
+    <StatusText></StatusText>
+  </Row>
+  <Row name="C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 1 active, 0 archive prior bundle(s) share slug FOLD-MEMBERSHIP-RECOVERY. Membership disappearance tolerance.</Charter>
+    <Pays>F295 F295.1</Pays>
+    <StatusText>In progress.</StatusText>
+  </Row>
+  <Row name="C-LOOSE-MALFORMED-FOLD-1-4C18E876" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug LOOSE-MALFORMED-FOLD. Unparseable loose input is refused at both fold/discard write boundaries.</Charter>
+    <Pays>F315</Pays>
+    <StatusText>In progress.</StatusText>
+  </Row>
+  <Row name="C-FOLD-RETRY-CORE-1-000C564C" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug FOLD-RETRY-CORE. Interrupted-fold retries resume the recorded epoch without duplication.</Charter>
+    <Pays>F313</Pays>
+    <StatusText>In progress.</StatusText>
+  </Row>
+  <Row name="C-DISCARD-PREFLIGHT-1-5087B21A" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug DISCARD-PREFLIGHT. Deterministic discard preflight.</Charter>
+    <Pays>F292 F292.1 F158</Pays>
+    <StatusText>In progress.</StatusText>
+  </Row>
+  <Row name="C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC" status="retired" kind="chartered">
+    <Number></Number>
+    <Charter>mint-search: 0 active, 0 archive prior bundle(s) share slug SUPERSEDE-INTEGRATION-CLOSE. Integrated supersede matrix and governed close.</Charter>
+    <Pays></Pays>
+    <StatusText>In progress.</StatusText>
+  </Row>
 </Registry>

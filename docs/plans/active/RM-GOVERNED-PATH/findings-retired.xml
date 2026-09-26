@@ -5543,4 +5543,152 @@ artifact without re-running the suite (the freshness guard reads only the file l
 `ms`). Stays staged.
 </Body>
   </Finding>
+  <Finding id="f314" token="F314" status="retired">
+    <PaidBy>C-SUPERSEDE-MEMBERSHIP-4-20941257</PaidBy>
+    <Title>### F314 — `ngrace spec new` acquires its candidate directory non-exclusively: a competing candidate created between the existence check and `mkdir` is overwritten. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-19 at `6dd1d953652775f3dc25095e4f249b37876b9cb6`** (branch `c-supersede-membership`), by running `/private/tmp/ngrace-spec-authority-review/mint-race.ts` from the repository root. `writeSpecNew` (`src/grace-generate.ts:91`) calls `refuseExistingBundle` (`existsSync`, `:74`), then `mkdirSync(dir, { recursive: true })` — which does not fail when the directory already exists — then `writeFileSync(specPath)`. The isolated preload created a competing candidate between the existence check and the `mkdir`; `ngrace spec new OWNERSHIP` **exited 0**, minted `C-OWNERSHIP-1-…`, reported `candidateSpecPreserved: false` (the competitor's `spec.xml` was overwritten) and `otherWriterBytes: OTHER-WRITER-EVIDENCE` (the competitor's unrelated file survived).
+
+**This violates the originating contract.** `.ngrace/changes/archive/C-HASHED-BUNDLE-IDS-2/spec.xml:87-105` promises *&quot;Refusal writes nothing — no directory, no file&quot;*, with the refusal set pinned at `:189-198` and `AC-MINT-REFUSALS` at `:417-425`; its `design-context.xml:38-43` closes the mint-collision class by refusal-on-existing-directory. A controlled interleaving demonstrates the race, not its frequency.
+
+**Scope.** The same non-exclusive window exists for the implicit mint inside `ngrace supersede` (`src/grace-supersede.ts` → `mintBundle`). F292's refusal-residue defect is a separate finding; this one is about acquisition, not residue.
+
+Owner: `C-SUPERSEDE-MEMBERSHIP-4-20941257` (draft spec), `src/grace-generate.ts` (`LINKS: M-CLI`). Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f295" token="F295" status="retired">
+    <PaidBy>C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5</PaidBy>
+    <Title>### F295 — the plan-mandated optimistic event-id allocation (write, detect the duplicate, unlink the caller's own file, retry) is unsafe: the transient file is visible to a concurrent writer's `listLooseEvents`, which reads the name in `readdirSync` and then throws `ENOENT` when `readFileSync` loses the race. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-18 at `f0ac268`,** executing `C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92`. A first implementation of the approved plan's prescribed shape — `writeEventFile` writes `&lt;id&gt;-&lt;task&gt;-&lt;kind&gt;.xml`, scans `listLooseEvents` for a second event with that id, `unlinkSync`s its own file and retries above the contested id — was driven with 12 concurrent `bun ./src/grace.ts cursor advance` processes on 12 distinct tasks. The stream ended with 13 files and 13 unique ids, but one process **exited 1**: `Error: ENOENT: no such file or directory, open '…/run/10-T-006-progress.xml'`, thrown by `readGraceXmlArtifact` (`src/artifact/xml.ts`) from `listLooseEvents` (`src/artifact/run-membership.ts:59`). The unlink that resolved the collision is exactly what a concurrent writer's `readdirSync`→`readFileSync` window observed.
+
+**Why the shipped reader cannot tolerate it, read not inferred.** `listLooseEvents` enumerates `readdirSync(runDir)` and then `readGraceXmlArtifact(file)` each entry; there is no `existsSync` re-check and no `try/catch` around the read, so any file that vanishes between enumeration and read throws out of the CLI. The approved spec's Constraints forbid touching `src/artifact/run-membership.ts` (`LINKS: M-ARTIFACT-TYPES`) because it would force a second `AffectedAreas` anchor, so the reader could not be hardened inside the approved boundary.
+
+**The shape that was shipped instead, and its cost.** A per-bundle exclusive write lock (`&lt;bundle&gt;/.run-write.lock`, created with `flag: &quot;wx&quot;`, released in `finally`, stolen by pid-liveness when the holder dies) serializes `nextEventId` + write, so no transient duplicate is ever visible to another writer; the post-write uniqueness scan remains as a hard guarantee and renumbers only the caller's own file. This satisfies the plan's observable criteria but **not** the plan's literal &quot;removes only the file it created and retries&quot; sentence, and it adds a delete surface the `AC-WRITE-SURFACE` inventory pin had to be updated for.
+
+**The generalisable rule.** The spec's own recommended lock-free shape — &quot;write the event, verify the id is unique against the loose files … and on a non-unique id remove only the caller's own just-written file and retry&quot; — is unsafe as written, because a delete in a directory a concurrent reader enumerates is a race the reader does not guard. Any remedy that removes a `run/` file must first make `listLooseEvents` tolerant of a vanished entry, or must not create the transient at all.
+
+Owner: C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5, src/artifact/run-membership.ts (`LINKS: M-ARTIFACT-TYPES`); and the `ngrace-spec`/`ngrace-plan` teaching surface. Paid by this bundle. Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f295.1" token="F295.1" status="retired">
+    <PaidBy>C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5</PaidBy>
+    <Title>### F295.1 — the F295 timing matrix re-measured on 2026-09-19, and its teaching premise is false. **[verified, correction]**</Title>
+    <Body>
+**Measured 2026-09-19 at `6dd1d953652775f3dc25095e4f249b37876b9cb6`** (branch `c-supersede-membership`), by re-running `/private/tmp/ngrace-authority-probes/membership.ts` from the repository root. The isolated-process `bun:test` filesystem interception reported it fired in both instrumented windows. The matrix reproduced: stable stream `cursor show` exit 0; event absent before enumeration exit 0; event removed after enumeration before the callee existence check exit 0, with a separate direct `listLooseEvents` call returning `{id:2, task:&quot;T-001&quot;, kind:&quot;progress&quot;, exists:false, attributes: filename-derived, children: []}` — a **fabricated membership entry**, not a recovery; event removed after the existence check just before the read exit 1 with `ENOENT` through `src/artifact/xml.ts:219` and `src/artifact/run-membership.ts:70`; event path becoming a directory exit 1 with `EISDIR`. F295's measurements stand and its two windows are confirmed distinct — the callee's `existsSync` check cannot be the fix, because it is precisely what the late window passes through.
+
+**The teaching premise is false, and F295's owner sentence must not drive skill edits.** F295 asserts the `ngrace-spec`/`ngrace-plan` teaching surface recommends the remove-and-retry shape. `rg -n -i 'lock.?free|optimis|remov.{0,40}retr|unlin|just.written|event.id|collision|unique|concurren' skills/ngrace plugins/ngrace/skills/ngrace` over **both entire trees** returns only unrelated uniqueness rules (AC-id uniqueness, `T-NNN` uniqueness, the unique-tag convention); no current skill passage prescribes event-id allocation. The prescription lives in the **archived** spec and plan of `C-CURSOR-EVENT-ID-INTEGRITY-2-E18DFE92`, not in a shipped skill. The corrected owner for that half is the archived-artifact record, not `skills/ngrace/*`.
+
+**What the current writer actually does, re-read at this base.** The per-bundle `.run-write.lock` serializes `nextEventId` + write (`src/grace-cursor.ts:3449`, `:3522`), and the post-write uniqueness scan with own-file unlink/retry remains (`:3576-3587`). F295's generalised rule stands — a delete in a directory a concurrent reader enumerates is unguarded — but the shipped delete is lock-serialized, so the reader tolerance remains the correct narrow repair. A 12-writer concurrent control on unmodified code reproduced the authority's receipt: 13 events, unique ids 1–13, every writer exit 0, explicit-replacement supersede exit 0.
+
+**One widening F295 missed.** The parallel inventory `listRunOrphans` (`src/artifact/run-membership.ts:124`) shares the `readdirSync`-then-`readGraceXmlArtifact` pattern. Driven on a throwaway bundle: a well-named file removed before enumeration is silently omitted (exit 0, no fabricated orphan); the same file removed after the callee existence check but before the read throws `ENOENT` out of the command (exit 1). It has the late window and not the fabrication window. The tolerance repair must cover it.
+
+Owner: C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5, src/artifact/run-membership.ts (`LINKS: M-ARTIFACT-TYPES`). Paid by this bundle. Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f315" token="F315" status="retired">
+    <PaidBy>C-LOOSE-MALFORMED-FOLD-1-4C18E876</PaidBy>
+    <Title>### F315 — a malformed loose `run/` file is silently folded as a payload-free event with filename-derived identity; a corrupted closer records a completed close. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-19 at `6dd1d953652775f3dc25095e4f249b37876b9cb6`** (branch `c-supersede-membership`) with `/private/tmp/ngrace-spec-authority-review/malformed-closer.ts`. A bundle holds a valid `opened` event (id 1) plus `run/2-T-001-terminal.xml` containing `&lt;broken`. `readGraceXmlArtifact` reports `xml.parse` with `root: null`; `listLooseEvents` still emits the entry from the filename with attributes `{id:&quot;2&quot;, task:&quot;T-001&quot;, kind:&quot;terminal&quot;}` and no children (`src/artifact/run-membership.ts:71-83`; the comment at `:71` reads *&quot;Prefer XML attributes when present (authoritative payload); filename is discovery.&quot;*). `ngrace cursor fold` then exits **0**:
+
+```text
+Fold applied
+Change: C-MAL
+Epoch: 1
+Events: 2
+```
+
+and the ledger records `Event id=2 kind=terminal children=0`. An unparseable *closer* is therefore accepted as a completed close with no payload. Lint does not catch it: the grammar does not walk `run/` (`src/artifact/grammar.ts:1569`). The same fallback on a malformed *progress* event instead yields `unterminated range for w0` (measured separately), so the effect depends on the filename kind.
+
+**Why it is a decision and not an obvious fix.** The fallback is deliberate per that code comment, and the `event-filename` / `invalid-id` orphan classes cover only names and ids, not unparseable payloads. The options are: (a) keep the fallback — status quo; (b) treat an existing-but-unparseable loose file as a hard refusal at the authoritative folding boundary, while preserving the read-only fallback for inventory; (c) classify it as a third orphan class surfaced by `listRunOrphans` and the archive gate. (c) does **not** by itself prevent malformed-terminal acceptance — a diagnostic-only orphan improves visibility but leaves the fold accepting the fabricated event — while **(b), the fold refusal, does prevent it**; and (c) also removes membership, a separate semantic change needing explicit policy. **Selected in revision 3: (b).** The `C-RUN-LEDGER` division (lint does not walk `run/`) and the read-only fallback are preserved; the fold refuses the unparseable file before any discarded/auto-open/ledger write, and a parseable event with omitted attributes keeps the legacy filename fallback.
+
+Owner: C-LOOSE-MALFORMED-FOLD-1-4C18E876, src/artifact/run-membership.ts (`LINKS: M-ARTIFACT-TYPES`) and src/grace-cursor.ts (`LINKS: M-CURSOR`). Paid by this bundle. Stays staged.
+</Body>
+  </Finding>
+  <Finding id="f313" token="F313" status="retired">
+    <PaidBy>C-FOLD-RETRY-CORE-1-000C564C</PaidBy>
+    <Title>### F313 — an interrupted `foldEpoch` is not idempotent: the retry appends a second epoch carrying the same events, violating `C-RUN-LEDGER`'s `AC-FOLD-ORDERING`. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-19 at `6dd1d953652775f3dc25095e4f249b37876b9cb6`** (branch `c-supersede-membership`), by running `/private/tmp/ngrace-spec-authority-review/probe.ts` from the repository root. For **both** shipped hooks `injectFailureBeforeVerify` and `injectFailureAfterWrite`: a bundle with `opened` and `terminal` loose events is folded with the hook; `foldEpoch` throws, the ledger already holds `Epoch-1` with events 1 and 2, and the loose files remain. The **real CLI** `ngrace cursor fold` then exits 0 printing
+
+```text
+Fold applied
+Change: C-REVIEW
+Epoch: 2
+Events: 2
+```
+
+and the ledger now contains the same two events in **both** `Epoch-1` and `Epoch-2`. Only the third, empty fold is a no-op (`Epoch: 2`, `Events: 0`). **Read, not inferred:** `nextEpochNumber` (`src/grace-cursor.ts:3649`) returns last+1, and `appendEpochToLedger` (`:3278`) replaces an epoch only when the tag matches, so the incremented number appends rather than replaces.
+
+**This is a violated shipped contract, not a new feature.** `.ngrace/changes/archive/C-RUN-LEDGER/spec.xml:140-146` (`AC-FOLD-ORDERING`) states *&quot;a follow-up fold is idempotent rather than duplicating the epoch&quot;*, and `:39-41` fixes the write-verify-delete order.
+
+**Why the existing pin is green over it.** `src/grace-cursor.test.ts:210-227` asserts `second.applied`, `listLooseEvents` empty, and `third.epoch === second.epoch` — never that the ledger holds one epoch or that events are not duplicated.
+
+**Not claimed.** The authority did not establish that any accounting surface double-counts, and this entry makes no such claim. F158's historical measurement concerns a `discarded` event written before an allocation refusal; it is not evidence that recovery currently works.
+
+**Amended 2026-09-19 with the measured partial-deletion recovery boundary (revision 2).** Recovery is also reached after a **partial verified deletion**, not only the two pre-delete hooks. `/private/tmp/ngrace-spec-authority-review/partial-cleanup.ts` (inspected and re-run; the removal is synthetic, not a killed process) triggers `injectFailureAfterWrite`, then removes the first event of the verified set in the **actual delete-loop order** the shipped code uses (`src/grace-cursor.ts:1404-1412`, sequential): here the `opened` event id 1, leaving `terminal` id 2. A real CLI retry (`ngrace cursor fold`) then exits 0 with `Epoch: 2`, `Events: 2`; the ledger holds `Epoch-1` = `1:opened, 2:terminal` and `Epoch-2` = `2:terminal, 3:opened` — the duplicate of the already-recorded terminal **plus** a synthesized covering `opened`. So a legitimate prefix-deleted subset is misclassified by a naive &quot;not an exact match → conflict&quot; recovery rule and must instead be resumed; the new epoch and the auto-open are the same bug. The repair must compare against the durable ledger **before** loose-only closure/hole checks or `maybeAutoOpenCoveringAllocation` can run, must not fabricate an `opened` for an already-recorded epoch, and must reserve refusal for a genuine canonical-payload conflict. This is the same F313 defect, measured at a third recovery boundary, and is a spec revision, not unrelated debt.
+
+Owner: C-FOLD-RETRY-CORE-1-000C564C, src/grace-cursor.ts (`LINKS: M-CURSOR`). Paid by this bundle.
+</Body>
+  </Finding>
+  <Finding id="f158" token="F158" status="retired">
+    <PaidBy>C-DISCARD-PREFLIGHT-1-5087B21A</PaidBy>
+    <Title>### F158 — the supersede verb's contract, measured, and one non-atomic failure path. **[verified]**</Title>
+    <Body>
+Probed **2026-09-04** on a throwaway project against the real CLI, because [D27](#d27) makes this verb the
+only route for a defective approved artifact and the authority had never driven it.
+
+| question | measured |
+|---|---|
+| replacement state required | **only that its directory exists** (`spec new` is enough) — draft status and absent `plan.xml` are both accepted; the verb does not gate on the replacement's ceremony |
+| missing replacement | refuses, exit 1: `Replacement C-PROBE-B is missing as a directory under active/ or archive/.` |
+| abandoned bundle's artifacts | `spec.xml` and `plan.xml` root status → `superseded`, and `&amp;lt;Replacement&amp;gt;ID&amp;lt;/Replacement&amp;gt;` injected as the first child of the bundle element |
+| open epoch | **folded by the verb itself** — loose `run/*.xml` events land in `run-ledger.xml` under `&amp;lt;Epoch-N&amp;gt;`, `run/` is deleted, `run.xml` and `run-ledger.xml` remain. No separate `cursor fold` is needed |
+| directory | moved `active/` → `archive/` |
+| `supersedeChainDepth` | incremented on the **replacement** (0 → 1), **not** on the abandoned bundle (stays 0) |
+| `reRatificationCount` | **untouched on both** — so a re-ratified bundle carries its count into the archive permanently |
+| source code | **never touched** — `supersedeChangeBundle` (`src/gates/ledger.ts:1383-1481`) writes only the two governance files' status plus the rename, and rolls the bytes back on failure. This substantiates the help text's *&quot;Discards governance, never code&quot;* |
+
+**The defect worth naming.** A supersede that **fails** mid-verb can still leave a side effect: with a
+cursor allocation too narrow to cover the events being folded, the fold errored
+(`event 2 outside every allocation … unterminated range`) **after** appending a loose
+`run/N-T-001-discarded.xml` event. The final rename rolls back cleanly, but the fold-then-write boundary
+does not, so a failed supersede is not a no-op. Not on the governed path for a properly allocated epoch,
+and not chartered here; recorded so the next session that sees an orphan `discarded` event knows where it
+came from.
+
+**One incidental confirmation.** The probe ran the CLI from the working tree, which already carries
+`C-SCOPE-AUDIT-ATTRIBUTION`'s unshipped production, so its `review --change` of the archived bundle
+printed `Scope audit: not-run — plan for C-PROBE-A resolved under archive/` — mechanism B working
+end-to-end on a real bundle before it has shipped. Read as evidence for the mechanism, not as shipped
+behaviour.
+</Body>
+  </Finding>
+  <Finding id="f292" token="F292" status="retired">
+    <PaidBy>C-DISCARD-PREFLIGHT-1-5087B21A</PaidBy>
+    <Title>### F292 — `ngrace supersede` mints the successor **before** it folds the open epoch, so a supersede that the fold refuses leaves a stray successor bundle under `active/` that supersedes nothing. **[verified]**</Title>
+    <Body>
+**Measured 2026-09-17 at `b6d7aba` on the throwaway `/tmp/race` project (bun 1.4.2), while reproducing `F288`.** With `C-RACE-MINT-1-950B44CC` holding a collided `run/` stream, `bun ./src/grace.ts supersede --path /tmp/race --change C-RACE-MINT-1-950B44CC --timestamp 2026-09-17T01:00:00Z` **exits 1** with `Fold verify failed: event 3 payload mismatch …`, the same refusal `cursor fold` gives. It nonetheless left **two** bundles under `.ngrace/changes/active/`: the original and a freshly minted `C-RACE-MINT-2-FD98E67D` carrying a draft `spec.xml` and no code.
+
+**The cause, read not inferred.** The CLI mints first (`src/grace-supersede.ts:114`, `mintBundle` with `supersedes: changeId`), then calls `supersedeChangeBundle` (`src/grace-supersede.ts:121`), which calls `discardAndFoldEpoch` (`src/gates/ledger.ts:1519`) before it writes `superseded` or moves anything. The mint is therefore not part of the same transaction as the fold, and a fold refusal leaves its side effect behind.
+
+**Why it is its own finding and not `F288`.** `F288`'s stream is now repairable only by a verb that does not exist, so the stray successor compounds the deadlock rather than causing it: with no shipped way to remove an active bundle, the refuse path grows the set of bundles on disk. The successor's `spec.xml` is a draft with no `plan.xml`, so it does not itself block the apply gate, but it is an artifact no act produced and no verb will clean up.
+
+**The shape of the remedy, not the remedy itself.** Either fold (or verify foldability) **before** minting the successor, so a refused supersede writes nothing, or give the refuse path a shipped cleanup for the successor it just minted. The first keeps the existing &quot;supersede discards governance, never code&quot; contract and adds no new surface.
+
+Owner: C-DISCARD-PREFLIGHT-1-5087B21A — the engine-authored `discarded` residue half (`src/grace-cursor.ts`, `LINKS: M-CURSOR`). Paid at this close.
+</Body>
+  </Finding>
+  <Finding id="f292.1" token="F292.1" status="retired">
+    <PaidBy>C-DISCARD-PREFLIGHT-1-5087B21A</PaidBy>
+    <Title>### F292.1 — the F292 matrix re-measured on 2026-09-19: same five rows, a different refusal message, and a discarded residue F292 did not name. **[verified, correction]**</Title>
+    <Body>
+**Measured 2026-09-19 at `6dd1d953652775f3dc25095e4f249b37876b9cb6`** (branch `c-supersede-membership`), by re-running `/private/tmp/ngrace-authority-probes/supersede.ts` from the repository root against complete disposable projects; the instrument imports the production fixtures and drives `src/grace.ts`. All five rows reproduced: no loose events exit 0; open epoch plus progress exit 0; two different events with id 2 exit 1; existing archive destination exit 1 (`Archive destination already exists for C-AUTHORITY-PROBE.`); missing predecessor exit 1 (`Change C-AUTHORITY-PROBE is not a directory under active/.`). Every case preserved `src/example.ts` bytes. F292's historical measurements stand.
+
+**Two corrections.** (1) The refusal F292 quotes — `Fold verify failed: event 3 payload mismatch` — is **historical**. Today the collided stream is refused earlier and named precisely: `duplicate event id 2 appears 2 times; the stream cannot fold until every event id is unique` (`src/grace-cursor.ts:2945`, reached through `validateEventsAgainstAllocations`). Do not pin the old payload-mismatch text. (2) F292 named only the **successor** as the residue; the re-run shows the fold refusal also leaves an engine-authored `run/3-T-002-discarded.xml` on the predecessor — the pre-existing partial-write boundary [F158](docs/plans/active/RM-GOVERNED-PATH/findings.xml) records, here triggered by the deterministic duplicate-id refusal that `discardAndFoldEpoch` (`src/grace-cursor.ts:1448`) writes the discarded event *before* `foldEpoch` re-validates. F158 is not superseded; this correction widens the observed residue set from one artifact to two.
+
+Owner: C-DISCARD-PREFLIGHT-1-5087B21A (`src/grace-cursor.ts`, `LINKS: M-CURSOR`). Paid at this close.
+</Body>
+  </Finding>
 </Findings>

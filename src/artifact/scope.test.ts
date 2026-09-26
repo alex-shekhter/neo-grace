@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -333,5 +333,274 @@ describe("C-GRAMMAR-SEAM T-003 OptionalContext bucket", () => {
     });
     const scope = collectActiveChangeScopes(resolveNgracePaths(root)).find((entry) => entry.changeId === "C-OPT-DIRECT");
     expect(scope?.issues.some((issue) => issue.code === "scope.invalid-context-artifact")).toBe(true);
+  });
+});
+
+// C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC T-001: the activated close-time write guard.
+const SCOPE_GUARD_CHANGE = "C-SUPERSEDE-INTEGRATION-CLOSE-1-82073AAC";
+const SCOPE_GUARD_BASE = "73044f83c3f4eaaaa5c5b7648a8a31c115337c39";
+const SCOPE_GUARD_RECORD_DIR = "docs/plans/active/RM-GOVERNED-PATH/";
+// Empty-paid close: the allowed non-lifecycle set is exactly the twelve observable
+// literal paths — the five forced tests/ratchet and the seven RM-GOVERNED-PATH record
+// XML files this bundle's `--flush`/`--retire` writers touch. No production source file
+// is in the set. The ignored scratch buffer is outside the git-derived allowlist (read
+// by `--flush` but never written by this bundle), and `decisions.md` is excluded, so a
+// planted non-record write under the record directory still reddens.
+const SCOPE_GUARD_ALLOWED_FILES = new Set([
+  "src/grace-supersede.test.ts",
+  "src/grace-cursor.test.ts",
+  "src/gates/core.test.ts",
+  "src/artifact/scope.test.ts",
+  "scripts/validate-record-retirement.test.ts",
+  `${SCOPE_GUARD_RECORD_DIR}decisions.xml`,
+  `${SCOPE_GUARD_RECORD_DIR}findings.xml`,
+  `${SCOPE_GUARD_RECORD_DIR}findings-retired.xml`,
+  `${SCOPE_GUARD_RECORD_DIR}rulings.xml`,
+  `${SCOPE_GUARD_RECORD_DIR}rulings-retired.xml`,
+  `${SCOPE_GUARD_RECORD_DIR}registry.xml`,
+  `${SCOPE_GUARD_RECORD_DIR}registry-retired.xml`,
+]);
+
+/**
+ * The tracked-diff evidence the guard consumes. Rename detection stays disabled.
+ */
+const SCOPE_GUARD_TRACKED_DIFF_ARGS = scopeGuardTrackedDiffArgs(SCOPE_GUARD_BASE);
+
+/** The bundle's own lifecycle identities, recognized by exact id — never a blanket prefix. */
+const SCOPE_GUARD_LIFECYCLE_FILES = new Set([
+  `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/spec.xml`,
+  `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/plan.xml`,
+  `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/run-ledger.xml`,
+  `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/run.xml`,
+  `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/spec.xml`,
+  `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/plan.xml`,
+  `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/run-ledger.xml`,
+  `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/run.xml`,
+]);
+const SCOPE_GUARD_RUN_PREFIXES = [
+  `.ngrace/changes/active/${SCOPE_GUARD_CHANGE}/run/`,
+  `.ngrace/changes/archive/${SCOPE_GUARD_CHANGE}/run/`,
+];
+
+/** The tracked-diff argument list for a given base; rename detection stays disabled. */
+function scopeGuardTrackedDiffArgs(base: string): string[] {
+  return ["diff", "--name-only", "--no-renames", base];
+}
+
+/**
+ * One checked Git invocation supplies both availability and the parsed path lines.
+ * The two must never come from separate spawns: a first success followed by a second
+ * failure would report `{available: true, lines: []}` — a false clean.
+ */
+function gitEvidence(root: string, args: string[]): { available: boolean; lines: string[] } {
+  const result = Bun.spawnSync({ cmd: ["git", "-C", root, ...args], stdout: "pipe", stderr: "pipe" });
+  if (result.exitCode !== 0) {
+    return { available: false, lines: [] };
+  }
+  return {
+    available: true,
+    lines: Buffer.from(result.stdout)
+      .toString("utf8")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean),
+  };
+}
+
+/** Files changed against the recorded base outside the closed allowed set. Refuses when git evidence is unavailable. */
+function scopeGuardOffenders(root: string, base = SCOPE_GUARD_BASE): string[] {
+  const tracked = gitEvidence(root, scopeGuardTrackedDiffArgs(base));
+  const untracked = gitEvidence(root, ["ls-files", "--others", "--exclude-standard"]);
+  if (!tracked.available || !untracked.available) {
+    throw new Error("scope guard: git evidence unavailable; refusing rather than reporting clean");
+  }
+  const changed = [...new Set([...tracked.lines, ...untracked.lines])];
+  return changed.filter((file) => {
+    if (SCOPE_GUARD_LIFECYCLE_FILES.has(file)) {
+      return false;
+    }
+    if (SCOPE_GUARD_RUN_PREFIXES.some((prefix) => file.startsWith(prefix) && file.endsWith(".xml"))) {
+      return false;
+    }
+    return !SCOPE_GUARD_ALLOWED_FILES.has(file);
+  });
+}
+
+/**
+ * The guard's conditional entry. It is dormant — no evidence collected and no
+ * offenders — unless the requested switch is exactly the successor id. The live
+ * activated test and the dormant fixture both run this same path.
+ */
+function evaluateCloseTimeGuard(
+  root: string,
+  requestedSwitch: string,
+  base = SCOPE_GUARD_BASE,
+): { activated: boolean; offenders: string[] } {
+  if (requestedSwitch !== SCOPE_GUARD_CHANGE) {
+    return { activated: false, offenders: [] };
+  }
+  return { activated: true, offenders: scopeGuardOffenders(root, base) };
+}
+
+describe("close-time write guard", () => {
+  const repoRoot = path.resolve(import.meta.dir, "..", "..");
+  const requested = (process.env.NGRACE_SCOPE_GUARD_CHANGE ?? "").trim();
+  const activated = requested === SCOPE_GUARD_CHANGE;
+
+  it("remains dormant when the switch names another change", () => {
+    expect(evaluateCloseTimeGuard(repoRoot, "C-UNRELATED")).toEqual({ activated: false, offenders: [] });
+  });
+
+  it("activates exactly on the successor switch and is verifiably dormant otherwise", () => {
+    const decision = evaluateCloseTimeGuard(repoRoot, requested);
+    expect(decision.activated).toBe(requested === SCOPE_GUARD_CHANGE);
+    if (decision.activated) {
+      expect(decision.offenders).toEqual([]);
+    } else {
+      expect(decision.offenders, "dormant contributes no offenders").toEqual([]);
+      expect(typeof collectActiveChangeScopes).toBe("function");
+      expect(typeof observedWriteScopeContains).toBe("function");
+    }
+  });
+
+  it("stays dormant on a later unrelated write without the exact switch, and the same fixture reddens when activated", () => {
+    const fixture = mkdtempSync(path.join(os.tmpdir(), "scope-guard-dormant-"));
+    try {
+      const git = (args: string[]) =>
+        Bun.spawnSync({ cmd: ["git", "-C", fixture, ...args], stdout: "pipe", stderr: "pipe" });
+      mkdirSync(path.join(fixture, "docs"), { recursive: true });
+      writeFileSync(path.join(fixture, "seed.txt"), "seed\n");
+      expect(git(["init"]).exitCode).toBe(0);
+      expect(git(["config", "user.email", "guard@example.test"]).exitCode).toBe(0);
+      expect(git(["config", "user.name", "Guard Test"]).exitCode).toBe(0);
+      expect(git(["add", "."]).exitCode).toBe(0);
+      expect(git(["commit", "-m", "baseline"]).exitCode).toBe(0);
+      const base = Buffer.from(git(["rev-parse", "HEAD"]).stdout).toString("utf8").trim();
+      // A later unrelated write of the same kind as a forbidden ordinary path.
+      writeFileSync(path.join(fixture, "docs", "guard-probe.md"), "probe\n");
+      // The raw offender collector sees it against this fixture's own base.
+      expect(scopeGuardOffenders(fixture, base)).toContain("docs/guard-probe.md");
+      // Without the exact switch the shared conditional path is dormant and does not fail.
+      const dormant = evaluateCloseTimeGuard(fixture, "", base);
+      expect(dormant.activated).toBe(false);
+      expect(dormant.offenders).toEqual([]);
+      // The exact successor switch against the same fixture fails on that planted path.
+      const active = evaluateCloseTimeGuard(fixture, SCOPE_GUARD_CHANGE, base);
+      expect(active.activated).toBe(true);
+      expect(active.offenders).toContain("docs/guard-probe.md");
+    } finally {
+      rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
+  it("confines the tracked-and-untracked change set to the closed allowed set when activated", () => {
+    if (!activated) return;
+    expect(scopeGuardOffenders(repoRoot)).toEqual([]);
+  });
+
+  it("remains dormant on a sibling bundle and, when activated, recognizes only this bundle's lifecycle identities", () => {
+    // Dormant: no evidence collected, and no inspection or failure on a future sibling bundle.
+    if (!activated) return;
+    // Activated: this bundle's own lifecycle files are exempt; a foreign sibling is out of scope.
+    expect(scopeGuardOffenders(repoRoot)).toEqual([]);
+  });
+
+  it("reddens on a foreign sibling non-allowed write when activated, without a blanket exemption", () => {
+    if (!activated) return;
+    const sibling = path.join(repoRoot, ".ngrace", "changes", "active", "C-OTHER-1-DEADBEEF");
+    mkdirSync(sibling, { recursive: true });
+    writeFileSync(path.join(sibling, "spec.xml"), "<other/>\n");
+    try {
+      expect(scopeGuardOffenders(repoRoot)).toContain(".ngrace/changes/active/C-OTHER-1-DEADBEEF/spec.xml");
+    } finally {
+      rmSync(sibling, { recursive: true, force: true });
+    }
+  });
+
+  it("reddens on a planted forbidden write when activated", () => {
+    if (!activated) return;
+    const probe = path.join(repoRoot, "docs", "guard-probe.md");
+    writeFileSync(probe, "probe\n");
+    try {
+      expect(scopeGuardOffenders(repoRoot)).toContain("docs/guard-probe.md");
+    } finally {
+      rmSync(probe, { force: true });
+    }
+  });
+
+  it("reddens on a planted non-record file inside the governed directory when activated", () => {
+    if (!activated) return;
+    const probe = path.join(repoRoot, "docs", "plans", "active", "RM-GOVERNED-PATH", "guard-probe.md");
+    writeFileSync(probe, "probe\n");
+    try {
+      expect(scopeGuardOffenders(repoRoot)).toContain("docs/plans/active/RM-GOVERNED-PATH/guard-probe.md");
+    } finally {
+      rmSync(probe, { force: true });
+    }
+  });
+
+  it("reddens on a planted non-lifecycle file inside the successor's own directory when activated", () => {
+    if (!activated) return;
+    const activeDir = path.join(repoRoot, ".ngrace", "changes", "active", SCOPE_GUARD_CHANGE);
+    const archiveDir = path.join(repoRoot, ".ngrace", "changes", "archive", SCOPE_GUARD_CHANGE);
+    const bundleDir = existsSync(activeDir) ? activeDir : archiveDir;
+    const bundleLayer = existsSync(activeDir) ? "active" : "archive";
+    const probe = path.join(bundleDir, "planted.md");
+    writeFileSync(probe, "probe\n");
+    try {
+      expect(scopeGuardOffenders(repoRoot)).toContain(`.ngrace/changes/${bundleLayer}/${SCOPE_GUARD_CHANGE}/planted.md`);
+    } finally {
+      rmSync(probe, { force: true });
+    }
+  });
+
+  it("refuses rather than reporting clean when git evidence is unavailable", () => {
+    const tmp = mkdtempSync(path.join(os.tmpdir(), "scope-guard-"));
+    try {
+      expect(() => scopeGuardOffenders(tmp)).toThrow(/git evidence unavailable/);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it("derives availability and paths from one checked git read, and refuses a false clean", () => {
+    const originalSpawnSync = Bun.spawnSync;
+    let invocations = 0;
+    // Odd invocations succeed and name a forbidden path; even invocations fail with
+    // exit 129 and empty stdout. The old helper spawned git twice per read, so its
+    // availability check consumed the odd success while its parse silently consumed
+    // the even failure — a false clean. A correct helper reads git exactly once, so
+    // availability and the parsed lines come from the same checked invocation.
+    const fakeSpawn = (() => {
+      invocations += 1;
+      const ok = invocations % 2 === 1;
+      return {
+        exitCode: ok ? 0 : 129,
+        stdout: Buffer.from(ok ? "docs/forbidden.md\n" : ""),
+        stderr: Buffer.from(""),
+      };
+    }) as unknown as typeof Bun.spawnSync;
+    const fixture = mkdtempSync(path.join(os.tmpdir(), "scope-guard-one-read-"));
+    (Bun as unknown as { spawnSync: typeof Bun.spawnSync }).spawnSync = fakeSpawn;
+    try {
+      invocations = 0;
+      const evidence = gitEvidence(fixture, SCOPE_GUARD_TRACKED_DIFF_ARGS);
+      expect(evidence.available, "the checked read succeeded").toBe(true);
+      expect(evidence.lines, "lines must come from the checked read, not a second one").toContain("docs/forbidden.md");
+      expect(invocations, "gitEvidence must spawn git exactly once").toBe(1);
+
+      invocations = 0;
+      let outcome = "";
+      try {
+        const offenders = scopeGuardOffenders(fixture, SCOPE_GUARD_BASE);
+        outcome = offenders.length === 0 ? "reported-clean" : `offenders:${offenders.join(",")}`;
+      } catch (error) {
+        outcome = `refused:${(error as Error).message}`;
+      }
+      expect(outcome, "a failing read must refuse, never report clean").toMatch(/refused:.*git evidence unavailable/);
+    } finally {
+      (Bun as unknown as { spawnSync: typeof Bun.spawnSync }).spawnSync = originalSpawnSync;
+      rmSync(fixture, { recursive: true, force: true });
+    }
   });
 });

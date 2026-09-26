@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "1.0.0",
+  "candidateSha": "b7c94d786ebc89cc279c6dc292c8dd32110fcc9d",
+  "runId": 36196836553,
+  "jobs": [
+    {
+      "name": "validate",
+      "id": 108274492060,
+      "conclusion": "success",
+      "pass": 2403,
+      "skip": 4,
+      "fail": 0
+    },
+    {
+      "name": "dart-adapter",
+      "id": 108274491908,
+      "conclusion": "success",
+      "pass": 7,
+      "skip": 0,
+      "fail": 0
+    },
+    {
+      "name": "windows-compatibility",
+      "id": 108274491993,
+      "conclusion": "success",
+      "pass": 681,
+      "skip": 5,
+      "fail": 0
+    }
+  ],
+  "directions": [
+    {
+      "selector": "AC-PIN-ACQUISITION: an ordinary mint pins the candidate and cleanup removes it",
+      "executed": 1,
+      "skipped": 0
+    },
+    {
+      "selector": "AC-PIN-ACQUISITION: a forced open failure preserves the candidate and refuses",
+      "executed": 1,
+      "skipped": 0
+    },
+    {
+      "selector": "AC-PIN-RELEASE: releaseAcquiredCandidate closes once; cleanup after release refuses",
+      "executed": 1,
+      "skipped": 0
+    },
+    {
+      "selector": "AC-PIN-RELEASE-NO-LEAK: a returned published candidate detects a same-path replacement",
+      "executed": 1,
+      "skipped": 0
+    },
+    {
+      "selector": "AC-PIN-RELEASE-API: successful writeSpecNew closes its record before returning",
+      "executed": 1,
+      "skipped": 0
+    },
+    {
+      "selector": "AC-PIN-RELEASE-API: a publish failure closes the pin exactly once",
+      "executed": 1,
+      "skipped": 0
+    },
+    {
+      "selector": "AC-WINDOWS-DIRECTORY-PIN: candidate pin success and cleanup removal",
+      "executed": 1,
+      "skipped": 0
+    },
+    {
+      "selector": "AC-SUPERSEDE-PIN-RELEASE: a successful implicit mint closes the transaction's pin",
+      "executed": 1,
+      "skipped": 0
+    },
+    {
+      "selector": "AC-SUPERSEDE-PIN-RELEASE: a post-mint failure removal closes the pin exactly once",
+      "executed": 1,
+      "skipped": 0
+    },
+    {
+      "selector": "AC-SUPERSEDE-PIN-RELEASE: a post-mint refusal/residue closes the pin exactly once",
+      "executed": 1,
+      "skipped": 0
+    },
+    {
+      "selector": "AC-SUPERSEDE-PIN-RELEASE: a pre-publication mint failure closes internally without a returned record",
+      "executed": 1,
+      "skipped": 0
+    }
+  ]
+}

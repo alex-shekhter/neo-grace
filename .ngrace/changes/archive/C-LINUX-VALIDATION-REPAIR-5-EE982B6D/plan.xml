@@ -1,0 +1,241 @@
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-LINUX-VALIDATION-REPAIR-5-EE982B6D><Replacement>C-LINUX-VALIDATION-REPAIR-6-62765C22</Replacement>
+    <IntentSummary>
+      Adopt the committed predecessor repair, complete C5's URL-free Windows evidence, and correct
+      the archive ratchet in five sequential tasks. T-001 verifies the inherited repair without
+      rewriting it. T-002 adopts the uncommitted six-field response rule and C2 archive-byte guard
+      and adds the C3 and C4 archive-byte guards for the nine C2/C3/C4 XML files. T-003 corrects the
+      archive ratchet in src/review/core.test.ts, replacing the unreachable exact-zero
+      non-lifecycle .ngrace/ pin with an exact C3 three-path expectation. T-004 is the fresh
+      candidate-run boundary: after the governance commit (approved spec and plan, all three
+      predecessor archive arrivals, the ratchet correction, and the CLAUDE.md rule) is pushed, the
+      authority inspects the exact-head remote result and writes ci-evidence.json. T-005 lands the
+      positive sidecar guard and the whole-bundle URL/provenance guard and prepares close evidence.
+      Only T-004 Satisfies ordinary AC-WINDOWS-DIRECTORY-PIN; the other eighteen ACs have
+      CloseEvidence. The pre-pin control baseline
+      b53d13df47cdf8d85f75b33502c6ecd9e97ff262 is not this bundle's review base; the review base is
+      the approve decision's baseCommit, already recorded as
+      6c18033e90f90bd83ab59b37fd1afe55effd3750. The single full-CI MustPassCommand is
+      bun run validate:ci under target/final assertions; it is red until T-003 lands.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>CLAUDE.md</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>.github/workflows/validate.yml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/plan.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/design-context.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/plan.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/design-context.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/plan.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/design-context.xml</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustContain><File>src/grace-cursor.ts</File><Text>fstatSync</Text></MustContain>
+      <MustContain><File>src/grace-generate.ts</File><Text>releaseAcquiredCandidate</Text></MustContain>
+      <MustContain><File>src/gates/ledger.ts</File><Text>releaseAcquiredCandidate</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>fetch-depth: 0</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>AC-WINDOWS-DIRECTORY-PIN</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>AC-SUPERSEDE-PIN-RELEASE</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>windowsPinInvocation</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>windowsSupersedeInvocation</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>ci-evidence.json</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>candidateSha</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>81e24a146ecd768853a73e72209f7e3cbac980d078f16523f7ac670b7d85efda</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>5793a14cc630f6ae10d3ce9e9a87aa2b2b9d4189632cb7bcabf3944f8dc86f78</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>df77b115bb4829201b527baaea814ee77f53ce39eeea62000db861d21c3695e4</Text></MustContain>
+      <MustContain><File>src/review/core.test.ts</File><Text>C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3</Text></MustContain>
+      <MustContain><File>CLAUDE.md</File><Text>AMBIGUITIES AND PROBLEMS</Text></MustContain>
+      <MustContain><File>CLAUDE.md</File><Text>DISCRIMINATION</Text></MustContain>
+      <MustContain><File>README.md</File><Text>never delete a candidate whose identity they cannot prove</Text></MustContain>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-CURSOR />
+        <M-GATES />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-CURSOR />
+        <V-M-GATES />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-generate.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/gates/ledger.ts</File>
+      <File>src/grace-generate.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/grace-supersede.test.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>.github/workflows/validate.yml</File>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>README.md</File>
+      <File>CLAUDE.md</File>
+      <File>.ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-5-EE982B6D/ci-evidence.json</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/spec.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/plan.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/design-context.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/spec.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/plan.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/design-context.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/spec.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/plan.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/design-context.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Verify the committed repair without rewriting it</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Before this task's epoch opens, the authority commits the approved spec, the approved
+            plan, and all three predecessor archive arrivals, so WriteEvidence never captures the
+            bundle's own identity artifacts (the C3 failure mode). Then confirm the production LINKS
+            headers for M-CLI, M-CURSOR, and M-GATES and preserve the
+            inherited open-then-fstat identity order, handle lifetime, fail-closed acquisition,
+            writer and supersede release owners, ext4 controls, bounded timeout diagnostic,
+            full-history Ubuntu checkout, two filtered Windows steps, and the README refusal. Drive
+            real spec-new and supersede paths in a disposable complete project. This task changes
+            none of the nine inherited repair paths; a discovered defect goes to authority review.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "a stale observer cannot unlink a replacement holder|timeout diagnostic"</Command>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "AC-PIN-ACQUISITION|AC-PIN-RELEASE-API|AC-WINDOWS-DIRECTORY-PIN"</Command>
+          <Command>bun test --timeout=0 src/grace-supersede.test.ts -t "AC-SUPERSEDE-PIN-RELEASE"</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Adopt the response rule and all three archive byte guards</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            CLAUDE.md gains the six headings and substantive guidance in AC-REPORT-FORMAT, including
+            none/not-run handling. A static test reads the AGENTS.md symlink target and reddens if
+            any heading or guidance is removed; restoration greens it. Do not rewrite the symlink.
+            This CLAUDE.md change must be committed before the fresh candidate run.
+          </Criterion>
+          <Criterion>
+            scripts/audit-regressions.test.ts adopts the uncommitted C2 archive-byte guard for the
+            three C-LINUX-VALIDATION-REPAIR-2-D4F54467 XML files and adds C3 and C4 archive-byte
+            guards for the three C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3 and three
+            C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B XML files, using the digests in
+            AC-PREDECESSOR-ARCHIVE-BYTES. Mutate each of the nine separately in a disposable copy,
+            observe red, restore, and observe green. Give the C2, C3, and C4 guard cases distinct
+            test names; preserve the committed C1 archive, README refusal, and full-history workflow
+            guards. The nine archive scope entries are accounting only; no task or close edits them.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Correct the archive ratchet to an exact C3 triple</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            In src/review/core.test.ts, replace only the archive ratchet's exact-zero non-lifecycle
+            .ngrace/ assertion with an exact three-path expectation for
+            .ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/{spec,plan,design-context}.xml.
+            Keep the runtime auditWriteEvidenceOutsideScope findings, the product/non-docs multiset,
+            and the unable-to-determine status accounting unchanged. Do not change the runtime audit.
+          </Criterion>
+          <Criterion>
+            In a faithful disposable copy, witness original red (the pre-correction exact-zero
+            expectation observes three), exact-triple green, a planted fourth non-lifecycle
+            .ngrace/ path red, and restored green. This correction lands before the fresh candidate
+            Windows run so the pushed candidate head includes it, and keeps test-metrics.json fresh
+            because the test count is unchanged.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/review/core.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Obtain fresh exact-head Windows evidence and authority-owned sidecar</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The authority commits approved governance, including all three predecessor archive
+            arrivals, the approved plan, the ratchet correction, and the CLAUDE.md rule, without the
+            positive sidecar guard or sidecar. The user pushes that exact head. A new Validate
+            workflow succeeds on that head, including windows-compatibility, validate, and
+            dart-adapter. The authority remotely binds numeric run/job IDs, SHA, conclusions,
+            tallies, and the eleven executed/unskipped required Windows directions to that head. The
+            existing filtered invocation also selects the Linux-only AC-PIN-RELEASE-LIFETIME test,
+            whose one Windows skip is permitted and is not one of the eleven required directions. A
+            failed, missing, stale-SHA, empty-selector, or skipped required direction blocks this
+            task. The old run at 6c18033e90f90bd83ab59b37fd1afe55effd3750 is repair history only.
+            Only the authority writes and commits URL-free ci-evidence.json with schemaVersion 1.0.0
+            and the spec's fields. No full Actions link or owner handle enters the repository. Keep
+            this task open until the remote result and sidecar are real; local selection alone is
+            not evidence.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "AC-PIN-ACQUISITION: an ordinary mint|AC-PIN-ACQUISITION: a forced open failure|AC-PIN-RELEASE: releaseAcquiredCandidate|AC-PIN-RELEASE-NO-LEAK|AC-PIN-RELEASE-LIFETIME|AC-PIN-RELEASE-API: successful writeSpecNew closes its record|AC-PIN-RELEASE-API: a publish failure closes the pin exactly once|AC-WINDOWS-DIRECTORY-PIN"</Command>
+          <Command>bun test --timeout=0 src/grace-supersede.test.ts -t "AC-SUPERSEDE-PIN-RELEASE"</Command>
+        </Verification>
+        <Satisfies><AC-WINDOWS-DIRECTORY-PIN /></Satisfies>
+      </T-004>
+      <T-005>
+        <Title>Guard the positive CI record and prepare close evidence</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Add the positive guard in scripts/audit-regressions.test.ts. Resolve exactly this
+            successor in active or archive, rejecting zero or duplicate locations. Validate sidecar
+            schemaVersion, ancestor candidateSha, numeric runId, unique job names and IDs, three
+            successful jobs with integer nonnegative tallies and positive passes, and all eleven
+            required Windows directions with executed at least one and skipped zero. The Linux-only
+            descriptor lifetime direction is not required on Windows. The guard checks local
+            shape/provenance; authority remote inspection is the remote evidence.
+          </Criterion>
+          <Criterion>
+            Compare candidateSha with the current working tree using git diff --no-renames
+            --name-only &lt;candidateSha&gt; plus the untracked inventory. Allow differences only in the
+            successor's exact active/archive directories and scripts/audit-regressions.test.ts.
+            Both rename endpoints count; a forbidden workflow/source path moved into an allowed
+            directory remains forbidden. Never exempt all .ngrace/changes/. A forbidden difference
+            requires a fresh user-pushed candidate run.
+          </Criterion>
+          <Criterion>
+            Scan every file of the successor bundle, including prose, run events, ledger, and
+            sidecar, for full GitHub Actions run/job links in plain or XML-escaped form. Red-drive
+            absent/malformed sidecars, schema and tally mutations, failed Windows conclusion, zero
+            execution, uncommitted workflow mutation, forbidden-to-allowed rename, and run-only/job
+            links planted in disposable prose and ledger artifacts. The guard's own test creates
+            every AC-WINDOWS-EVIDENCE-RECORD throwaway mutation, asserts each red result, and
+            restores each to green.
+            Recheck active and post-archive states in a faithful copy; the exact active sidecar
+            scope path expands to this bundle's archive path at close. Run selected target/final
+            assertions and review on that copy. After the applied-archive commit is pushed, require
+            a fresh full Validate workflow at the final PR head before merge.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+          <Command>bun run typecheck</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-LINUX-VALIDATION-REPAIR-5-EE982B6D>
+</NgraceChangePlan>

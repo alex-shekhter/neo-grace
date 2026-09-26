@@ -106,14 +106,27 @@ anyone asked what the URL was.
 
 ## Briefing The Executor
 
-Implementation work is dispatched to a separate executor agent. **Always assume its context is
-cold.** Every brief must be self-contained: what this repository is, where artifacts live, the role
-split, and the instruction to refresh its installed `ngrace` skills from `skills/ngrace/*` before
-reading any source, because the installed copies have drifted on nearly every bundle.
+Implementation work is dispatched to a separate executor agent. Write every executor brief to a
+Markdown file in the project workspace. Its first line must be `/skill:ngrace-XXX` for the skill
+the executor should invoke, followed by the brief body. Before handoff, read that first line back
+and correct any mismatch; give the user the file link and label the brief WARM or COLD. Default
+to COLD unless the user explicitly says the executor is warm. A COLD brief is self-contained: name
+the repository, artifacts, role split, and instruction to refresh installed `ngrace` skills from
+`skills/ngrace/*` before reading source. A WARM brief is a delta that preserves the executor's KV
+cache; name the changed facts, exact artifact paths, next action, and stop boundary without repeating
+the full history. Installed skills can drift in either mode, so require that refresh in both.
 
-Never write a brief that refers to "your draft" or otherwise assumes the executor remembers earlier
-work. Point at the artifact by path and tell it to read it. A cold-safe brief still works for a warm
-executor; a warm brief fails a cold one, so cold is the only safe default.
+## Response Format
+
+Every response about repository work, including handoffs and brief status updates, uses these six
+fields in order:
+
+- STATUS: what landed and what is blocked.
+- DEVIATIONS: anything differing from the plan or prompt; say `none` if there is no deviation.
+- EVIDENCE: suite pass/fail counts, lint error count and distinct codes, and CI exit code; say `not run` for an unavailable measure.
+- DISCRIMINATION: each probe as mutate -> observed -> restored; say `none` when no probe applies.
+- AMBIGUITIES AND PROBLEMS: every ambiguity, contradiction, or block encountered, including ones resolved or worked around; say `none` if there are none.
+- WRONG: where the prompt, plan, or spec is wrong; say `none` if none is known.
 
 ## Evidence Standard For The Authority
 

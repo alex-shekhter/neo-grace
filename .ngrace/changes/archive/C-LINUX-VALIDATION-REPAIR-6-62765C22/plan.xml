@@ -1,0 +1,302 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-LINUX-VALIDATION-REPAIR-6-62765C22>
+    <IntentSummary>
+      Adopt the committed predecessor repair, land the C6 candidate-lock open-boundary behavior and
+      its durable tests, add the C5 predecessor archive-byte guard and the positive URL-free CI-record
+      guard, and complete C5's URL-free Windows evidence in five sequential tasks. T-001 verifies the
+      adopted repair and the approve decision's recorded baseCommit
+      dd83f09c513eca6e20021a5481b96d6e0454d340 without rewriting any of the nine inherited repair
+      paths; it writes nothing. T-002 classifies the candidate lock's permission-code open failure
+      (EPERM/EACCES/EBUSY) in src/grace-cursor.ts so a permission code whose holder is observable
+      takes the unchanged wait/reclaim path and a permission code whose holder cannot be observed is
+      retried a bounded number of times and then fails closed, with durable tests under the
+      "candidate lock primitive" describe and candidateRoot fixture cleanup in
+      src/grace-cursor.test.ts. T-003 adds the C5 predecessor archive-byte guard for the three
+      C-LINUX-VALIDATION-REPAIR-5-EE982B6D XML files while preserving the C1-C4 guards, the exact-C3
+      archive ratchet, the six-field response rule, the full-history workflow guard, and the README
+      refusal. T-004 is the fresh candidate-run boundary: after the approved governance and the
+      candidate-lock change are committed and the user pushes that exact head, the authority inspects
+      the exact-head remote Windows/Validate/Dart result and writes the URL-free ci-evidence.json
+      sidecar. T-005 lands the positive sidecar/provenance guard and the whole-bundle URL guard and
+      prepares the close evidence. Only T-004 Satisfies the single ordinary criterion
+      AC-WINDOWS-DIRECTORY-PIN; the other nineteen criteria carry CloseEvidence. The pre-pin control
+      baseline b53d13df47cdf8d85f75b33502c6ecd9e97ff262 is not this bundle's review base; the review
+      base is the approve decision's recorded baseCommit dd83f09c513eca6e20021a5481b96d6e0454d340.
+      The single full-CI MustPassCommand is bun run validate:ci under target/final assertions; it
+      reddens on the absent sidecar and the absent guard until T-004 and T-005 land.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>src/grace-generate.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>CLAUDE.md</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>.github/workflows/validate.yml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/plan.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/design-context.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/plan.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/design-context.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/plan.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/design-context.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-5-EE982B6D/spec.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-5-EE982B6D/plan.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-5-EE982B6D/design-context.xml</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustVerify><Module>M-CLI</Module></MustVerify>
+      <MustVerify><Module>M-CURSOR</Module></MustVerify>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustExist><Value>.ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/ci-evidence.json</Value></MustExist>
+      <MustContain><File>src/grace-cursor.ts</File><Text>EACCES</Text></MustContain>
+      <MustContain><File>src/grace-generate.ts</File><Text>releaseAcquiredCandidate</Text></MustContain>
+      <MustContain><File>src/gates/ledger.ts</File><Text>releaseAcquiredCandidate</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>fetch-depth: 0</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>AC-WINDOWS-DIRECTORY-PIN</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>AC-SUPERSEDE-PIN-RELEASE</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>windowsPinInvocation</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>windowsSupersedeInvocation</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>ci-evidence.json</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>candidateSha</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>81e24a146ecd768853a73e72209f7e3cbac980d078f16523f7ac670b7d85efda</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>5793a14cc630f6ae10d3ce9e9a87aa2b2b9d4189632cb7bcabf3944f8dc86f78</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>df77b115bb4829201b527baaea814ee77f53ce39eeea62000db861d21c3695e4</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>735dc0c1ccdbe388249ddd324a02da9dc11284e3db046f2ecc6a7770be941136</Text></MustContain>
+      <MustContain><File>src/review/core.test.ts</File><Text>C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3</Text></MustContain>
+      <MustContain><File>CLAUDE.md</File><Text>AMBIGUITIES AND PROBLEMS</Text></MustContain>
+      <MustContain><File>CLAUDE.md</File><Text>DISCRIMINATION</Text></MustContain>
+      <MustContain><File>README.md</File><Text>never delete a candidate whose identity they cannot prove</Text></MustContain>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-CURSOR />
+        <M-GATES />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CLI />
+        <V-M-CURSOR />
+        <V-M-GATES />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-generate.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/gates/ledger.ts</File>
+      <File>src/grace-generate.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/grace-supersede.test.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>.github/workflows/validate.yml</File>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>README.md</File>
+      <File>CLAUDE.md</File>
+      <File>.ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/ci-evidence.json</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/spec.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/plan.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-2-D4F54467/design-context.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/spec.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/plan.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-3-7EB3B2C3/design-context.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/spec.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/plan.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-4-0C2D4D6B/design-context.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-5-EE982B6D/spec.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-5-EE982B6D/plan.xml</File>
+      <File>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-5-EE982B6D/design-context.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Verify the adopted repair and recorded baseline without rewriting it</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Before this task's epoch opens, the authority has committed the approved C6 spec and plan
+            and the four predecessor archive arrivals, so WriteEvidence never captures the bundle's
+            own identity artifacts (the C3 failure mode). Confirm the production LINKS headers for
+            M-CLI (src/grace-generate.ts), M-CURSOR (src/grace-cursor.ts), and M-GATES
+            (src/gates/ledger.ts), and confirm the approve decision in this bundle's run-ledger.xml
+            records baseCommit dd83f09c513eca6e20021a5481b96d6e0454d340. Re-drive the adopted
+            identity, release-owner, and reclaim timeout-diagnostic controls and confirm the recorded
+            baseline: no edit to any of the nine inherited repair paths, no finding is minted, and no
+            record file is written. A discovered defect is surfaced to authority review, not repaired
+            inside this task.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "a stale observer cannot unlink a replacement holder|timeout diagnostic"</Command>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "AC-PIN-ACQUISITION|AC-PIN-RELEASE-API|AC-WINDOWS-DIRECTORY-PIN"</Command>
+          <Command>bun test --timeout=0 src/grace-supersede.test.ts -t "AC-SUPERSEDE-PIN-RELEASE"</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Classify the candidate-lock permission-code open boundary and clean the candidateRoot fixtures</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            In acquireCandidateLock (src/grace-cursor.ts), the exclusive create
+            writeFileSync(lockPath, ..., { flag: "wx" }) no longer throws on a permission code. EPERM,
+            EACCES, and EBUSY are classified as possible contention without changing the cooperation
+            contract: when the holder is observable (observeCandidateLock returns a record), the
+            contender takes the unchanged wait/reclaim path — known-live wait, known-dead reclaim,
+            unknown-holder TTL, and the token/identity protection in reclaimCandidateLock all
+            preserved — and revalidates and acquires; the shipped unobservable-EEXIST wait is
+            unchanged; a permission code whose holder cannot be observed is retried a bounded number
+            of times and then fails closed with the original error in bounded time, so a persistent
+            unobservable denial cannot become an infinite wait. Any exported test seam this task
+            adds is listed in the file's MODULE_MAP header, so the root lint inside
+            bun run validate:ci stays green and leaves no markup.module-map-mismatch error. Durable
+            tests under the existing
+            "candidate lock primitive" describe inject the permission error immediately before the
+            exclusive create and exercise the catch path: a live-holder contention waits and
+            acquires; a persistent denial fails closed and bounded; an unobservable EEXIST holder is
+            waited on; and a permission code whose holder exists but cannot be observed is bounded.
+            Every contender is a bounded, reaped child process; directions with a releaser check its
+            bounded exit, so a failed or withheld release cannot hang the run. The two
+            unobservable-holder directions use a real unreadable lock record, capability-gated with
+            a stated skip when the platform or an elevated runner cannot make it unreadable; and the
+            live-holder and EEXIST-wait directions assert the contender genuinely held the lock it
+            wrote, so a seam that returns without creating the lock cannot pass. The seam is
+            test-only and leaves production behavior unchanged.
+          </Criterion>
+          <Criterion>
+            The candidateRoot fixture in src/grace-cursor.test.ts removes its temporary directories
+            (rmSync of each created root), so the durable lock tests leave no temporary tree behind.
+            Drive the red/green control: revert only the catch classification to the shipped
+            if (code !== "EEXIST") throw and observe the live-holder contention direction reddens
+            while the other three directions stay green; restore the classification and observe all
+            four directions green.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "candidate lock primitive"</Command>
+          <Command>bun run typecheck</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Add the C5 predecessor archive-byte guard while preserving C1-C4</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            scripts/audit-regressions.test.ts gains a C-LINUX-VALIDATION-REPAIR-5-EE982B6D
+            predecessor archive-byte guard that reads the exact post-supersede bytes of the three
+            archived XML files under
+            .ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-5-EE982B6D/ and requires the SHA-256
+            digests in AC-PREDECESSOR-ARCHIVE-BYTES: spec.xml
+            735dc0c1ccdbe388249ddd324a02da9dc11284e3db046f2ecc6a7770be941136, plan.xml
+            cead3ad5fa15972ee30eb77bc30e0f6bfc707a477d0b5415ae5c9afdbb24255c, and design-context.xml
+            670fa7b1a8954a154d5676f2c2f16faf2cc66d162236850664aecd645fec1e6c. The C5 arrival is
+            uncommitted now, so its three pins are measured against the pre-commit bytes and
+            re-measured at close; the test gives the C5 case its own test name distinct from the C1,
+            C2, C3, and C4 cases, and the C1-C4 guards, the exact-C3 archive ratchet, the six-field
+            response rule, the full-history workflow guard, and the README refusal stay unchanged.
+            The twelve predecessor archive ObservedWriteScope entries are accounting only; this task
+            and the close never edit those bytes.
+          </Criterion>
+          <Criterion>
+            In a faithful disposable copy, mutate each of the three C5 XML files separately, observe
+            the guard red, restore it, and observe the guard green; the production archive bytes are
+            never touched.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Obtain fresh exact-head Windows evidence and the authority-owned URL-free sidecar</Title>
+        <DependsOn>T-003</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The authority commits the approved C6 spec and plan, all four predecessor archive
+            arrivals, the C1-C5 archive-byte guards, the exact-C3 archive ratchet, the six-field
+            response rule, and the candidate-lock change and its tests, without the positive sidecar
+            guard or the sidecar. The user pushes that exact head. A fresh Validate workflow succeeds
+            on that head, including the validate, dart-adapter, and windows-compatibility jobs. The
+            authority remotely binds the numeric run and job identifiers, the candidate SHA, the
+            per-job conclusions and tallies, and the eleven executed and unskipped required Windows
+            directions to that head. The Linux-only AC-PIN-RELEASE-LIFETIME direction is outside the
+            required set and its one Windows skip is permitted. A failed, missing, stale-SHA,
+            empty-selector, or skipped-required-direction run blocks this task; the earlier
+            6c18033e90f90bd83ab59b37fd1afe55effd3750 run is repair history only. Only
+            the authority writes and commits the URL-free ci-evidence.json with schemaVersion 1.0.0
+            and the fields the spec names; no full Actions link and no account handle enters the
+            repository. Keep this task open until the remote result and the sidecar are real; local
+            selection alone is not evidence, and executor prose in design-context.xml is not
+            fulfillment.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "AC-PIN-ACQUISITION: an ordinary mint|AC-PIN-ACQUISITION: a forced open failure|AC-PIN-RELEASE: releaseAcquiredCandidate|AC-PIN-RELEASE-NO-LEAK|AC-PIN-RELEASE-LIFETIME|AC-PIN-RELEASE-API: successful writeSpecNew closes its record|AC-PIN-RELEASE-API: a publish failure closes the pin exactly once|AC-WINDOWS-DIRECTORY-PIN"</Command>
+          <Command>bun test --timeout=0 src/grace-supersede.test.ts -t "AC-SUPERSEDE-PIN-RELEASE"</Command>
+        </Verification>
+        <Satisfies><AC-WINDOWS-DIRECTORY-PIN /></Satisfies>
+      </T-004>
+      <T-005>
+        <Title>Guard the positive CI record and the URL-free bundle, then prepare the close</Title>
+        <DependsOn>T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Add the positive guard in scripts/audit-regressions.test.ts. Resolve exactly this
+            successor in active/ or archive/ and redden when it is absent from both or present in
+            both. Read its ci-evidence.json and fail (zero-record is red, never green) when the
+            sidecar is absent; when schemaVersion is not exactly 1.0.0; when candidateSha is missing,
+            not a 40-character lowercase hex commit, not an ancestor of HEAD, or when any committed,
+            staged, unstaged, deleted, renamed, or untracked path changed since candidateSha falls
+            outside this successor's exact active and archive bundle directories and
+            scripts/audit-regressions.test.ts; when runId is not a positive integer; when the jobs
+            array lacks validate, dart-adapter, or windows-compatibility, repeats a job name or id,
+            gives a conclusion other than success, a non-integer or negative tally, fail other than
+            0, or pass of 0; and when the directions array lacks a required Windows owner direction
+            or gives a required direction a non-integer count, executed of 0, or skipped other than
+            0. The Linux-only AC-PIN-RELEASE-LIFETIME direction is outside the required set.
+          </Criterion>
+          <Criterion>
+            Compare candidateSha with the current working tree using
+            git diff --no-renames --name-only &lt;candidateSha&gt; for tracked staged, unstaged,
+            committed, deleted, and moved paths, plus git ls-files --others --exclude-standard for
+            untracked paths. Both rename endpoints count; a forbidden workflow or source path moved
+            into an allowed directory remains forbidden. Never exempt all of .ngrace/changes/. A
+            forbidden difference forces a fresh user-pushed candidate run; this local path rule is a
+            provenance check, not a claim that allowed bundle changes are invisible to Windows.
+          </Criterion>
+          <Criterion>
+            Scan every file of this successor bundle — spec.xml, plan.xml, design-context.xml,
+            run.xml, run-ledger.xml, run/, and ci-evidence.json — in both its active and archived
+            location, and fail when any contains a full GitHub Actions run or job link (an http or
+            https scheme whose host is the GitHub web host and whose path reaches the Actions runs
+            endpoint) in plain or XML-escaped form. The guard's own test plants, in throwaway copies,
+            an absent sidecar; a sidecar with schemaVersion removed or wrong; a sidecar whose
+            windows-compatibility conclusion is failure; a sidecar with one required direction's
+            executed set to 0; a sidecar with a malformed tally; an uncommitted mutation of
+            .github/workflows/validate.yml with src/ unchanged; a rename from a forbidden workflow or
+            source path into an allowed bundle directory; a run-only link and a /job/ link in a
+            temporary design-context.xml; and a full link in a temporary run-ledger.xml, asserting
+            each reddens while clean evidence greens the guard. Recheck active and post-archive
+            states in a faithful copy: the exact active sidecar scope path expands to this bundle's
+            archive path at close. Drive selected baseline/target/final assertions and review on that
+            copy and run the full-CI MustPassCommand once there. The fresh full Validate workflow at
+            the final PR head is a post-archive release check, not a T-005 acceptance action: it can
+            only run after the applied-archive commit exists and is pushed, and it must pass before
+            PR merge, so it cannot be satisfied before T-005 closes.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+          <Command>bun run typecheck</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+  </C-LINUX-VALIDATION-REPAIR-6-62765C22>
+</NgraceChangePlan>

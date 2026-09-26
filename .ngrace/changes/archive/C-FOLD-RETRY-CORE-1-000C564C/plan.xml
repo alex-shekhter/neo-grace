@@ -1,0 +1,123 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-FOLD-RETRY-CORE-1-000C564C>
+    <IntentSummary>
+      **This T1 plan converts the approved `C-FOLD-RETRY-CORE-1-000C564C` spec (bundle 3 of the five-way split of the superseded `C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1`) into two sequential tasks.** The durable module is exactly `M-CURSOR`; its verification anchor is `V-M-CURSOR`. The sole forced production file is `src/grace-cursor.ts` (`LINKS: M-CURSOR`); the forced files are the behavior test `src/grace-cursor.test.ts` and the close-time guard/payer files `src/artifact/scope.test.ts` and `scripts/validate-record-retirement.test.ts`. `src/artifact/run-membership.ts`, `src/artifact/xml.ts`, and `src/gates/ledger.ts` are not edited. The execution mode is **sequential** and the machine DAG encodes it: **T-001 → T-002**.
+
+      **T-001 — interrupted-fold reconciliation, resume, and refusals plus the final F313 behavior tests:** `src/grace-cursor.ts` gains one pre-write reconciliation, `reconcileLooseWithLedger`, that compares the loose set against the durable ledger **before** loose-only closure/hole checks or `maybeAutoOpenCoveringAllocation` can run, using independent payload comparison (`expectedLedgerEventAttributes` plus complete children). A payload-matching match in the last epoch is residue and the fold resumes that epoch (deleting only the residue it re-verified, writing no new epoch, synthesizing no `opened`); a match in an older epoch or a payload mismatch refuses before any write; a match in no epoch is fresh and folds normally. The final repository tests in `src/grace-cursor.test.ts` are added first and re-driven red on the committed base for behavioral reasons, then green after the production change: both shipped hooks (`injectFailureBeforeVerify`, `injectFailureAfterWrite`); repeated successive-fresh-epoch recovery driven independently for **each** hook; the third empty fold (`eventCount 0`); the partial verified deletion with the complete `run-ledger.xml` bytes captured before the loose delete and identical after the retry plus the independent semantic payload comparison; prior-epoch and fresh-only controls; the genuine conflict and the older-epoch id reuse refused with byte-complete recursive snapshots; and the post-ledger retry-and-second-retry ledger stability. This task maps all three ordinary criteria exactly once: `AC-FOLD-RETRY-IDEMPOTENT`, `AC-FOLD-CONFLICT-REFUSAL`, `AC-POST-LEDGER-BOUNDARY-PRESERVED`.
+
+      **T-002 — exact-id close guard and F313 payer ratchet:** `src/artifact/scope.test.ts` is re-authored to `NGRACE_SCOPE_GUARD_CHANGE=C-FOLD-RETRY-CORE-1-000C564C` against base `0ad7cb4e49b1bb5d930b27732f2978fa66221371` with exact-lifecycle identity recognition and no predecessor transition, and `scripts/validate-record-retirement.test.ts` gains the single `F313` `bundleMinted` pin, its absent/stale/current/staged-only ratchet, and an applied-archive route probe. T-002 depends on T-001 and maps no criterion.
+
+      **Payment and record writes.** The plan grammar has no `&lt;Pays&gt;` element: the payment semantics live in this `IntentSummary` and in the spec, are carried structurally by the successor-named `registry.xml` charter row's `&lt;Pays&gt;` child (written by the close's `--flush`), are pinned by the one `F313` `bundleMinted` entry in `scripts/validate-record-retirement.test.ts` (written by T-002), and are stamped as the derived `&lt;PaidBy&gt;` on the retired Finding carrier in `findings-retired.xml` (written by the close's `--retire` after this bundle's archive arrival). The payment is exactly `F313`, and no other finding. The staged handoff is exactly the **one** `Owner:` line in `.ngrace/scratch/staged-findings.md` at `:184`; while this bundle is active, `--flush` writes the four live record XML files; an eligible `--retire` writes all seven XML files; neither writer writes `docs/plans/active/RM-GOVERNED-PATH/decisions.md`, so this plan omits it. There is **no predecessor supersede transition** for this fresh slug.
+
+      **Baseline, gates, and close.** `0ad7cb4e49b1bb5d930b27732f2978fa66221371` is the spec's whole-bundle byte-invariance and scope-guard base. Every task runs its narrow instrument; the full CI-equivalent `bun run validate:ci` is the plan's single `TargetAssertions` `MustPassCommand` and the outer final gate, never a per-task command. The activated guard is driven separately by `NGRACE_SCOPE_GUARD_CHANGE=C-FOLD-RETRY-CORE-1-000C564C bun test --timeout=0 src/artifact/scope.test.ts` and is bound through the spec's `AC-NO-UNFORCED-WRITES` CloseEvidence, not a third task. The four spec `CloseEvidence` criteria (`AC-NO-UNFORCED-WRITES`, `AC-CLOSE-PAYER`, `AC-CLOSE-LINT`, `AC-CLOSE-TESTS`) are evaluated by the close in the applied-archive state and are deliberately absent from every task's `Satisfies`. The plan's `ObservedWriteScope` must not add this bundle's own `spec.xml`, `plan.xml`, `design-context.xml`, `run/`, `run.xml`, or `run-ledger.xml`, because those are governed by identity/lifecycle rules.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/scope.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/scratch/staged-findings.md</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-CURSOR</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>reconcileLooseWithLedger</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.test.ts</File>
+        <Text>C-FOLD-RETRY-CORE-1-000C564C</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F313: "C-FOLD-RETRY-CORE-1-000C564C"</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-cursor.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/scope.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>.ngrace/scratch/staged-findings.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Interrupted-fold reconciliation, resume, and refusals with the final F313 behavior tests</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/grace-cursor.ts` adds one pre-write reconciliation, `reconcileLooseWithLedger`, that compares the loose set against the durable ledger **before** any loose-only closure/hole check or `maybeAutoOpenCoveringAllocation` write, using independent payload comparison (`expectedLedgerEventAttributes` plus complete children), never the writer's own transform. For each of `injectFailureBeforeVerify` and `injectFailureAfterWrite`: after the throw the ledger holds exactly the one written epoch; a real `bun run ngrace cursor fold` retry exits 0, reuses that epoch, adds no new epoch and no synthesized `opened`, leaves each event exactly once, and empties `run/`. Repeated interruption is reachable on successive fresh epochs, driven independently for **each** hook: interrupt a logical epoch, recover it once, allocate a fresh epoch (ids above the recorded max), interrupt it at the same hook, recover it once; the ledger then holds exactly one copy of each logical epoch `[1,2]` and the first epoch's bytes are unchanged. A third, empty fold returns the same last epoch with `eventCount 0`. Partial verified deletion is resumed, not treated as conflict: inject the post-write failure (`injectFailureAfterWrite`); capture the complete `run-ledger.xml` bytes; then delete the first event of the verified set in the shipped sequential delete-loop order (`src/grace-cursor.ts:1522-1530`, the `unlinkSync` at `:1529`); then run the real CLI retry; it exits 0, reuses the interrupted epoch, leaves no loose files, one recorded `opened` only, and the captured `run-ledger.xml` bytes exactly unchanged, with the recorded payload independently equal under `expectedLedgerEventAttributes` plus children. Byte identity and semantic payload equivalence are distinct claims and both are asserted. Initial-state controls: a prior completed epoch stays byte-identical across a later recovery; a fresh-only allocated set (ids matching no recorded event) folds normally into the next epoch. The final repository tests are added first and re-driven red on the committed base for behavioral reasons, not import/type/load failure: `bun test --timeout=0 src/grace-cursor.test.ts` is 218 pass / 10 fail (the nine F313 behavioral guards plus the write-surface inventory pin) on base `0ad7cb4e49b1bb5d930b27732f2978fa66221371`, and 228 pass / 0 fail after this task. The production change adds exactly one `unlinkSync(contained.absolutePath)` contained-path delete site, so the write-surface inventory pin moves `cursorContained` 2→3 and `callSites` 9→10.
+          </Criterion>
+          <Criterion>
+            A genuine payload conflict — a loose event whose id matches a recorded event but whose canonical payload differs under `expectedLedgerEventAttributes` plus children — makes the fold exit non-zero with a message naming the id and the mismatch, writes no new epoch, and leaves the recorded bytes byte-identical. A loose event whose id matches an event in an **older** recorded epoch is refused, naming the id and the older epoch; untouched older epochs are never rewritten and no synthesized `opened` is fabricated for an already-recorded epoch. A payload-matching subset of the **last** recorded epoch (the partial-deletion state) is not a conflict and resumes per the first criterion. Both refusals are backed by a byte-complete recursive project-tree snapshot (directory entries, symlinks, relative paths, types, per-file sha256) unchanged (`treeDiff` `[]`), and the base directions are discriminating: the base does not name the id on a conflicting loose `opened` (it refuses with `unterminated range for w0`) and folds an older-epoch id reuse at exit 0 into `Epoch-3` with a non-empty `treeDiff`.
+          </Criterion>
+          <Criterion>
+            The post-ledger write-verify-delete boundary (`C-RUN-LEDGER` `AC-FOLD-ORDERING`, **never** labelled F158) is preserved: a fold interrupted after its ledger write may leave the written ledger and engine-authored loose events, but the refuse path removes, renumbers, and rewrites no `run/` event and no recorded epoch it did not itself write, and a subsequent successful fold recovers that evidence idempotently. After `injectFailureAfterWrite`, the written ledger holds `Epoch-1`; the real-CLI retry and a second retry each exit 0 and leave the written `run-ledger.xml` byte-identical with no accumulated evidence, whereas the base rewrites the ledger by appending `Epoch-2`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-FOLD-RETRY-IDEMPOTENT />
+          <AC-FOLD-CONFLICT-REFUSAL />
+          <AC-POST-LEDGER-BOUNDARY-PRESERVED />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Exact-id close guard and F313 payer ratchet</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/artifact/scope.test.ts` is re-authored to this bundle's exact id and base: activated only by `NGRACE_SCOPE_GUARD_CHANGE=C-FOLD-RETRY-CORE-1-000C564C`, measured against base `0ad7cb4e49b1bb5d930b27732f2978fa66221371`. Its activated allowed set is exactly the forced source `src/grace-cursor.ts`, the three forced tests (`src/grace-cursor.test.ts`, `src/artifact/scope.test.ts`, `scripts/validate-record-retirement.test.ts`), this bundle's active directory and archive arrival, and the seven named record XML files (`decisions.xml`, `findings.xml`, `findings-retired.xml`, `rulings.xml`, `rulings-retired.xml`, `registry.xml`, `registry-retired.xml`), with zero globs, no predecessor transition, and `docs/plans/active/RM-GOVERNED-PATH/decisions.md` excluded unconditionally. The guard covers tracked diffs and untracked files, recognizes only this bundle's exact lifecycle files (`spec.xml`, `plan.xml`, `run-ledger.xml`, `run.xml`) and XML under its own `run/` in active and applied-archive locations (and that recognition is not permission for an arbitrary extra file inside the bundle directory), is dormant without its exact activation switch, and refuses when git evidence is unavailable. Fixtures prove: a clean applied-archive pass; a forbidden ordinary path reddens; a planted non-record file inside the governed record directory reddens; a planted non-lifecycle file inside this bundle's own directory reddens; unavailable git evidence refuses rather than reporting clean; and without activation a later unrelated write of the same kind does not fail.
+          </Criterion>
+          <Criterion>
+            `scripts/validate-record-retirement.test.ts` carries exactly one `bundleMinted` entry, `F313`, naming `C-FOLD-RETRY-CORE-1-000C564C`, and a payer ratchet proves the token derives only from this bundle's archived charter row, that an absent or stale pin reds the derivation walk, that only the current pin greens it, and that a staged-buffer-only owner-line edit cannot green it because the test ratchets the durable XML result the flush produces, never the ignored buffer. A further assertion, keyed on this bundle's archive arrival so it is green in the execution tree and discriminating in the applied-archive state, reds the CloseEvidence command until `findings-retired.xml` holds `F313` with `PaidBy` naming this bundle and `registry-retired.xml` holds the retired row whose `&lt;Pays&gt;` is exactly `F313`. No other finding token or pin is written.
+          </Criterion>
+          <Criterion>
+            The plan's `ObservedWriteScope` enumerates the exact non-lifecycle population (one source, three tests, the staged buffer, and the seven record XML files) and adds none of this successor's own `spec.xml`, `plan.xml`, `design-context.xml`, `run/`, `run.xml`, or `run-ledger.xml`, nor `decisions.md`, `src/artifact/run-membership.ts`, `src/artifact/xml.ts`, `src/gates/ledger.ts`, README/examples, a later-bundle file, a new file, a predecessor transition, a directory catch-all, or an archive glob.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts src/artifact/scope.test.ts</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-FOLD-RETRY-CORE-1-000C564C>
+</NgraceChangePlan>

@@ -1,0 +1,104 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-FINAL-HEAD-ACTIVE-DIR-1-A69D80C1>
+    <Summary>
+      Restore a tracked `.ngrace/changes/active/.gitkeep` so a fresh checkout still has `active/` after every bundle has been archived, and bound the archived C6 Windows-evidence path check to the committed application commit `0fbd59961d15b7587cc2b153e225fcdcf9066db2` so later legitimate changes do not relabel that historical candidate run.
+    </Summary>
+    <Goals>
+      <Goal>
+        Commit a tracked `.ngrace/changes/active/.gitkeep` that remains after this bundle moves to the archive, so a fresh checkout whose active bundle directories are gone still has the `active/` directory.
+      </Goal>
+      <Goal>
+        Repair the C6 guard in `scripts/audit-regressions.test.ts` so that, once `C-LINUX-VALIDATION-REPAIR-6-62765C22` is archived, candidate provenance is the commit range from `candidateSha` through `0fbd59961d15b7587cc2b153e225fcdcf9066db2`, while C6 archive bytes and the URL-free artifact scan stay protected.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T0 (hotfix). The blast radius is the two product paths named below. Validate run `36205105894` failed on `0fbd59961d15b7587cc2b153e225fcdcf9066db2`. This is a break/fix of a missing tracked directory marker and of one guard's post-archive comparison window. It does not add a subsystem, change the layout grammar, or bump a contract. T0 still runs baseline, target, and final assertion gates and still requires spec approval.
+      </Constraint>
+      <Constraint>
+        This spec overturns the post-archive current-tree part of the ruling in archived `C-LINUX-VALIDATION-REPAIR-6-62765C22` `spec.xml` (the working-tree comparison at lines 262-273 and the same comparison in `AC-WINDOWS-EVIDENCE-RECORD` at lines 599-632). That ruling's argument is that a source, workflow, dependency, runtime, or other path change after `candidateSha` must not keep wearing the candidate Windows run. The argument holds through the committed application of that governance. The application commit is `0fbd59961d15b7587cc2b153e225fcdcf9066db2`. After that commit, the candidate run is a historical witness of the range from `candidateSha` `b7c94d786ebc89cc279c6dc292c8dd32110fcc9d` through that boundary. A later change is a different head. Its Windows proof is a new final-head Validate workflow, not a rewrite of `ci-evidence.json`. The archived C6 bundle is not edited.
+      </Constraint>
+      <Constraint>
+        Archived mode, when `C-LINUX-VALIDATION-REPAIR-6-62765C22` exists only under `archive/`. Keep bundle resolution, the absent-sidecar red, JSON parsing, `schemaVersion` exactly `1.0.0`, `candidateSha` shape, the ancestor-of-HEAD check, `runId`, the job inventory, the direction inventory, and the full Actions-link scan. Replace the working-tree comparison with `git diff --no-renames --name-only` from `candidateSha` to `0fbd59961d15b7587cc2b153e225fcdcf9066db2`. Every path in that diff must sit under `.ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/`, or under `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/`, or be exactly `scripts/audit-regressions.test.ts`. The boundary commit must be an ancestor of HEAD, including equality, and `candidateSha` must be an ancestor of the boundary; a reversed or unrelated range fails closed. Separately, `git diff --no-renames --name-only 0fbd59961d15b7587cc2b153e225fcdcf9066db2 -- .ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22` must be empty, and `git ls-files --others --exclude-standard` under that directory must be empty. A non-zero exit or a spawn failure of either inventory fails closed and is not an empty path set. Paths outside that archive directory, including `.ngrace/changes/active/.gitkeep` and this bundle, are outside this historical witness. The in-repository call uses that boundary hash and takes no override. A test may pass a boundary commit that exists in a throwaway repository through an explicit function argument, with the fixed hash as the default; no environment switch selects the boundary. An archived-mode call with no override, on a repository that does not contain `0fbd59961d15b7587cc2b153e225fcdcf9066db2`, fails closed.
+      </Constraint>
+      <Constraint>
+        Active mode, when `C-LINUX-VALIDATION-REPAIR-6-62765C22` exists only under `active/`, keeps today's working-tree inventory: `git diff --no-renames --name-only` against `candidateSha`, plus `git ls-files --others --exclude-standard`, the same allowed paths, and the same fail-closed inventory. This mode does not require the boundary commit. An uncommitted forbidden workflow or source change still reds. A rename from a forbidden path into the bundle still reds at the forbidden endpoint. Both-locations and neither-location stay red. `candidateSha`, `runId`, and the job records in the archived sidecar are left as they are.
+      </Constraint>
+      <Constraint>
+        The forced product write paths are exactly `.ngrace/changes/active/.gitkeep` and `scripts/audit-regressions.test.ts`. No module anchor is in scope. Neither forced path is module-ownable under `isModuleOwnableWritePath` (`src/lint/core.ts`): the marker is not under `src/`, and the guard file is not under `src/` and is a test file. Neither file carries a LINKS header. `M-GRAMMAR` (`src/artifact/grammar.ts`), `M-RELEASE-AUTOMATION` (release scripts under `scripts/` that do carry LINKS; the guard file is not one of them), and `M-GATES` (`src/gates/ledger.ts`) are not forced. The same module sentence is the whole enumeration in AffectedAreas and in VerificationIntent. Ceremony files of this bundle, and `decisions.md`, are not product write paths.
+      </Constraint>
+      <Constraint>
+        The marker is a tracked file at `.ngrace/changes/active/.gitkeep`. An empty file satisfies it. It is in the index and in HEAD before the fresh-checkout close command runs. A disposable probe may symlink a dependency directory so the CLI can start; that symlink is not a repository path. A git probe of the current guard excludes such a symlink with `.git/info/exclude`.
+      </Constraint>
+      <Constraint>
+        README.md and examples/ stay unchanged. Owner: unchanged; no user-visible surface.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        README.md and examples/ stay unchanged. Owner: unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        The layout rule in `src/artifact/grammar.ts` stays the rule that both change directories exist. Owner: unchanged; `M-GRAMMAR`.
+      </NonGoal>
+      <NonGoal>
+        Archived `C-LINUX-VALIDATION-REPAIR-6-62765C22`, including `ci-evidence.json`, stays at the bytes of `0fbd59961d15b7587cc2b153e225fcdcf9066db2`. Owner: unchanged; this bundle does not edit archives.
+      </NonGoal>
+      <NonGoal>
+        Archive directory tracking stays with the tracked bundle tree under `.ngrace/changes/archive/`. Owner: unchanged.
+      </NonGoal>
+      <NonGoal>
+        A later final-head Validate workflow, including Windows, stays the release gate for a head after the application boundary. Owner: that later release gate. This bundle records no such run and does not claim one exists.
+      </NonGoal>
+      <NonGoal>
+        `C-LINUX-VALIDATION-REPAIR-6-62765C22` stays archived. Owner: the supersede gate in `src/gates/ledger.ts`, which moves only a bundle that is still under `active/`.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-TRACKED-ACTIVE-DIR>
+        A test in `scripts/audit-regressions.test.ts` builds a disposable checkout with `git archive HEAD` of this repository, deletes every active directory whose name starts with `C-`, and leaves `.ngrace/changes/active/.gitkeep`. In that tree `bun run ngrace lint --path` of the checkout with `--fail-on warnings` exits 0, with error count 0 and warning count 0, and the report does not contain `project.missing-change-directory`. The same tree's `module find true`, `module find false`, and `module find --json=true` exit 0. Those are the three commands asserted at `src/grace-query.test.ts:860`, `src/grace-query.test.ts:867`, and `src/grace-query.test.ts:873`. Removing the marker and the `active/` directory in that disposable tree makes lint exit 1 and report `project.missing-change-directory`, and makes `module find true` exit non-zero. `git ls-files` lists `.ngrace/changes/active/.gitkeep`, and `git archive HEAD` contains it. The disposable copy deletes this bundle's own active directory, so the criterion stays true after this bundle's archive arrival. The command runs with `--timeout=0`.
+        <CloseEvidence><Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command></CloseEvidence>
+      </AC-TRACKED-ACTIVE-DIR>
+      <AC-ACTIVE-PRECLOSE-GUARD>
+        While `C-LINUX-VALIDATION-REPAIR-6-62765C22` is only under `active/`, an uncommitted mutation of `.github/workflows/validate.yml` with no source edit still produces a problem that names that workflow path, and a rename of that workflow into the C6 active bundle still produces a problem that names the forbidden endpoint. Restoring the fixture greens the guard. This mode does not look up `0fbd59961d15b7587cc2b153e225fcdcf9066db2`.
+        <CloseEvidence><Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command></CloseEvidence>
+      </AC-ACTIVE-PRECLOSE-GUARD>
+      <AC-APPLIED-HISTORICAL-BOUNDARY>
+        While `C-LINUX-VALIDATION-REPAIR-6-62765C22` is only under `archive/`, a later tracked path outside the C6 archive directory does not produce a path problem. A tracked or untracked change under `.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22` relative to `0fbd59961d15b7587cc2b153e225fcdcf9066db2` does produce a path problem. A historical diff from `candidateSha` to the boundary that contains a path outside the allowed set produces a path problem even when the working tree after the boundary is clean. A candidate commit newer than or unrelated to a throwaway boundary is red. The in-repository call, with boundary `0fbd59961d15b7587cc2b153e225fcdcf9066db2` and no override, is green on this repository when the C6 archive bytes match that commit, including when `.ngrace/changes/active/.gitkeep` and this bundle exist. An archived-mode call with no override on a repository that lacks that object fails closed. Throwaway histories may pass their own boundary commit; the in-repository call does not.
+        <CloseEvidence><Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command></CloseEvidence>
+      </AC-APPLIED-HISTORICAL-BOUNDARY>
+      <AC-SHAPE-AND-INVENTORY-REDS>
+        The guard fails closed when the sidecar is absent, when the sidecar is not valid JSON, when `schemaVersion` is not exactly `1.0.0`, when a required job conclusion is not `success`, when a required Windows direction is absent or has `executed` 0, when a tally is not a nonnegative integer, when the active-mode untracked inventory fails, when the archived-mode historical diff or the archive-scoped untracked inventory fails, and when any file of the resolved bundle contains a full GitHub Actions run or job link in plain or XML-escaped form. A failed inventory is not an empty path set. These reds stay on the existing active-fixture probes, and archived mode adds the historical-diff and archive-inventory failures.
+        <CloseEvidence><Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command></CloseEvidence>
+      </AC-SHAPE-AND-INVENTORY-REDS>
+      <AC-C6-ARCHIVE-BYTES>
+        `git diff --exit-code 0fbd59961d15b7587cc2b153e225fcdcf9066db2 -- .ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22` exits 0 in the applied-archive state. The pathspec is that C6 directory, so this bundle's own archive arrival is outside the comparison.
+        <CloseEvidence><Command>git diff --exit-code 0fbd59961d15b7587cc2b153e225fcdcf9066db2 -- .ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22</Command></CloseEvidence>
+      </AC-C6-ARCHIVE-BYTES>
+      <AC-CLOSE-LINT>
+        Post-archive lint of the repository root exits 0 with zero errors and zero warnings, evaluated after this bundle's archive arrival.
+        <CloseEvidence><Command>bun run ngrace lint --path . --fail-on warnings</Command></CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      No module anchor is in scope. The forced product write paths are `.ngrace/changes/active/.gitkeep` and `scripts/audit-regressions.test.ts`. Neither is module-ownable under `isModuleOwnableWritePath` (`src/lint/core.ts`): the marker is not under `src/`, and the guard file is not under `src/` and is a test file. Neither file carries a LINKS header. `M-GRAMMAR` (`src/artifact/grammar.ts`), `M-RELEASE-AUTOMATION` (release scripts under `scripts/` that do carry LINKS; the guard file is not one of them), and `M-GATES` (`src/gates/ledger.ts`) are not forced.
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 scripts/audit-regressions.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        No module anchor is in scope. The forced product write paths are `.ngrace/changes/active/.gitkeep` and `scripts/audit-regressions.test.ts`. Neither is module-ownable under `isModuleOwnableWritePath` (`src/lint/core.ts`): the marker is not under `src/`, and the guard file is not under `src/` and is a test file. Neither file carries a LINKS header. `M-GRAMMAR` (`src/artifact/grammar.ts`), `M-RELEASE-AUTOMATION` (release scripts under `scripts/` that do carry LINKS; the guard file is not one of them), and `M-GATES` (`src/gates/ledger.ts`) are not forced. Drive the fresh-checkout probe in both directions, the active-mode forbidden workflow and rename probes in both directions, and the archived-mode later-change, archive-byte, historical-path, missing-boundary, sidecar, job, direction, inventory, and Actions-link probes in both directions. The close-bound commands above run after this bundle's archive arrival. They are close-bound, so a later plan does not also Satisfies them. `bun run ngrace lint --path . --assertions current` is the pre-implementation baseline check and is not target or final evidence. This bundle does not claim a remote Windows result for any head after `0fbd59961d15b7587cc2b153e225fcdcf9066db2`.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      At `0fbd59961d15b7587cc2b153e225fcdcf9066db2`, `git ls-tree HEAD:.ngrace/changes` lists `archive` and does not list `active/`. `validateNgraceProjectLayout` (`src/artifact/grammar.ts:438-450`) requires both directories and emits `project.missing-change-directory` when one is gone. Commit `1ff82cde3ee445e7b20d21f8b0210743b43d9c89` deleted `.ngrace/changes/active/.gitkeep` while an active bundle still kept the directory in git. C6's apply commit removed that last active bundle. A detached checkout of `0fbd59961d15b7587cc2b153e225fcdcf9066db2` has no `active/` directory. The same class of empty-directory loss is the precedent at `docs/plans/active/RM-GOVERNED-PATH/brownfield-findings.md:792`. The C6 guard (`scripts/audit-regressions.test.ts:678-731`) still diffs `candidateSha` against the current working tree and allows only C6's own active and archive paths plus `scripts/audit-regressions.test.ts`. Adding the marker, or any later tracked file, is outside that set, so the live guard at lines 796-800 goes red. Supersede cannot repair C6 in place: `src/gates/ledger.ts:1625-1630` refuses a bundle that is already under `archive/` and not under `active/`.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        The authority's final-head report stands as the remote datum: Validate run `36205105894` on `0fbd59961d15b7587cc2b153e225fcdcf9066db2` failed, Windows `validate:cli` had three module-query failures, Ubuntu `test:metrics` had ten failures including `project.missing-change-directory`, and Dart passed. This draft re-drove the local layout and the three `src/grace-query.test.ts` commands. It does not re-enumerate those ten names and it does not pin a test count.
+      </Assumption>
+      <Assumption>
+        `context --skills` is not treated as one of those failing filters. On the disposable checkout with `active/` removed it exited 0.
+      </Assumption>
+    </Assumptions>
+  </C-FINAL-HEAD-ACTIVE-DIR-1-A69D80C1>
+</NgraceChangeSpec>

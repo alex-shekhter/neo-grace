@@ -1,0 +1,142 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-LOOSE-MALFORMED-FOLD-1-4C18E876>
+    <IntentSummary>
+      **This T1 plan converts the approved `C-LOOSE-MALFORMED-FOLD-1-4C18E876` spec (bundle 2 of the five-way split of the superseded `C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1`) into two sequential tasks.** The durable modules are exactly `M-ARTIFACT-TYPES` and `M-CURSOR`; their verification anchors are `V-M-ARTIFACT-TYPES` and `V-M-CURSOR`. The bundle's forced production surface is the two files `src/artifact/run-membership.ts` (`LINKS: M-ARTIFACT-TYPES`) and `src/grace-cursor.ts` (`LINKS: M-CURSOR`); `src/artifact/xml.ts` and `src/gates/ledger.ts` are not edited.
+
+      **T-001 — malformed loose-event contract and both write boundaries:** `src/artifact/run-membership.ts` keeps the filename-derived read-only inventory entry for an existing-but-unparseable loose file (filename-derived attributes, empty children, no `root` field) and additionally exposes `LooseEvent.parseIssue` (`{ code: "xml.parse", message }`). `src/grace-cursor.ts` uses one shared local guard, `assertNoUnparseableLooseEvents`, before any auto-open, `discarded`, or ledger write at **both** production write entry paths — ordinary `foldEpochImpl` and the supersede `discardAndFoldEpochImpl`. The final repository tests are added first and re-driven red on the committed base, then green after the production change: direct reader inventory plus `parseIssue`; `cursor show` and root lint tolerance; ordinary fold refusing a malformed closer and a malformed progress (valid `opened` + malformed `progress` + valid later `terminal`); the valid-closer, absent-file, omitted-attribute, and `EISDIR` controls; and the real `ngrace supersede` row (valid `opened` + malformed `progress`, no closer) refusing before `discarded` with both bundles and the recursive project tree unchanged. **T-002 — payer and identity-bound close guard:** `src/artifact/scope.test.ts` is re-authored to this bundle's exact id and base `8bbb35062a65970419d0053897afea4ee0151beb` with exact-lifecycle identity recognition and no predecessor transition, and `scripts/validate-record-retirement.test.ts` gains the single `F315` `bundleMinted` pin, its absent/stale/current/staged-only ratchet, and an applied-archive route probe.
+
+      **Payment and record writes.** The plan grammar has no `&lt;Pays&gt;` element: the payment semantics live in this `IntentSummary` and in the spec, are carried structurally by the successor-named `registry.xml` charter row's `&lt;Pays&gt;` child (written by the close's `--flush`), are pinned by the one `F315` `bundleMinted` entry in `scripts/validate-record-retirement.test.ts` (written by T-002), and are stamped as the derived `&lt;PaidBy&gt;` on the retired Finding carrier in `findings-retired.xml` (written by the close's `--retire` after this bundle's archive arrival). The payment is exactly `F315`, and no other finding. The staged handoff is exactly the **one** `Owner:` line in `.ngrace/scratch/staged-findings.md` at `:217`; while this bundle is active, `--flush` writes the four live record XML files; an eligible `--retire` writes all seven XML files; neither writer writes `docs/plans/active/RM-GOVERNED-PATH/decisions.md`, so this plan omits it. There is **no predecessor supersede transition** for this fresh slug.
+
+      **Baseline, gates, and close.** `8bbb35062a65970419d0053897afea4ee0151beb` is the spec's whole-bundle byte-invariance and scope-guard base. Every task runs its narrow instrument; the full CI-equivalent `bun run validate:ci` is the plan's single `TargetAssertions` `MustPassCommand` and the outer final gate, never a per-task command. The four spec `CloseEvidence` criteria (`AC-NO-UNFORCED-WRITES`, `AC-CLOSE-PAYER`, `AC-CLOSE-LINT`, `AC-CLOSE-TESTS`) are evaluated by the close in the applied-archive state and are deliberately absent from every task's `Satisfies`. The plan's `ObservedWriteScope` must not add this bundle's own `spec.xml`, `plan.xml`, `design-context.xml`, `run/`, `run.xml`, or `run-ledger.xml`, because those are governed by identity/lifecycle rules.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-ARTIFACT-TYPES</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-ARTIFACT-TYPES</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-CURSOR</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/run-membership.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/run-membership.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/scope.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/scratch/staged-findings.md</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-ARTIFACT-TYPES</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-CURSOR</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/artifact/run-membership.ts</File>
+        <Text>parseIssue</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-cursor.ts</File>
+        <Text>assertNoUnparseableLooseEvents</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.test.ts</File>
+        <Text>C-LOOSE-MALFORMED-FOLD-1-4C18E876</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F315: "C-LOOSE-MALFORMED-FOLD-1-4C18E876"</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-ARTIFACT-TYPES />
+        <M-CURSOR />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-ARTIFACT-TYPES />
+        <V-M-CURSOR />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/run-membership.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>src/artifact/run-membership.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/scope.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>.ngrace/scratch/staged-findings.md</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Malformed loose-event contract and both write boundaries</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/artifact/run-membership.ts` keeps the filename-derived read-only inventory entry for an existing-but-unparseable loose file — the filename-derived attributes `{id, task, kind}`, empty children, and no `root` field on the returned `LooseEvent` — and additionally exposes `LooseEvent.parseIssue` as `{ code: "xml.parse", message }`. A direct `listLooseEvents(bundle)` call returns the entry with that field set; `bun run ngrace cursor show --change C --path &lt;root&gt;` exits 0; and a root `bun run ngrace lint --path &lt;root&gt; --fail-on errors` exits 0 and reports no issue for the loose file. The final repository tests are added first and re-driven red on the committed base for behavioral reasons before the production change lands.
+          </Criterion>
+          <Criterion>
+            `src/grace-cursor.ts` refuses unparseable input through one shared local guard, `assertNoUnparseableLooseEvents`, invoked before any auto-open, `discarded`, or ledger write at **both** production write entry paths. Ordinary `bun run ngrace cursor fold` refuses a malformed closer (`run/2-T-001-terminal.xml` = `&lt;broken` with a valid `opened`) and a malformed progress (`run/2-T-001-progress.xml` = `&lt;broken` alongside a valid `opened` and a valid later `terminal`), exiting non-zero, naming the file and `xml.parse`, writing no `discarded` and no synthesized `opened`, and leaving the recursive project tree byte-identical. The control fixtures keep their measured directions: a valid closer folds at exit 0; a simply absent trailing file folds at exit 0; a parseable event with omitted attributes folds at exit 0; and a directory at the event path exits non-zero with `EISDIR` preserved and the path named.
+          </Criterion>
+          <Criterion>
+            The real `bun run ngrace supersede --change &lt;pred&gt; --replacement &lt;succ&gt;` path with an open epoch (valid `opened` + malformed `progress`, no closer) refuses before `discardAndFoldEpoch` writes `discarded`: exit non-zero, naming the file and `xml.parse`; no `*-discarded.xml`; the predecessor remains active and the replacement remains in place with unchanged statuses and bytes; the predecessor is not archived; and the recursive project tree (directory entries, symlinks, relative paths, per-file bytes) is byte-identical. `src/artifact/xml.ts` and `src/gates/ledger.ts` are not edited.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/artifact/run-membership.test.ts src/grace-cursor.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-MEMBER-MALFORMED-AND-UNREADABLE />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Payer and identity-bound close guard</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/artifact/scope.test.ts` is re-authored to `NGRACE_SCOPE_GUARD_CHANGE=C-LOOSE-MALFORMED-FOLD-1-4C18E876` against base `8bbb35062a65970419d0053897afea4ee0151beb`. Its activated allowed set is exactly the two forced sources (`src/artifact/run-membership.ts`, `src/grace-cursor.ts`), the four forced tests (`src/artifact/run-membership.test.ts`, `src/grace-cursor.test.ts`, `src/artifact/scope.test.ts`, `scripts/validate-record-retirement.test.ts`), and the seven named record XML files, with zero globs and no predecessor transition. The guard covers tracked diffs and untracked files, excludes `docs/plans/active/RM-GOVERNED-PATH/decisions.md` unconditionally, recognizes only this bundle's exact lifecycle files (`spec.xml`, `plan.xml`, `run-ledger.xml`, `run.xml`) and XML under its own `run/` in active and applied-archive locations, is dormant without its exact activation switch, and refuses when git evidence is unavailable. Fixtures prove: a clean applied-archive pass; a forbidden ordinary path reddens; a planted non-record file inside the governed record directory reddens; a planted non-lifecycle file inside this bundle's own directory reddens; unavailable git evidence refuses rather than reporting clean; and without activation a later unrelated write of the same kind does not fail.
+          </Criterion>
+          <Criterion>
+            `scripts/validate-record-retirement.test.ts` carries exactly one `bundleMinted` entry, `F315`, naming `C-LOOSE-MALFORMED-FOLD-1-4C18E876`, and a payer ratchet proves the token derives only from this bundle's archived charter row, that an absent or stale pin reds the derivation walk, that only the current pin greens it, and that a staged-buffer-only owner-line edit cannot green it because the test ratchets the durable XML result the flush produces, never the ignored buffer. A further assertion, keyed on this bundle's archive arrival so it is green in the execution tree and discriminating in the applied-archive state, reds the CloseEvidence command until `findings-retired.xml` holds `F315` with `PaidBy` naming this bundle and `registry-retired.xml` holds the retired row whose `&lt;Pays&gt;` is exactly `F315`. No other finding token or pin is written.
+          </Criterion>
+          <Criterion>
+            The plan's `ObservedWriteScope` enumerates the exact non-lifecycle population (two sources, four tests, the staged buffer, and the seven record XML files) and adds none of this successor's own `spec.xml`, `plan.xml`, `design-context.xml`, `run/`, `run.xml`, or `run-ledger.xml`, nor `decisions.md`, `src/artifact/xml.ts`, `src/gates/ledger.ts`, README/examples, a later-bundle file, a new file, a predecessor transition, a directory catch-all, or an archive glob.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts src/artifact/scope.test.ts</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+  </C-LOOSE-MALFORMED-FOLD-1-4C18E876>
+</NgraceChangePlan>

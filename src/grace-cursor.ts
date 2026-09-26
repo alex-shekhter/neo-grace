@@ -59,6 +59,12 @@
 //   setEvaluateTargetCompleteThrowProbeForTests
 //   setEventIdAllocationProbeForTests
 //   setEventWriteLockTtlForTests
+//   setCandidateLockCaptureOrderForTests
+//   setCandidateLockOpenForTests
+//   setCandidateLockTtlForTests
+//   setCandidateReclaimProbeForTests
+//   assertCandidatePublished
+//   withCandidateLock
 //   listAccountingEvents
 //   listCalibrationRestatements
 //   listLedgerCalibrationEpochs
@@ -91,10 +97,13 @@
 //   targetAssertionsClean
 // END_MODULE_MAP
 
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import {
+  closeSync,
   existsSync,
+  fstatSync,
   mkdirSync,
+  openSync,
   readFileSync,
   readdirSync,
   statSync,
@@ -155,7 +164,6 @@ import {
   serializeCalibrationContextAttributes,
   type CalibrationContextClass,
 } from "./calibration/context";
-import { isGitWorktreeDirty } from "./grace-graph";
 import { lintGraceProject } from "./lint/core";
 import { GraceCommandError, runGraceCommand } from "./query/errors";
 import type { FailureSignature } from "./artifact/types";
@@ -716,8 +724,21 @@ export function recoverCursor(
   changeId: string,
   options: { fix?: boolean | "extend-allocation" } = {},
 ): RecoverDiagnosis {
+  const wantFix = options.fix === true || options.fix === "extend-allocation";
+  // B1: a fix mutates the bundle, so it cooperates through the candidate lock;
+  // the read-only diagnosis still does not take it (AC-COOPERATING-WRITER-COVERAGE).
+  if (!wantFix) return recoverCursorImpl(projectRoot, changeId, options);
+  return withCandidateLock(projectRoot, changeId, () => recoverCursorImpl(projectRoot, changeId, options));
+}
+
+function recoverCursorImpl(
+  projectRoot: string,
+  changeId: string,
+  options: { fix?: boolean | "extend-allocation" } = {},
+): RecoverDiagnosis {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const wantFix = options.fix === true || options.fix === "extend-allocation";
+  if (wantFix) assertCandidatePublished(bundlePath, changeId);
 
   const buildDiagnosis = (fixApplied: boolean, coveringOpenedFile?: string): RecoverDiagnosis => {
     const orphans = listRunOrphans(bundlePath);
@@ -898,6 +919,25 @@ function writeCoveringOpened(
  * (same headroom as recover --fix — no carve-out).
  * Refuse when more than one worker appears — multi-worker ranges are never fabricated.
  */
+/**
+ * F315: an existing-but-unparseable loose file is neither a disappearance nor an
+ * event. Both production write entry paths (ordinary fold and the supersede
+ * discard) call this before auto-open, discarded, or ledger writes, naming the
+ * file and the parse error. The read-only inventory fallback (and `cursor show`)
+ * stay unaffected; `listLooseEvents` exposes the parse state instead of turning
+ * inventory into a hard error.
+ */
+function assertNoUnparseableLooseEvents(bundlePath: string, changeId: string, events: LooseEvent[]): void {
+  const unparseable = events.find((event) => event.parseIssue?.code === "xml.parse");
+  if (!unparseable) return;
+  throw new GraceCommandError(
+    "invalid-project",
+    `Cannot fold or abandon ${changeId}: loose event ${unparseable.file} is not parseable `
+      + `(xml.parse${unparseable.parseIssue?.message ? `: ${unparseable.parseIssue.message}` : ""}); `
+      + `fix or remove the file before folding.`,
+  );
+}
+
 function maybeAutoOpenCoveringAllocation(
   bundlePath: string,
   changeId: string,
@@ -920,6 +960,50 @@ function maybeAutoOpenCoveringAllocation(
   const to = Math.max(...ids);
   const task = inheritLooseEventTask(events[events.length - 1]?.task);
   writeCoveringOpened(bundlePath, { worker, task, from, to });
+}
+
+/**
+ * C-FOLD-MIXED-RECOVERY: the prospective allocation for a fresh set that carries no
+ * explicit Allocation. The covering allocation a single-controller auto-open *would*
+ * synthesize is computed in memory — the same headroom writeCoveringOpened uses — so
+ * the mixed path can validate allocation, density, and closer requirements before any
+ * destructive action, and materialize the covering `opened` only after the residue is
+ * deleted. This helper never writes; a multi-worker refusal happens before the caller's
+ * first delete, exactly as the shipped auto-open refuses.
+ */
+function prospectiveFreshAllocations(
+  bundlePath: string,
+  changeId: string,
+  fresh: LooseEvent[],
+): {
+  allocations: RangeAllocation[];
+  covering?: { worker: string; task: string; from: number; to: number };
+} {
+  const explicit = collectEffectiveAllocations(fresh);
+  if (explicit.length > 0) return { allocations: explicit };
+  if (fresh.length === 0) return { allocations: [] };
+  const workers = collectDistinctWorkers(bundlePath, fresh);
+  if (workers.length > 1) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Cannot fold ${changeId}: no Allocation found, and auto-open refused — multiple workers `
+        + `${JSON.stringify(workers)}. Multi-worker ranges must not be fabricated (D8.2); `
+        + "open an explicit epoch with --worker bounds, or recover --fix after collapsing to one controller.",
+    );
+  }
+  const worker = workers[0] ?? "w0";
+  const ids = fresh.map((event) => event.id);
+  const from = Math.min(...ids);
+  const to = Math.max(...ids);
+  const openedId = nextEventId(bundlePath);
+  const allocationFrom = Math.min(from, openedId);
+  const allocationTo = Math.max(Math.max(to, openedId), openedId + OPEN_EPOCH_DEFAULT_HEADROOM);
+  assertValidEpochBounds(allocationFrom, allocationTo);
+  const task = inheritLooseEventTask(fresh[fresh.length - 1]?.task);
+  return {
+    allocations: [{ worker, from: allocationFrom, to: allocationTo }],
+    covering: { worker, task, from: allocationFrom, to: allocationTo },
+  };
 }
 
 /** Last-loose inherit for recover --fix and auto-open. Refuse rather than invent a task id. */
@@ -984,6 +1068,54 @@ export function showCursor(projectRoot: string, changeId: string): CursorPositio
   return derivePosition(bundlePath, changeId, { preferWrittenCursor: true, projectRoot: root });
 }
 
+/** Decode a `git status --porcelain` path field (C-quoted when it contains specials). */
+function unquotePorcelainPath(field: string): string {
+  const trimmed = field.trim();
+  if (trimmed.startsWith('"') && trimmed.endsWith('"') && trimmed.length >= 2) {
+    return trimmed.slice(1, -1).replace(/\\(.)/g, (_, c: string) => (c === "t" ? "\t" : c === "n" ? "\n" : c));
+  }
+  return trimmed;
+}
+
+/** Repository-relative paths from porcelain output, including both sides of a rename/copy. */
+function porcelainChangedPaths(stdout: string): string[] {
+  const out: string[] = [];
+  for (const rawLine of stdout.split("\n")) {
+    if (!rawLine) continue;
+    const body = rawLine.slice(3);
+    const arrow = body.indexOf(" -> ");
+    const parts = arrow >= 0 ? [body.slice(0, arrow), body.slice(arrow + 4)] : [body];
+    for (const part of parts) out.push(unquotePorcelainPath(part));
+  }
+  return out;
+}
+
+/**
+ * Dirty check for a caller already holding the candidate lock: only the EXACT
+ * repository-relative canonical lock path this call created is excluded, so a
+ * tracked near-miss such as `nested/.ngrace/changes/active/.candidate-<id>.lock`
+ * still keeps the tree dirty (AC-REGEN-ENTRY-LOCK). Kept in this module because
+ * `src/grace-graph.ts` is outside the approved forced set.
+ */
+function worktreeDirtyExcludingCandidateLock(projectRoot: string, changeId: string): boolean {
+  const probe = Bun.spawnSync({
+    cmd: ["git", "rev-parse", "--is-inside-work-tree"],
+    cwd: projectRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (probe.exitCode !== 0) return false;
+  const status = Bun.spawnSync({
+    cmd: ["git", "status", "--porcelain"],
+    cwd: projectRoot,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (status.exitCode !== 0) return false;
+  const lockRel = `.ngrace/changes/active/.candidate-${changeId}.lock`;
+  return porcelainChangedPaths(new TextDecoder().decode(status.stdout)).some((changed) => changed !== lockRel);
+}
+
 /**
  * Regenerate cursor projection from ledger → loose events → codebase evidence.
  * Writes only when apply is true (invariant 8 / A11.5).
@@ -994,20 +1126,27 @@ export function regenerateCursor(
   options: { apply?: boolean; allowDirty?: boolean } = {},
 ): { position: CursorPosition; dryRun: boolean; applied: boolean } {
   const root = path.resolve(projectRoot);
-  if (options.apply && !options.allowDirty && isGitWorktreeDirty(root)) {
-    throw new GraceCommandError(
-      "invalid-arguments",
-      "Refusing to write: git worktree is dirty. Commit/stash changes or pass --allow-dirty.",
-    );
-  }
-  const bundlePath = resolveChangeBundle(root, changeId);
-  const position = derivePosition(bundlePath, changeId, { preferWrittenCursor: false, projectRoot: root });
-  const dryRun = !options.apply;
-  if (dryRun) {
+  if (!options.apply) {
+    const bundlePath = resolveChangeBundle(root, changeId);
+    const position = derivePosition(bundlePath, changeId, { preferWrittenCursor: false, projectRoot: root });
     return { position, dryRun: true, applied: false };
   }
-  writeCursorFile(bundlePath, position);
-  return { position, dryRun: false, applied: true };
+  return withCandidateLock(root, changeId, () => {
+    const bundlePath = resolveChangeBundle(root, changeId);
+    assertCandidatePublished(bundlePath, changeId);
+    // AC-REGEN-ENTRY-LOCK: acquire at public entry, then read the dirty state under
+    // the lock; the dirty refusal is returned post-lock, never before it. The
+    // transient candidate lock this call holds is excluded, so it is not itself dirt.
+    if (!options.allowDirty && worktreeDirtyExcludingCandidateLock(root, changeId)) {
+      throw new GraceCommandError(
+        "invalid-arguments",
+        "Refusing to write: git worktree is dirty. Commit/stash changes or pass --allow-dirty.",
+      );
+    }
+    const position = derivePosition(bundlePath, changeId, { preferWrittenCursor: false, projectRoot: root });
+    writeCursorFile(bundlePath, position);
+    return { position, dryRun: false, applied: true };
+  });
 }
 
 /**
@@ -1065,7 +1204,22 @@ export function parseEpochBoundArg(raw: string, label: "--from" | "--to"): numbe
 }
 
 /** Advance: append an event and update the cursor (writes). */
+/**
+ * B1: a mutating cursor writer cooperates through the candidate lock and refuses
+ * an unpublished candidate before its first write (AC-COOPERATING-WRITER-COVERAGE).
+ */
 export function advanceCursor(
+  projectRoot: string,
+  changeId: string,
+  options: Parameters<typeof advanceCursorImpl>[2],
+): CursorPosition {
+  return withCandidateLock(projectRoot, changeId, () => {
+    assertCandidatePublished(resolveChangeBundle(projectRoot, changeId), changeId);
+    return advanceCursorImpl(projectRoot, changeId, options);
+  });
+}
+
+function advanceCursorImpl(
   projectRoot: string,
   changeId: string,
   options: {
@@ -1263,7 +1417,104 @@ export function resumeCursor(
  * file; they are unreachable from the CLI. Trade recorded under A12.5 — kept deliberately
  * so the fold ordering gate stays mechanically testable without a second test-only package.
  */
+/** B1: fold mutates the ledger, so it cooperates through the candidate lock. */
 export function foldEpoch(
+  projectRoot: string,
+  changeId: string,
+  options: Parameters<typeof foldEpochImpl>[2] = {},
+): FoldResult {
+  return withCandidateLock(projectRoot, changeId, () => {
+    assertCandidatePublished(resolveChangeBundle(projectRoot, changeId), changeId);
+    return foldEpochImpl(projectRoot, changeId, options);
+  });
+}
+
+type FoldReconciliation = {
+  resumeEpoch: number | undefined;
+  residue: LooseEvent[];
+  conflict: { id: number; detail: string } | undefined;
+  olderReuse: { id: number; epoch: number } | undefined;
+  hasFresh: boolean;
+};
+
+/**
+ * F313 / C-RUN-LEDGER recovery: compare the loose set to the durable ledger before
+ * appending a new epoch. A loose event whose id matches the last recorded epoch with
+ * an identical canonical payload is residue of an interrupted fold and is resumed,
+ * not re-folded; a matching id in an older epoch is refused (the allocator never
+ * reuses a recorded id); a matching id with a differing payload is a genuine
+ * conflict and refuses before any write.
+ */
+function reconcileLooseWithLedger(bundlePath: string, loose: LooseEvent[]): FoldReconciliation | undefined {
+  const ledgerPath = path.join(bundlePath, "run-ledger.xml");
+  if (!existsSync(ledgerPath)) return undefined;
+  const artifact = readGraceXmlArtifact(ledgerPath);
+  if (!artifact.root) return undefined;
+  const epochs: { number: number; events: GraceXmlNode[] }[] = [];
+  for (const wrapper of artifact.root.children) {
+    for (const epoch of wrapper.children) {
+      const match = EPOCH_SECTION_PATTERN.exec(epoch.tag);
+      if (!match) continue;
+      epochs.push({ number: Number(match[1]), events: epoch.children.filter((child) => child.tag === "Event") });
+    }
+  }
+  if (epochs.length === 0) return undefined;
+  epochs.sort((a, b) => a.number - b.number);
+  const last = epochs[epochs.length - 1]!;
+  const result: FoldReconciliation = {
+    resumeEpoch: undefined,
+    residue: [],
+    conflict: undefined,
+    olderReuse: undefined,
+    hasFresh: false,
+  };
+  for (const event of loose) {
+    const looseFingerprint = payloadFingerprint(expectedLedgerEventAttributes(event), event.children);
+    let matchesLast = false;
+    let matchesOlder = false;
+    let conflictingEpoch: number | undefined;
+    for (const epoch of epochs) {
+      const recorded = epoch.events.find((node) => Number(node.attributes.id) === event.id);
+      if (!recorded) continue;
+      const recordedFingerprint = payloadFingerprint(recorded.attributes, recorded.children);
+      if (recordedFingerprint === looseFingerprint) {
+        if (epoch.number === last.number) matchesLast = true;
+        else matchesOlder = true;
+      } else if (conflictingEpoch === undefined) {
+        conflictingEpoch = epoch.number;
+      }
+    }
+    if (conflictingEpoch !== undefined) {
+      if (!result.conflict) {
+        result.conflict = {
+          id: event.id,
+          detail: `loose event id ${event.id} matches a recorded event in Epoch-${conflictingEpoch} with a differing payload`,
+        };
+      }
+      continue;
+    }
+    if (matchesOlder && !matchesLast) {
+      if (!result.olderReuse) {
+        const olderEpoch = epochs.find(
+          (epoch) => epoch.number !== last.number && epoch.events.some((node) => Number(node.attributes.id) === event.id),
+        );
+        result.olderReuse = { id: event.id, epoch: olderEpoch?.number ?? 0 };
+      }
+      continue;
+    }
+    if (matchesLast) {
+      result.residue.push(event);
+      continue;
+    }
+    result.hasFresh = true;
+  }
+  if (result.residue.length > 0 && !result.hasFresh && !result.conflict && !result.olderReuse) {
+    result.resumeEpoch = last.number;
+  }
+  return result;
+}
+
+function foldEpochImpl(
   projectRoot: string,
   changeId: string,
   options: {
@@ -1277,10 +1528,22 @@ export function foldEpoch(
      * Verify must fail and leave every loose file on disk (AC-FOLD-PRESERVES-PAYLOAD).
      */
     injectDropPayload?: boolean;
+    /**
+     * Test-only: throw after the mixed-path residue delete and before any auto-open,
+     * leaving the ledger holding only the prior epoch and loose state exactly F.
+     */
+    injectFailureAfterResidueDelete?: boolean;
+    /**
+     * Test-only: throw after the mixed-path covering `opened` is materialized and
+     * before the ledger write, leaving the ledger holding only the prior epoch and
+     * loose state exactly F ∪ A.
+     */
+    injectFailureAfterAutoOpen?: boolean;
   } = {},
 ): FoldResult {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   let events = listLooseEvents(bundlePath);
+  assertNoUnparseableLooseEvents(bundlePath, changeId, events);
   if (events.length === 0) {
     // Idempotent re-fold: nothing loose → success with last epoch if any.
     const ledgerEpochs = readLedgerEpochNumbers(bundlePath);
@@ -1296,6 +1559,93 @@ export function foldEpoch(
       dryRun: false,
       applied: true,
     };
+  }
+
+  // F313: reconcile the loose set against the durable ledger before any write. An
+  // interrupted fold's residue resumes against its recorded epoch; id reuse against
+  // an older epoch or a payload conflict refuses before a new epoch or an auto-open.
+  const reconciliation = reconcileLooseWithLedger(bundlePath, events);
+  if (reconciliation?.conflict) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `Fold refused: ${reconciliation.conflict.detail}; no new epoch was written and the recorded bytes are unchanged.`,
+    );
+  }
+  if (reconciliation?.olderReuse) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `Fold refused: loose event id ${reconciliation.olderReuse.id} already appears in recorded Epoch-${reconciliation.olderReuse.epoch}; the allocator never reuses a recorded id.`,
+    );
+  }
+  if (reconciliation?.resumeEpoch !== undefined) {
+    for (const event of reconciliation.residue) {
+      const relative = path.relative(bundlePath, event.file).replaceAll("\\", "/");
+      const contained = resolveContainedProjectPath(bundlePath, relative, {
+        mode: "existing",
+        allowedRoot: bundlePath,
+      });
+      unlinkSync(contained.absolutePath);
+    }
+    const resumedEpoch = reconciliation.resumeEpoch;
+    const derived = positionProjectionFromBundle(bundlePath, {
+      lastEventTask: reconciliation.residue[reconciliation.residue.length - 1]?.task,
+    });
+    const position: CursorPosition = {
+      changeId,
+      bundlePath,
+      epoch: resumedEpoch,
+      task: derived.task,
+      state: derived.state,
+      escalatedTasks: derived.escalatedTasks,
+      circuitTrippedTasks: derived.circuitTrippedTasks,
+      sources: { epoch: "ledger", task: "ledger", state: "ledger" },
+      inferred: false,
+      degradation: derived.degradation,
+    };
+    writeCursorFile(bundlePath, position);
+    return {
+      changeId,
+      bundlePath,
+      epoch: resumedEpoch,
+      wave: readWaveFromOpened(reconciliation.residue),
+      eventCount: reconciliation.residue.length,
+      dryRun: false,
+      applied: true,
+    };
+  }
+
+  // C-FOLD-MIXED-RECOVERY: a loose set holding both the recorded epoch's residue and
+  // a fresh set validates the fresh set in full — allocation, density, closer — before
+  // any destructive action. Only then is the already-recorded residue deleted, the
+  // covering `opened` materialized when the fresh set needs one, and the ordinary
+  // write/verify/delete path used to fold exactly F ∪ A. The residue is never
+  // re-folded, so no already-recorded event is duplicated.
+  if (reconciliation && reconciliation.residue.length > 0 && reconciliation.hasFresh) {
+    const residueFiles = new Set(reconciliation.residue.map((event) => event.file));
+    const fresh = events.filter((event) => !residueFiles.has(event.file));
+    const prospective = prospectiveFreshAllocations(bundlePath, changeId, fresh);
+    const prospectiveIssues = validateEventsAgainstAllocations(fresh, prospective.allocations);
+    if (prospectiveIssues.length > 0) {
+      throw new GraceCommandError("invalid-project", prospectiveIssues.join(" "));
+    }
+    for (const event of reconciliation.residue) {
+      const relative = path.relative(bundlePath, event.file).replaceAll("\\", "/");
+      const contained = resolveContainedProjectPath(bundlePath, relative, {
+        mode: "existing",
+        allowedRoot: bundlePath,
+      });
+      unlinkSync(contained.absolutePath);
+    }
+    if (options.injectFailureAfterResidueDelete) {
+      throw new Error("injected failure after residue delete");
+    }
+    if (prospective.covering) {
+      writeCoveringOpened(bundlePath, prospective.covering);
+      if (options.injectFailureAfterAutoOpen) {
+        throw new Error("injected failure after auto-open");
+      }
+    }
+    events = listLooseEvents(bundlePath);
   }
 
   // Effective set only (LWW per worker) — superseded dead ranges do not validate (F13).
@@ -1445,12 +1795,137 @@ export function foldEpoch(
  * in the effective covering allocation, then fold. No-op when there are no loose
  * run/ events — does not invoke foldEpoch.
  */
-export function discardAndFoldEpoch(projectRoot: string, changeId: string): FoldResult | undefined {
+/** B1: the discard path mutates the ledger, so it cooperates through the lock. */
+export function discardAndFoldEpoch(
+  projectRoot: string,
+  changeId: string,
+  options: { afterPreflight?: () => void } = {},
+): FoldResult | undefined {
+  return withCandidateLock(projectRoot, changeId, () => {
+    assertCandidatePublished(resolveChangeBundle(projectRoot, changeId), changeId);
+    return discardAndFoldEpochImpl(projectRoot, changeId, options);
+  });
+}
+
+/**
+ * C-DISCARD-PREFLIGHT: the allocation a prospective fold would use for a set that carries
+ * no explicit Allocation — either the set's own effective allocations, or the same
+ * single-controller covering `opened` fold would synthesize, with the correct future id
+ * and headroom. `virtualNextId` is the id the next engine-authored event would take once
+ * the optional synthetic `discarded` is on disk. Never writes.
+ */
+function prospectiveDiscardAllocations(
+  bundlePath: string,
+  changeId: string,
+  set: LooseEvent[],
+  virtualNextId: number,
+): RangeAllocation[] {
+  const explicit = collectEffectiveAllocations(set);
+  if (explicit.length > 0) return explicit;
+  if (set.length === 0) return [];
+  const workers = collectDistinctWorkers(bundlePath, set);
+  if (workers.length > 1) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Cannot fold ${changeId}: no Allocation found, and auto-open refused — multiple workers `
+        + `${JSON.stringify(workers)}. Multi-worker ranges must not be fabricated (D8.2); `
+        + "open an explicit epoch with --worker bounds, or recover --fix after collapsing to one controller.",
+    );
+  }
+  const worker = workers[0] ?? "w0";
+  const ids = set.map((event) => event.id);
+  const openedId = virtualNextId;
+  const from = Math.min(Math.min(...ids), openedId);
+  const to = Math.max(Math.max(Math.max(...ids), openedId), openedId + OPEN_EPOCH_DEFAULT_HEADROOM);
+  return [{ worker, from, to }];
+}
+
+/**
+ * C-DISCARD-PREFLIGHT: validate the discard stream in memory before any engine-authored
+ * write. Mirrors what the subsequent ordinary fold would validate — the durable-ledger
+ * reconciliation (already-recorded residue, genuine conflict, older-epoch reuse), the
+ * prospective `discarded` this operation would write when no effective allocation carries
+ * a closer, and, for the set that is actually fresh, the same single-controller covering
+ * `opened` fold would synthesize with the correct future id and headroom. Already-recorded
+ * residue resumes and is never re-validated as a fresh set, exactly as bundle 4's mixed
+ * path treats it; a genuine conflict or older-epoch reuse refuses here too, before the
+ * `discarded` write. Never writes; never refuses a stream fold would accept.
+ */
+function preflightDiscardStream(
+  bundlePath: string,
+  changeId: string,
+  events: LooseEvent[],
+): string[] {
+  const effective = collectEffectiveAllocations(events);
+  const hasCloser = events.some(
+    (event) =>
+      (RANGE_CLOSING_KINDS as readonly string[]).includes(event.kind)
+      && effective.some((allocation) => event.id >= allocation.from && event.id <= allocation.to),
+  );
+  const prospective: LooseEvent[] = [...events];
+  let virtualNextId = nextEventId(bundlePath);
+  if (!hasCloser) {
+    const last = events.reduce((current, event) => (event.id >= current.id ? event : current));
+    prospective.push({
+      id: virtualNextId,
+      task: last.task,
+      kind: "discarded",
+      file: path.join(bundlePath, "run", `${virtualNextId}-${last.task}-discarded.xml`),
+      attributes: {},
+      children: [],
+    });
+    virtualNextId += 1;
+  }
+  const reconciliation = reconcileLooseWithLedger(bundlePath, prospective);
+  if (reconciliation?.conflict) {
+    return [
+      `Fold refused: ${reconciliation.conflict.detail}; no new epoch was written and the recorded bytes are unchanged.`,
+    ];
+  }
+  if (reconciliation?.olderReuse) {
+    return [
+      `Fold refused: loose event id ${reconciliation.olderReuse.id} already appears in recorded `
+        + `Epoch-${reconciliation.olderReuse.epoch}; the allocator never reuses a recorded id.`,
+    ];
+  }
+  if (reconciliation?.resumeEpoch !== undefined) {
+    return [];
+  }
+  if (reconciliation && reconciliation.residue.length > 0 && reconciliation.hasFresh) {
+    const residueFiles = new Set(reconciliation.residue.map((event) => event.file));
+    const fresh = prospective.filter((event) => !residueFiles.has(event.file));
+    return validateEventsAgainstAllocations(
+      fresh,
+      prospectiveDiscardAllocations(bundlePath, changeId, fresh, virtualNextId),
+    );
+  }
+  return validateEventsAgainstAllocations(
+    prospective,
+    prospectiveDiscardAllocations(bundlePath, changeId, prospective, virtualNextId),
+  );
+}
+
+function discardAndFoldEpochImpl(
+  projectRoot: string,
+  changeId: string,
+  options: { afterPreflight?: () => void } = {},
+): FoldResult | undefined {
   const bundlePath = resolveChangeBundle(projectRoot, changeId);
   const events = listLooseEvents(bundlePath);
+  // F315: the discard path is the other production entry that can write
+  // `discarded`; refuse unparseable input here too, before hasCloser/writeEventFile.
+  assertNoUnparseableLooseEvents(bundlePath, changeId, events);
   if (events.length === 0) {
     return;
   }
+  // F158/F292.1: validate the exact snapshot before any engine-authored write. A stream
+  // that cannot fold refuses here, so no `discarded`, auto-open, ledger, status, or
+  // successor/governance mutation happens.
+  const preflightIssues = preflightDiscardStream(bundlePath, changeId, events);
+  if (preflightIssues.length > 0) {
+    throw new GraceCommandError("invalid-project", preflightIssues.join(" "));
+  }
+  options.afterPreflight?.();
   const allocations = collectEffectiveAllocations(events);
   const hasCloser = events.some(
     (event) =>
@@ -1991,10 +2466,14 @@ export function snapshotWriteEvidence(projectRoot: string): WriteEvidenceSnapsho
     };
   }
   const root = path.resolve(projectRoot);
-  const files: ChangedFileEvidence[] = changedFiles.map((relative) => ({
-    path: relative,
-    ...digestProjectFile(root, relative),
-  }));
+  const files: ChangedFileEvidence[] = changedFiles
+    // The candidate/event write locks are transient coordination artifacts, never
+    // content writes: they must not enter WriteEvidence (C-SUPERSEDE-MEMBERSHIP T-002).
+    .filter((relative) => !/^\.ngrace\/changes\/active\/\.candidate-C-[A-Z0-9]+(?:-[A-Z0-9]+)*\.lock$/.test(relative))
+    .map((relative) => ({
+      path: relative,
+      ...digestProjectFile(root, relative),
+    }));
   return { available: true, files };
 }
 
@@ -2060,7 +2539,21 @@ export type RecordAttemptResult = {
  * a second fire on the same task writes kind=circuit / paused-pending-supersede
  * (A19.2 / C-ESCALATION-HONESTY / C-REWORK-CIRCUIT).
  */
+/** B1: attempt records WriteEvidence, so it cooperates through the candidate lock. */
 export function recordAttempt(
+  projectRoot: string,
+  changeId: string,
+  options: Parameters<typeof recordAttemptImpl>[2],
+): RecordAttemptResult {
+  // AC-ATTEMPT-SNAPSHOT-UNDER-LOCK: the lock is held before the impl snapshots
+  // WriteEvidence, so a file changed while the contender waited is included.
+  return withCandidateLock(projectRoot, changeId, () => {
+    assertCandidatePublished(resolveChangeBundle(projectRoot, changeId), changeId);
+    return recordAttemptImpl(projectRoot, changeId, options);
+  });
+}
+
+function recordAttemptImpl(
   projectRoot: string,
   changeId: string,
   options: {
@@ -2226,7 +2719,19 @@ export function recordAttempt(
  * Verification could not run — record verification-unavailable, never an attempt (A19.1).
  * Does not count against the signature fix budget (R/D).
  */
+/** B1: an attempt-evidence writer cooperates through the candidate lock. */
 export function recordVerificationUnavailable(
+  projectRoot: string,
+  changeId: string,
+  options: { task: string; absence: AbsenceValue },
+): CursorPosition {
+  return withCandidateLock(projectRoot, changeId, () => {
+    assertCandidatePublished(resolveChangeBundle(projectRoot, changeId), changeId);
+    return recordVerificationUnavailableImpl(projectRoot, changeId, options);
+  });
+}
+
+function recordVerificationUnavailableImpl(
   projectRoot: string,
   changeId: string,
   options: { task: string; absence: AbsenceValue },
@@ -2526,7 +3031,19 @@ export function listCalibrationRestatements(projectRoot: string): CalibrationRes
  * Does not edit the restated change's archive. Requires an existing run-ledger.xml
  * (fold first, then restate).
  */
+/** B1: a calibration restatement mutates the ledger under the candidate lock. */
 export function recordCalibrationRestatement(
+  projectRoot: string,
+  authoringChangeId: string,
+  restatement: Parameters<typeof recordCalibrationRestatementImpl>[2],
+): void {
+  return withCandidateLock(projectRoot, authoringChangeId, () => {
+    assertCandidatePublished(resolveChangeBundle(projectRoot, authoringChangeId), authoringChangeId);
+    recordCalibrationRestatementImpl(projectRoot, authoringChangeId, restatement);
+  });
+}
+
+function recordCalibrationRestatementImpl(
   projectRoot: string,
   authoringChangeId: string,
   restatement: {
@@ -2681,6 +3198,8 @@ function parseWriteEvidenceNode(node: GraceXmlNode): WriteEvidenceSnapshot {
   }
   const files: ChangedFileEvidence[] = node.children
     .filter((child) => child.tag === "File")
+    // A recorded canonical candidate lock is not content evidence (T-002).
+    .filter((child) => !/^\.ngrace\/changes\/active\/\.candidate-C-[A-Z0-9]+(?:-[A-Z0-9]+)*\.lock$/.test(child.text.trim()))
     .map((child): ChangedFileEvidence | null => {
       const filePath = child.text.trim();
       if (!filePath) return null;
@@ -3387,7 +3906,20 @@ export function rejectAuthoredContextAttributes(
  * (C-CALIBRATION-COMMAND-EVIDENCE / D6.3(c)). Append-only (D9). Called from
  * lint/core via callback injection so assertions never import this module.
  */
+/** B1: command-run evidence mutates the ledger under the candidate lock. */
 export function appendCommandRunEvent(
+  projectRoot: string,
+  changeId: string,
+  evidence: Parameters<typeof appendCommandRunEventImpl>[2],
+  options: { task?: string } = {},
+): void {
+  return withCandidateLock(projectRoot, changeId, () => {
+    assertCandidatePublished(resolveChangeBundle(projectRoot, changeId), changeId);
+    appendCommandRunEventImpl(projectRoot, changeId, evidence, options);
+  });
+}
+
+function appendCommandRunEventImpl(
   projectRoot: string,
   changeId: string,
   evidence: {
@@ -3426,6 +3958,266 @@ export function appendCommandRunEvent(
  * is detected by pid liveness — with a long-held TTL backstop — and stolen by the next
  * writer, so a crash cannot deadlock the bundle. No recorded event is ever touched.
  */
+/**
+ * Exclusive per-candidate lock for writers that mutate a change bundle
+ * (C-SUPERSEDE-MEMBERSHIP-4-20941257, T-001). Sibling of the leaf, never inside
+ * it. A parseable known-live holder is never stolen for age; a parseable
+ * known-dead holder is reclaimed immediately; an empty/unparseable/unknown
+ * holder waits, bounded by CANDIDATE_LOCK_TTL_MS. Each record carries a random
+ * owner token; release removes the file only when the token still matches.
+ */
+const CANDIDATE_LOCK_TTL_MS = 30_000;
+let candidateLockTtlOverride: number | null = null;
+
+/** Test-only: shorten the unknown-holder TTL backstop; `null` restores the constant. */
+export function setCandidateLockTtlForTests(ms: number | null): void {
+  candidateLockTtlOverride = ms;
+}
+
+let candidateLockOpenForTests: ((lockPath: string) => void) | undefined;
+
+/**
+ * Test-only: wraps the candidate lock's exclusive create so a deterministic probe can
+ * inject a platform-shaped open failure at the real lock-open boundary. Production leaves
+ * it unset; it is not a user-facing switch.
+ */
+export function setCandidateLockOpenForTests(fn: ((lockPath: string) => void) | undefined): void {
+  candidateLockOpenForTests = fn;
+}
+
+const candidateLockDepth = new Map<string, number>();
+
+const CANDIDATE_MARKER_NAME = ".ngrace-mint-owner";
+
+/**
+ * Refuse a mutation of a change bundle whose candidate marker is still present:
+ * the bundle is an unpublished candidate owned by another invocation.
+ */
+export function assertCandidatePublished(bundlePath: string, changeId: string): void {
+  if (existsSync(path.join(bundlePath, CANDIDATE_MARKER_NAME))) {
+    throw new GraceCommandError(
+      "invalid-arguments",
+      `Cannot write ${changeId}: an unpublished candidate owns this bundle (marker ${CANDIDATE_MARKER_NAME} present).`,
+    );
+  }
+}
+
+function candidateLockPath(root: string, changeId: string): string {
+  return path.join(root, ARTIFACT_DIR, "changes", "active", `.candidate-${changeId}.lock`);
+}
+
+let candidateReclaimProbeForTests:
+  | ((phase: "observed" | "before-unlink", lockPath: string, observedRaw: string) => void)
+  | undefined;
+
+let candidateLockCaptureOrderForTests: string[] | undefined;
+
+/** Test-only: when set, observeCandidateLock records its capture call order into the array. */
+export function setCandidateLockCaptureOrderForTests(order: string[] | undefined): void {
+  candidateLockCaptureOrderForTests = order;
+}
+
+/**
+ * Test-only: fires at the reclaim boundary so a deterministic B/A/B schedule can be
+ * driven without a real race. `phase` is "observed" (stale bytes read, before the
+ * ownership re-read) or "before-unlink" (ownership re-read matched, before unlink).
+ */
+export function setCandidateReclaimProbeForTests(
+  probe: ((phase: "observed" | "before-unlink", lockPath: string, observedRaw: string) => void) | undefined,
+): void {
+  candidateReclaimProbeForTests = probe;
+}
+
+/**
+ * Token/identity-checked reclamation: unlink only the exact lock file this contender
+ * observed — same bytes AND same filesystem identity (device/inode). A replacement
+ * holder, even one carrying identical bytes, is never removed
+ * (AC-CANDIDATE-RECLAIM-EXCLUSIVE).
+ * Returns true when the path is free after the call.
+ */
+type CandidateLockObservation = { raw: string; dev: number; ino: number; fd: number };
+
+function observeCandidateLock(lockPath: string): CandidateLockObservation | undefined {
+  let fd: number | undefined;
+  try {
+    fd = openSync(lockPath, "r");
+    candidateLockCaptureOrderForTests?.push("open");
+    const stat = fstatSync(fd);
+    candidateLockCaptureOrderForTests?.push("fstat");
+    const raw = readFileSync(fd, "utf8");
+    candidateLockCaptureOrderForTests?.push("read");
+    return { raw, dev: stat.dev, ino: stat.ino, fd };
+  } catch {
+    if (fd !== undefined) {
+      try {
+        closeSync(fd);
+      } catch {
+        // best-effort
+      }
+    }
+    return undefined;
+  }
+}
+
+/**
+ * Proto: the observation holds an open handle, pinning the observed inode across
+ * the check-to-unlink window so a recycled device/inode cannot impersonate it.
+ */
+function reclaimCandidateLock(lockPath: string, observed: CandidateLockObservation): boolean {
+  try {
+    candidateReclaimProbeForTests?.("observed", lockPath, observed.raw);
+    let current: string;
+    let currentStat: ReturnType<typeof statSync>;
+    try {
+      current = readFileSync(lockPath, "utf8");
+      currentStat = statSync(lockPath);
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code === "ENOENT") return true;
+      return false;
+    }
+    if (current !== observed.raw || currentStat.dev !== observed.dev || currentStat.ino !== observed.ino) return false;
+    candidateReclaimProbeForTests?.("before-unlink", lockPath, observed.raw);
+    // Revalidate bytes AND filesystem identity immediately before the destructive call,
+    // so a same-bytes replacement inode installed during the seam is not unlinked.
+    try {
+      const verifyRaw = readFileSync(lockPath, "utf8");
+      const verifyStat = statSync(lockPath);
+      if (verifyRaw !== observed.raw || verifyStat.dev !== observed.dev || verifyStat.ino !== observed.ino) return false;
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code === "ENOENT") return true;
+      return false;
+    }
+    try {
+      unlinkSync(lockPath);
+      return true;
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code === "ENOENT") return true;
+      if (code === "EPERM" || code === "EBUSY") return false;
+      throw error;
+    }
+  } finally {
+    try {
+      closeSync(observed.fd);
+    } catch {
+      // best-effort
+    }
+  }
+}
+
+const CANDIDATE_LOCK_PERMISSION_RETRY_LIMIT = 25;
+
+function acquireCandidateLock(lockPath: string, token: string, ttl: number): void {
+  // A permission code (EPERM/EACCES/EBUSY) at the exclusive create can mean the lock is
+  // held — Windows sharing violations surface these instead of EEXIST — but it is also the
+  // shape of a genuine denial. A permission code whose holder cannot be observed is retried
+  // a bounded number of times and then fails closed; the EEXIST wait below is unchanged.
+  let permissionRetries = 0;
+  for (;;) {
+    try {
+      candidateLockOpenForTests?.(lockPath);
+      writeFileSync(lockPath, `${process.pid}\n${Date.now()}\n${token}\n`, { flag: "wx" });
+      return;
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      const permissionCode = code === "EPERM" || code === "EACCES" || code === "EBUSY";
+      if (code !== "EEXIST" && !permissionCode) throw error;
+      const observed = observeCandidateLock(lockPath);
+      if (!observed) {
+        if (permissionCode) {
+          // The holder is not observable: retry to absorb a release between the failed
+          // create and this read, then fail closed rather than wait forever on a denial.
+          permissionRetries += 1;
+          if (permissionRetries > CANDIDATE_LOCK_PERMISSION_RETRY_LIMIT) throw error;
+          Bun.sleepSync(2);
+          continue;
+        }
+        // Shipped behavior: an EEXIST lock may be mid-creation or mid-release; keep waiting.
+        continue;
+      }
+      permissionRetries = 0;
+      const lines = observed.raw.split("\n");
+      const pid = Number(lines[0]);
+      const stampParsed = /^\d+$/.test((lines[1] ?? "").trim());
+      const pidKnown = Number.isInteger(pid) && pid > 0;
+      if (pidKnown && !processAlive(pid)) {
+        if (!reclaimCandidateLock(lockPath, observed)) Bun.sleepSync(2);
+        continue;
+      }
+      if (!pidKnown) {
+        let age: number;
+        if (stampParsed) {
+          age = Date.now() - Number(lines[1]);
+        } else {
+          try {
+            age = Date.now() - statSync(lockPath).mtimeMs;
+          } catch {
+            age = 0;
+          }
+        }
+        if (Number.isFinite(age) && age > ttl) {
+          if (!reclaimCandidateLock(lockPath, observed)) Bun.sleepSync(2);
+          continue;
+        }
+      }
+      try {
+        closeSync(observed.fd);
+      } catch {
+        // best-effort
+      }
+      Bun.sleepSync(2);
+    }
+  }
+}
+
+function releaseCandidateLock(lockPath: string, token: string): void {
+  let raw: string;
+  try {
+    raw = readFileSync(lockPath, "utf8");
+  } catch {
+    return;
+  }
+  const lines = raw.split("\n");
+  if ((lines[2] ?? "").trim() !== token) return;
+  try {
+    unlinkSync(lockPath);
+  } catch {
+    // already released
+  }
+}
+
+/**
+ * Run `fn` holding the candidate lock for `(root, changeId)`. Reentrant per key
+ * through a process-local depth map.
+ */
+export function withCandidateLock<T>(root: string, changeId: string, fn: () => T): T {
+  const key = `${path.resolve(root)}\n${changeId}`;
+  const depth = candidateLockDepth.get(key) ?? 0;
+  if (depth > 0) {
+    candidateLockDepth.set(key, depth + 1);
+    try {
+      return fn();
+    } finally {
+      const next = (candidateLockDepth.get(key) ?? 1) - 1;
+      if (next <= 0) candidateLockDepth.delete(key);
+      else candidateLockDepth.set(key, next);
+    }
+  }
+  const lockPath = candidateLockPath(root, changeId);
+  mkdirSync(path.dirname(lockPath), { recursive: true });
+  const token = randomBytes(16).toString("hex");
+  acquireCandidateLock(lockPath, token, candidateLockTtlOverride ?? CANDIDATE_LOCK_TTL_MS);
+  candidateLockDepth.set(key, 1);
+  try {
+    return fn();
+  } finally {
+    candidateLockDepth.delete(key);
+    releaseCandidateLock(lockPath, token);
+  }
+}
+
 const EVENT_WRITE_LOCK = ".run-write.lock";
 const EVENT_WRITE_LOCK_TTL_MS = 30_000;
 

@@ -1,4 +1,4 @@
-<Findings base="7329" headroom="250" ceiling="7579">
+<Findings base="7297" headroom="282" ceiling="7579">
   <Finding id="f1" token="F1" status="live">
     <Title>### F1 — No `applied` status in this repository was ever written by a tool. **[verified]**</Title>
     <Body>
@@ -5843,38 +5843,6 @@ the executor takes its sequencing from. (b) The durable half is a rule in
 authoring-pass sequencing is the brief's and the gate's. **Skill text is product**, so (b) is a
 bundle. Chartered as [`C-CONSTRAINT-DURABILITY`](#named-bundle-registry), **position 2 of five** in the
 2026-09-04 order. The 24 archived specs are **not** rewritten: an archived artifact is a dated record.
-</Body>
-  </Finding>
-  <Finding id="f158" token="F158" status="live">
-    <Title>### F158 — the supersede verb's contract, measured, and one non-atomic failure path. **[verified]**</Title>
-    <Body>
-Probed **2026-09-04** on a throwaway project against the real CLI, because [D27](#d27) makes this verb the
-only route for a defective approved artifact and the authority had never driven it.
-
-| question | measured |
-|---|---|
-| replacement state required | **only that its directory exists** (`spec new` is enough) — draft status and absent `plan.xml` are both accepted; the verb does not gate on the replacement's ceremony |
-| missing replacement | refuses, exit 1: `Replacement C-PROBE-B is missing as a directory under active/ or archive/.` |
-| abandoned bundle's artifacts | `spec.xml` and `plan.xml` root status → `superseded`, and `&amp;lt;Replacement&amp;gt;ID&amp;lt;/Replacement&amp;gt;` injected as the first child of the bundle element |
-| open epoch | **folded by the verb itself** — loose `run/*.xml` events land in `run-ledger.xml` under `&amp;lt;Epoch-N&amp;gt;`, `run/` is deleted, `run.xml` and `run-ledger.xml` remain. No separate `cursor fold` is needed |
-| directory | moved `active/` → `archive/` |
-| `supersedeChainDepth` | incremented on the **replacement** (0 → 1), **not** on the abandoned bundle (stays 0) |
-| `reRatificationCount` | **untouched on both** — so a re-ratified bundle carries its count into the archive permanently |
-| source code | **never touched** — `supersedeChangeBundle` (`src/gates/ledger.ts:1383-1481`) writes only the two governance files' status plus the rename, and rolls the bytes back on failure. This substantiates the help text's *&quot;Discards governance, never code&quot;* |
-
-**The defect worth naming.** A supersede that **fails** mid-verb can still leave a side effect: with a
-cursor allocation too narrow to cover the events being folded, the fold errored
-(`event 2 outside every allocation … unterminated range`) **after** appending a loose
-`run/N-T-001-discarded.xml` event. The final rename rolls back cleanly, but the fold-then-write boundary
-does not, so a failed supersede is not a no-op. Not on the governed path for a properly allocated epoch,
-and not chartered here; recorded so the next session that sees an orphan `discarded` event knows where it
-came from.
-
-**One incidental confirmation.** The probe ran the CLI from the working tree, which already carries
-`C-SCOPE-AUDIT-ATTRIBUTION`'s unshipped production, so its `review --change` of the archived bundle
-printed `Scope audit: not-run — plan for C-PROBE-A resolved under archive/` — mechanism B working
-end-to-end on a real bundle before it has shipped. Read as evidence for the mechanism, not as shipped
-behaviour.
 </Body>
   </Finding>
   <Finding id="f159" token="F159" status="live">

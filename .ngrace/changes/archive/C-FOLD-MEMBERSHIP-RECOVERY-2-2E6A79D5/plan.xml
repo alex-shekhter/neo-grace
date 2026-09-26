@@ -1,0 +1,159 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5>
+    <IntentSummary>
+      **This T1 plan converts the approved `C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5` spec (bundle 1 of the five-way split of the superseded `C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1`) into three sequential implementation tasks.** The durable module is exactly `M-ARTIFACT-TYPES`; its verification anchor is `V-M-ARTIFACT-TYPES`. The bundle's production surface is `src/artifact/run-membership.ts` alone; `src/grace-cursor.ts` is a consuming test surface only and is never edited.
+
+      **T-001 — membership and orphan disappearance tolerance:** `listLooseEvents` and `listRunOrphans` omit an entry whose backing file vanished between `readdirSync` enumeration and the read in both measured F295 windows (typed `xml.missing-file` before the callee existence check, and a thrown `ENOENT` after it), fabricating no filename-derived entry and never letting an `ENOENT` escape; a named test-only read-boundary seam `setLooseEventReadProbeForTests` drives the early window, and an isolated-process `readFileSync` interception after the real `existsSync` drives the true late window. `EISDIR` and every other non-disappearance read failure still propagate, and the rethrown diagnostic names the unreadable loose-event path. The real `cursor show` / `status` / `gate archive` consumers keep their exact present and removed diagnostics. **T-002 — fold consequences through existing consumers:** the three consequence rows are added to `src/grace-cursor.test.ts` and driven through the real `cursor fold` — an interior hole refuses with a byte-identical `run/` listing, a trailing event removed in the true late window folds the survivors with no ghost and an empty `run/`, and a vanished `opened` folds with only the legitimate synthesized covering `opened`. **T-003 — close ratchets:** `src/artifact/scope.test.ts` is re-authored to this bundle's exact id and base with identity-bound lifecycle recognition, and `scripts/validate-record-retirement.test.ts` gains the two `bundleMinted` pins and the two-token payer ratchet.
+
+      **Payment and record writes.** The plan grammar has no `&lt;Pays&gt;` element: the payment semantics live in this `IntentSummary` and in the spec, are carried structurally by the successor-named `registry.xml` charter row's `&lt;Pays&gt;` child (written by the close's `--flush`), are pinned by the two `bundleMinted` entries in `scripts/validate-record-retirement.test.ts` (written by T-003), and are stamped as the derived `&lt;PaidBy&gt;` on the retired Finding carriers in `findings-retired.xml` (written by the close's `--retire` after this bundle's archive arrival). The payment is exactly `F295 F295.1`, and no other finding: `F292`, `F292.1`, `F313`, `F315`, and `F158` belong to the reserved later bundles and are never written here. The staged handoff is exactly the **two** `Owner:` lines in `.ngrace/scratch/staged-findings.md` at `:121` (`F295`) and `:158` (`F295.1`); while this bundle is active, `--flush` writes the four live record XML files; an eligible `--retire` writes all seven XML files; neither writer writes `docs/plans/active/RM-GOVERNED-PATH/decisions.md`, so this plan omits it. The physical predecessor supersede transition completed by the authority before this plan — three active identities moved to three archive identities — is declared in `ObservedWriteScope` because the spec assigns it and the activated guard must permit exactly it; git-observable relative to base `e0a9868916412977fd3b7aa7615b67615fa2a93b` it is two active deletions plus three archive arrivals (`--no-renames`), because the active predecessor `plan.xml` was an untracked overlay.
+
+      **Baseline, gates, and close.** `e0a9868916412977fd3b7aa7615b67615fa2a93b` is the spec's whole-bundle byte-invariance and scope-guard base. Every task runs its narrow instrument; the full CI-equivalent `bun run validate:ci` is the plan's single `TargetAssertions` `MustPassCommand` and the outer final gate, never a per-task command. The four spec `CloseEvidence` criteria (`AC-NO-UNFORCED-WRITES`, `AC-CLOSE-PAYER`, `AC-CLOSE-LINT`, `AC-CLOSE-TESTS`) are evaluated by the close in the applied-archive state and are deliberately absent from every task's `Satisfies`. The plan's `ObservedWriteScope` must not add this bundle's own `spec.xml`, `plan.xml`, `design-context.xml`, `run/`, `run.xml`, or `run-ledger.xml`, because those are governed by identity/lifecycle rules.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-ARTIFACT-TYPES</Value>
+      </MustExist>
+      <MustExist>
+        <Value>V-M-ARTIFACT-TYPES</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/run-membership.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/run-membership.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/grace-cursor.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/artifact/scope.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/validate-record-retirement.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/scratch/staged-findings.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/archive/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/spec.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/archive/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/plan.xml</Value>
+      </MustExist>
+      <MustExist>
+        <Value>.ngrace/changes/archive/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/run-ledger.xml</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustVerify>
+        <Module>M-ARTIFACT-TYPES</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/artifact/run-membership.ts</File>
+        <Text>setLooseEventReadProbeForTests</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/scope.test.ts</File>
+        <Text>C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>F295: "C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5"</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/validate-record-retirement.test.ts</File>
+        <Text>"F295.1": "C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5"</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-ARTIFACT-TYPES />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-ARTIFACT-TYPES />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/run-membership.ts</File>
+      <File>src/artifact/run-membership.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/artifact/scope.test.ts</File>
+      <File>scripts/validate-record-retirement.test.ts</File>
+      <File>.ngrace/scratch/staged-findings.md</File>
+      <File>.ngrace/changes/active/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/spec.xml</File>
+      <File>.ngrace/changes/active/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/plan.xml</File>
+      <File>.ngrace/changes/active/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/run-ledger.xml</File>
+      <File>.ngrace/changes/archive/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/spec.xml</File>
+      <File>.ngrace/changes/archive/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/plan.xml</File>
+      <File>.ngrace/changes/archive/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/run-ledger.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/decisions.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/findings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/rulings-retired.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry.xml</File>
+      <File>docs/plans/active/RM-GOVERNED-PATH/registry-retired.xml</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Membership and orphan disappearance tolerance</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            In `src/artifact/run-membership.ts`, a `run/` event removed after `readdirSync` enumeration but before the callee existence check is omitted by `listLooseEvents` — no filename-derived fabricated entry — and a real `bun run ngrace cursor show` exits 0 with the surviving events and unchanged id order. The drive goes through the named test-only seam `setLooseEventReadProbeForTests` (which fires immediately before `readGraceXmlArtifact`) and the interceptor must report it fired; a dangling backing file is an equivalent portable control. The same fixture driven against an isolated copy of the unmodified base `e0a9868916412977fd3b7aa7615b67615fa2a93b` observes the fabricated entry, whose measured discriminating shape is pinned from the actual returned event: `{id:2, task:"T-001", kind:"progress", exists:false, attributes:{id:"2", task:"T-001", kind:"progress"}, children:[]}` — filename-derived `{id, task, kind}` attributes with no `graceVersion` and empty children.
+          </Criterion>
+          <Criterion>
+            An event removed after the real callee existence check but before the read is omitted without an uncaught `ENOENT`: a direct `listLooseEvents` call returns the survivors with unchanged payload and id order, and a real `bun run ngrace cursor show` exits 0. The window is driven by isolated-process interception of `readFileSync` after `existsSync` has already returned true (a pre-call thrown `ENOENT` is not this window), and the interceptor must report it fired before either exit 0 is accepted. The isolated baseline copy exits 1 with the uncaught `ENOENT` observed through `src/artifact/xml.ts:219` and `src/artifact/run-membership.ts:70`, so both directions are observed and the late window is proven distinct from the early window. A separate `EISDIR` control — the event path replaced by a directory — still exits non-zero, retains `EISDIR`, names the full event path, and is not folded into the disappearance tolerance; every read failure other than `ENOENT` or typed `xml.missing-file` is rethrown rather than treated as disappearance.
+          </Criterion>
+          <Criterion>
+            `listRunOrphans` tolerates a well-named `run/` file that vanishes in the true late window: a direct call does not throw `ENOENT`, and the two orphan classes (`event-filename`, `invalid-id`) keep their reasons and ordering. The real consuming CLI path keeps its exact diagnostics on a bundle whose `run/` holds `2-T-001-progress.xml` with `id="x"`: present — `bun run ngrace status --path &lt;root&gt;` exits 0 with a line containing `orphans=1`, and `bun run ngrace gate archive --change C-ORPH --path &lt;root&gt;` exits 0 with `1 orphan(s): 2-T-001-progress.xml (invalid-id)`; removed before enumeration — both exit 0, `status` prints no `orphans=` for the change, and the gate prints `no-open-epoch … run/ empty` with no orphan mention; removed after the existence check before the read (intercepted, reported fired) — both still exit 0. The current base is measured red on the intercepted-late row: it exits 1 with the uncaught `ENOENT`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/artifact/run-membership.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-MEMBER-EARLY-VANISH />
+          <AC-MEMBER-LATE-VANISH />
+          <AC-MEMBER-ORPHANS-TOLERANT />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Fold consequences through existing consumers</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The three measured fold consequences are added to `src/grace-cursor.test.ts` as distinct cases, each with its own fixture, and driven through the real `bun run ngrace cursor fold`. (a) An interior progress event removed from an `opened`/`progress`/`terminal` stream makes `cursor fold` exit 1 naming `range hole at N for &lt;worker&gt;`, with the recursive `run/` listing (directory entries as well as file bytes) byte-identical and no ledger written. (b) A trailing progress event materialized with bytes and then removed in the true late window — isolated-process interception of `readFileSync` after the real existence check, reporting it fired — while `opened` and `terminal` remain, folds with exit 0 and exactly the surviving events `1:opened, 2:progress, 3:terminal`, no fabricated ghost, and an empty `run/`. (c) A vanished `opened` event with `terminal` and `progress` remaining folds with exit 0 and a single synthesized covering `opened` carrying a fresh covering id, with no event for the vanished id fabricated. The criterion forbids treating every vanished entry as an automatic refusal and forbids manufacturing a ghost event to make the loss observable. No `src/grace-cursor.ts` production edit is made.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-MEMBER-FOLD-CONSEQUENCES />
+        </Satisfies>
+      </T-002>
+      <T-003>
+        <Title>Close ratchets: exact scope guard and the two-token payer pins</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/artifact/scope.test.ts` is re-authored to `NGRACE_SCOPE_GUARD_CHANGE=C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5` against base `e0a9868916412977fd3b7aa7615b67615fa2a93b`. Its activated allowed set is exactly the one forced source (`src/artifact/run-membership.ts`), the four forced tests (`src/artifact/run-membership.test.ts`, `src/grace-cursor.test.ts`, `src/artifact/scope.test.ts`, `scripts/validate-record-retirement.test.ts`), the six exact predecessor-transition paths, and the seven named record XML files, with zero globs. The git-derived predecessor population uses `--no-renames` and is exactly two active deletions (`.ngrace/changes/active/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/spec.xml`, `.ngrace/changes/active/C-FOLD-MEMBERSHIP-RECOVERY-1-DE8479F1/run-ledger.xml`) plus three archive arrivals; the active predecessor `plan.xml` is not counted as a git deletion. The guard covers tracked diffs and untracked files, excludes `docs/plans/active/RM-GOVERNED-PATH/decisions.md` unconditionally, and proves: a clean applied-archive pass; a forbidden ordinary path reddens; a planted file inside the governed record directory that is not one of the seven named XML files reddens; a planted non-lifecycle file inside this bundle's own directory reddens, proving the bundle-directory recognition is exact identity and not a blanket prefix; unavailable git evidence refuses rather than reporting clean; and without the exact activation switch a later unrelated write of the same kind does not fail.
+          </Criterion>
+          <Criterion>
+            `scripts/validate-record-retirement.test.ts` carries exactly two `bundleMinted` entries, `F295` and `"F295.1"`, naming `C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5`, and a payer ratchet proves each token derives only from this bundle's archived charter row, that an absent or stale pin reds the derivation walk, that only the current pin greens it, and that a staged-buffer-only owner-line edit cannot green it because the test ratchets the durable XML result the flush produces, never the ignored buffer. A further assertion, keyed on this bundle's archive arrival so it is green in the execution tree and discriminating in the applied-archive state, reds the CloseEvidence command until `findings-retired.xml` holds both `F295` and `F295.1` with `PaidBy` naming this bundle, `registry-retired.xml` holds the retired row whose `&lt;Pays&gt;` is exactly `F295 F295.1`, and the `decisions.xml` index entries carry layer `retired`. No `F292`, `F292.1`, `F313`, `F315`, or `F158` pin or needle is written.
+          </Criterion>
+          <Criterion>
+            The plan's `ObservedWriteScope` enumerates the exact non-lifecycle population (one source, four tests, the staged buffer, the six predecessor-transition paths, and the seven record XML files) and adds none of this successor's own `spec.xml`, `plan.xml`, `design-context.xml`, `run/`, `run.xml`, or `run-ledger.xml`, nor `decisions.md`, `src/artifact/xml.ts`, `src/grace-cursor.ts`, a later-bundle file, directory catch-all, or archive glob.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts src/artifact/scope.test.ts</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+  </C-FOLD-MEMBERSHIP-RECOVERY-2-2E6A79D5>
+</NgraceChangePlan>
