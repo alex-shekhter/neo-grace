@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-SQUASH-WITNESS-1-87D77A3D>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-SQUASH-WITNESS-1-87D77A3D><Replacement>C-SQUASH-WITNESS-2-29EFA92A</Replacement>
     <IntentSummary>
       Execute the approved spec at dc885ef441cad3d1969382a0f5399182a8eda00d. Ceremony tier T1. All eleven acceptance criteria carry CloseEvidence, so this plan has no Satisfies block: a Satisfies of a close-bound criterion is change.close-evidence-and-satisfied. AffectedAreas names no module anchor, so DurableScope is None. ObservedWriteScope is the seven forced product paths and nothing else. run-ledger.xml is a lifecycle path the scope audit already skips. spec.xml, plan.xml, and design-context.xml are skipped by identity. test-metrics.json is not in scope: the fixture and the verifier are not .test.ts files, and artifactIsStale stays false.
 

@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-SQUASH-WITNESS-1-87D77A3D>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-SQUASH-WITNESS-1-87D77A3D><Replacement>C-SQUASH-WITNESS-2-29EFA92A</Replacement>
     <Summary>
       After the squash merge of the pre-squash feature tip, a fresh clone cannot see b53d13df47cdf8d85f75b33502c6ecd9e97ff262, b7c94d786ebc89cc279c6dc292c8dd32110fcc9d, or 0fbd59961d15b7587cc2b153e225fcdcf9066db2, and those commits are not ancestors of HEAD even when the objects are still present. Keep the pre-pin controls executing the real pre-pin source, and keep the C6 archive witness, by content-addressed pins stored where the test runner and the typechecker do not treat them as live sources. Leave git ancestry in force for an explicit throwaway boundary. The behavior pass is recorded by ngrace gate verdict running a portable verifier against the Validate job's exact-head JUnit artifact. A green workflow run is not that write.
     </Summary>
