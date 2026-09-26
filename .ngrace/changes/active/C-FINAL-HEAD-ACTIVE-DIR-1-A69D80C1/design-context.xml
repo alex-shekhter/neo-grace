@@ -1,0 +1,34 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-FINAL-HEAD-ACTIVE-DIR-1-A69D80C1</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    The spec is the source of truth. This note records why the post-archive working-tree comparison is overturned and why the other two repairs lose. The chosen repair restores tracked `.ngrace/changes/active/.gitkeep` and, once `C-LINUX-VALIDATION-REPAIR-6-62765C22` is under `archive/`, compares `candidateSha` `b7c94d786ebc89cc279c6dc292c8dd32110fcc9d` only through the application commit `0fbd59961d15b7587cc2b153e225fcdcf9066db2`. C6's argument was that a later source or workflow change must not keep wearing the candidate Windows run. That is true until the governance that the candidate proved is committed. The diff from that candidate SHA to `0fbd59961d15b7587cc2b153e225fcdcf9066db2` contains only C6 active paths, C6 archive paths, and `scripts/audit-regressions.test.ts`, which is the allowed set the ruling already named. After that commit the candidate run is a historical witness. A later head is proved by a new final-head Validate workflow. Rewriting `candidateSha` to the later head would relabel the old run. The active-mode working-tree guard, the sidecar shape, the job and direction inventories, the ancestor check, the fail-closed inventories, and the URL-free scan stay. No module anchor is in scope. The forced product write paths are `.ngrace/changes/active/.gitkeep` and `scripts/audit-regressions.test.ts`. Neither is module-ownable under `isModuleOwnableWritePath` (`src/lint/core.ts`): the marker is not under `src/`, and the guard file is not under `src/` and is a test file. Neither file carries a LINKS header. `M-GRAMMAR` (`src/artifact/grammar.ts`), `M-RELEASE-AUTOMATION` (release scripts under `scripts/` that do carry LINKS; the guard file is not one of them), and `M-GATES` (`src/gates/ledger.ts`) are not forced.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Recommended. Restore the tracked marker, and in archived mode move the path check to the fixed application boundary while keeping a separate check that C6 archive bytes still match that commit. Pros: a fresh checkout has `active/`; the candidate-to-boundary range still rejects a forbidden historical path; a later unrelated file, including the marker and this bundle, does not wear or redden the candidate run; C6 archive tampering still reds; the pre-close active guard stays. Cons: the guard learns a permanent boundary hash, and tests of archived mode on a throwaway repository need an explicit local boundary because that hash is not in a tiny fixture. The in-repository call does not take that override, and a missing boundary object fails closed.
+    </Alternative>
+    <Alternative>
+      Runner-up. Allowlist only `.ngrace/changes/active/.gitkeep` on the current working-tree comparison. Pros: the diff is smaller and the marker alone would go green. Cons: the next legitimate tracked path is outside the allowed set and the live guard goes red again, which is the failure already measured with a later repository-root file committed after `0fbd59961d15b7587cc2b153e225fcdcf9066db2`. The runner-up loses because it preserves a comparison window that cannot survive the next ordinary commit.
+    </Alternative>
+    <Alternative>
+      Rejected. Teach `validateNgraceProjectLayout` to accept a missing `active/` directory. Pros: a fresh checkout would lint without a marker. Cons: it widens the long-standing layout contract in `src/artifact/grammar.ts:438-450`, which requires both change directories, and it leaves the post-archive working-tree guard red on the marker and on every later file. The layout symptom and the stale boundary are both required repairs.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Pilot datum, with no ruling. C6's candidate-head Windows run `36196836553` succeeded at `b7c94d786ebc89cc279c6dc292c8dd32110fcc9d`. Final-head Validate run `36205105894` then failed at `0fbd59961d15b7587cc2b153e225fcdcf9066db2`. This further governance cycle is required by the missing tracked `active/` marker and by the post-archive guard's comparison to the live tree. This bundle does not rule on the pilot. No duration or token figure is stated.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Fresh `git archive` of a HEAD that contains `.ngrace/changes/active/.gitkeep`, with every active `C-*` directory removed: lint exits 0 with zero errors and zero warnings, and `module find true`, `module find false`, and `module find --json=true` exit 0. Deleting the marker and `active/` makes lint exit 1 with `project.missing-change-directory`, and `module find true` exits non-zero.
+    </Scenario>
+    <Scenario>
+      C6 resolved only under `active/`: an uncommitted `.github/workflows/validate.yml` edit reds, and a rename of that file into the C6 bundle reds on the forbidden endpoint. Restoring the fixture greens. The boundary hash is not required.
+    </Scenario>
+    <Scenario>
+      C6 resolved only under `archive/`: a later tracked file outside the C6 archive greens; a changed or untracked C6 archive artifact reds; a forbidden path inside the candidate-to-boundary diff reds even when the later tree is clean; a reversed or unrelated candidate-to-boundary range and a missing boundary object on the no-override call fail closed. Sidecar, job, direction, inventory, and full Actions-link failures still red.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
