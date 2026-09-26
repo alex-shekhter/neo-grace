@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-FINAL-HEAD-ACTIVE-DIR-1-A69D80C1>
     <Summary>
       Restore a tracked `.ngrace/changes/active/.gitkeep` so a fresh checkout still has `active/` after every bundle has been archived, and bound the archived C6 Windows-evidence path check to the committed application commit `0fbd59961d15b7587cc2b153e225fcdcf9066db2` so later legitimate changes do not relabel that historical candidate run.

@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-FINAL-HEAD-ACTIVE-DIR-1-A69D80C1>
     <IntentSummary>
       T0 hotfix. T-001 stages the empty tracked marker `.ngrace/changes/active/.gitkeep` and stops. The authority commits that path before T-002's verification. T-002 repairs the archived-mode C6 guard in `scripts/audit-regressions.test.ts` and adds the discriminating probes. The authority commits the completed implementation before close. The executor does not commit or push. Every spec acceptance criterion is close-bound, so this plan has no Satisfies links. No module anchor is in scope.
