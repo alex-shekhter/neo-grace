@@ -1,7 +1,7 @@
-import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import type { GraceXmlNode } from "./artifact/xml";
-import os from "node:os";
+import os, { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 import { describe, expect, it, afterAll } from "bun:test";
@@ -6620,6 +6620,192 @@ describe("AC-MEMBER-MATRIX-COMPLETE item17 (C-SUPERSEDE-INTEGRATION-CLOSE-1-8207
   });
 });
 
+const PREPIN_COMMIT = "b53d13df47cdf8d85f75b33502c6ecd9e97ff262";
+const PREPIN_SRC_TREE = "b34bbc1fab64c6823afbf47311c39944ab2d74fe";
+const PREPIN_COMMIT_ABSENT_REASON = "prepin commit b53d13df47cdf8d85f75b33502c6ecd9e97ff262 is absent";
+type PrepinManifest = Record<string, string>;
+
+function prepinFixtureDir(): string {
+  return path.join(path.resolve(import.meta.dir, ".."), "scripts/fixtures", `prepin-${PREPIN_COMMIT}`);
+}
+
+function cString(buf: Buffer): string {
+  const zero = buf.indexOf(0);
+  return buf.subarray(0, zero < 0 ? buf.length : zero).toString("utf8");
+}
+
+function ustarMembers(bytes: Buffer): Array<{ name: string; data: Buffer; typeflag: string }> {
+  const members: Array<{ name: string; data: Buffer; typeflag: string }> = [];
+  let offset = 0;
+  while (offset + 512 <= bytes.length) {
+    const header = bytes.subarray(offset, offset + 512);
+    let zero = true;
+    for (let i = 0; i < 512; i += 1) {
+      if (header[i] !== 0) {
+        zero = false;
+        break;
+      }
+    }
+    if (zero) break;
+    const nameField = cString(header.subarray(0, 100));
+    const prefixField = cString(header.subarray(345, 500));
+    const name = prefixField ? `${prefixField}/${nameField}` : nameField;
+    const size = Number.parseInt(cString(header.subarray(124, 136)).trim() || "0", 8);
+    if (!Number.isFinite(size) || size < 0) throw new Error(`prepin tar size fails closed: ${name}`);
+    const typeflag = String.fromCharCode(header[156] ?? 0);
+    offset += 512;
+    if (offset + size > bytes.length) throw new Error(`prepin tar truncated member fails closed: ${name}`);
+    const data = Buffer.from(bytes.subarray(offset, offset + size));
+    offset += Math.ceil(size / 512) * 512;
+    members.push({ name, data, typeflag });
+  }
+  return members;
+}
+
+function memberEscapes(root: string, name: string): boolean {
+  if (name.length === 0 || path.isAbsolute(name) || name.includes("\0")) return true;
+  if (name.split(/[\\/]/).some((segment) => segment === "..")) return true;
+  const dest = path.resolve(root, name);
+  const rel = path.relative(path.resolve(root), dest);
+  return rel === "" || rel.startsWith("..") || path.isAbsolute(rel);
+}
+
+function extractPrepinArchive(archiveBytes: Buffer, destRoot: string): string[] {
+  const problems: string[] = [];
+  const members = ustarMembers(archiveBytes);
+  for (const member of members) {
+    const file = member.typeflag === "0" || member.typeflag === "\0";
+    if (!file || memberEscapes(destRoot, member.name)) problems.push(`extraction path ${member.name || "(empty)"} fails closed`);
+  }
+  if (problems.length > 0) return problems;
+  mkdirSync(destRoot, { recursive: true });
+  for (const member of members) {
+    const dest = path.resolve(destRoot, member.name);
+    mkdirSync(path.dirname(dest), { recursive: true });
+    writeFileSync(dest, member.data);
+  }
+  return [];
+}
+
+function gitText(args: string[], cwd?: string, env?: NodeJS.ProcessEnv): { status: number; stdout: string; stderr: string } {
+  const result = Bun.spawnSync({ cmd: ["git", ...args], cwd, stdout: "pipe", stderr: "pipe", env });
+  return {
+    status: result.exitCode ?? 1,
+    stdout: Buffer.from(result.stdout).toString("utf8"),
+    stderr: Buffer.from(result.stderr).toString("utf8"),
+  };
+}
+
+function srcTreeId(srcDir: string): string {
+  const gitDir = mkdtempSync(path.join(tmpdir(), "prepin-git-"));
+  try {
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      GIT_DIR: gitDir,
+      GIT_WORK_TREE: srcDir,
+      GIT_CONFIG_NOSYSTEM: "1",
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_COUNT: "2",
+      GIT_CONFIG_KEY_0: "core.autocrlf",
+      GIT_CONFIG_VALUE_0: "false",
+      GIT_CONFIG_KEY_1: "core.excludesFile",
+      GIT_CONFIG_VALUE_1: "/dev/null",
+    };
+    const init = gitText(["init", "-q"], undefined, env);
+    if (init.status !== 0) throw new Error(init.stderr || "git init failed");
+    const add = gitText(["add", "--all"], undefined, env);
+    if (add.status !== 0) throw new Error(add.stderr || "git add failed");
+    const tree = gitText(["write-tree"], undefined, env);
+    if (tree.status !== 0) throw new Error(tree.stderr || "git write-tree failed");
+    return tree.stdout.trim();
+  } finally {
+    rmSync(gitDir, { recursive: true, force: true });
+  }
+}
+
+function blobId(file: string): string {
+  const result = gitText(["hash-object", "--no-filters", "--", file]);
+  if (result.status !== 0) throw new Error(result.stderr || "git hash-object failed");
+  return result.stdout.trim();
+}
+
+function walkFiles(dir: string, base = dir): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const full = path.join(dir, entry);
+    const info = lstatSync(full);
+    if (info.isSymbolicLink()) continue;
+    if (info.isDirectory()) out.push(...walkFiles(full, base));
+    else if (info.isFile()) out.push(path.relative(base, full).split(path.sep).join("/"));
+  }
+  return out.sort();
+}
+
+function reconstructionProblems(destRoot: string, manifest: PrepinManifest): string[] {
+  const problems: string[] = [];
+  const srcDir = path.join(destRoot, "src");
+  if (!existsSync(srcDir)) return ["extracted src tree is missing; fails closed"];
+  const tree = srcTreeId(srcDir);
+  if (tree !== PREPIN_SRC_TREE) problems.push(`extracted src tree ${tree} fails closed`);
+  const actual = walkFiles(destRoot);
+  const expected = Object.keys(manifest).sort();
+  for (const key of expected) {
+    if (!actual.includes(key)) problems.push(`missing extracted file ${key} fails closed`);
+  }
+  for (const key of actual) {
+    if (!expected.includes(key)) problems.push(`extra extracted file ${key} fails closed`);
+  }
+  for (const key of expected) {
+    const file = path.join(destRoot, key.split("/").join(path.sep));
+    if (!existsSync(file) || !statSync(file).isFile()) continue;
+    if (blobId(file) !== manifest[key]) problems.push(`extracted blob ${key} fails closed`);
+  }
+  return problems;
+}
+
+function importContainmentProblem(tempRoot: string, modulePath: string, entry: string): string | null {
+  if (!existsSync(modulePath)) return `import of ${entry} is absent; fails closed`;
+  let realModule = modulePath;
+  let realRoot = tempRoot;
+  try {
+    realModule = realpathSync(modulePath);
+    realRoot = realpathSync(tempRoot);
+  } catch {
+    return `import of ${entry} fails closed`;
+  }
+  const rel = path.relative(realRoot, realModule);
+  if (rel === "" || rel.startsWith("..") || path.isAbsolute(rel)) {
+    return `import of ${entry} resolves outside the temp root; fails closed`;
+  }
+  return null;
+}
+
+function prepinCommitCrossCheck(repo: string, manifest: PrepinManifest): { reason: string | null; tree: string | null; blobMismatches: string[] } {
+  const exists = gitText(["cat-file", "-e", `${PREPIN_COMMIT}^{commit}`], repo);
+  if (exists.status !== 0) return { reason: PREPIN_COMMIT_ABSENT_REASON, tree: null, blobMismatches: [] };
+  const tree = gitText(["rev-parse", `${PREPIN_COMMIT}:src`], repo);
+  if (tree.status !== 0) return { reason: PREPIN_COMMIT_ABSENT_REASON, tree: null, blobMismatches: [] };
+  const blobMismatches: string[] = [];
+  for (const [rel, blob] of Object.entries(manifest)) {
+    const got = gitText(["rev-parse", `${PREPIN_COMMIT}:${rel}`], repo);
+    if (got.status !== 0 || got.stdout.trim() !== blob) blobMismatches.push(rel);
+  }
+  return { reason: null, tree: tree.stdout.trim(), blobMismatches };
+}
+
+function loadPrepinFixture(destRoot: string): { problems: string[]; manifest: PrepinManifest } {
+  const dir = prepinFixtureDir();
+  if (!existsSync(dir)) return { problems: ["prepin fixture directory is absent; fails closed"], manifest: {} };
+  const names = readdirSync(dir).sort();
+  if (names.some((name) => name.endsWith(".test.ts")) || names.join(",") !== "archive.tar,manifest.json") {
+    return { problems: [`fixture directory contents ${names.join(",") || "(missing)"} fail closed`], manifest: {} };
+  }
+  const manifest = JSON.parse(readFileSync(path.join(dir, "manifest.json"), "utf8")) as PrepinManifest;
+  const escaped = extractPrepinArchive(readFileSync(path.join(dir, "archive.tar")), destRoot);
+  if (escaped.length > 0) return { problems: escaped, manifest };
+  return { problems: reconstructionProblems(destRoot, manifest), manifest };
+}
+
 // C-LINUX-VALIDATION-REPAIR-1-DE5A1A05: pre-pin recycled-identity control and timeout diagnostic.
 describe("candidate reclaim pin controls (C-LINUX-VALIDATION-REPAIR-1-DE5A1A05)", () => {
   const lockDirFor = (root: string) => path.join(root, ARTIFACT_DIR, "changes", "active");
@@ -6704,13 +6890,15 @@ describe("candidate reclaim pin controls (C-LINUX-VALIDATION-REPAIR-1-DE5A1A05)"
   });
 
   it.skipIf(!FS_RECYCLES)("AC-CANDIDATE-RECLAIM-EXCLUSIVE pre-pin control: b53d13d unlinks the recycled replacement", async () => {
-    const worktree = mkdtempSync(path.join(os.tmpdir(), "reclaim-baseline-"));
+    const extracted = mkdtempSync(path.join(os.tmpdir(), "reclaim-baseline-"));
     const repoRoot = path.resolve(import.meta.dir, "..");
-    const add = Bun.spawnSync({ cmd: ["git", "worktree", "add", "--detach", worktree, "b53d13df47cdf8d85f75b33502c6ecd9e97ff262"], cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
-    expect(add.exitCode, Buffer.from(add.stderr).toString("utf8")).toBe(0);
+    const loaded = loadPrepinFixture(extracted);
+    expect(loaded.problems, loaded.problems.join("\n")).toEqual([]);
+    const entry = path.join(extracted, "src", "grace-cursor.ts");
+    expect(importContainmentProblem(extracted, entry, "reclaim")).toBeNull();
     let childForCleanup: Bun.Subprocess | undefined;
     try {
-      symlinkSync(path.join(repoRoot, "node_modules"), path.join(worktree, "node_modules"));
+      symlinkSync(path.join(repoRoot, "node_modules"), path.join(extracted, "node_modules"));
       const root = mkdtempSync(path.join(os.tmpdir(), "grace-reclaim-prepin-"));
       mkdirSync(lockDirFor(root), { recursive: true });
       const lockPath = lockPathFor(root, "C-PREPIN");
@@ -6719,7 +6907,7 @@ describe("candidate reclaim pin controls (C-LINUX-VALIDATION-REPAIR-1-DE5A1A05)"
       const observedPair = `${observedStat.dev}:${observedStat.ino}`;
       const bAcquired = path.join(root, "b-acquired");
       const bReplaced = path.join(root, "b-replaced");
-      const modulePath = JSON.stringify(path.join(worktree, "src", "grace-cursor.ts"));
+      const modulePath = JSON.stringify(entry);
       const body = `
         const fs = require('node:fs');
         const mod = await import(${modulePath});
@@ -6766,8 +6954,7 @@ describe("candidate reclaim pin controls (C-LINUX-VALIDATION-REPAIR-1-DE5A1A05)"
         }
         await Promise.race([childForCleanup.exited, Bun.sleep(1000)]);
       }
-      Bun.spawnSync({ cmd: ["git", "worktree", "remove", "--force", worktree], cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
-      rmSync(worktree, { recursive: true, force: true });
+      rmSync(extracted, { recursive: true, force: true });
     }
   });
 
@@ -6867,6 +7054,24 @@ describe("candidate reclaim pin controls (C-LINUX-VALIDATION-REPAIR-1-DE5A1A05)"
     expect(diagnostic.message).toContain("bounded reap failed");
     expect(elapsed, `the helper returned within its bound (${elapsed}ms)`).toBeLessThan(1000);
     rmSync(root, { recursive: true, force: true });
+  });
+
+  it("prepin fixture bytes: reclaim entry resolves inside the extracted root", async () => {
+    const dest = mkdtempSync(path.join(os.tmpdir(), "prepin-reclaim-bytes-"));
+    try {
+      const loaded = loadPrepinFixture(dest);
+      expect(loaded.problems, loaded.problems.join("\n")).toEqual([]);
+      const entry = path.join(dest, "src", "grace-cursor.ts");
+      expect(importContainmentProblem(dest, entry, "reclaim")).toBeNull();
+      const outside = importContainmentProblem(dest, path.join(path.resolve(import.meta.dir, ".."), "src", "grace-cursor.ts"), "reclaim");
+      expect(outside).toContain("fails closed");
+      symlinkSync(path.join(path.resolve(import.meta.dir, ".."), "node_modules"), path.join(dest, "node_modules"), process.platform === "win32" ? "junction" : "dir");
+      const imported = await import(entry);
+      expect(typeof imported.setCandidateReclaimProbeForTests).toBe("function");
+      expect(typeof imported.withCandidateLock).toBe("function");
+    } finally {
+      rmSync(dest, { recursive: true, force: true });
+    }
   });
 
   it("AC-CANDIDATE-RECLAIM-EXCLUSIVE timeout diagnostic: already-exited child reports its numeric code", async () => {

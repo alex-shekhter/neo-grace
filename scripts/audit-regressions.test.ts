@@ -1,9 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { artifactIsStale } from "./test-metrics";
 
 type AuditRegressionCase = {
   id: string;
@@ -622,8 +623,36 @@ describe("C-LINUX-VALIDATION-REPAIR-5-EE982B6D (fifth arrival) predecessor archi
 export const WINDOWS_EVIDENCE_BUNDLE_ID = "C-LINUX-VALIDATION-REPAIR-6-62765C22";
 export const WINDOWS_EVIDENCE_GUARD_FILE = "scripts/audit-regressions.test.ts";
 
-/** Application commit of the C6 governance. Archived mode uses this unless a test passes another boundary. */
+/** Application commit of the C6 governance. An explicit boundary argument keeps this git path. */
 export const WINDOWS_EVIDENCE_BOUNDARY = "0fbd59961d15b7587cc2b153e225fcdcf9066db2";
+
+export const C6_CANDIDATE_SHA = "b7c94d786ebc89cc279c6dc292c8dd32110fcc9d";
+
+export const C6_ARCHIVE_SHA256: Record<string, string> = {
+  "ci-evidence.json": "ece6944a91817add6a41862337c6374190ac3d1ae0f64d7fe7f15cec471edb75",
+  "design-context.xml": "546f047723843c96ddf67d87ff64c7a832d847c55976090afe6d0de2e419c785",
+  "plan.xml": "684784e02cd684f4cf355092b43bff69c17c0b92c447a3398b119f8467486e4e",
+  "run-ledger.xml": "e8a61e4d40cb8e33c8c3e1285b9e363327398b1bd432f72ecaed246d4019be3c",
+  "run.xml": "1968dc6525b8b1199da8a5590dc85aadc33512154dd9058c0607360166a62d3e",
+  "spec.xml": "6ea8925b5e2a58bc2a9249c4c6a58422e808552c98bf19edd7f0c89ddb9d378d",
+};
+
+export const C6_RECORDED_PATHS = [
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/design-context.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/plan.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/run-ledger.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/run.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/spec.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/ci-evidence.json",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/design-context.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/plan.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/run-ledger.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/run.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/spec.xml",
+  "scripts/audit-regressions.test.ts",
+] as const;
+
+export const RECORDED_RANGE_OBJECT_ABSENT = "recorded range object absent";
 
 const WINDOWS_EVIDENCE_ARCHIVE_DIR = `.ngrace/changes/archive/${WINDOWS_EVIDENCE_BUNDLE_ID}`;
 
@@ -760,10 +789,77 @@ function archivedProvenanceProblems(root: string, sha: string, boundary: string,
  * provenance, job/direction tallies, and a full-Actions-link scan of every bundle
  * artifact in its active or archived location. An empty array is green.
  */
+export function recordedPathListProblems(paths: readonly string[]): string[] {
+  const problems: string[] = [];
+  if (paths.length !== C6_RECORDED_PATHS.length || paths.some((entry, index) => entry !== C6_RECORDED_PATHS[index])) {
+    problems.push("recorded path list fails closed");
+  }
+  for (const changed of paths) {
+    if (!isAllowedEvidencePath(changed)) problems.push(`substituted path ${changed} fails closed`);
+  }
+  return problems;
+}
+
+function samePathSet(actual: readonly string[], expected: readonly string[]): boolean {
+  if (actual.length !== expected.length) return false;
+  const left = [...actual].sort();
+  const right = [...expected].sort();
+  return left.every((entry, index) => entry === right[index]);
+}
+
+/** Filesystem pin for an omitted boundary. This function spawns no git process. */
+function omittedBoundaryWitness(root: string, sha: string): string[] {
+  const problems: string[] = [];
+  if (sha !== C6_CANDIDATE_SHA) problems.push(`candidateSha ${sha} must equal ${C6_CANDIDATE_SHA}; fails closed`);
+  const archiveDir = path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR);
+  let entries: Array<{ name: string; file: boolean }> = [];
+  try {
+    entries = readdirSync(archiveDir, { withFileTypes: true }).map((entry) => ({ name: entry.name, file: entry.isFile() }));
+  } catch (error) {
+    problems.push(`archive inventory fails closed: ${(error as Error).message}`);
+    entries = [];
+  }
+  const names = entries.filter((entry) => entry.file).map((entry) => entry.name);
+  for (const name of Object.keys(C6_ARCHIVE_SHA256)) {
+    if (!names.includes(name)) problems.push(`missing pinned archive file ${name} fails closed`);
+  }
+  for (const entry of entries) {
+    if (!entry.file || !(entry.name in C6_ARCHIVE_SHA256)) problems.push(`extra archive path ${entry.name} fails closed`);
+  }
+  for (const [name, digest] of Object.entries(C6_ARCHIVE_SHA256)) {
+    const file = path.join(archiveDir, name);
+    try {
+      const actual = createHash("sha256").update(readFileSync(file)).digest("hex");
+      if (actual !== digest) problems.push(`archive byte mismatch ${name} fails closed`);
+    } catch (error) {
+      problems.push(`archive byte read ${name} fails closed: ${(error as Error).message}`);
+    }
+  }
+  problems.push(...recordedPathListProblems(C6_RECORDED_PATHS));
+  return problems;
+}
+
+/** Object-aware cross-check. The omitted-boundary witness does not call this. */
+export function recordedRangeCrossCheck(root: string): { problems: string[]; paths: string[] } {
+  if (!commitExists(root, C6_CANDIDATE_SHA) || !commitExists(root, WINDOWS_EVIDENCE_BOUNDARY)) {
+    return { problems: [RECORDED_RANGE_OBJECT_ABSENT], paths: [] };
+  }
+  const diff = spawnSync("git", ["diff", "--no-renames", "--name-only", C6_CANDIDATE_SHA, WINDOWS_EVIDENCE_BOUNDARY], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  if (diff.status !== 0) {
+    return { problems: [`recorded range diff fails closed: ${diff.stderr?.trim() || "unknown"}`], paths: [] };
+  }
+  const paths = (diff.stdout ?? "").split("\n").map((line) => line.trim()).filter(Boolean);
+  if (!samePathSet(paths, C6_RECORDED_PATHS)) return { problems: ["recorded range path list fails closed"], paths };
+  return { problems: [], paths };
+}
+
 export function windowsEvidenceProblems(
   root: string,
   run: GitRunner = defaultGitRunner,
-  boundary: string = WINDOWS_EVIDENCE_BOUNDARY,
+  boundary?: string,
 ): string[] {
   const problems: string[] = [];
   const active = path.join(root, ".ngrace", "changes", "active", WINDOWS_EVIDENCE_BUNDLE_ID);
@@ -780,7 +876,9 @@ export function windowsEvidenceProblems(
   try {
     record = JSON.parse(readFileSync(sidecar, "utf8")) as Record<string, unknown>;
   } catch (error) {
-    return [`ci-evidence.json is not valid JSON: ${(error as Error).message}`];
+    const message = `ci-evidence.json is not valid JSON: ${(error as Error).message}`;
+    if (!activeExists && boundary === undefined) return [`${message}; fails closed`];
+    return [message];
   }
 
   if (record.schemaVersion !== "1.0.0") problems.push("schemaVersion must be exactly 1.0.0");
@@ -797,6 +895,8 @@ export function windowsEvidenceProblems(
     } catch (error) {
       problems.push(`changed-path inventory failed: ${(error as Error).message}`);
     }
+  } else if (boundary === undefined) {
+    problems.push(...omittedBoundaryWitness(root, sha));
   } else {
     problems.push(...archivedProvenanceProblems(root, sha, boundary, run));
   }
@@ -851,9 +951,13 @@ export function windowsEvidenceProblems(
     }
   }
 
-  for (const file of collectBundleFiles(bundle)) {
-    const link = findActionsLink(readFileSync(file, "utf8"));
-    if (link) problems.push(`full GitHub Actions link in ${path.relative(root, file)}`);
+  try {
+    for (const file of collectBundleFiles(bundle)) {
+      const link = findActionsLink(readFileSync(file, "utf8"));
+      if (link) problems.push(`full GitHub Actions link in ${path.relative(root, file)}`);
+    }
+  } catch (error) {
+    problems.push(`bundle link inventory failed: ${(error as Error).message}; fails closed`);
   }
 
   return problems;
@@ -1354,6 +1458,189 @@ describe("C-LINUX-VALIDATION-REPAIR-6 archived-mode boundary", () => {
   });
 });
 
+const C6_PATH_LITERALS = [
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/design-context.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/plan.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/run-ledger.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/run.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/spec.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/ci-evidence.json",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/design-context.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/plan.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/run-ledger.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/run.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/spec.xml",
+  "scripts/audit-regressions.test.ts",
+] as const;
+
+function withPinnedArchiveCopy(body: (root: string) => void): void {
+  const root = mkdtempSync(path.join(os.tmpdir(), "c6-pin-copy-"));
+  const dest = path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR);
+  mkdirSync(dest, { recursive: true });
+  const src = path.join(repoRoot, WINDOWS_EVIDENCE_ARCHIVE_DIR);
+  for (const name of Object.keys(C6_ARCHIVE_SHA256)) writeFileSync(path.join(dest, name), readFileSync(path.join(src, name)));
+  try {
+    body(root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+describe("omitted-boundary content witness", () => {
+  it("omitted-boundary content witness: this repository is green with zero git spawns", () => {
+    expect([...C6_RECORDED_PATHS]).toEqual([...C6_PATH_LITERALS]);
+    expect(recordedPathListProblems(C6_RECORDED_PATHS)).toEqual([]);
+    expect(recordedPathListProblems(["src/forbidden.ts"]).some((problem) => problem.includes("fails closed"))).toBe(true);
+    const marker = path.join(os.tmpdir(), `prepin-git-spawn-${process.pid}`);
+    rmSync(marker, { force: true });
+    const bin = mkdtempSync(path.join(os.tmpdir(), "prepin-git-bin-"));
+    writeFileSync(path.join(bin, "git"), `#!/bin/sh\necho spawned >> ${JSON.stringify(marker)}\nexit 1\n`, { mode: 0o755 });
+    chmodSync(path.join(bin, "git"), 0o755);
+    const saved = process.env.PATH;
+    let runnerCalls = 0;
+    const failing = (() => {
+      runnerCalls += 1;
+      return { status: 128, stdout: "", stderr: "git runner consulted" };
+    }) as GitRunner;
+    process.env.PATH = bin;
+    let problems: string[] = [];
+    try {
+      problems = windowsEvidenceProblems(repoRoot, failing);
+    } finally {
+      process.env.PATH = saved;
+      rmSync(bin, { recursive: true, force: true });
+    }
+    expect(problems, problems.join("\n")).toEqual([]);
+    expect(problems.join("\n")).not.toContain("not an ancestor of HEAD");
+    expect(problems.join("\n")).not.toContain("is absent");
+    expect(runnerCalls).toBe(0);
+    expect(existsSync(marker)).toBe(false);
+  });
+
+  it("omitted-boundary content witness: a pinned copy stays green under a failing runner, and byte, extra, and missing faults fail closed", () => {
+    withPinnedArchiveCopy((root) => {
+      const failing = (() => {
+        throw new Error("git runner consulted");
+      }) as GitRunner;
+      expect(windowsEvidenceProblems(root, failing)).toEqual([]);
+      expect(recordedRangeCrossCheck(root).problems).toEqual([RECORDED_RANGE_OBJECT_ABSENT]);
+      const sidecar = path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR, "ci-evidence.json");
+      const pinned = path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR, "design-context.xml");
+      const savedPin = readFileSync(pinned);
+      const flippedPin = Buffer.from(savedPin);
+      flippedPin[0] ^= 0xff;
+      writeFileSync(pinned, flippedPin);
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("fails closed"))).toBe(true);
+      writeFileSync(pinned, savedPin);
+      expect(windowsEvidenceProblems(root)).toEqual([]);
+      const saved = readFileSync(sidecar);
+      const flipped = Buffer.from(saved);
+      flipped[0] ^= 0xff;
+      writeFileSync(sidecar, flipped);
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("fails closed"))).toBe(true);
+      writeFileSync(sidecar, saved);
+      expect(windowsEvidenceProblems(root)).toEqual([]);
+      const extra = path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR, "extra.txt");
+      writeFileSync(extra, "extra\n");
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("fails closed"))).toBe(true);
+      rmSync(extra);
+      expect(windowsEvidenceProblems(root)).toEqual([]);
+      rmSync(path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR, "spec.xml"));
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("fails closed"))).toBe(true);
+      writeFileSync(path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR, "spec.xml"), readFileSync(path.join(repoRoot, WINDOWS_EVIDENCE_ARCHIVE_DIR, "spec.xml")));
+      expect(windowsEvidenceProblems(root)).toEqual([]);
+      const record = JSON.parse(readFileSync(sidecar, "utf8")) as Record<string, unknown>;
+      record.candidateSha = "0123456789abcdef0123456789abcdef01234567";
+      writeFileSync(sidecar, `${JSON.stringify(record, null, 2)}\n`);
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("fails closed"))).toBe(true);
+      writeFileSync(sidecar, saved);
+      expect(windowsEvidenceProblems(root)).toEqual([]);
+    });
+  });
+});
+
+describe("explicit boundary", () => {
+  it("explicit boundary: a throwaway keeps git when its boundary is passed, and an omitted call on unmatched pins fails closed", () => {
+    const fixture = makeArchivedEvidenceFixture();
+    try {
+      const omitted = windowsEvidenceProblems(fixture.root);
+      expect(omitted.some((problem) => problem.includes("fails closed")), omitted.join("\n")).toBe(true);
+      expect(windowsEvidenceProblems(fixture.root, defaultGitRunner, fixture.boundary)).toEqual([]);
+      const absent = windowsEvidenceProblems(fixture.root, defaultGitRunner, WINDOWS_EVIDENCE_BOUNDARY);
+      expect(absent.some((problem) => problem.includes("fails closed")), absent.join("\n")).toBe(true);
+      gitRun(fixture.root, ["checkout", "-q", "--detach", "HEAD~1"]);
+      writeFileSync(path.join(archiveEvidencePath(fixture.root), "ci-evidence.json"), fixture.sidecarText);
+      gitRun(fixture.root, ["add", "-A"]);
+      gitRun(fixture.root, ["commit", "-q", "-m", "alternate head"]);
+      const offHead = windowsEvidenceProblems(fixture.root, defaultGitRunner, fixture.boundary);
+      expect(offHead.some((problem) => problem.includes("fails closed")), offHead.join("\n")).toBe(true);
+      gitRun(fixture.root, ["checkout", "-q", "-f", "--detach", fixture.boundary]);
+      expect(windowsEvidenceProblems(fixture.root, defaultGitRunner, fixture.boundary)).toEqual([]);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  it("explicit boundary: active mode omits the boundary and does not consult the content pins", () => {
+    const fixture = makeEvidenceFixture();
+    try {
+      expect(existsSync(path.join(fixture.root, WINDOWS_EVIDENCE_ARCHIVE_DIR))).toBe(false);
+      expect(windowsEvidenceProblems(fixture.root)).toEqual([]);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("recorded range cross-check", () => {
+  it("recorded range cross-check: present objects match the twelve paths and absent objects report a named reason", () => {
+    const measured = recordedRangeCrossCheck(repoRoot);
+    if (commitExists(repoRoot, C6_CANDIDATE_SHA) && commitExists(repoRoot, WINDOWS_EVIDENCE_BOUNDARY)) {
+      expect(measured.problems, measured.problems.join("\n")).toEqual([]);
+      expect([...measured.paths].sort()).toEqual([...C6_RECORDED_PATHS].sort());
+    } else {
+      expect(measured.problems).toEqual([RECORDED_RANGE_OBJECT_ABSENT]);
+      expect(measured.paths).toEqual([]);
+    }
+    const empty = mkdtempSync(path.join(os.tmpdir(), "c6-range-absent-"));
+    try {
+      gitRun(empty, ["init", "-q"]);
+      const absent = recordedRangeCrossCheck(empty);
+      expect(absent.problems).toEqual([RECORDED_RANGE_OBJECT_ABSENT]);
+      expect(windowsEvidenceProblems(repoRoot)).toEqual([]);
+    } finally {
+      rmSync(empty, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("prepin fixture discovery", () => {
+  it("prepin fixture discovery: planting a test file under the fixture makes metrics stale", () => {
+    const dir = path.join(repoRoot, "scripts/fixtures", "prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262");
+    expect(readdirSync(dir).sort()).toEqual(["archive.tar", "manifest.json"]);
+    const walk = (current: string): string[] => {
+      const found: string[] = [];
+      for (const entry of readdirSync(current, { withFileTypes: true })) {
+        const full = path.join(current, entry.name);
+        if (entry.isDirectory()) found.push(...walk(full));
+        else found.push(full);
+      }
+      return found;
+    };
+    expect(walk(dir).some((full) => full.endsWith(".test.ts"))).toBe(false);
+    const metrics = path.join(repoRoot, "test-metrics.json");
+    expect(artifactIsStale(repoRoot, metrics)).toBe(false);
+    const planted = path.join(dir, "planted.test.ts");
+    writeFileSync(planted, "export const planted = 1;\n");
+    try {
+      expect(artifactIsStale(repoRoot, metrics)).toBe(true);
+    } finally {
+      rmSync(planted, { force: true });
+    }
+    expect(artifactIsStale(repoRoot, metrics)).toBe(false);
+  });
+});
+
 describe("tracked active-directory marker", () => {
   it("a git archive HEAD checkout with active bundles removed lints clean and module find exits 0, and deleting active/ reddens", () => {
     expect(gitRun(repoRoot, ["ls-files", "--error-unmatch", ".ngrace/changes/active/.gitkeep"]).trim()).toBe(".ngrace/changes/active/.gitkeep");
@@ -1400,5 +1687,310 @@ describe("tracked active-directory marker", () => {
     } finally {
       rmSync(dest, { recursive: true, force: true });
     }
+  });
+});
+
+const PREPIN_TITLES = [
+  "AC-CLEANUP-BOUNDED pre-pin control: b53d13d deletes the recycled replacement",
+  "AC-CANDIDATE-RECLAIM-EXCLUSIVE pre-pin control: b53d13d unlinks the recycled replacement",
+] as const;
+
+type WorkflowStep = { name: string; ifClause: string; run: string; uses: string; with: Record<string, string> };
+
+function parseValidateSteps(yaml: string): WorkflowStep[] {
+  const lines = yaml.split("\n");
+  const steps: WorkflowStep[] = [];
+  let inValidate = false;
+  let inSteps = false;
+  let validateIndent = -1;
+  let current: WorkflowStep | null = null;
+  let blockKey = "";
+  let blockIndent = -1;
+  let block: string[] | null = null;
+  const flushBlock = (): void => {
+    if (current && blockKey && block) current.with[blockKey] = block.join("\n");
+    block = null;
+    blockKey = "";
+  };
+  for (const line of lines) {
+    if (!inValidate) {
+      const job = /^(\s*)validate:\s*$/.exec(line);
+      if (job) {
+        inValidate = true;
+        validateIndent = job[1].length;
+      }
+      continue;
+    }
+    if (/^\s+\S/.test(line) === false && line.trim() === "") continue;
+    const top = /^(\s*)([A-Za-z0-9_-]+):\s*$/.exec(line);
+    if (top && top[1].length === validateIndent) break;
+    if (!inSteps) {
+      if (/^\s+steps:\s*$/.test(line)) inSteps = true;
+      continue;
+    }
+    if (block) {
+      const indent = line.match(/^\s*/)?.[0].length ?? 0;
+      if (line.trim() !== "" && indent > blockIndent) {
+        block.push(line.trim());
+        continue;
+      }
+      flushBlock();
+    }
+    const named = /^\s+- name:\s*(.*)$/.exec(line);
+    if (named) {
+      flushBlock();
+      current = { name: named[1].trim(), ifClause: "", run: "", uses: "", with: {} };
+      steps.push(current);
+      continue;
+    }
+    if (!current) continue;
+    const clause = /^\s+if:\s*(.*)$/.exec(line);
+    if (clause) {
+      current.ifClause = clause[1].trim();
+      continue;
+    }
+    const uses = /^\s+uses:\s*(.*)$/.exec(line);
+    if (uses) {
+      current.uses = uses[1].trim();
+      continue;
+    }
+    const run = /^\s+run:\s*(.*)$/.exec(line);
+    if (run) {
+      current.run = run[1];
+      continue;
+    }
+    const field = /^(\s+)([A-Za-z0-9_-]+):\s*(.*)$/.exec(line);
+    if (!field) continue;
+    const key = field[2];
+    const value = field[3].trim();
+    if (value === "|" || value === ">") {
+      blockKey = key;
+      block = [];
+      blockIndent = field[1].length;
+      continue;
+    }
+    if (key === "if") current.ifClause = value;
+    else if (key === "run") current.run = value;
+    else if (key === "uses") current.uses = value;
+    else current.with[key] = value;
+  }
+  flushBlock();
+  return steps;
+}
+
+function simulatePrepin(steps: WorkflowStep[], present: Set<string>, controlFails: boolean): { uploadRan: boolean; jobFailed: boolean } {
+  let failed = false;
+  let uploadRan = false;
+  for (const step of steps) {
+    const always = step.ifClause.includes("always()");
+    if (failed && !always) continue;
+    const upload = step.uses.includes("actions/upload-artifact@v7") && step.with.name === "prepin-behavior-junit";
+    if (upload) {
+      uploadRan = true;
+      const paths = (step.with.path ?? "").split("\n").map((item) => item.trim()).filter(Boolean);
+      const missing = paths.filter((item) => !present.has(item) && ![...present].some((have) => have.endsWith(path.basename(item))));
+      if (step.with["if-no-files-found"] === "error" && missing.length > 0) failed = true;
+    }
+    if (step.run.includes("bun test") && step.run.includes("-t b53d13d") && controlFails) failed = true;
+    if (step.run.includes("test -f")) {
+      for (const name of ["prepin-behavior-junit.xml", "prepin-behavior-head.txt"]) {
+        if (![...present].some((item) => item.endsWith(name))) failed = true;
+      }
+    }
+  }
+  return { uploadRan, jobFailed: failed };
+}
+
+function prepinJunit(cases: Array<{ name: string; body?: string }>, extras: Array<{ name: string; body?: string }> = []): string {
+  const rendered = [...cases, ...extras].map((item) => `<testcase name="${item.name}" time="0.01">${item.body ?? ""}</testcase>`).join("");
+  return `<?xml version="1.0" encoding="UTF-8"?><testsuites>${rendered}</testsuites>`;
+}
+
+function writeFakeGh(bin: string, scenarioPath: string): void {
+  const script = `#!/usr/bin/env bun
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+const scenario = JSON.parse(readFileSync(${JSON.stringify(scenarioPath)}, "utf8"));
+const args = process.argv.slice(2);
+if (args[0] === "run" && args[1] === "list") {
+  if (scenario.listExit) {
+    console.error(scenario.listError ?? "list failed");
+    process.exit(scenario.listExit);
+  }
+  if (args[args.indexOf("--workflow") + 1] !== "validate.yml") process.exit(2);
+  if (args[args.indexOf("--limit") + 1] !== "20") process.exit(2);
+  if (!String(args[args.indexOf("--json") + 1] ?? "").includes("databaseId")) process.exit(2);
+  process.stdout.write(JSON.stringify(scenario.list ?? []));
+  process.exit(0);
+}
+if (args[0] === "run" && args[1] === "download") {
+  if (scenario.downloadExit) {
+    console.error(scenario.downloadError ?? "download failed");
+    process.exit(scenario.downloadExit);
+  }
+  if (args[args.indexOf("--name") + 1] !== "prepin-behavior-junit") process.exit(2);
+  const dir = args[args.indexOf("--dir") + 1];
+  mkdirSync(dir, { recursive: true });
+  if (!scenario.omitJunit) writeFileSync(path.join(dir, "prepin-behavior-junit.xml"), scenario.junit ?? "");
+  if (!scenario.omitHead) writeFileSync(path.join(dir, "prepin-behavior-head.txt"), scenario.head ?? "");
+  process.exit(0);
+}
+console.error("unexpected gh " + args.join(" "));
+process.exit(2);
+`;
+  writeFileSync(path.join(bin, "gh"), script, { mode: 0o755 });
+  chmodSync(path.join(bin, "gh"), 0o755);
+}
+
+function runPrepinVerifier(env: NodeJS.ProcessEnv): { status: number; text: string } {
+  const result = spawnSync(process.execPath, ["test", "--timeout=0", "./scripts/verify-prepin-linux-evidence.ts"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env,
+  });
+  return { status: result.status ?? 1, text: `${result.stdout ?? ""}\n${result.stderr ?? ""}` };
+}
+
+describe("prepin linux verifier", () => {
+  function withScenario(scenario: Record<string, unknown>, body: (env: NodeJS.ProcessEnv) => void): void {
+    const root = mkdtempSync(path.join(os.tmpdir(), "prepin-gh-"));
+    const bin = path.join(root, "bin");
+    mkdirSync(bin);
+    const scenarioPath = path.join(root, "scenario.json");
+    writeFileSync(scenarioPath, JSON.stringify(scenario));
+    writeFakeGh(bin, scenarioPath);
+    const git = Bun.which("git");
+    if (!git) throw new Error("git is absent");
+    symlinkSync(git, path.join(bin, "git"));
+    try {
+      body({ ...process.env, PATH: `${bin}${path.delimiter}${path.dirname(process.execPath)}` });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  const sha = gitRun(repoRoot, ["rev-parse", "HEAD"]).trim();
+  const goodJunit = prepinJunit(
+    PREPIN_TITLES.map((name) => ({ name })),
+    [{ name: "filtered control", body: "<skipped message=\"filtered\"/>" }],
+  );
+
+  it("prepin linux verifier: accepts the newest successful exact-head artifact and ignores filtered skips", () => {
+    withScenario({
+      list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
+      head: `${sha}\n`,
+      junit: goodJunit,
+    }, (env) => {
+      const result = runPrepinVerifier(env);
+      expect(result.status, result.text).toBe(0);
+    });
+  });
+
+  it("prepin linux verifier: refuses a newest failure that has an older success, a missing run, a bad stamp, a bad target, a missing gh, and a failed download", () => {
+    withScenario({
+      list: [
+        { databaseId: 22, headSha: sha, status: "completed", conclusion: "failure" },
+        { databaseId: 11, headSha: sha, status: "completed", conclusion: "success" },
+      ],
+      head: `${sha}\n`,
+      junit: goodJunit,
+    }, (env) => {
+      expect(runPrepinVerifier(env).status).not.toBe(0);
+    });
+    withScenario({ list: [], head: `${sha}\n`, junit: goodJunit }, (env) => {
+      expect(runPrepinVerifier(env).status).not.toBe(0);
+    });
+    withScenario({
+      list: [{ databaseId: 11, headSha: "a".repeat(40), status: "completed", conclusion: "success" }],
+      head: `${sha}\n`,
+      junit: goodJunit,
+    }, (env) => {
+      expect(runPrepinVerifier(env).status).not.toBe(0);
+    });
+    withScenario({
+      list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
+      head: `${"b".repeat(40)}\n`,
+      junit: goodJunit,
+    }, (env) => {
+      expect(runPrepinVerifier(env).status).not.toBe(0);
+    });
+    withScenario({
+      list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
+      omitHead: true,
+      junit: goodJunit,
+    }, (env) => {
+      expect(runPrepinVerifier(env).status).not.toBe(0);
+    });
+    withScenario({
+      list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
+      head: `${sha}\n`,
+      junit: prepinJunit([{ name: PREPIN_TITLES[0] }]),
+    }, (env) => {
+      expect(runPrepinVerifier(env).status).not.toBe(0);
+    });
+    withScenario({
+      list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
+      head: `${sha}\n`,
+      junit: prepinJunit([{ name: PREPIN_TITLES[0] }, { name: PREPIN_TITLES[0] }, { name: PREPIN_TITLES[1] }]),
+    }, (env) => {
+      expect(runPrepinVerifier(env).status).not.toBe(0);
+    });
+    for (const body of ["<skipped message=\"inode\"/>", "<failure message=\"x\">no</failure>", "<error message=\"x\">no</error>"]) {
+      withScenario({
+        list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
+        head: `${sha}\n`,
+        junit: prepinJunit([{ name: PREPIN_TITLES[0], body }, { name: PREPIN_TITLES[1] }]),
+      }, (env) => {
+        expect(runPrepinVerifier(env).status).not.toBe(0);
+      });
+    }
+    withScenario({
+      list: [{ databaseId: 11, headSha: sha, status: "in_progress", conclusion: "" }],
+      head: `${sha}\n`,
+      junit: goodJunit,
+    }, (env) => {
+      expect(runPrepinVerifier(env).status).not.toBe(0);
+    });
+    withScenario({
+      list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
+      downloadExit: 1,
+      head: `${sha}\n`,
+      junit: goodJunit,
+    }, (env) => {
+      expect(runPrepinVerifier(env).status).not.toBe(0);
+    });
+    const bare = mkdtempSync(path.join(os.tmpdir(), "prepin-no-gh-"));
+    try {
+      const git = Bun.which("git");
+      if (!git) throw new Error("git is absent");
+      symlinkSync(git, path.join(bare, "git"));
+      const missing = runPrepinVerifier({ ...process.env, PATH: bare });
+      expect(missing.status, missing.text).not.toBe(0);
+    } finally {
+      rmSync(bare, { recursive: true, force: true });
+    }
+  });
+
+  it("prepin linux verifier: the upload still runs after a failed control, and a missing junit or head file fails the job", () => {
+    const yaml = readFileSync(path.join(repoRoot, ".github/workflows/validate.yml"), "utf8");
+    expect(yaml).not.toContain("ngrace gate verdict");
+    const steps = parseValidateSteps(yaml);
+    const checkout = steps.find((step) => step.name === "Checkout");
+    expect(checkout?.with["fetch-depth"]).toBe("0");
+    expect(checkout?.with.ref ?? "").toBe("");
+    expect(checkout?.with.path ?? "").toBe("");
+    expect(steps.some((step) => step.with.ref?.includes("github.event.pull_request.head.sha") && step.with.ref.includes("github.sha"))).toBe(true);
+    const both = new Set([
+      "prepin-behavior/prepin-behavior-junit.xml",
+      "prepin-behavior/prepin-behavior-head.txt",
+    ]);
+    const failedControl = simulatePrepin(steps, both, true);
+    expect(failedControl.uploadRan).toBe(true);
+    expect(failedControl.jobFailed).toBe(true);
+    const happy = simulatePrepin(steps, both, false);
+    expect(happy.uploadRan).toBe(true);
+    expect(happy.jobFailed).toBe(false);
+    expect(simulatePrepin(steps, new Set(["prepin-behavior/prepin-behavior-head.txt"]), false).jobFailed).toBe(true);
+    expect(simulatePrepin(steps, new Set(["prepin-behavior/prepin-behavior-junit.xml"]), false).jobFailed).toBe(true);
   });
 });
