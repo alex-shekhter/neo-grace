@@ -1,0 +1,143 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-INODE-EVIDENCE-REMOVAL-1-49104F3E>
+    <Summary>
+      First phase of the inode-evidence removal: delete four direct identity-only cases and one
+      incidental inode assertion, delete the cursor ordering test-only hook their deletion orphans,
+      retain the adjacent functional controls, and regenerate test-metrics.json by measurement.
+    </Summary>
+    <Goals>
+      <Goal>Remove exactly the four identity-only cases, the incidental inode assertion, and the
+      orphaned setCandidateLockCaptureOrderForTests test-only surface, leaving the adjacent functional
+      controls intact.</Goal>
+      <Goal>Invalidate and regenerate test-metrics.json from one measured bun run test:metrics so it
+      carries current case identities and no provisional entries.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (bounded test-evidence removal plus one orphaned test-hook deletion). Baseline
+        commit cab71497765a3cff7171e746acf0decd90f2041b. Forced product write paths are
+        src/grace-generate.test.ts, src/grace-cursor.test.ts, src/gates/core.test.ts,
+        src/grace-cursor.ts, and derived test-metrics.json. The four test or derived paths have no
+        module-ownable LINKS header; src/grace-cursor.ts declares LINKS: M-CURSOR. The owning modules
+        M-CLI, M-CURSOR, M-GATES, and M-RELEASE-AUTOMATION are named here, in AffectedAreas, and in
+        VerificationIntent. All other production source and files are untouched.
+      </Constraint>
+      <Constraint>
+        Deleting the src/grace-cursor.test.ts ordering case orphans its only caller. The
+        src/grace-cursor.ts edit removes exactly that surface: the setCandidateLockCaptureOrderForTests
+        export and its state, the three recording pushes inside observeCandidateLock, and the setter's
+        module-map entry. observeCandidateLock keeps its open/fstat/read behavior and every other test
+        hook is unchanged. This is a local test-hook cleanup, not a runtime lock redesign.
+      </Constraint>
+      <Constraint>
+        This phase overturns applied C-SUPERSEDE-MEMBERSHIP-4-20941257 AC-CLEANUP-BOUNDED row (b) and
+        AC-REVIEW-VERDICT-THREE-PHASE case (c) only as current test obligations, and retires applied
+        C-LINUX-VALIDATION-REPAIR-6-62765C22 AC-CLEANUP-PINNED-DISTINCT's distinct-inode cleanup probe
+        and AC-PIN-SUCCESS-AND-REFUSAL's open-handle ordering evidence. Identity-only evidence is
+        invalid for the agreed future serialization/content-pin boundary: an inode is an object-identity
+        observation and a content hash is an integrity pin, never a lock, so neither proves mutual
+        exclusion. The historical ext4 finding was real — path device/inode comparison let a same-path
+        replacement impersonate the deleted object — and the runtime still pins the inode with an open
+        handle; that guard is unchanged and the later coordinator/publication bundle owns the guarantee.
+        The retained byte, token, foreign-entry, EEXIST/ENOTEMPTY, gate spec/ledger/location, and B/A/B
+        controls prove their own behavior only; the AC-PIN-RELEASE-NO-LEAK and AC-PIN-ACQUISITION pin
+        cases are later-phase targets, not replacement safety.
+      </Constraint>
+      <Constraint>
+        This overturns applied C-TEST-TIME-BUDGET-4-F173437E's no-test-deletion NonGoal
+        (spec.xml:427-430) only for the four enumerated cases: that NonGoal kept useful coverage while
+        removing duplicate suite passes, whereas these four assert an approach the agreed boundary
+        rejects and their adjacent controls remain.
+      </Constraint>
+      <Constraint>
+        The committed test-metrics.json is stale in case identities and must be invalidated before
+        measurement. scripts/test-metrics.ts:82-98 decides freshness from the file set and count sum
+        only, so a same-file case deletion never refreshes case identities; the runner is not repaired
+        here. The executor invalidates the artifact, runs bun run test:metrics as the single artifact
+        writer, then confirms no provisional entry and no removed identity. The close bun run
+        validate:ci is the second and last full-suite invocation; VerificationIntent states that cost.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>README.md and examples/ stay unchanged. Owner: unchanged; no user-visible surface.</NonGoal>
+      <NonGoal>No pin lifecycle test, Windows selector, pre-pin fixture, verifier, exact-head CI chain,
+      metrics-runner repair, or coordinator/publication work; each is a later phase or out of scope.</NonGoal>
+      <NonGoal>No archived bundle is edited, and no C6 archive content witness,
+      scripts/audit-regressions.test.ts, or unrelated functional test is changed.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-IDENTITY-EVIDENCE-REMOVED>
+        At baseline cab71497765a3cff7171e746acf0decd90f2041b the four direct identity-only cases and
+        the single incidental inode assertion are gone: src/grace-generate.test.ts (c) a same-path
+        replacement is detected by inode and preserved and AC-PIN-ACQUISITION: the opened handle is the
+        first identity source; src/grace-cursor.test.ts AC-CANDIDATE-RECLAIM-EXCLUSIVE: the observed
+        lock identity is captured open → fstat → read; src/gates/core.test.ts (c) a same-path directory
+        replacement with byte-identical prerequisites (identity-only); and only
+        expect(statSync(dir).ino).toBe(stat.ino) from AC-CLEANUP-VALIDATE-FIRST. The orphaned
+        setCandidateLockCaptureOrderForTests setter, its state, its three recording pushes, and its
+        module-map entry are also gone, while observeCandidateLock keeps its open/fstat/read behavior.
+      </AC-IDENTITY-EVIDENCE-REMOVED>
+      <AC-RETAINED-CONTROLS>
+        The named adjacent controls still pass: the AC-CANDIDATE-RECLAIM-EXCLUSIVE token-and-byte B/A/B
+        case at src/grace-cursor.test.ts:5126, generate's spec-byte tamper, foreign-entry, EEXIST, and
+        ENOTEMPTY controls, the AC-CLEANUP-VALIDATE-FIRST byte-and-token refusal, and the gate verdict
+        spec-byte, ledger-byte, location-only, and clean-success cases. They prove their own behavior
+        only; the full suite is validate:ci at close.
+      </AC-RETAINED-CONTROLS>
+      <AC-METRICS-MEASURED>
+        test-metrics.json is produced by one measured bun run test:metrics after the committed artifact
+        is invalidated; its case identities and counts equal that run's JUnit, with no projected figure
+        asserted. The four removed titles are absent, no (provisional) entry
+        remains, and the per-file count sum equals the case count. scripts/test-metrics.ts is
+        unchanged, and its freshness predicate is not treated as evidence of case identities.
+      </AC-METRICS-MEASURED>
+      <AC-CLOSE-LINT>
+        Post-archive lint of the repository root exits 0 with zero errors and zero warnings, evaluated
+        after this bundle's archive arrival.
+        <CloseEvidence><Command>bun run ngrace lint --path . --fail-on warnings</Command></CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CLI />
+      <M-CURSOR />
+      <M-GATES />
+      <M-RELEASE-AUTOMATION />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 src/grace-cursor.test.ts -t "AC-CANDIDATE-RECLAIM-EXCLUSIVE: a stale observer cannot unlink a replacement holder"</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 src/grace-generate.test.ts -t "candidate exclusive acquisition and bounded cleanup|AC-CLEANUP-VALIDATE-FIRST"</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 src/gates/core.test.ts -t "review verdict three-phase"</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        The plan anchors M-CLI, M-CURSOR, M-GATES, and M-RELEASE-AUTOMATION. T-001 is the narrow
+        removal-and-preservation task: its target check asserts the four removed titles and the orphaned
+        setter are absent, the retained controls present, and the three focused commands above pass; it
+        avoids a full suite. T-002 invalidates test-metrics.json, runs bun run test:metrics once, and
+        reads it for current identities and zero provisional entries. The close runs bun run validate:ci
+        through --assertions final --run-commands; its test:metrics segment is the second full-suite
+        invocation after T-002. Probe both directions: restoring a removed title or the
+        setter reddens the absence check, and removing a retained control reddens the preservation
+        check. AC-CLOSE-LINT is evaluated post-archive.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      The current tests assert inode identity and open/fstat ordering as safety evidence; the future
+      concurrent design needs serialization and content-pin guarantees this evidence cannot supply.
+      C-SQUASH-WITNESS-4-E1A787BF re-homed the work to the provisional slug C-INODE-EVIDENCE-REMOVAL
+      after C-SQUASH-WITNESS-3-CC8FBE18 was superseded. This phase removes only the four identity-only
+      cases, the incidental inode assertion, and the ordering hook their deletion orphans; pin
+      lifecycle tests, their Windows selectors, and the pre-pin fixture and verifier are later phases.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        Measured 2026-09-27 in the isolated clone at baseline cab71497765a3cff7171e746acf0decd90f2041b:
+        lint --assertions current --fail-on warnings reported 0 errors and 0 warnings, and the four
+        removal titles passed together 4 pass / 0 fail / 494 filtered. The mint carried verbatim:
+        mint: C-INODE-EVIDENCE-REMOVAL-1-49104F3E slug=INODE-EVIDENCE-REMOVAL lineage=1 hash=49104F3E
+        branch=docs/grace-implementation-findings timestamp=2026-09-27T07:45:47.000Z and mint-search:
+        0 active, 0 archive prior bundle(s) share slug INODE-EVIDENCE-REMOVAL. The full suite,
+        validate:ci, and metrics regeneration are unrun here.
+      </Assumption>
+    </Assumptions>
+  </C-INODE-EVIDENCE-REMOVAL-1-49104F3E>
+</NgraceChangeSpec>
