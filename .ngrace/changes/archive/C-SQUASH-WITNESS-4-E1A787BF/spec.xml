@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-SQUASH-WITNESS-4-E1A787BF>
     <Summary>
       Lineage successor to C-SQUASH-WITNESS-3-CC8FBE18 that repairs only the tracked active-directory marker witness and the derived test-metrics.json, moving C3's runner, workflow, and inode-evidence obligations to provisional later slugs.

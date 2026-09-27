@@ -5,6 +5,7 @@ import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, 
 import os from "node:os";
 import path from "node:path";
 import { artifactIsStale } from "./test-metrics";
+import { GraceProjectBuilder, createTempProject } from "../src/test-support/fixtures";
 
 type AuditRegressionCase = {
   id: string;
@@ -1642,50 +1643,89 @@ describe("prepin fixture discovery", () => {
 });
 
 describe("tracked active-directory marker", () => {
-  it("a git archive HEAD checkout with active bundles removed lints clean and module find exits 0, and deleting active/ reddens", () => {
-    expect(gitRun(repoRoot, ["ls-files", "--error-unmatch", ".ngrace/changes/active/.gitkeep"]).trim()).toBe(".ngrace/changes/active/.gitkeep");
-    expect(spawnSync("git", ["cat-file", "-e", "HEAD:.ngrace/changes/active/.gitkeep"], { cwd: repoRoot }).status).toBe(0);
-    const dest = mkdtempSync(path.join(os.tmpdir(), "c7-archive-checkout-"));
+  it("keeps the marker as a regular file in a path-scoped HEAD archive and drives an isolated minimal project green then red", () => {
+    const marker = ".ngrace/changes/active/.gitkeep";
+    expect(gitRun(repoRoot, ["ls-files", "--error-unmatch", marker]).trim()).toBe(marker);
+
+    // The git status and the tar status are read from their own processes, never a pipeline.
+    const archive = spawnSync("git", ["archive", "HEAD", marker], { cwd: repoRoot });
+    expect(archive.status, archive.stderr?.toString()).toBe(0);
+    const listed = spawnSync("tar", ["-tf", "-"], { input: archive.stdout, encoding: "utf8" });
+    expect(listed.status).toBe(0);
+    const entries = listed.stdout.split("\n").filter((entry) => entry && !entry.endsWith("/"));
+    expect(entries).toEqual([marker]);
+
+    const extracted = mkdtempSync(path.join(os.tmpdir(), "c4-archive-"));
     try {
-      const extracted = spawnSync("bash", ["-c", 'git archive HEAD | tar -x -C "$1"', "extract-head-archive", dest], {
+      const unpack = spawnSync("tar", ["-x", "-C", extracted], { input: archive.stdout });
+      expect(unpack.status).toBe(0);
+      const markerPath = path.join(extracted, marker);
+      const stat = lstatSync(markerPath);
+      expect(stat.isFile() && !stat.isSymbolicLink(), "the archive entry is a regular file, not a symlink").toBe(true);
+      const blob = spawnSync("git", ["show", `HEAD:${marker}`], { cwd: repoRoot });
+      expect(blob.status).toBe(0);
+      expect(readFileSync(markerPath).equals(blob.stdout), "the archived marker bytes equal the HEAD blob").toBe(true);
+
+      // The real repository keeps its active replacement links: lint is clean.
+      const rootLint = spawnSync(process.execPath, ["run", "ngrace", "lint", "--path", repoRoot, "--fail-on", "warnings"], {
         cwd: repoRoot,
         encoding: "utf8",
+        maxBuffer: 64 * 1024 * 1024,
       });
-      expect(extracted.status, extracted.stderr).toBe(0);
-      const active = path.join(dest, ".ngrace", "changes", "active");
-      for (const name of readdirSync(active)) {
-        if (name.startsWith("C-")) rmSync(path.join(active, name), { recursive: true, force: true });
-      }
-      expect(existsSync(path.join(active, ".gitkeep")), "the marker survives removal of active bundles").toBe(true);
-      symlinkSync(path.join(repoRoot, "node_modules"), path.join(dest, "node_modules"));
-      const lintArgs = ["run", "ngrace", "lint", "--path", dest, "--fail-on", "warnings"];
-      const lint = spawnSync(process.execPath, lintArgs, { cwd: dest, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-      const lintText = `${lint.stdout}\n${lint.stderr}`;
-      expect(lint.status, lintText).toBe(0);
-      expect(lintText).toMatch(/^Errors: 0$/m);
-      expect(lintText).toMatch(/^Warnings: 0$/m);
-      expect(lintText).not.toContain("project.missing-change-directory");
+      const rootText = `${rootLint.stdout}\n${rootLint.stderr}`;
+      expect(rootLint.status, rootText).toBe(0);
+      expect(rootText).toMatch(/^Errors: 0$/m);
+      expect(rootText).toMatch(/^Warnings: 0$/m);
+    } finally {
+      rmSync(extracted, { recursive: true, force: true });
+    }
+
+    // A separately constructed valid minimal project with no change bundles, exactly the marker under active/.
+    const project = new GraceProjectBuilder(createTempProject("c4-marker-"))
+      .module({ id: "M-EXAMPLE", path: "src/example.ts" })
+      .governedFile({
+        path: "src/example.ts",
+        purpose: "Marker fixture runtime.",
+        scope: "Marker fixture.",
+        depends: ["none"],
+        links: ["M-EXAMPLE"],
+        role: "RUNTIME",
+        mapMode: "EXPORTS",
+        mapEntries: ["run"],
+        body: "export function run() { return true; }",
+      })
+      .write();
+    try {
+      const active = path.join(project, ".ngrace", "changes", "active");
+      const install = spawnSync("tar", ["-x", "-C", project], { input: archive.stdout });
+      expect(install.status).toBe(0);
+      expect(readdirSync(active)).toEqual([".gitkeep"]);
+
+      const lintArgs = ["run", "ngrace", "lint", "--path", project, "--fail-on", "warnings"];
+      const green = spawnSync(process.execPath, lintArgs, { cwd: repoRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      expect(green.status, `${green.stdout}\n${green.stderr}`).toBe(0);
       for (const args of [
-        ["run", "ngrace", "module", "find", "true", "--path", dest],
-        ["run", "ngrace", "module", "find", "false", "--path", dest],
-        ["run", "ngrace", "module", "find", "--json=true", "--path", dest],
+        ["run", "ngrace", "module", "find", "true", "--path", project],
+        ["run", "ngrace", "module", "find", "false", "--path", project],
+        ["run", "ngrace", "module", "find", "--json=true", "--path", project],
       ]) {
-        const found = spawnSync(process.execPath, args, { cwd: dest, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+        const found = spawnSync(process.execPath, args, { cwd: repoRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
         expect(found.status, `${args.join(" ")}\n${found.stdout}\n${found.stderr}`).toBe(0);
       }
+
       rmSync(active, { recursive: true, force: true });
-      const red = spawnSync(process.execPath, lintArgs, { cwd: dest, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      const red = spawnSync(process.execPath, lintArgs, { cwd: repoRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
       const redText = `${red.stdout}\n${red.stderr}`;
       expect(red.status, redText).toBe(1);
       expect(redText).toContain("project.missing-change-directory");
-      const redFind = spawnSync(process.execPath, ["run", "ngrace", "module", "find", "true", "--path", dest], {
-        cwd: dest,
+      const redFind = spawnSync(process.execPath, ["run", "ngrace", "module", "find", "true", "--path", project], {
+        cwd: repoRoot,
         encoding: "utf8",
         maxBuffer: 64 * 1024 * 1024,
       });
       expect(redFind.status, `${redFind.stdout}\n${redFind.stderr}`).not.toBe(0);
     } finally {
-      rmSync(dest, { recursive: true, force: true });
+      rmSync(project, { recursive: true, force: true });
     }
   });
 });
