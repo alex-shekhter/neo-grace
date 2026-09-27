@@ -1,0 +1,374 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-COORDINATOR-BOUNDARY-1-CB86E900>
+    <Summary>
+      First coordinator slice: a reusable, test-support supervisor contract for deterministic
+      concurrent CLI testing. The coordinator takes a plan of direct worker processes over a sibling
+      layout — `project/` for the shared GRACE fixture, `control/` for coordinator-owned gates, and
+      `workers/&lt;id&gt;/` for each direct worker's logs and declared outputs — validates the plan
+      before spawning anything, launches workers in order (a worker may be staged behind a bounded
+      wait for a product-state path), drains each worker's logs into its own workspace, and returns
+      only after every direct worker has exited or one finite global deadline is reached; on the
+      deadline it kills and bounded-reaps every still-running direct worker. On any infrastructure
+      failure it stops immediately, bounded-kills and reaps the direct workers already started, and
+      propagates the original error composed with any cleanup failure. The contract keeps
+      serialization/ownership distinct from content integrity and publication visibility: a worker's
+      output bytes are an integrity pin, never a lock. It is a contract for later production work to
+      consult, not a production capability: production code must not import test support, and this
+      bundle claims no production reuse, serialization safety, or publication safety. One support
+      module (`src/test-support/coordinator.ts`) and one focused test file, beside a truthful
+      `M-TEST-SUPPORT` module scope.
+    </Summary>
+    <Goals>
+      <Goal>
+        **A truthful `M-TEST-SUPPORT` scope.** The existing module header
+        (`src/test-support/fixtures.ts`), graph summary (`.ngrace/graph/main.xml`), and verification
+        scenario (`.ngrace/verification/main.xml`) gain the supervisor so they describe what the
+        module actually contains. `M-TEST-SUPPORT` is named in every place this artifact enumerates
+        modules.
+      </Goal>
+      <Goal>
+        **Preflight protects actual worker ownership, before any spawn.** Preflight uses canonical
+        (symlink-resolved) containment and refuses: duplicate worker ids; equal, nested, or
+        symlink-aliased workspaces; a declared output that escapes its own workspace; two outputs with
+        the same name across workers; an output that collides with a reserved log path; a start-gate
+        path inside a workspace; a `startAfterTimeoutMs` that is not finite and positive; a global
+        deadline that is not finite and positive; and a workspace that contains or is nested inside
+        `project/` or `control/`. On any refusal no workspace directory is created and no process is
+        spawned.
+      </Goal>
+      <Goal>
+        **One global deadline governs every phase.** The global deadline bounds the whole run,
+        including staged-launch gate waits. If it is reached during staged launch, the run ends at the
+        global bound: already-started direct workers are terminated and reaped, no later worker is
+        spawned, and the result is a recorded timeout (`timedOut` true). A per-worker gate timeout
+        that expires before the global deadline is an infrastructure error and fails fast after
+        cleanup. A gate timeout never extends the global bound.
+      </Goal>
+      <Goal>
+        **The coordinator owns its direct workers, with bounded reap.** It creates each workspace,
+        spawns workers in plan order, drains each worker's stdout and stderr into that worker's own log
+        files while it runs, and returns only when every direct worker has exited or the deadline is
+        reached. On the deadline it kills every still-running direct worker and bounded-reaps it; an
+        unreaped worker is a bounded, explicit failure naming that PID. The guarantee is over direct
+        worker PIDs only; a process a worker itself spawns is outside this boundary and is not claimed
+        reaped.
+      </Goal>
+      <Goal>
+        **Fail fast with cleanup, observing stream faults live.** On a spawn error, a gate timeout, an
+        unreadable declared output, or a stdout/stderr stream-pump fault, the coordinator stops
+        scheduling and polling immediately, bounded-kills and reaps every direct worker already started,
+        and propagates the original error composed with any cleanup failure. A pump fault is raced
+        against ongoing supervision, not observed only after every worker exits. It never waits for the
+        caller deadline after such an error, never swallows the error, and never converts it to an
+        absent output or a non-zero-exit data result.
+      </Goal>
+      <Goal>
+        **Observation and outcome classes.** A gate path's existence may be observed during the run,
+        and worker state changes (started, exited) are reported as they happen so a caller can observe
+        that a worker is running. A declared output's bytes and hash are a snapshot captured only after
+        the direct worker that owns it has exited; that is not a permanent or final publication
+        guarantee against a descendant. Three outcomes are expected and recorded: a non-zero worker
+        exit code, an absent declared output, and an expired deadline (`timedOut` true). Everything
+        else fails fast.
+      </Goal>
+      <Goal>
+        **No ownership from content.** The coordinator records declared-output existence and bytes
+        only. It must not infer mutual exclusion, lock ownership, or publication from those bytes. In
+        the concurrent CLI criterion the lock outcome is established by the CLI's own exit codes and by
+        the absent sibling candidate lock and marker, never by the coordinator's snapshot.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (single support-module slice). Base commit
+        `890d55682ccc3ebe25643c6b4e45fe2b73c06341` (the merged `main` baseline); it is the named
+        baseline for every byte-invariance relation and count in this bundle.
+      </Constraint>
+      <Constraint>
+        **Modules, kept in agreement.** `AffectedAreas` names exactly `M-TEST-SUPPORT`; the forced-file
+        list below pairs each file with its owner from that same set; `VerificationIntent` names
+        `M-TEST-SUPPORT`. While this artifact is draft the listing may be corrected in place; once
+        approved the artifact is immutable.
+      </Constraint>
+      <Constraint>
+        **Forced files and owners.** `src/test-support/coordinator.ts` is a new, module-ownable file
+        whose `LINKS:` header is `M-TEST-SUPPORT`; it carries the supervisor contract and no other
+        behavior. `src/test-support/coordinator.test.ts` is a new behavior-pinning test; it is not
+        module-ownable, carries no module anchor, and is in scope because the deliverable forces it.
+        `src/test-support/fixtures.ts` (`LINKS: M-TEST-SUPPORT`) has its module header's `PURPOSE` and
+        `SCOPE` extended to the supervisor. `.ngrace/graph/main.xml` has the `M-TEST-SUPPORT`
+        `Summary` extended. `.ngrace/verification/main.xml` has the `V-M-TEST-SUPPORT` `Scenario`
+        extended. `test-metrics.json` is derived and is regenerated by one measured suite run because
+        adding a test file changes the case population; the runner is not edited. The whole
+        test/golden population was searched for further forced paths and none was found. Do not require
+        a file while excluding its owner, and do not invent a module or a `LINKS:` header to place one.
+      </Constraint>
+      <Constraint>
+        **Test support only; no production claim.** The helper establishes a contract for later
+        production work to consult. Production source must not import `src/test-support/`; this bundle
+        does not move any production writer, and it claims no production reuse, no serialization
+        safety, and no publication safety. Applied-transition serialization and candidate publication
+        remain unaddressed production questions.
+      </Constraint>
+      <Constraint>
+        **The direct-worker boundary is stated honestly, and outputs are a snapshot.** Only direct
+        worker PIDs are killed and reaped. A worker that spawns its own descendant is outside this
+        boundary; the concurrent CLI criterion uses direct launches (staged by a product-state path)
+        and no nested worker. A claim of "all child processes" is not made, and a captured output hash
+        is a post-exit snapshot, never a permanent publication guarantee.
+      </Constraint>
+      <Constraint>
+        **The candidate-lock boundary is not changed.** `withCandidateLock`, `assertCandidatePublished`,
+        the lock path, the TTL backstop, and the token/identity reclaim rule are unchanged. The
+        coordinator does not call `withCandidateLock` and does not hold any candidate lock. Workers
+        acquire whatever locks their own CLI path acquires.
+      </Constraint>
+      <Constraint>
+        **`applyChangeBundle` is out of scope, as a measured separate immediate correction candidate.**
+        Applied `C-SUPERSEDE-MEMBERSHIP-4-20941257` (spec.xml:75) carries an **applied
+        acceptance-criterion exclusion argument**: `applyChangeBundle` is excluded from the
+        candidate-lock cooperating-writer population because an unpublished candidate cannot reach it.
+        Measured later by the authority on a complete throwaway project: with another process holding
+        the candidate lock, the real `ngrace apply` CLI made `status="applied"` visible before that
+        lock was released, and a temporary wrapper around the full apply transition kept
+        `status="approved"` during the hold and still applied after release. This is a measured,
+        separate, immediately closeable governed correction candidate. It is not paid by this helper,
+        does not require this helper, and must answer that exclusion argument before changing the
+        behavior. Production apply is not a forced file of this bundle.
+      </Constraint>
+      <Constraint>
+        **The deadline is an input, never an implicit wait.** The coordinator requires a finite,
+        positive caller-supplied global bound; it never waits unbounded, and a start gate is itself
+        bounded by a finite positive per-worker timeout that cannot extend the global bound.
+      </Constraint>
+      <Constraint>
+        **Escape markup as character data.** Where this artifact must name a tag, attribute form, or
+        angle-bracketed token, the entity form is used (`&lt;`, `&gt;`, `&amp;`); brackets are never
+        paraphrased away, and markup-byte assertions belong in a TypeScript test (F43).
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>**`README.md` is unchanged.** Owner: unchanged; no user-visible surface. The coordinator
+      is support code for the suite, not a shipped verb, and it changes no documented outcome.</NonGoal>
+      <NonGoal>**`examples/` is unchanged.** Owner: unchanged. No example drives worker supervision, so
+      no example output changes.</NonGoal>
+      <NonGoal>**No content-pin capture or publication/publisher boundary.** Canonical read-set
+      manifests, base-pin comparison, stale-work refusal, and published-byte verification are
+      unaddressed production questions. Owner: a later production slice, not this test-support
+      helper.</NonGoal>
+      <NonGoal>**No applied-transition serialization change and no writer migration.** Production
+      apply is not wrapped and no other production writer is moved onto the candidate lock. Owner: a
+      measured, separate, immediately closeable governed correction candidate that must answer the
+      applied `C-SUPERSEDE-MEMBERSHIP-4-20941257` acceptance-criterion exclusion argument.</NonGoal>
+      <NonGoal>**No new production module, CLI verb, dependency, or persistent runtime artifact, and
+      not a general job scheduler.** The supervisor is one support module for the test suite; it adds
+      no scheduling policy, retries, resource limits, or worker-pool behavior. It does add permanent
+      source and test files, which this NonGoal does not deny. Owner: this bundle's contract.</NonGoal>
+      <NonGoal>**No archive edits and no record edits.** No archived bundle, no `docs/plans` record file,
+      and no workflow file is changed by this bundle. Owner: this bundle's close.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-COORDINATOR-PREFLIGHT-REFUSES>
+        The plan is validated before any spawn and before any workspace is created, using canonical
+        (symlink-resolved) containment. Each of these refuses and names the offending id or path:
+        duplicate worker ids; two workspaces with an equal, nested, or symlink-aliased canonical path;
+        a declared output escaping its own workspace; two outputs with the same name across workers; an
+        output equal to a reserved log path; a start-gate path inside any workspace; a
+        `startAfterTimeoutMs` of zero, negative, `NaN`, or `Infinity`; a global deadline of zero,
+        negative, `NaN`, or `Infinity`; and a workspace that contains or is nested inside `project/` or
+        `control/`. The whole table is driven through the orchestration entry point (`runCoordinator`)
+        with a spawn spy, not only through the pure validator: in each refusal the spy records zero
+        spawns, and no new workspace path is created; paths deliberately precreated as fixtures
+        may still exist after refusal. The table covers all of these, measured rather
+        than sampled: duplicate ids; equal, nested, and symlink-aliased workspaces; an escaping output;
+        a duplicate output name; a reserved-log collision; a gate inside a workspace; zero, negative,
+        `NaN`, and `Infinity` for both the global deadline and the gate timeout; and a workspace that
+        contains or is nested inside `project/` or `control/`.
+      </AC-COORDINATOR-PREFLIGHT-REFUSES>
+      <AC-COORDINATOR-AWAITS-ALL>
+        Positive and refusal directions of one real-CLI concurrent scenario, driven on a throwaway
+        sibling layout (`project/`, `control/`, `workers/&lt;id&gt;/`), with both workers spawned
+        **directly** by the coordinator. Worker `publisher` runs the real `ngrace spec new` for a
+        known resolved id in `project/`, paused at the existing `NGRACE_PAUSE_CANDIDATE_FILE` hook
+        (the release signal lives in `control/`) after its exclusive `spec.xml` write. Worker
+        `contender` declares `startAfterPath` = the sibling candidate lock path
+        `project/.ngrace/changes/active/.candidate-&lt;C-ID&gt;.lock` with a finite gate timeout, and
+        runs the real `ngrace plan new` for that id; the coordinator waits for the gate and then spawns
+        it directly, so there is no nested worker. While the publisher holds the lock the test observes
+        contemporaneously that the contender has started and has not exited, that no `plan.xml` exists,
+        and that the shared `spec.xml` bytes still equal a baseline SHA-256 captured after the paused
+        write; only then does it write the release signal. The bytes are compared with that baseline
+        both while the lock is held and again after both workers exit, so file presence is never
+        mistaken for unchanged bytes; a planted byte mutation during the hold reddens this assertion.
+        `runCoordinator` must return only after both direct workers have exited, `timedOut` must be
+        false, the publisher's exit code must be 0 and the contender's exit code must be non-zero (the
+        draft-spec prerequisite), each worker's `stdout.log` must exist in that worker's own workspace,
+        exactly one bundle directory must exist, no `plan.xml` may exist, the sibling candidate lock and
+        the in-bundle marker must both be absent. The mutual-exclusion outcome is established by the
+        CLI's own exit codes and by the absent lock and marker, never by the coordinator's output
+        snapshot; a fixed sleep plus final exit codes alone does not satisfy this criterion.
+      </AC-COORDINATOR-AWAITS-ALL>
+      <AC-COORDINATOR-TIMEOUT-KILLS>
+        Refusal direction over direct workers. With a worker that never exits and a second worker that
+        exits 7, under a finite caller-supplied deadline, `runCoordinator` returns within the deadline
+        plus a bounded poll margin; `timedOut` is true; the never-exiting worker reports `signalCode`
+        `SIGKILL` and `timedOut` true; the second worker reports `exitCode` 7 and `timedOut` false; a
+        declared output the never-exiting worker did not produce is reported with `exists` false as
+        data; and each direct worker's final declared-output bytes are captured only after that worker
+        exited. The unbounded wait and the leak of a never-exiting direct child are the behaviors this
+        criterion forbids. The guarantee is over direct worker PIDs; no claim is made about a process a
+        worker itself spawned.
+      </AC-COORDINATOR-TIMEOUT-KILLS>
+      <AC-COORDINATOR-DEADLINE-PRECEDENCE>
+        The global deadline governs staged launch, driven both directions. (a) With a first direct
+        worker running and a second worker gated on a path that never appears, a global deadline
+        shorter than the gate's `startAfterTimeoutMs` ends the run at the global bound: `timedOut` is
+        true, the elapsed time is near the global bound (not the gate timeout), the first worker is
+        terminated and reaped, and the gated worker is never spawned. (b) With a gate whose
+        `startAfterTimeoutMs` expires well before a long global deadline, the coordinator fails fast
+        with a gate error naming the worker, after cleanup, and does not extend the global bound.
+      </AC-COORDINATOR-DEADLINE-PRECEDENCE>
+      <AC-COORDINATOR-FAIL-FAST-CLEANUP>
+        Fail-fast with cleanup, driven four ways and probed both directions. (a) **Planted spawn
+        failure with a plainly running first worker:** the first direct worker is started and observed
+        running (its `started` state fired and its `exited` state has not fired), the second worker is
+        staged behind a control gate that the first reaches, and the second command is invalid, so the
+        spawn fails while the first is still running; `runCoordinator` stops immediately, terminates
+        and reaps the first direct worker, and throws the original spawn error composed with the
+        cleanup outcome; the first worker's PID is not alive after the throw, and the call does not
+        wait for the caller deadline. (b) **Unreadable declared output:** a declared output that
+        exists but cannot be read (a directory path) throws after cleanup rather than being reported
+        absent. (c) **Non-zero exit as data:** a worker exiting 7 does not throw. (d) **Cleanup-failure
+        honesty:** when a kill or reap does not complete, the failure is bounded and names the
+        unreaped PID; the coordinator does not assert that an OS-refused kill leaves zero processes.
+        Probe (a) both directions on a throwaway copy: mutating the coordinator to skip cleanup leaves
+        the first worker alive and reddens the criterion; restoring the cleanup reaps it and greens the
+        criterion.
+      </AC-COORDINATOR-FAIL-FAST-CLEANUP>
+      <AC-COORDINATOR-STREAM-FAULT>
+        A stdout/stderr stream-pump fault is observed while workers are still running, in every phase,
+        including a staged gate wait. (a) **Running phase:** with one workspace whose `stdout.log` is a
+        directory (so opening the log writer fails) and a second long-running direct worker,
+        `runCoordinator` fails fast well before the global deadline: it stops scheduling, bounded-kills
+        and reaps every started direct worker, and throws the stream error composed with the cleanup
+        outcome. Each started direct PID is not alive after the throw, tested by PID liveness rather
+        than by the error text. (b) **Gate phase:** with a first worker whose pump fails immediately
+        and a second worker staged behind an absent gate whose `startAfterTimeoutMs` is much longer
+        than the time to failure, the coordinator fails fast on the stream error, reaps the first
+        worker, and never spawns the gated worker; the elapsed time is far below the gate timeout, so
+        the gate error does not mask the stream fault. The error is never converted to an absent
+        output or a non-zero-exit data result. Probed both directions: mutating the coordinator to
+        ignore pump failures lets the run continue (to the deadline or the gate error) and leaves the
+        started PIDs alive, reddening the criterion; restoring the live race fails fast and leaves no
+        direct PID alive.
+      </AC-COORDINATOR-STREAM-FAULT>
+      <AC-METRICS-MEASURED>
+        After the committed `test-metrics.json` is invalidated and one measured `bun run test:metrics`
+        runs, `test-metrics.json` carries that run's case identities and counts, including the new
+        coordinator test, with no `(provisional)` entry and a per-file count sum equal to its case
+        count. The metrics runner is not edited, and no projected figure is asserted.
+      </AC-METRICS-MEASURED>
+      <AC-COORDINATOR-FOCUSED-SUITE>
+        The coordinator's focused suite passes in the applied-archive state.
+        <CloseEvidence><Command>bun test --timeout=0 src/test-support/coordinator.test.ts</Command></CloseEvidence>
+      </AC-COORDINATOR-FOCUSED-SUITE>
+      <AC-CLOSE-LINT>
+        Post-archive lint of the repository root exits 0 with zero errors and zero warnings, evaluated
+        after this bundle's archive arrival.
+        <CloseEvidence><Command>bun run ngrace lint --path . --fail-on warnings</Command></CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 src/test-support/coordinator.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path . --fail-on warnings</ExpectedCommand>
+      <ExpectedEvidence>
+        `M-TEST-SUPPORT` anchors the plan. `AC-COORDINATOR-AWAITS-ALL`,
+        `AC-COORDINATOR-TIMEOUT-KILLS`, `AC-COORDINATOR-DEADLINE-PRECEDENCE`,
+        `AC-COORDINATOR-FAIL-FAST-CLEANUP`, and `AC-COORDINATOR-STREAM-FAULT` are driven as real
+        process scenarios with recorded exit codes, signals, PIDs, and elapsed bounds;
+        `AC-COORDINATOR-PREFLIGHT-REFUSES` is driven directly. Probe every guard both directions:
+        skip the deadline kill and confirm `AC-COORDINATOR-TIMEOUT-KILLS` reddens; skip the failure
+        cleanup and confirm `AC-COORDINATOR-FAIL-FAST-CLEANUP` reddens; ignore pump failures and
+        confirm `AC-COORDINATOR-STREAM-FAULT` reddens; restore the module and confirm green. No test
+        drives the real repository archive, so no per-test number is pinned and the CI job's
+        `timeout-minutes` is the only ceiling. The full CI-equivalent verification
+        (`bun run validate:ci`) is the close-time gate, not a per-task command.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      The repository has no reusable supervisor contract for concurrent CLI workers. Bounded waits and
+      kills already exist, but only ad hoc inside individual tests: `src/grace-cursor.test.ts`
+      `runContender` bounds its wait and reaps a stuck contender with an explicit failure (`:4815-4829`),
+      `disposeReleaser` does the same for a stuck releaser (`:4871-4887`), and
+      `reclaimFixtureDiagnostic` bounds the reap and names the still-running PID (`:6833-6853`). What
+      those helpers do not provide is a shared contract: no per-worker owned write space, no canonical
+      plan preflight, no staged direct launch, no one global deadline, and no coherent
+      all-started-workers cleanup when a later spawn, output read, or stream pump fails. The authority
+      independently checked the corrected scratch prototype and measured the remaining gaps: two
+      lexically distinct workspaces that alias through a symlink were accepted, and a declared output
+      equal to the supervisor's own `stdout.log` was accepted; a failed kill followed by a
+      never-resolving `exited` left the call pending; a `timeoutMs=100` run with a missing gate and
+      `startAfterTimeoutMs=500` returned a gate error at about 507 ms instead of respecting the global
+      deadline; a wrapper-based scenario killed the wrapper on timeout while leaving its real
+      `ngrace plan new` grandchild alive; and a stream fault during a staged gate wait was masked by
+      the gate timeout, which fired at 1210 ms where the fault was observable in 13 ms. This slice
+      closes the supervisor gaps for direct workers with canonical preflight, staged direct launch,
+      one global deadline, bounded reap, stream-fault observation in every phase (including the gate
+      wait), and fail-fast cleanup.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        Measured 2026-09-27 in the isolated `feat/coordinator-boundary` checkout at base
+        `890d55682ccc3ebe25643c6b4e45fe2b73c06341` with Bun 1.4.2, on the corrected scratch prototype
+        under `.ngrace/scratch/` (not production); transcript
+        `.ngrace/scratch/evidence/coordinator-probes.txt`. (a) Planted second-spawn failure with a
+        running first worker and a gate the first reaches: cleanup on, `firstAliveAfterThrow` false;
+        cleanup skipped, `firstAliveAfterThrow` true with the unreaped PID named; cleanup restored,
+        false again. (b) Preflight: 20 invalid plans driven through `runCoordinator` with a spawn spy —
+        duplicate id, equal/nested/symlink-aliased workspace, escaping output, duplicate output name,
+        reserved-log collision, gate-in-workspace, zero/negative/`NaN`/`Infinity` for both the global
+        deadline and the gate timeout, and a workspace containing or inside `project/`/`control/` —
+        each refused with zero spawns and no new workspace path. (c) Deadline precedence:
+        global 100 ms with a 500 ms missing gate returns `timedOut` true at 112 ms and `SIGKILL`s the
+        running worker; a 200 ms gate under a 10 s global throws a gate error at 210 ms. (d) Staged
+        direct real CLI: `timedOut` false, publisher 0, contender 1, contender pending while the lock
+        was held, no `plan.xml` while held, and the shared `spec.xml` SHA-256 equal to the paused-write
+        baseline both while held and after exit; a planted byte mutation during the hold makes the
+        while-held comparison false; after return no plan, no marker, no lock. (e) Timeout kill-all:
+        604 ms, `timedOut` true, `SIGKILL`, exit 7 preserved, absent output reported. (f) Failed kill:
+        bounded failure naming the PID at 811 ms. (g) Stream faults: the running-phase fault fails fast
+        at 2–4 ms with no started PID alive; the gated-phase fault interrupts the gate wait at
+        1 ms with the first worker reaped and the gated worker never spawned; ignoring pump failures
+        leaves both started PIDs alive (red). The mint carried verbatim: `mint:
+        C-COORDINATOR-BOUNDARY-1-CB86E900 slug=COORDINATOR-BOUNDARY lineage=1 hash=CB86E900
+        branch=feat/coordinator-boundary timestamp=2026-09-27T19:13:02.000Z` and `mint-search: 0
+        active, 0 archive prior bundle(s) share slug COORDINATOR-BOUNDARY`.
+      </Assumption>
+      <Assumption>
+        Applied-transition serialization is recorded here as a measured, separate, immediately
+        closeable correction candidate, not asserted as this bundle's success and not paid by it.
+        **Authority real-CLI and wrapper observations, cited and not reproduced locally:** the authority
+        drove the real `ngrace apply` CLI on a complete throwaway project and saw `status="applied"`
+        become visible while another process held the candidate lock, before that lock was released;
+        a temporary wrapper around the full apply transition kept `status="approved"` during the hold
+        and still applied after release. **Local function-level evidence, kept separate:** the scratch
+        `apply-lock-probe.ts` and `apply-lock-probe2.ts` transcripts call the imported
+        `applyChangeBundle` function directly; they show the applied status visible to a cooperating
+        lock holder during the hold and the applier blocking later inside `recordGateDecision`, but
+        they are not a real-CLI or temporary-wrapper control. Applied
+        `C-SUPERSEDE-MEMBERSHIP-4-20941257` (spec.xml:75) carries the acceptance-criterion exclusion
+        argument for apply because an unpublished candidate cannot reach it. Owner: that separate
+        correction candidate; it does not require this helper.
+      </Assumption>
+      <Assumption>
+        The wrapper-grandchild survival on timeout is a cited authority observation, not reproduced
+        locally. The suite case count and `test-metrics.json` change because a test file is added; the
+        measured figure is written at execution, never projected here. The full suite, `validate:ci`,
+        and CI are unrun at spec stage.
+      </Assumption>
+    </Assumptions>
+  </C-COORDINATOR-BOUNDARY-1-CB86E900>
+</NgraceChangeSpec>

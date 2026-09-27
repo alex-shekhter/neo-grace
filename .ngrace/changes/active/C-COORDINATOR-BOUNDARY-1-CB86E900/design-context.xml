@@ -1,0 +1,188 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-COORDINATOR-BOUNDARY-1-CB86E900</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Diagrams>
+    <SequenceDiagram>
+sequenceDiagram
+    participant C as Coordinator
+    participant P as Publisher direct worker
+    participant W as Contender direct worker
+    C-&gt;&gt;C: Preflight canonical paths, collisions, timeoutMs and startAfterTimeoutMs
+    C-&gt;&gt;P: Spawn in workers/publisher; drain logs; wait for the project gate
+    C-&gt;&gt;C: A stream fault interrupts the gate wait (bounded kill and reap)
+    C-&gt;&gt;W: Spawn in workers/contender; drain logs
+    C-&gt;&gt;C: Contender started and pending; no plan.xml; spec.xml bytes equal baseline
+    C-&gt;&gt;C: Release via control/; observe exits; snapshot outputs after owner exit
+    alt deadline, gate error, or infrastructure failure
+        C-&gt;&gt;P: Bounded kill and reap if running
+        C-&gt;&gt;W: Bounded kill and reap if running
+    end
+    </SequenceDiagram>
+    <ClassDiagram>
+classDiagram
+    class CoordinatorPlan {
+      root
+      timeoutMs
+      project
+      control
+      workers
+    }
+    class WorkerSpec {
+      id
+      command
+      workspace
+      startAfterPath
+      startAfterTimeoutMs
+    }
+    class WorkerWorkspace {
+      stdoutLog
+      stderrLog
+      declaredOutputs
+    }
+    class WorkerOutcome {
+      exitCode
+      signalCode
+      timedOut
+      outputSnapshots
+    }
+    class ProjectFixture {
+      sharedGraceState
+    }
+    class ControlSpace {
+      releaseSignal
+      gates
+    }
+    CoordinatorPlan "1" o-- "*" WorkerSpec
+    CoordinatorPlan "1" --&gt; "1" ProjectFixture
+    CoordinatorPlan "1" --&gt; "1" ControlSpace
+    WorkerSpec "1" --&gt; "1" WorkerWorkspace
+    WorkerSpec "1" --&gt; "1" WorkerOutcome
+    </ClassDiagram>
+  </Diagrams>
+  <Rationale>
+    This is the first, deliberately tiny slice of the coordinator program. The direction for this
+    slice is that the coordinator creates direct worker processes, monitors their processes and files,
+    gives each direct worker its own space, and exits its loop after all workers finish or one finite
+    global timeout, killing the direct children it started. The agreed layout is a throwaway root with
+    siblings: `project/` for the intentionally shared GRACE fixture, `control/` for coordinator-owned
+    gates, and `workers/&lt;id&gt;/` for each direct worker's logs and declared outputs.
+
+    The premise is narrow and measured. Bounded waits, kills, and reaps already exist, but only ad hoc
+    inside individual tests: `src/grace-cursor.test.ts` `runContender` (`:4815-4829`),
+    `disposeReleaser` (`:4871-4887`), and `reclaimFixtureDiagnostic` (`:6833-6853`) each bound a wait,
+    kill a stuck child, and either reap it or name the still-running PID. What does not exist is a
+    reusable contract: canonical plan preflight, per-worker owned write spaces, staged direct launch,
+    one global deadline, bounded reap on every path, live stream-fault observation, and a coherent
+    cleanup of every already-started direct worker when a later spawn, output read, or stream pump
+    fails. The authority independently measured the remaining gaps on the corrected scratch
+    prototype: symlink-aliased workspaces and a declared output equal to `stdout.log` were accepted; a
+    failed kill with a never-resolving `exited` left the call pending; a global 100 ms run with a
+    missing 500 ms gate returned a gate error at ~507 ms; and a wrapper-based scenario killed the
+    wrapper while leaving its real `ngrace plan new` grandchild alive. The corrected design closes
+    these for direct workers.
+
+    Three things are kept apart. Serialization/ownership is the candidate lock, which this slice does
+    not touch. Content integrity is the bytes of a declared output, captured as a post-exit snapshot
+    and nothing more. Publication visibility is the in-bundle marker and the absent sibling lock,
+    which the concurrent CLI criterion reads from the CLI's outcome rather than from the supervisor's
+    snapshot. A content hash is an integrity pin, never a lock.
+
+    This helper establishes a contract for later production work to consult. Production source must
+    not import test support, and this bundle claims no production reuse, no serialization safety, and
+    no publication safety. The applied-transition serialization question is separate, immediately
+    closeable, and carries an applied acceptance-criterion exclusion argument to answer.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      **A. Direct-worker supervisor contract (chosen).** One support module,
+      `src/test-support/coordinator.ts` (`LINKS: M-TEST-SUPPORT`), plus its focused test, with the
+      existing module header, graph summary, and verification scenario made truthful. Plan preflight;
+      sibling layout; per-worker workspaces; staged direct launch; log draining; one global deadline;
+      bounded kill and reap; live stream-fault observation; fail-fast cleanup. Pros: non-duplicative
+      (no reusable contract exists, even though ad-hoc bounded helpers do); it overturns no ruling; it
+      makes the later concurrency work drivable with direct workers and a coherent failure boundary;
+      it matches the stated direction; it is one module plus one test at T1. Cons: test-support code,
+      so no user-visible change and no production capability; it deliberately guarantees only direct
+      worker PIDs and only a post-exit output snapshot.
+    </Alternative>
+    <Alternative>
+      **B. Applied-transition serialization correction (separate runner-up).** Wrap `applyChangeBundle`
+      (`src/gates/ledger.ts`, `LINKS: M-GATES`) so its `spec.xml`/`plan.xml` status writes and the
+      archive rename happen under the candidate lock. Pros: fixes a measured defect — with a
+      cooperating holder, the authority drove the real `ngrace apply` CLI and saw `status="applied"`
+      become visible before the lock was released, while a temporary wrapper kept `status="approved"`
+      during the hold and still applied after release; it is small and immediately closeable. Cons:
+      applied `C-SUPERSEDE-MEMBERSHIP-4-20941257/spec.xml:75` carries an applied acceptance-criterion
+      exclusion argument for apply (an unpublished candidate cannot reach it), so the change must cite
+      and answer it. It is not this slice: it needs its own governed bundle, and it does not require
+      the supervisor — the authority tested both directions without one.
+    </Alternative>
+    <Alternative>
+      **C. Sorted multi-lock primitive.** Extract `supersedeChangeBundle`'s inline sorted two-lock
+      nesting (`low`/`high`) into an exported `withSortedCandidateLocks`. Pros: a reusable primitive;
+      deadlock-freedom becomes a named, tested property; it overturns no ruling. Cons: a refactor of an
+      already-sorted implementation with almost no observable behavior change; it is not a worker
+      supervision contract and does not close any measured gap. Loses to A.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Applied-transition serialization is a **measured, separate, immediately closeable governed
+      correction candidate**, not generic later work and not paid by this helper. It must answer the
+      applied acceptance-criterion exclusion argument at
+      `C-SUPERSEDE-MEMBERSHIP-4-20941257/spec.xml:75` (apply is excluded from the candidate-lock
+      cooperating-writer population because an unpublished candidate cannot reach it). Its forced
+      files are `src/gates/ledger.ts` and `src/grace-apply.test.ts`; production apply is not a forced
+      file of this bundle. Owner: that correction candidate.
+    </Decision>
+    <Decision>
+      Content-pin capture and the publication/publisher boundary (canonical read set, base-pin
+      comparison, stale-work refusal, published-byte verification) are unaddressed production
+      questions. Owner: a later production slice; production must not import this test-support helper.
+    </Decision>
+    <Decision>
+      Expanding the supervisor guarantee to a worker's own descendants, or to a full production
+      publication coordinator, is out of scope and would need its own process-tree scope statement.
+      Owner: a later slice.
+    </Decision>
+    <Decision>
+      Teaching optional diagram children in the canonical `ngrace-spec` skill/template and packaged
+      mirror, and (optionally) registering a typed, validated diagram shape in the CLI grammar, is
+      **unscheduled future work** recorded in
+      `docs/plans/active/RM-GOVERNED-PATH/grace-implementation-queue.md`. This bundle stores its own
+      reviewed diagrams in this `design-context.xml` as Mermaid text; it does not implement skill or
+      CLI diagram support, and it does not imply that `RM-DESIGN-EVIDENCE`'s visual-asset proposal is
+      the same question. Authoring/planning use is distinct from delivery of diagrams into an
+      execution context, which would overturn the current absolute design-context exclusion.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      **Concurrent real-CLI supervision with direct workers.** On a throwaway sibling layout, the
+      coordinator creates a workspace per direct worker, spawns a real `ngrace spec new` publisher
+      paused after its exclusive `spec.xml` write, waits for the product-state gate (the sibling
+      candidate lock), and then spawns a real `ngrace plan new` contender directly. While the lock is
+      held the test observes contemporaneously that the contender started and is still pending, that no
+      `plan.xml` exists, and that the shared bytes are unchanged, then writes the release signal in
+      `control/`. The coordinator returns only after both direct workers have exited; the lock outcome
+      is read from the CLI's exit codes and from the absent lock and marker, and the shared bytes are
+      compared by SHA-256.
+    </Scenario>
+    <Scenario>
+      **Bounded termination and deadline precedence.** A never-exiting direct worker and a worker
+      exiting 7 under a finite deadline: the coordinator returns within the deadline plus a poll
+      margin, records `timedOut` true and `SIGKILL` for the survivor, preserves exit 7 for the other,
+      captures each worker's output bytes only after it exited, and leaves no direct child running. A
+      global deadline reached during staged launch ends the run at the global bound without spawning
+      later workers; a shorter gate timeout fails fast after cleanup.
+    </Scenario>
+    <Scenario>
+      **Fail-fast cleanup and live stream faults.** With a first direct worker plainly running and a
+      staged second spawn failing, the coordinator stops, bounded-kills and reaps the first, and throws
+      the original error composed with the cleanup outcome, without waiting for the deadline. A
+      stdout/stderr pump fault is observed while workers run and fails fast after cleanup. Skipping the
+      cleanup, or ignoring pump failures, on a throwaway copy reddens the corresponding criteria;
+      restoring them greens them.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
