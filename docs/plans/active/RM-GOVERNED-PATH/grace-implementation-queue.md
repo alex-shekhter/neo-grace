@@ -123,6 +123,33 @@ the supersede route until PILOT is decided. The cost record, cause, and
 declined-supersede outcome are evidence work for that later discussion; this
 document neither selects a PILOT design nor relaxes D27.
 
+## First-class sequence/class diagrams: teaching and validation are unscheduled
+
+**Measured present shape, 2026-09-27 at `890d556` plus the feature-branch `CLAUDE.md` commit.**
+`design-context.xml` has no child-section allowlist (`src/artifact/grammar.ts:784-833`), so an
+optional `<Diagrams>` section carrying `<SequenceDiagram>` and `<ClassDiagram>` children stores
+Mermaid as escaped character data and passes the real
+`bun run ngrace lint --path <root> --fail-on warnings` (exit 0, 0 errors, 0 warnings). An unescaped
+Mermaid `<` in a child produces `xml.parse` (exit 1); restoring the escaped form returns exit 0.
+This establishes XML acceptance only: there is no typed validation of diagram content, and
+`src/grace-context.ts:343-355,868-876` deliberately excludes `design-context.xml` from execution
+slices, so a diagram stored there does not reach an executing agent.
+
+| Variant | Benefit | Cost |
+|---|---|---|
+| **A. Teach optional diagram children in the canonical `ngrace-spec` skill and template, plus the packaged mirror, with `ngrace-plan` consumption semantics (recommended)** | Authors get a sanctioned home for reviewed diagrams; the rule matches `CLAUDE.md`'s diagram-before-brief process; no CLI shape change. | Skill and mirror edits; `ngrace-plan` consumption wording must be pinned by a `TAUGHT_RULES` needle; still unvalidated. |
+| **B. Additionally register and validate a typed diagram shape in the CLI grammar, tests, generated schema reference, issue catalog, and teaching-surface checks** | Structural validation of the children; a count or attribute claim becomes parser-checkable. | Touches the grammar, generated schema reference, issue catalog, teaching-surface checks, and measured README/token footprint; larger than the authoring need. |
+
+Variant B loses until authoring demand is measured: the grammar, schema reference, and issue
+catalog are generated and validated surfaces, and a typed shape with no consumers is cost without a
+measured benefit. **Recommendation: a separate governed bundle decides the smallest useful
+first-class contract, starting from A.** Authoring and planning use is distinct from delivering
+diagrams into an execution context: the current absolute design-context exclusion would have to be
+overturned for delivery, and that is a separate decision from storage. This is not
+[RM-DESIGN-EVIDENCE](../RM-DESIGN-EVIDENCE/review.md)'s visual-asset proposal (mocks, sketches,
+screenshots, recordings); that question is about references an implementing agent can consume, not
+about sequence/class diagrams authored for review.
+
 ## Queue boundary
 
 The existing D29 charters own module-header enforcement and selective function

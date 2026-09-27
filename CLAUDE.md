@@ -111,6 +111,11 @@ diagram and a class diagram; do not hand off the brief before that review. When 
 are in scope, show each worker's dedicated write space and the ownership/handoff boundaries relevant
 to the phase.
 
+When a change bundle exists, reviewed sequence and class diagrams are stored in its
+`.ngrace/changes/active/<C-ID>/design-context.xml`, and the normative behavior is repeated in its
+`spec.xml`. The design context is explanatory: an obligation binds only when it appears in the spec's
+acceptance criteria and scope.
+
 Implementation work is dispatched to a separate executor agent. Write every executor brief to a
 Markdown file in the project workspace. Its first line must be `/skill:ngrace-XXX` for the skill
 the executor should invoke, followed by the brief body. Before handoff, read that first line back
