@@ -1,0 +1,115 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-SQUASH-WITNESS-3-CC8FBE18>
+    <IntentSummary>
+      Execute the approved T1 successor spec committed at d1bea354358fd3d0b87107a9b2dff95539177f00. Step 1 retires invalid inode and descriptor proof, preserves C6 content/provenance and functional token-and-byte controls, repairs measured metrics, and replaces the unsatisfiable marker fixture with a valid isolated layout probe. Step 2, the coordinator, remains outside this bundle. Four serial tasks: T-001 deletes the enumerated identity/pin lifecycle tests and exclusive historical fixture/verifier while preserving C6; T-002 removes the extra workflow steps and detects their return by parsed behavior even under renamed steps; T-003 repairs the metrics runner with a canonical SHA-256 source pin and observed JUnit case comparison; T-004 repairs the tracked-active-directory marker test using the committed HEAD marker and a separately valid minimal project. During execute, the warm executor ports reviewed product edits from its isolated predecessor clone to a faithful successor clone, records fresh successor run events, and fixes the authority findings. The predecessor's run events and provisional test-metrics.json are not transferred. Put the executor report outside the successor clone's git root, under executor scratch, so review audits only declared writes. The authority validates the product before root application. No GitHub cloud call, runtime lock edit, README/examples edit, or archive edit is a task. The final MustPassCommand is bun run validate:ci and runs once at final; its metered suite writes the measured metrics artifact. AC-OBSOLETE-TESTS-REMOVED maps to T-001, AC-HISTORICAL-MACHINERY-REMOVED maps to T-002, and AC-METRICS-MEASURED maps to T-003. AC-WORKFLOW-LEAN, AC-TRACKED-ACTIVE-DIR-SUCCESSOR, and the preserved C6 criteria are close-bound and are not Satisfies targets.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-RELEASE-AUTOMATION</Value></MustExist>
+      <MustExist><Value>scripts/test-metrics.ts</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>.github/workflows/validate.yml</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/ci-evidence.json</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/active/.gitkeep</Value></MustExist>
+      <MustExist><Value>src/test-support/fixtures.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/changes/archive/C-SQUASH-WITNESS-2-29EFA92A/spec.xml</Value></MustExist>
+      <MustPassCommand><Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t 'omitted-boundary content witness|explicit boundary|recorded range cross-check'</Command></MustPassCommand>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustNotExist><Value>scripts/verify-prepin-linux-evidence.ts</Value></MustNotExist>
+      <MustNotExist><Value>scripts/fixtures/prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262/archive.tar</Value></MustNotExist>
+      <MustNotExist><Value>scripts/fixtures/prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262/manifest.json</Value></MustNotExist>
+      <MustNotContain><File>src/grace-generate.test.ts</File><Text>FS_RECYCLES</Text></MustNotContain>
+      <MustNotContain><File>src/grace-generate.test.ts</File><Text>AC-PIN-RELEASE</Text></MustNotContain>
+      <MustNotContain><File>src/grace-generate.test.ts</File><Text>a same-path replacement is detected by inode</Text></MustNotContain>
+      <MustNotContain><File>src/grace-generate.test.ts</File><Text>the opened handle is the first identity source</Text></MustNotContain>
+      <MustNotContain><File>src/grace-generate.test.ts</File><Text>pin identity and release</Text></MustNotContain>
+      <MustNotContain><File>src/grace-generate.test.ts</File><Text>prepin fixture bytes</Text></MustNotContain>
+      <MustNotContain><File>src/grace-cursor.test.ts</File><Text>FS_RECYCLES</Text></MustNotContain>
+      <MustNotContain><File>src/grace-cursor.test.ts</File><Text>candidate reclaim identity</Text></MustNotContain>
+      <MustNotContain><File>src/grace-cursor.test.ts</File><Text>the observed lock identity is captured open</Text></MustNotContain>
+      <MustNotContain><File>src/grace-cursor.test.ts</File><Text>prepin fixture bytes</Text></MustNotContain>
+      <MustNotContain><File>src/grace-supersede.test.ts</File><Text>AC-SUPERSEDE-PIN-RELEASE</Text></MustNotContain>
+      <MustNotContain><File>src/grace-supersede.test.ts</File><Text>implicit mint pin release</Text></MustNotContain>
+      <MustNotContain><File>src/gates/core.test.ts</File><Text>identity-only</Text></MustNotContain>
+      <MustNotContain><File>scripts/audit-regressions.test.ts</File><Text>windowsPinInvocation</Text></MustNotContain>
+      <MustNotContain><File>scripts/audit-regressions.test.ts</File><Text>windowsSupersedeInvocation</Text></MustNotContain>
+      <MustNotContain><File>scripts/audit-regressions.test.ts</File><Text>prepin linux verifier</Text></MustNotContain>
+      <MustNotContain><File>scripts/audit-regressions.test.ts</File><Text>prepin fixture discovery</Text></MustNotContain>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>prepin-behavior</Text></MustNotContain>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>AC-SUPERSEDE-PIN-RELEASE</Text></MustNotContain>
+      <MustExist><Value>test-metrics.json</Value></MustExist>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope><GraphAnchors><M-RELEASE-AUTOMATION /></GraphAnchors></DurableScope>
+    <ObservedWriteScope>
+      <File>.ngrace/changes/archive/C-SQUASH-WITNESS-2-29EFA92A/plan.xml</File>
+      <File>.ngrace/changes/archive/C-SQUASH-WITNESS-2-29EFA92A/spec.xml</File>
+      <File>src/grace-generate.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/grace-supersede.test.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>scripts/test-metrics.ts</File>
+      <File>scripts/test-metrics.test.ts</File>
+      <File>test-metrics.json</File>
+      <File>.github/workflows/validate.yml</File>
+      <File>scripts/verify-prepin-linux-evidence.ts</File>
+      <File>scripts/fixtures/prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262/archive.tar</File>
+      <File>scripts/fixtures/prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262/manifest.json</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Retire inode and descriptor proof while preserving functional and C6 controls</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Remove the exact three recycling-gated controls, thirteen pin lifecycle cases, direct identity assertions, and one incidental inode assertion enumerated in the spec. Remove the pre-pin archive and manifest, duplicate loaders, fixture tests, verifier, and its support tests. Remove helpers and imports exclusively used by those cases. Preserve the deterministic B/A/B token-and-byte control, byte-preservation and EEXIST/ENOTEMPTY tests, supersede transaction tests, C6 historical direction constants, C6 content and explicit-boundary tests, and unrelated active-directory checks. Leave the tracked active-directory marker test for the explicit T-004 correction. Before deletions, run the three planned absence commands and record their real failing exit; after deletions, run them again and record pass. Do not edit runtime source or archived bundles.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun run typecheck</Command>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts src/grace-generate.test.ts src/grace-cursor.test.ts src/grace-supersede.test.ts src/gates/core.test.ts -t 'omitted-boundary content witness|explicit boundary|recorded range cross-check|a stale observer cannot unlink|review verdict three-phase|same-path modification|foreign sentinel|EEXIST|ENOTEMPTY|AC-POST-FOLD-FAILURES|explicit replacement relocation under the fired seam refuses'</Command>
+          <Command>test ! -e scripts/verify-prepin-linux-evidence.ts</Command>
+          <Command>test ! -e scripts/fixtures/prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262/archive.tar</Command>
+          <Command>test ! -e scripts/fixtures/prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262/manifest.json</Command>
+        </Verification>
+        <Satisfies><AC-OBSOLETE-TESTS-REMOVED /></Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Remove retired workflow steps and add a discriminating absence guard</Title>
+        <DependsOn><Task>T-001</Task></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Remove the six extra exact-head Validate steps and two Windows pin selector steps. Keep ordinary Validate checkout, install, validation, and release steps plus unrelated Windows and Dart coverage. The retired inode workflow steps test parses YAML step objects across every job, verifies required steps by action or command as well as name, and checks Windows and Dart coverage commands. It plants each retired behavior under an unrelated or absent name in its owner job, observes refusal, removes it, and observes green. It also makes a retained named step a no-op, observes refusal, then restores it. The guard must reject a renamed pre-pin bun test command, which passed the predecessor's name-only guard. It does not retain the old positive Windows pin-step guards.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t 'retired inode workflow steps'</Command>
+        </Verification>
+        <Satisfies><AC-HISTORICAL-MACHINERY-REMOVED /></Satisfies>
+      </T-002>
+      <T-003>
+        <Title>Repair measured test metrics after same-file test removal</Title>
+        <DependsOn><Task>T-002</Task></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Hash the canonical sorted relative test paths and raw source bytes with SHA-256. artifactIsStale compares that digest and structural counts. A matching provisional artifact can satisfy the in-suite freshness predicate, but the runner remeasures it. Parse the just-run JUnit and compare case identities with multiplicity; write a measured artifact on digest or case-set change and leave the artifact byte-identical when both are unchanged. Refuse a source digest change during the run. Tests cover same-file deletion, changed filename, exactly one changed source byte, interrupted provisional recovery, no machine identifier, and stable unchanged bytes. The one-byte test asserts the changed-byte count and imports testSourceDigest directly with no missing-export fallback. The test titled real metrics runner invokes the actual scripts/test-metrics.ts CLI in a small disposable project and asserts the measured artifact, rather than calling only a helper. Correct the stale four-key comment after sourceDigest is added. The final validate:ci performs the one metered repository suite after T-004 and leaves no provisional cases.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts -t 'source digest|case multiset|provisional|real metrics runner'</Command>
+        </Verification>
+        <Satisfies><AC-METRICS-MEASURED /></Satisfies>
+      </T-003>
+      <T-004>
+        <Title>Prove the tracked active-directory marker through an isolated valid project</Title>
+        <DependsOn><Task>T-003</Task></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>Replace only the retained tracked active-directory marker test's invalid full-checkout deletion fixture. Assert git ls-files --error-unmatch for the marker, extract only that marker with git archive HEAD, verify it is the only regular file in the path-scoped archive and its bytes match the HEAD blob. Lint the real repository with active successors intact. Build a fresh valid minimal GRACE project with the existing GraceProjectBuilder, place the archived marker there, assert no change bundles and only the marker under active/, and drive real ngrace lint and the three module-find forms green. Remove fixture active/ and require lint exit 1 with project.missing-change-directory and module find true nonzero. Do not fake an applied bundle, delete the real archive history, or edit the shared fixture builder. Clean up the disposable project.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t 'tracked active-directory marker'</Command>
+          <Command>bun run typecheck</Command>
+        </Verification>
+      </T-004>
+    </ImplementationPlan>
+    <Assumptions>
+      <Assumption>Measured 2026-09-26 America/New_York at the approved successor checkpoint d1bea354358fd3d0b87107a9b2dff95539177f00: root lint 0 errors/0 warnings; the predecessor's retained marker test failed 0 pass/1 fail at the prior approved checkpoint, while an isolated marker prototype passed its real CLI green/red directions. The executor's previous clone reported T-001/T-002/T-003 narrow green and validate:ci exit 1 for that marker failure. Its provisional metrics artifact is not a deliverable. No successor post-removal CI count is projected; the final metered suite runs only after all four tasks.</Assumption>
+    </Assumptions>
+  </C-SQUASH-WITNESS-3-CC8FBE18>
+</NgraceChangePlan>
