@@ -748,22 +748,6 @@ describe("candidate exclusive acquisition and bounded cleanup", () => {
     expect(readFileSync(specPath(root, id), "utf8")).toBe("<competitor />");
   });
 
-  it("(c) a same-path replacement is detected by inode and preserved", () => {
-    const root = createTempProject("cand-replace-");
-    const id = "C-CAND-REPL-1-ABCDEF12";
-    const candidate = mkCandidate(root, id, { spec: "<ours />" });
-    const observedPair = `${candidate.dev}:${candidate.ino}`;
-    rmSync(candidateDir(root, id), { recursive: true });
-    mkdirSync(candidateDir(root, id), { recursive: true });
-    writeFileSync(specPath(root, id), "<ours />");
-    const recreated = statSync(candidateDir(root, id));
-    const recreatedPair = `${recreated.dev}:${recreated.ino}`;
-    const result = cleanupCandidate(candidate);
-    expect(result.removed, `the held pin preserves the replacement (observed ${observedPair}, recreated ${recreatedPair})`).toBe(false);
-    expect(result.diagnostic).toMatch(/identity changed/);
-    expect(existsSync(candidateDir(root, id))).toBe(true);
-    expect(`${statSync(candidateDir(root, id)).dev}:${statSync(candidateDir(root, id)).ino}`, `the replacement pair survives (observed ${observedPair}, recreated ${recreatedPair})`).toBe(recreatedPair);
-  });
 
   it("(d) a same-path modification of our spec.xml is detected by bytes and preserved", () => {
     const root = createTempProject("cand-modify-");
@@ -835,34 +819,6 @@ describe("candidate exclusive acquisition and bounded cleanup", () => {
     expect(readdirSync(candidateDir(root, id))).toEqual([]);
   });
 
-  it("AC-PIN-ACQUISITION: the opened handle is the first identity source", () => {
-    const root = createTempProject("cand-order-");
-    const id = "C-CAND-ORDER-1-ABCDEF12";
-    const order: string[] = [];
-    const io: CandidateIo = {
-      openSync: ((...args: Parameters<typeof openSync>) => {
-        order.push("open");
-        return openSync(...args);
-      }) as typeof openSync,
-      fstatSync: ((fd: number) => {
-        order.push("fstat");
-        return fstatSync(fd);
-      }) as typeof fstatSync,
-      statSync: ((...args: Parameters<typeof statSync>) => {
-        order.push("stat");
-        return statSync(...args);
-      }) as typeof statSync,
-    };
-    const minted = mintResolvedBundle(root, resolvedFor(id), io);
-    const openAt = order.indexOf("open");
-    const fstatAt = order.indexOf("fstat");
-    const statAt = order.indexOf("stat");
-    expect(openAt, "the directory is opened").toBeGreaterThanOrEqual(0);
-    expect(fstatAt, "fstat runs").toBeGreaterThanOrEqual(0);
-    expect(fstatAt, "fstat of the handle precedes any path stat").toBeLessThan(statAt);
-    expect(openAt, "open precedes the path check").toBeLessThan(statAt);
-    cleanupCandidate(minted.acquired);
-  });
 
   it("(g) a first-unlink failure keeps the marker while the spec survives", () => {
     const root = createTempProject("cand-first-unlink-");
@@ -1356,7 +1312,6 @@ describe("cleanup validate first", () => {
     expect(unlinks, "no unlink is issued before ownership validation passes").toBe(0);
     const after = readdirSync(dir).sort().map((name) => `${name}:${readFileSync(path.join(dir, name), "utf8")}`);
     expect(after).toEqual(before);
-    expect(statSync(dir).ino).toBe(stat.ino);
   });
 });
 

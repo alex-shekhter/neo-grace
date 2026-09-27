@@ -3025,27 +3025,6 @@ describe("review verdict three-phase identity and location", () => {
     return { root, bundle, specPath: path.join(bundle, "spec.xml"), ledgerPath: path.join(bundle, "run-ledger.xml") };
   }
 
-  it("(c) a same-path directory replacement with byte-identical prerequisites (identity-only) refuses and preserves the replacement with no ledger write", () => {
-    const { root, bundle, specPath, ledgerPath } = appliedArchive("C-3PH-IDENT");
-    const tmp = `${bundle}.swap`;
-    writeCloseEvidenceSpec(specPath, `mv ${bundle} ${tmp}; cp -a ${tmp} ${bundle}; rm -rf ${tmp}`);
-    const bytesBeforeCommand = recursiveBundleSnapshot(bundle);
-    const inoBefore = statSync(bundle).ino;
-    const ledgerBefore = existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : null;
-    const result = runGateCli(
-      ["verdict", "--change", "C-3PH-IDENT", "--outcome", "pass", "--path", root, ...ackFindingCliArgs(root, "C-3PH-IDENT")],
-      root,
-    );
-    expect(result.status).not.toBe(0);
-    expect(`${result.stdout ?? ""}${result.stderr ?? ""}`).toMatch(/identity|stale snapshot/i);
-    // The command's replacement is byte-identical but a distinct inode; it survives the refusal.
-    expect(recursiveBundleSnapshot(bundle)).toBe(bytesBeforeCommand);
-    const inoAfter = statSync(bundle).ino;
-    expect(inoAfter).not.toBe(inoBefore);
-    expect(statSync(bundle).ino).toBe(inoAfter);
-    // The gate added no ledger bytes after detecting the stale snapshot.
-    expect(existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : null).toBe(ledgerBefore);
-  });
 
   it("(d) an active/archive relocation (location-only) refuses, leaves the archive path absent, and preserves the active arrival with no ledger write", () => {
     const { root, bundle, specPath, ledgerPath } = appliedArchive("C-3PH-LOC");

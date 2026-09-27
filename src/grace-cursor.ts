@@ -59,7 +59,6 @@
 //   setEvaluateTargetCompleteThrowProbeForTests
 //   setEventIdAllocationProbeForTests
 //   setEventWriteLockTtlForTests
-//   setCandidateLockCaptureOrderForTests
 //   setCandidateLockOpenForTests
 //   setCandidateLockTtlForTests
 //   setCandidateReclaimProbeForTests
@@ -4010,12 +4009,6 @@ let candidateReclaimProbeForTests:
   | ((phase: "observed" | "before-unlink", lockPath: string, observedRaw: string) => void)
   | undefined;
 
-let candidateLockCaptureOrderForTests: string[] | undefined;
-
-/** Test-only: when set, observeCandidateLock records its capture call order into the array. */
-export function setCandidateLockCaptureOrderForTests(order: string[] | undefined): void {
-  candidateLockCaptureOrderForTests = order;
-}
 
 /**
  * Test-only: fires at the reclaim boundary so a deterministic B/A/B schedule can be
@@ -4041,11 +4034,8 @@ function observeCandidateLock(lockPath: string): CandidateLockObservation | unde
   let fd: number | undefined;
   try {
     fd = openSync(lockPath, "r");
-    candidateLockCaptureOrderForTests?.push("open");
     const stat = fstatSync(fd);
-    candidateLockCaptureOrderForTests?.push("fstat");
     const raw = readFileSync(fd, "utf8");
-    candidateLockCaptureOrderForTests?.push("read");
     return { raw, dev: stat.dev, ino: stat.ino, fd };
   } catch {
     if (fd !== undefined) {

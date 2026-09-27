@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-INODE-EVIDENCE-REMOVAL-1-49104F3E>
     <Summary>
       First phase of the inode-evidence removal: delete four direct identity-only cases and one

@@ -6872,22 +6872,6 @@ describe("candidate reclaim pin controls (C-LINUX-VALIDATION-REPAIR-1-DE5A1A05)"
     return { state, exitCode, signal, stderrTail, markers, message, reapFailure };
   }
 
-  it("AC-CANDIDATE-RECLAIM-EXCLUSIVE: the observed lock identity is captured open → fstat → read", () => {
-    const root = mkdtempSync(path.join(os.tmpdir(), "grace-lock-order-"));
-    mkdirSync(lockDirFor(root), { recursive: true });
-    const lockPath = lockPathFor(root, "C-ORDER");
-    writeFileSync(lockPath, `2147483647\n${Date.now()}\ndead-token\n`, { flag: "wx" });
-    const order: string[] = [];
-    graceCursorModule.setCandidateLockCaptureOrderForTests(order);
-    try {
-      graceCursorModule.withCandidateLock(root, "C-ORDER", () => {});
-    } finally {
-      graceCursorModule.setCandidateLockCaptureOrderForTests(undefined);
-      rmSync(root, { recursive: true, force: true });
-    }
-    expect(order.slice(0, 3), "open → fstat → read-from-handle").toEqual(["open", "fstat", "read"]);
-    expect(order.indexOf("fstat"), "fstat precedes the handle read").toBeLessThan(order.indexOf("read"));
-  });
 
   it.skipIf(!FS_RECYCLES)("AC-CANDIDATE-RECLAIM-EXCLUSIVE pre-pin control: b53d13d unlinks the recycled replacement", async () => {
     const extracted = mkdtempSync(path.join(os.tmpdir(), "reclaim-baseline-"));
