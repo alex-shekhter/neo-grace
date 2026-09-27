@@ -106,6 +106,11 @@ anyone asked what the URL was.
 
 ## Briefing The Executor
 
+Before every executor brief, show the maintainer the proposed design approach with both a sequence
+diagram and a class diagram; do not hand off the brief before that review. When concurrent workers
+are in scope, show each worker's dedicated write space and the ownership/handoff boundaries relevant
+to the phase.
+
 Implementation work is dispatched to a separate executor agent. Write every executor brief to a
 Markdown file in the project workspace. Its first line must be `/skill:ngrace-XXX` for the skill
 the executor should invoke, followed by the brief body. Before handoff, read that first line back
