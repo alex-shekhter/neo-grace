@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-SQUASH-WITNESS-3-CC8FBE18>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-SQUASH-WITNESS-3-CC8FBE18><Replacement>C-SQUASH-WITNESS-4-E1A787BF</Replacement>
     <Summary>
       Supersede the approved C-SQUASH-WITNESS-2-29EFA92A after its retained active-directory marker test made the pre-archive CI target impossible. Remove invalid inode-dependent CI evidence, preserve the independent C6 witness, repair measured test metrics, and prove the marker behavior with a valid isolated fixture.
     </Summary>
