@@ -1,0 +1,141 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-SQUASH-WITNESS-4-E1A787BF>
+    <IntentSummary>
+      Two dependent tasks, then the closed ceremony. T-001 replaces only the tracked
+      active-directory marker test in scripts/audit-regressions.test.ts: the invalid full-checkout
+      deletion fixture becomes a path-scoped git archive of HEAD whose git and tar statuses are read
+      from their own processes, whose single entry is asserted regular (not a symlink or directory),
+      and whose extracted bytes equal the HEAD blob; then, using the existing GraceProjectBuilder, a
+      separately constructed valid minimal GRACE project with no change bundles is greened (lint plus
+      module find true, false, and --json=true) and, once active/ is removed, refuses with lint exit 1
+      naming project.missing-change-directory and module find true non-zero. T-002 invalidates the
+      committed stale test-metrics.json and then runs bun run test:metrics as the artifact-production
+      action: that command is the artifact writer (the runner rewrites only a stale artifact), and its
+      single suite invocation produces the measured JUnit-derived artifact. T-002's own Verification is
+      a narrow read-only check of the produced artifact. The ceremony therefore spends two suite
+      invocations: T-002's test:metrics, then the close's --assertions final --run-commands running
+      bun run validate:ci, whose test:metrics segment re-runs the suite but leaves the now-fresh
+      artifact byte-identical. The close acts are named, not tasked: run the selected final gate,
+      terminal and fold, record the bound verdict, run gate apply and gate archive, run ngrace apply,
+      which
+      surgically writes applied and renameSyncs the bundle into
+      .ngrace/changes/archive/C-SQUASH-WITNESS-4-E1A787BF, and let the operator commit.
+      ObservedWriteScope carries the two product writes, the predecessor's supersede arrival, and this
+      bundle's own archive arrival.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-RELEASE-AUTOMATION</Value>
+      </MustExist>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>describe("tracked active-directory marker"</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>isSymbolicLink</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>project.missing-change-directory</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>GraceProjectBuilder</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>git archive HEAD | tar</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>test-metrics.json</File>
+        <Text>path-scoped HEAD archive</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>test-metrics.json</File>
+        <Text>(provisional)</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-RELEASE-AUTOMATION />
+      </GraphAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>test-metrics.json</File>
+      <Glob>.ngrace/changes/archive/C-SQUASH-WITNESS-3-CC8FBE18/**</Glob>
+      <Glob>.ngrace/changes/archive/C-SQUASH-WITNESS-4-E1A787BF/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Correct the tracked active-directory marker witness</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first in its own round trip: the retained tracked active-directory marker test fails
+            at baseline with two change.superseded-replacement-not-found errors. Replace only that
+            test's body (the describe title stays tracked active-directory marker) and give the
+            corrected test an it title containing path-scoped HEAD archive, so the measured artifact
+            carries a deterministic marker case name. The test asserts
+            git ls-files --error-unmatch .ngrace/changes/active/.gitkeep exits 0 and names the path;
+            runs a path-scoped git archive of HEAD restricted to the marker with the git status read
+            from the git process; runs the tar listing with the tar status read from the tar process
+            and requires exactly the marker as the single regular entry, rejecting a symlink or
+            directory; extracts the marker and asserts its bytes equal git show of the HEAD blob; and
+            lints the real repository with its active replacement links intact at 0 errors and 0
+            warnings. It then builds a separately constructed valid minimal GRACE project with the
+            existing GraceProjectBuilder, installs the archived marker so exactly .gitkeep is under
+            active/ with no change bundles, drives real ngrace lint plus module find true, module find
+            false, and module find --json=true green, removes active/, and requires lint exit 1 naming
+            project.missing-change-directory plus module find true non-zero. It never fabricates an
+            applied bundle, deletes real archive history, or edits the shared fixture builder. Read
+            exit codes directly, never through a pipe. Paste the red baseline failure and the green
+            targeted run.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t "tracked active-directory marker"</Command>
+          <Command>bun run typecheck</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Invalidate and produce the measured test-metrics.json, then verify it</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first in its own round trip: the narrow read-only verification below fails on the
+            committed artifact because the renamed marker case is absent from its stale identities.
+            Then delete the stale test-metrics.json so it can no longer satisfy the runner's
+            file-set-and-count-sum freshness predicate, and run bun run test:metrics as the required
+            artifact-production action. That command is the artifact writer: it leaves a fresh
+            artifact untouched, so the stale artifact must be invalidated first; with the file absent
+            it writes the provisional tree artifact and then, after its one suite invocation, the
+            measured JUnit-derived artifact. Do not edit the metrics runner. After the action the
+            narrow read-only verification must pass: test-metrics.json exists, its files tests counts
+            sum to its tests length (internal file/case agreement), it carries the renamed marker case
+            under scripts/audit-regressions.test.ts whose name contains path-scoped HEAD archive, and
+            it has no (provisional) entry. Report the measured artifact's audit-regressions case count
+            and the zero provisional count; never treat the runner's freshness predicate as evidence
+            of correct case identities. The close's --assertions final --run-commands then runs
+            bun run validate:ci, whose test:metrics segment leaves the now-fresh artifact
+            byte-identical. That is the second and last suite invocation.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("test-metrics.json","utf8")); let sum=0; for(const f of a.files) sum+=f.tests; if(sum!==a.tests.length) throw new Error("file/case sum mismatch"); if(a.tests.some(function(t){return t.name==="(provisional)";})) throw new Error("provisional entries"); if(!a.tests.some(function(t){return t.file==="scripts/audit-regressions.test.ts" &amp;&amp; t.name.includes("path-scoped HEAD archive");})) throw new Error("renamed marker case absent"); console.log("measured artifact ok:", a.tests.length);'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-METRICS-REFRESH />
+        </Satisfies>
+      </T-002>
+    </ImplementationPlan>
+  </C-SQUASH-WITNESS-4-E1A787BF>
+</NgraceChangePlan>
