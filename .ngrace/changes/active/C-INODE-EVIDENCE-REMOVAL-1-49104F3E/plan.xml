@@ -1,0 +1,125 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-INODE-EVIDENCE-REMOVAL-1-49104F3E>
+    <IntentSummary>
+      Two tasks, then the closed ceremony. T-001 deletes exactly the four identity-only cases, the
+      incidental inode assertion, and the orphaned setCandidateLockCaptureOrderForTests surface; its
+      absence guard is red at baseline and green after the deletion, and the retained focused
+      cursor/generate/gate commands plus typecheck pass. T-002 depends on T-001: it rejects the stale
+      test-metrics.json, invalidates it, runs one bun run test:metrics as the artifact-producing action,
+      and reconciles the produced artifact with that run's JUnit. The close runs bun run validate:ci
+      once under --assertions final --run-commands, a second suite invocation after T-002; AC-CLOSE-LINT
+      is evaluated post-archive. ObservedWriteScope carries the five forced product paths and this
+      bundle's own archive arrival.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-CLI</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-RELEASE-AUTOMATION</Value></MustExist>
+      <MustContain><File>src/grace-cursor.test.ts</File><Text>AC-CANDIDATE-RECLAIM-EXCLUSIVE: a stale observer cannot unlink a replacement holder</Text></MustContain>
+      <MustContain><File>src/grace-generate.test.ts</File><Text>AC-CLEANUP-VALIDATE-FIRST</Text></MustContain>
+      <MustContain><File>src/gates/core.test.ts</File><Text>review verdict three-phase</Text></MustContain>
+      <MustContain><File>src/grace-cursor.ts</File><Text>function observeCandidateLock</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustNotContain><File>src/grace-generate.test.ts</File><Text>same-path replacement is detected by inode and preserved</Text></MustNotContain>
+      <MustNotContain><File>src/grace-generate.test.ts</File><Text>the opened handle is the first identity source</Text></MustNotContain>
+      <MustNotContain><File>src/grace-generate.test.ts</File><Text>expect(statSync(dir).ino).toBe(stat.ino)</Text></MustNotContain>
+      <MustNotContain><File>src/grace-cursor.test.ts</File><Text>observed lock identity is captured open</Text></MustNotContain>
+      <MustNotContain><File>src/gates/core.test.ts</File><Text>byte-identical prerequisites</Text></MustNotContain>
+      <MustNotContain><File>src/grace-cursor.ts</File><Text>setCandidateLockCaptureOrderForTests</Text></MustNotContain>
+      <MustNotContain><File>src/grace-cursor.ts</File><Text>candidateLockCaptureOrderForTests</Text></MustNotContain>
+      <MustContain><File>src/grace-cursor.test.ts</File><Text>AC-CANDIDATE-RECLAIM-EXCLUSIVE: a stale observer cannot unlink a replacement holder</Text></MustContain>
+      <MustContain><File>src/grace-generate.test.ts</File><Text>AC-CLEANUP-VALIDATE-FIRST</Text></MustContain>
+      <MustContain><File>src/gates/core.test.ts</File><Text>review verdict three-phase</Text></MustContain>
+      <MustContain><File>src/grace-cursor.ts</File><Text>function observeCandidateLock</Text></MustContain>
+      <MustNotContain><File>test-metrics.json</File><Text>(provisional)</Text></MustNotContain>
+      <MustNotContain><File>test-metrics.json</File><Text>same-path replacement is detected by inode and preserved</Text></MustNotContain>
+      <MustNotContain><File>test-metrics.json</File><Text>the opened handle is the first identity source</Text></MustNotContain>
+      <MustNotContain><File>test-metrics.json</File><Text>the observed lock identity is captured</Text></MustNotContain>
+      <MustNotContain><File>test-metrics.json</File><Text>byte-identical prerequisites</Text></MustNotContain>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CLI />
+        <M-CURSOR />
+        <M-GATES />
+        <M-RELEASE-AUTOMATION />
+      </GraphAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-generate.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/grace-cursor.ts</File>
+      <File>test-metrics.json</File>
+      <Glob>.ngrace/changes/archive/C-INODE-EVIDENCE-REMOVAL-1-49104F3E/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Remove the four identity-only cases, the incidental inode assertion, and the orphaned cursor hook</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first: the absence guard below fails at baseline with all seven markers present. Delete
+            exactly these and nothing else: in src/grace-generate.test.ts the block titled (c) a
+            same-path replacement is detected by inode and preserved, the block titled
+            AC-PIN-ACQUISITION: the opened handle is the first identity source, and only the line
+            expect(statSync(dir).ino).toBe(stat.ino) from AC-CLEANUP-VALIDATE-FIRST; in
+            src/grace-cursor.test.ts the block titled AC-CANDIDATE-RECLAIM-EXCLUSIVE: the observed lock
+            identity is captured open → fstat → read; in src/gates/core.test.ts the block titled (c) a
+            same-path directory replacement with byte-identical prerequisites (identity-only); and in
+            src/grace-cursor.ts the setCandidateLockCaptureOrderForTests module-map entry, its
+            candidateLockCaptureOrderForTests state, its export function, and its three recording pushes
+            inside observeCandidateLock. Keep observeCandidateLock's open/fstat/read behavior and every
+            other test hook. After the deletion the absence guard, the three retained focused commands,
+            and typecheck pass. No whole suite here.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun -e 'const fs=require("fs");const checks=[["src/grace-generate.test.ts","same-path replacement is detected by inode and preserved"],["src/grace-generate.test.ts","the opened handle is the first identity source"],["src/grace-generate.test.ts","expect(statSync(dir).ino).toBe(stat.ino)"],["src/grace-cursor.test.ts","observed lock identity is captured open"],["src/gates/core.test.ts","byte-identical prerequisites"],["src/grace-cursor.ts","setCandidateLockCaptureOrderForTests"],["src/grace-cursor.ts","candidateLockCaptureOrderForTests"]];const present=checks.filter(p=>fs.readFileSync(p[0],"utf8").includes(p[1]));if(present.length)throw new Error("identity evidence still present: "+JSON.stringify(present));console.log("identity evidence absent");'</Command>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "AC-CANDIDATE-RECLAIM-EXCLUSIVE: a stale observer cannot unlink a replacement holder"</Command>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts -t "candidate exclusive acquisition and bounded cleanup|AC-CLEANUP-VALIDATE-FIRST"</Command>
+          <Command>bun test --timeout=0 src/gates/core.test.ts -t "review verdict three-phase"</Command>
+          <Command>bun run typecheck</Command>
+        </Verification>
+        <Satisfies>
+          <AC-IDENTITY-EVIDENCE-REMOVED />
+          <AC-RETAINED-CONTROLS />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Invalidate and regenerate the measured test-metrics.json</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first: the artifact guard below rejects the committed test-metrics.json because it
+            still names the four deleted identities. Then create a unique empty run directory with
+            mkdtemp under os.tmpdir(), record its absolute path at
+            .ngrace/scratch/inode-evidence-phase1-t002/junit-dir.txt, invalidate the committed
+            test-metrics.json so the runner's file-set-and-count-sum freshness predicate cannot leave
+            it untouched, and run the artifact-producing action exactly once:
+            bun -e 'const fs=require("fs"),path=require("path"),os=require("os"),cp=require("child_process");const d=fs.mkdtempSync(path.join(os.tmpdir(),"ngrace-inode-t002-"));if(fs.readdirSync(d).length)throw new Error("run dir not empty");fs.mkdirSync(".ngrace/scratch/inode-evidence-phase1-t002",{recursive:true});fs.writeFileSync(".ngrace/scratch/inode-evidence-phase1-t002/junit-dir.txt",d+"\n");fs.rmSync("test-metrics.json",{force:true});const r=cp.spawnSync("bun",["run","test:metrics"],{stdio:"inherit",env:{...process.env,TMPDIR:d}});process.exit(r.status??1);'
+            After it the artifact guard passes and the provenance check passes: the produced artifact's
+            case multiset equals the single reporter JUnit in the recorded run directory, with no
+            (provisional) entry and no removed title. The provenance check fails closed when the
+            recording is missing, the recorded directory is missing, or it holds zero or multiple
+            ngrace-junit-*.xml files; it writes a sanitized dated transcript to
+            .ngrace/scratch/inode-evidence-phase1-t002/provenance.json without removing the OS run
+            directory; remove that directory and its pointer after close evidence. scripts/test-metrics.ts is not edited.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun -e 'const fs=require("fs");const a=JSON.parse(fs.readFileSync("test-metrics.json","utf8"));const removed=["same-path replacement is detected by inode and preserved","the opened handle is the first identity source","the observed lock identity is captured","byte-identical prerequisites"].filter(t=>a.tests.some(x=>x.name.includes(t)));const provisional=a.tests.filter(x=>x.name==="(provisional)");const sum=a.files.reduce((s,f)=>s+f.tests,0);if(removed.length||provisional.length||sum!==a.tests.length)throw new Error("stale artifact: removed="+JSON.stringify(removed)+" provisional="+provisional.length+" sum="+sum+"/"+a.tests.length);console.log("artifact current:",a.tests.length,"cases");'</Command>
+          <Command>bun -e 'const fs=require("fs"),path=require("path"),crypto=require("crypto");const rec=".ngrace/scratch/inode-evidence-phase1-t002/junit-dir.txt";if(!fs.existsSync(rec))throw new Error("missing recorded run directory");const dir=fs.readFileSync(rec,"utf8").trim();if(!dir||!fs.existsSync(dir))throw new Error("recorded run directory missing");const junits=fs.readdirSync(dir).filter(f=>/^ngrace-junit-.*\.xml$/.test(f));if(junits.length!==1)throw new Error("expected exactly one reporter junit, got "+junits.length);const {parseJUnit}=require("./scripts/test-metrics.ts");const run=parseJUnit(fs.readFileSync(path.join(dir,junits[0]),"utf8"),"x");const a=JSON.parse(fs.readFileSync("test-metrics.json","utf8"));const key=t=>t.file+"::"+t.name;const ms=arr=>{const m=new Map();for(const x of arr)m.set(key(x),(m.get(key(x))||0)+1);return m;};const mj=ms(run.tests),ma=ms(a.tests);let diff=0;for(const [k,v] of mj)if((ma.get(k)||0)!==v)diff++;for(const [k,v] of ma)if((mj.get(k)||0)!==v)diff++;if(diff)throw new Error("case multiset differs on "+diff);if(a.tests.some(t=>t.name==="(provisional)"))throw new Error("provisional entry remains");const removed=["same-path replacement is detected by inode and preserved","the opened handle is the first identity source","the observed lock identity is captured","byte-identical prerequisites"].filter(t=>a.tests.some(x=>x.name.includes(t)));if(removed.length)throw new Error("removed titles remain: "+JSON.stringify(removed));const digest=arr=>crypto.createHash("sha256").update(arr.map(key).sort().join("\n")).digest("hex");const t={generated:new Date().toISOString().slice(0,10),cases:a.tests.length,artifactMultiSetDigest:digest(a.tests),junitMultiSetDigest:digest(run.tests)};fs.mkdirSync(".ngrace/scratch/inode-evidence-phase1-t002",{recursive:true});fs.writeFileSync(".ngrace/scratch/inode-evidence-phase1-t002/provenance.json",JSON.stringify(t,null,2)+"\n");console.log("provenance ok: cases="+t.cases+" digest="+t.artifactMultiSetDigest);'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-METRICS-MEASURED />
+        </Satisfies>
+      </T-002>
+    </ImplementationPlan>
+  </C-INODE-EVIDENCE-REMOVAL-1-49104F3E>
+</NgraceChangePlan>
