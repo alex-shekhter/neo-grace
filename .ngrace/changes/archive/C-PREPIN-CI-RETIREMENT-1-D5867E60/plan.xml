@@ -1,0 +1,123 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-PREPIN-CI-RETIREMENT-1-D5867E60>
+    <IntentSummary>
+      Two tasks, then the closed ceremony. T-001 removes the six historical Validate steps, deletes
+      scripts/verify-prepin-linux-evidence.ts, removes its three tests and exclusive helpers, and adds
+      one Bun.YAML.parse guard; its absence check is red at baseline and green after, the whole parsed
+      workflow equals baseline minus the six removed steps, and the guard, the retained focused
+      C6/fixture selection, and typecheck pass. T-002 depends on T-001: it rejects the stale test-metrics.json, invalidates it,
+      runs one bun run test:metrics as the artifact-producing action, and reconciles the artifact with
+      that run's single JUnit reporter. The close runs bun run validate:ci once under --assertions
+      final --run-commands, a second suite invocation after T-002; AC-CLOSE-LINT is post-archive.
+      ObservedWriteScope carries the four forced product paths plus this bundle's own archive arrival.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-RELEASE-AUTOMATION</Value></MustExist>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>Run local release consistency check</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>Run the platform-agnostic pin and Windows directory-pin regressions</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>Run the implicit-supersede pin release regressions</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>dart-lang/setup-dart</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>omitted-boundary content witness</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>explicit boundary</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>prepin fixture discovery</Text></MustContain>
+      <MustContain><File>src/grace-cursor.test.ts</File><Text>AC-CANDIDATE-RECLAIM-EXCLUSIVE pre-pin control: b53d13d</Text></MustContain>
+      <MustContain><File>src/grace-generate.test.ts</File><Text>AC-CLEANUP-BOUNDED pre-pin control: b53d13d</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>Checkout exact head for pre-pin behavior</Text></MustNotContain>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>Install exact-head dependencies</Text></MustNotContain>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>Stamp pre-pin behavior head</Text></MustNotContain>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>Run pre-pin controls</Text></MustNotContain>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>Require pre-pin behavior files</Text></MustNotContain>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>Upload pre-pin behavior JUnit</Text></MustNotContain>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>prepin-behavior</Text></MustNotContain>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>b53d13d</Text></MustNotContain>
+      <MustNotExist><Value>scripts/verify-prepin-linux-evidence.ts</Value></MustNotExist>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>prepin CI retirement</Text></MustContain>
+      <MustNotContain><File>scripts/audit-regressions.test.ts</File><Text>prepin linux verifier</Text></MustNotContain>
+      <MustNotContain><File>test-metrics.json</File><Text>prepin linux verifier</Text></MustNotContain>
+      <MustNotContain><File>test-metrics.json</File><Text>(provisional)</Text></MustNotContain>
+      <MustContain><File>test-metrics.json</File><Text>prepin CI retirement</Text></MustContain>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-RELEASE-AUTOMATION />
+      </GraphAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>.github/workflows/validate.yml</File>
+      <File>scripts/verify-prepin-linux-evidence.ts</File>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>test-metrics.json</File>
+      <Glob>.ngrace/changes/archive/C-PREPIN-CI-RETIREMENT-1-D5867E60/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Remove the six historical Validate steps, the verifier, and its tests; add the narrow absence guard</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first: the absence check below fails at baseline with the six step names, prepin-behavior,
+            b53d13d, the verifier path, the three verifier titles, and the seven exclusive helpers all
+            present. Then, and only these:
+            in .github/workflows/validate.yml delete the six steps after Run local release consistency
+            check (Checkout exact head for pre-pin behavior, Install exact-head dependencies, Stamp
+            pre-pin behavior head, Run pre-pin controls, Require pre-pin behavior files, Upload pre-pin
+            behavior JUnit); delete scripts/verify-prepin-linux-evidence.ts; and in
+            scripts/audit-regressions.test.ts delete the three prepin linux verifier tests with their
+            exclusive constants and helpers (PREPIN_TITLES, WorkflowStep, parseValidateSteps,
+            simulatePrepin, prepinJunit, writeFakeGh, runPrepinVerifier) and replace them with one test
+            under the describe prepin CI retirement. That test reads the real workflow with
+            Bun.YAML.parse, rejects the six retired step names and the markers prepin-behavior and
+            b53d13d, allows unrelated JUnit reports and artifact uploads, requires the retained
+            Validate, Windows, and Dart job and step names, and proves planted retired steps and an
+            innocent-named pre-pin step red and removal and unrelated JUnit/upload steps green. The
+            whole parsed workflow equals the baseline document with exactly the six historical Validate
+            steps removed; the guard, the retained focused C6/fixture selection, and typecheck pass. No
+            whole suite here.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun -e 'const fs=require("fs");const wf=fs.readFileSync(".github/workflows/validate.yml","utf8");const tf=fs.readFileSync("scripts/audit-regressions.test.ts","utf8");const names=["Checkout exact head for pre-pin behavior","Install exact-head dependencies","Stamp pre-pin behavior head","Run pre-pin controls","Require pre-pin behavior files","Upload pre-pin behavior JUnit"];const titles=["prepin linux verifier: accepts the newest successful exact-head artifact and ignores filtered skips","prepin linux verifier: refuses a newest failure that has an older success, a missing run, a bad stamp, a bad target, a missing gh, and a failed download","prepin linux verifier: the upload still runs after a failed control, and a missing junit or head file fails the job"];const helpers=[["PREPIN_TITLES",/\bPREPIN_TITLES\b/],["WorkflowStep",/\bWorkflowStep\b/],["parseValidateSteps",/\bparseValidateSteps\b/],["simulatePrepin",/\bsimulatePrepin\b/],["prepinJunit",/\bprepinJunit\b/],["writeFakeGh",/\bwriteFakeGh\b/],["runPrepinVerifier",/\brunPrepinVerifier\b/]];const present=names.filter(n=>wf.includes(n)).concat(titles.filter(t=>tf.includes(t))).concat(helpers.filter(p=>p[1].test(tf)).map(p=>"helper:"+p[0]));if(fs.existsSync("scripts/verify-prepin-linux-evidence.ts"))present.push("verifier still present");if(wf.includes("prepin-behavior"))present.push("workflow still names prepin-behavior");if(wf.includes("b53d13d"))present.push("workflow still names b53d13d");if(present.length)throw new Error("retired route still present: "+JSON.stringify(present));console.log("retired route and exclusive helpers absent");'</Command>
+          <Command>bun -e 'const fs=require("fs"),cp=require("child_process");const base=Bun.YAML.parse(cp.execSync("git show c2c73bc1dd4417e0dd40a0116fb64b88db272de2:.github/workflows/validate.yml",{encoding:"utf8"}));const cur=Bun.YAML.parse(fs.readFileSync(".github/workflows/validate.yml","utf8"));const six=["Checkout exact head for pre-pin behavior","Install exact-head dependencies","Stamp pre-pin behavior head","Run pre-pin controls","Require pre-pin behavior files","Upload pre-pin behavior JUnit"];const removed=base.jobs.validate.steps.map(s=>s.name).filter(n=>six.includes(n));if(removed.length!==6)throw new Error("expected six removed historical steps, found "+removed.length+": "+JSON.stringify(removed));base.jobs.validate.steps=base.jobs.validate.steps.filter(s=>!six.includes(s.name));if(JSON.stringify(base)!==JSON.stringify(cur))throw new Error("workflow differs beyond the six removed steps");console.log("whole workflow matches baseline minus the six steps");'</Command>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t "prepin CI retirement"</Command>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t "omitted-boundary content witness|explicit boundary|recorded range cross-check|prepin fixture discovery"</Command>
+          <Command>bun run typecheck</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Invalidate and regenerate the measured test-metrics.json</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first: the artifact guard below fails because the committed test-metrics.json still names
+            prepin linux verifier and lacks prepin CI retirement. Then create a unique empty run
+            directory with mkdtemp under os.tmpdir(), assert it is outside every git repository, record
+            its absolute path at .ngrace/scratch/prepin-ci-phase2-t002/junit-dir.txt, invalidate the
+            committed test-metrics.json so the runner's file-set-and-count-sum freshness predicate
+            cannot leave it untouched, and run the artifact-producing action exactly once:
+            bun -e 'const fs=require("fs"),path=require("path"),os=require("os"),cp=require("child_process");const d=fs.mkdtempSync(path.join(os.tmpdir(),"ngrace-prepin-t002-"));const top=cp.spawnSync("git",["-C",d,"rev-parse","--show-toplevel"],{encoding:"utf8"});if(top.status===0)throw new Error("temp dir is inside a git repository: "+top.stdout.trim());if(fs.readdirSync(d).length)throw new Error("run dir not empty");fs.mkdirSync(".ngrace/scratch/prepin-ci-phase2-t002",{recursive:true});fs.writeFileSync(".ngrace/scratch/prepin-ci-phase2-t002/junit-dir.txt",d+"\n");fs.rmSync("test-metrics.json",{force:true});const r=cp.spawnSync("bun",["run","test:metrics"],{stdio:"inherit",env:{...process.env,TMPDIR:d}});process.exit(r.status??1);'
+            After it the artifact guard and the provenance check pass: the produced artifact's case
+            multiset equals the single reporter JUnit in the recorded run directory, with the new guard
+            title present, no removed verifier title, and no (provisional) entry. The provenance check
+            fails closed when the recording is missing, the recorded directory is missing, or it holds
+            zero or multiple ngrace-junit-*.xml files; it writes a sanitized dated transcript to
+            .ngrace/scratch/prepin-ci-phase2-t002/provenance.json without removing the OS run directory;
+            remove that directory and its pointer after close evidence. scripts/test-metrics.ts is not
+            edited.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun -e 'const fs=require("fs");const a=JSON.parse(fs.readFileSync("test-metrics.json","utf8"));const removed=["prepin linux verifier"].filter(t=>a.tests.some(x=>x.name.includes(t)));const provisional=a.tests.filter(x=>x.name==="(provisional)");const sum=a.files.reduce((s,f)=>s+f.tests,0);if(removed.length||provisional.length||sum!==a.tests.length)throw new Error("stale artifact: removed="+JSON.stringify(removed)+" provisional="+provisional.length+" sum="+sum+"/"+a.tests.length);if(!a.tests.some(x=>x.name.includes("prepin CI retirement")))throw new Error("new guard title missing");console.log("artifact current:",a.tests.length,"cases");'</Command>
+          <Command>bun -e 'const fs=require("fs"),path=require("path"),crypto=require("crypto");const {parseJUnit}=require("./scripts/test-metrics.ts");const rec=".ngrace/scratch/prepin-ci-phase2-t002/junit-dir.txt";if(!fs.existsSync(rec))throw new Error("missing recorded run directory");const dir=fs.readFileSync(rec,"utf8").trim();if(!dir||!fs.existsSync(dir))throw new Error("recorded run directory missing");const junits=fs.readdirSync(dir).filter(f=>/^ngrace-junit-.*\.xml$/.test(f));if(junits.length!==1)throw new Error("expected exactly one reporter junit, got "+junits.length);const run=parseJUnit(fs.readFileSync(path.join(dir,junits[0]),"utf8"),"x");const a=JSON.parse(fs.readFileSync("test-metrics.json","utf8"));const key=t=>t.file+"::"+t.name;const ms=arr=>{const m=new Map();for(const x of arr)m.set(key(x),(m.get(key(x))||0)+1);return m;};const mj=ms(run.tests),ma=ms(a.tests);let diff=0;for(const [k,v] of mj)if((ma.get(k)||0)!==v)diff++;for(const [k,v] of ma)if((mj.get(k)||0)!==v)diff++;if(diff)throw new Error("case multiset differs on "+diff);if(a.tests.some(t=>t.name==="(provisional)"))throw new Error("provisional entry remains");const removed=["prepin linux verifier: accepts the newest successful exact-head artifact and ignores filtered skips","prepin linux verifier: refuses a newest failure that has an older success, a missing run, a bad stamp, a bad target, a missing gh, and a failed download","prepin linux verifier: the upload still runs after a failed control, and a missing junit or head file fails the job"].filter(t=>a.tests.some(x=>x.name.includes(t)));if(removed.length)throw new Error("removed titles remain: "+JSON.stringify(removed));const digest=arr=>crypto.createHash("sha256").update(arr.map(key).sort().join("\n")).digest("hex");const t={generated:new Date().toISOString().slice(0,10),cases:a.tests.length,artifactMultiSetDigest:digest(a.tests),junitMultiSetDigest:digest(run.tests)};fs.mkdirSync(".ngrace/scratch/prepin-ci-phase2-t002",{recursive:true});fs.writeFileSync(".ngrace/scratch/prepin-ci-phase2-t002/provenance.json",JSON.stringify(t,null,2)+"\n");console.log("provenance ok: cases="+t.cases+" digest="+t.artifactMultiSetDigest);'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-METRICS-MEASURED />
+        </Satisfies>
+      </T-002>
+    </ImplementationPlan>
+  </C-PREPIN-CI-RETIREMENT-1-D5867E60>
+</NgraceChangePlan>

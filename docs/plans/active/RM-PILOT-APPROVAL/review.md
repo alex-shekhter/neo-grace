@@ -174,3 +174,45 @@ amendment count and the discarded-cost figure answer the question directly.
 
 That recording requirement is small, independent of pilot, and useful whether or not pilot is ever
 built.
+
+## 8. Execute-stage cost exposed by the CI-removal circuit (2026-09-27)
+
+The attempt to remove obsolete inode and descriptor evidence exposed a cost that
+`supersedeChainDepth` alone does not show. The approved
+`C-SQUASH-WITNESS-3-CC8FBE18` had **eight external execute turns**: seven folded epochs
+and an eighth that stopped at a T-002 circuit. Its immediate predecessor
+`C-SQUASH-WITNESS-2-29EFA92A` had one earlier execute turn, so this step-one
+lineage consumed **nine** before any product edit reached the root worktree.
+
+| measured unit | C3 at the circuit |
+|---|---:|
+| folded execute epochs | 7 |
+| open, circuit-tripped execute epoch | 1 |
+| attempt events across folded and loose streams | 22: 11 fail, 11 pass |
+| escalation events / circuit events | 1 / 1 |
+| applied product edits in the root | 0 |
+
+This is a whole-stream count, measured 2026-09-27 from every `Event` in the
+faithful executor clone's `run-ledger.xml` and every `NgraceRunEvent` under its
+`run/` directory. The ledger SHA-256 at measurement was
+`4f7d98195190d9786dc7c7cbcb517eff9751bd7049d3e70e1e1cf36d75c9560f`.
+The clone and its report live under ignored `.ngrace/scratch/executor/ci-removal-successor/`,
+so these bytes are **not** evidence retained by the public root archive. That is
+the exact retention gap §7 warns about. The external-turn count also uses the
+eight delivered C3 executor reports; an epoch is not generally an agent turn.
+
+The maintainer's direction at this stop is to **supersede**, then divide the
+unfinished work into the smallest coherent bundles. Each bundle needs a small
+spec, plan, execute stage, and apply stage, with a budget observed separately
+for each stage. The circuit is a real stop, not a reason to resume or widen the
+bundle into an unrelated workflow-guard redesign. A split must retain explicit
+owners for every unfinished criterion and let each bundle close on its own
+evidence; arbitrary file-count splits are not sufficient.
+
+**Pilot consequence to evaluate.** Record stage-turn counts and discarded work
+beside `supersedeChainDepth`. The depth counter selected by [D23](../RM-GOVERNED-PATH/decisions.md)
+captures cross-bundle correction but misses eight execute turns inside C3.
+The proposed three-amendment budget in §3 is a different counter and is not
+silently converted into an execute-turn limit here. This entry records the
+measured case and the maintainer's direction; it does not activate pilot
+amendments or set a numeric stage threshold.

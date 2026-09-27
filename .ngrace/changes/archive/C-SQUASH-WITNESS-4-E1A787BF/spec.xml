@@ -1,0 +1,49 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-SQUASH-WITNESS-4-E1A787BF>
+    <Summary>
+      Lineage successor to C-SQUASH-WITNESS-3-CC8FBE18 that repairs only the tracked active-directory marker witness and the derived test-metrics.json, moving C3's runner, workflow, and inode-evidence obligations to provisional later slugs.
+    </Summary>
+    <Goals>
+      <Goal>Replace the invalid tracked active-directory marker fixture with a path-scoped HEAD archive check whose git and tar statuses are read separately and whose single entry is a regular file, plus an isolated minimal-project CLI probe green with the marker present and refusing with project.missing-change-directory when active/ is removed.</Goal>
+      <Goal>Refresh the derived test-metrics.json from one measured suite run so it records the renamed marker case with no provisional entries, without repairing the metrics runner.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Ceremony tier T1 (bounded CI-test correction). Baseline commit: d156d46bb5eaf77f9b2446d6092f68792bc582b7. The forced product write paths are scripts/audit-regressions.test.ts and the derived test-metrics.json; both are non-module-ownable and test files are exempt from change.graph-anchors-miss-write-scope. The marker test's enumerations name M-RELEASE-AUTOMATION here, in AffectedAreas, and in VerificationIntent. No other product path is written; the predecessor's supersede arrival and C4's own close arrival are the only archive additions. When this artifact names a markup tag or angle-bracketed token it writes it as escaped character data.</Constraint>
+      <Constraint>The derived test-metrics.json is stale in content and must be refreshed by measurement. test-metrics.json:6 records 48 cases for scripts/audit-regressions.test.ts while a targeted run selects 1 and filters 98 in that file; scripts/test-metrics.ts:82-98,105-127 calls the artifact fresh because only its file set and internal sums agree, so a same-file rename never refreshes case identities. C4 must invalidate the committed artifact and refresh it from one measured suite run (invalidating before bun run test:metrics, or an equivalent single-suite CLI run that writes JUnit-derived cases) so the final artifact carries the renamed marker case with no provisional entries; timing churn is not asserted. The runner's freshness code stays owned by provisional slug C-METRICS-SOURCE-PIN and is not redesigned here.</Constraint>
+      <Constraint>This successor overturns archived C-FINAL-HEAD-ACTIVE-DIR-1-A69D80C1 AC-TRACKED-ACTIVE-DIR only in its fixture requirement to delete every active C-* bundle from a full git-archive HEAD checkout before requiring clean lint. Its reason still holds and is answered: at baseline d156d46bb5eaf77f9b2446d6092f68792bc582b7 that deletion makes archived C-SQUASH-WITNESS-2-29EFA92A's replacement C-SQUASH-WITNESS-3-CC8FBE18 absent, so lint correctly reports change.superseded-replacement-not-found twice. The revised witness asserts the marker in the path-scoped HEAD archive and installs it into a separately constructed valid minimal project, green with empty active/ and refusing on removal. The archived ruling is not edited.</Constraint>
+      <Constraint>This successor re-homes C-SQUASH-WITNESS-3-CC8FBE18's unfinished criteria without executing them: AC-METRICS-MEASURED and the runner repair to C-METRICS-SOURCE-PIN; AC-WORKFLOW-LEAN with the retained C6 content and explicit-boundary coverage to C-WORKFLOW-RETIREMENT; AC-OBSOLETE-TESTS-REMOVED and AC-HISTORICAL-MACHINERY-REMOVED with the inode, fixture, verifier, and duplicate-loader removal to C-INODE-EVIDENCE-REMOVAL. These slugs are provisional, not minted ids or completed work, and C3's archived spec and plan are not edited. The reduction is the maintainer-directed split after the C3 circuit trip.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>README.md and examples/ stay unchanged. Owner: unchanged; no user-visible surface.</NonGoal>
+      <NonGoal>No metrics-runner repair, no workflow retirement, and no inode, fixture, verifier, or duplicate-loader removal; those belong to the provisional later slugs named in Constraints.</NonGoal>
+      <NonGoal>No archived bundle is edited, no archive history is deleted, and no applied bundle status is fabricated.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-MARKER-WITNESS>
+        The tracked active-directory marker test is red if the marker is absent from HEAD or its path-scoped archive, if either clean direction fails, or if removing active/ does not produce the named refusal. It asserts git ls-files --error-unmatch .ngrace/changes/active/.gitkeep exits 0; that a path-scoped git archive of HEAD restricted to the marker exits 0 with the git status read from the git process and lists exactly one regular entry, rejecting a symlink or directory, with the tar status read from the tar process; and that the extracted marker bytes equal git show HEAD:.ngrace/changes/active/.gitkeep. It lints the real repository with active replacement links intact at 0 errors and 0 warnings, then installs the archived marker into a separately constructed valid minimal GRACE project with no change bundles, drives real ngrace lint plus module find true, module find false, and module find --json=true green, and requires lint exit 1 with project.missing-change-directory and module find true nonzero once active/ is removed. It never fabricates an applied bundle, deletes archive history, or edits the fixture builder. The describe title stays tracked active-directory marker.
+        <CloseEvidence><Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t "tracked active-directory marker"</Command></CloseEvidence>
+      </AC-MARKER-WITNESS>
+      <AC-METRICS-REFRESH>
+        test-metrics.json equals the JUnit-derived artifact of one measured suite run taken after the committed artifact was invalidated. It records the renamed marker case with its current title under scripts/audit-regressions.test.ts, contains no provisional entries, and is not left stale; timing values are not asserted and the metrics runner logic is unchanged.
+      </AC-METRICS-REFRESH>
+      <AC-CLOSE-LINT>
+        Post-archive lint of the repository root exits 0 with zero errors and zero warnings, evaluated after this bundle's archive arrival.
+        <CloseEvidence><Command>bun run ngrace lint --path . --fail-on warnings</Command></CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-RELEASE-AUTOMATION />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 scripts/audit-regressions.test.ts -t "tracked active-directory marker"</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path . --fail-on warnings</ExpectedCommand>
+      <ExpectedEvidence>The plan anchors M-RELEASE-AUTOMATION and maps AC-METRICS-REFRESH to the task that invalidates test-metrics.json and refreshes it from one measured suite run, then checks the final artifact carries the renamed marker case and no provisional entries. Drive the marker property in both directions; prove the regular-file assertion rejects a symlink; read git and tar statuses separately, never through a pipe; and prove byte-comparison discrimination by changing one extracted byte and restoring it. The full CI-equivalent verification runs at close: bun run validate:ci. Post-close lint is a separate criterion.</ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      C-SQUASH-WITNESS-3-CC8FBE18 superseded C-SQUASH-WITNESS-2-29EFA92A and reached a circuit trip in its isolated executor clone before any root implementation. The maintainer then directed a supersede plus four smaller, independently reviewable slices; this successor is slice 1. At root HEAD d156d46bb5eaf77f9b2446d6092f68792bc582b7 the retained tracked active-directory marker test fails before any implementation edit: it deletes every active C-* bundle from a full git-archive HEAD checkout, leaving archived C-SQUASH-WITNESS-2-29EFA92A's replacement C-SQUASH-WITNESS-3-CC8FBE18 absent, so the target checkout's lint reports change.superseded-replacement-not-found twice; a targeted run measured 0 pass and 1 fail. The marker property is still needed; only its fixture is invalid. This successor carries C3's marker criterion forward, re-homes C3's unfinished obligations rather than editing the archived C3 spec or plan, and changes only the marker witness and the derived metrics artifact.
+    </Problem>
+    <Assumptions>
+      <Assumption>Measured 2026-09-27 in the isolated clone at baseline d156d46bb5eaf77f9b2446d6092f68792bc582b7: lint --assertions current --fail-on warnings reported 0 errors and 0 warnings; the marker test measured 0 pass and 1 fail with two change.superseded-replacement-not-found errors; a targeted run selected 1 and filtered 98 cases in scripts/audit-regressions.test.ts while test-metrics.json:6 records 48; artifactIsStale returned false. The mint carried verbatim: mint: C-SQUASH-WITNESS-4-E1A787BF slug=SQUASH-WITNESS lineage=4 hash=E1A787BF branch=docs/grace-implementation-findings timestamp=2026-09-27T06:00:00.000Z and mint-search: 1 active, 2 archive prior bundle(s) share slug SQUASH-WITNESS. The successor full suite and CI are unrun at this draft stage.</Assumption>
+    </Assumptions>
+  </C-SQUASH-WITNESS-4-E1A787BF>
+</NgraceChangeSpec>

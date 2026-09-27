@@ -54,6 +54,11 @@ Recorded, not scheduled. Each has an explanatory `review.md` and **no `plan.md`*
 means exploration, not a commitment. They are independent of each other and of one another's
 sequencing; nothing here is blocked by anything else on this page.
 
+The [GRACE implementation findings queue](./active/RM-GOVERNED-PATH/grace-implementation-queue.md)
+records the merged-tree check of block markers, source annotations, logging,
+and PILOT evidence. It is a non-normative supplement to the existing D29 charters
+and PILOT review; it schedules no bundle.
+
 ### `RM-ADAPTIVE-BUNDLE-SIZING` — recorded 2026-09-20
 
 `C-SUPERSEDE-MEMBERSHIP-2-C459A20C` reached 41 acceptance criteria, 10 serial tasks,

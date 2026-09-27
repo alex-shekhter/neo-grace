@@ -1,9 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { artifactIsStale } from "./test-metrics";
+import { GraceProjectBuilder, createTempProject } from "../src/test-support/fixtures";
 
 type AuditRegressionCase = {
   id: string;
@@ -622,8 +624,36 @@ describe("C-LINUX-VALIDATION-REPAIR-5-EE982B6D (fifth arrival) predecessor archi
 export const WINDOWS_EVIDENCE_BUNDLE_ID = "C-LINUX-VALIDATION-REPAIR-6-62765C22";
 export const WINDOWS_EVIDENCE_GUARD_FILE = "scripts/audit-regressions.test.ts";
 
-/** Application commit of the C6 governance. Archived mode uses this unless a test passes another boundary. */
+/** Application commit of the C6 governance. An explicit boundary argument keeps this git path. */
 export const WINDOWS_EVIDENCE_BOUNDARY = "0fbd59961d15b7587cc2b153e225fcdcf9066db2";
+
+export const C6_CANDIDATE_SHA = "b7c94d786ebc89cc279c6dc292c8dd32110fcc9d";
+
+export const C6_ARCHIVE_SHA256: Record<string, string> = {
+  "ci-evidence.json": "ece6944a91817add6a41862337c6374190ac3d1ae0f64d7fe7f15cec471edb75",
+  "design-context.xml": "546f047723843c96ddf67d87ff64c7a832d847c55976090afe6d0de2e419c785",
+  "plan.xml": "684784e02cd684f4cf355092b43bff69c17c0b92c447a3398b119f8467486e4e",
+  "run-ledger.xml": "e8a61e4d40cb8e33c8c3e1285b9e363327398b1bd432f72ecaed246d4019be3c",
+  "run.xml": "1968dc6525b8b1199da8a5590dc85aadc33512154dd9058c0607360166a62d3e",
+  "spec.xml": "6ea8925b5e2a58bc2a9249c4c6a58422e808552c98bf19edd7f0c89ddb9d378d",
+};
+
+export const C6_RECORDED_PATHS = [
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/design-context.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/plan.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/run-ledger.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/run.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/spec.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/ci-evidence.json",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/design-context.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/plan.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/run-ledger.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/run.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/spec.xml",
+  "scripts/audit-regressions.test.ts",
+] as const;
+
+export const RECORDED_RANGE_OBJECT_ABSENT = "recorded range object absent";
 
 const WINDOWS_EVIDENCE_ARCHIVE_DIR = `.ngrace/changes/archive/${WINDOWS_EVIDENCE_BUNDLE_ID}`;
 
@@ -760,10 +790,77 @@ function archivedProvenanceProblems(root: string, sha: string, boundary: string,
  * provenance, job/direction tallies, and a full-Actions-link scan of every bundle
  * artifact in its active or archived location. An empty array is green.
  */
+export function recordedPathListProblems(paths: readonly string[]): string[] {
+  const problems: string[] = [];
+  if (paths.length !== C6_RECORDED_PATHS.length || paths.some((entry, index) => entry !== C6_RECORDED_PATHS[index])) {
+    problems.push("recorded path list fails closed");
+  }
+  for (const changed of paths) {
+    if (!isAllowedEvidencePath(changed)) problems.push(`substituted path ${changed} fails closed`);
+  }
+  return problems;
+}
+
+function samePathSet(actual: readonly string[], expected: readonly string[]): boolean {
+  if (actual.length !== expected.length) return false;
+  const left = [...actual].sort();
+  const right = [...expected].sort();
+  return left.every((entry, index) => entry === right[index]);
+}
+
+/** Filesystem pin for an omitted boundary. This function spawns no git process. */
+function omittedBoundaryWitness(root: string, sha: string): string[] {
+  const problems: string[] = [];
+  if (sha !== C6_CANDIDATE_SHA) problems.push(`candidateSha ${sha} must equal ${C6_CANDIDATE_SHA}; fails closed`);
+  const archiveDir = path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR);
+  let entries: Array<{ name: string; file: boolean }> = [];
+  try {
+    entries = readdirSync(archiveDir, { withFileTypes: true }).map((entry) => ({ name: entry.name, file: entry.isFile() }));
+  } catch (error) {
+    problems.push(`archive inventory fails closed: ${(error as Error).message}`);
+    entries = [];
+  }
+  const names = entries.filter((entry) => entry.file).map((entry) => entry.name);
+  for (const name of Object.keys(C6_ARCHIVE_SHA256)) {
+    if (!names.includes(name)) problems.push(`missing pinned archive file ${name} fails closed`);
+  }
+  for (const entry of entries) {
+    if (!entry.file || !(entry.name in C6_ARCHIVE_SHA256)) problems.push(`extra archive path ${entry.name} fails closed`);
+  }
+  for (const [name, digest] of Object.entries(C6_ARCHIVE_SHA256)) {
+    const file = path.join(archiveDir, name);
+    try {
+      const actual = createHash("sha256").update(readFileSync(file)).digest("hex");
+      if (actual !== digest) problems.push(`archive byte mismatch ${name} fails closed`);
+    } catch (error) {
+      problems.push(`archive byte read ${name} fails closed: ${(error as Error).message}`);
+    }
+  }
+  problems.push(...recordedPathListProblems(C6_RECORDED_PATHS));
+  return problems;
+}
+
+/** Object-aware cross-check. The omitted-boundary witness does not call this. */
+export function recordedRangeCrossCheck(root: string): { problems: string[]; paths: string[] } {
+  if (!commitExists(root, C6_CANDIDATE_SHA) || !commitExists(root, WINDOWS_EVIDENCE_BOUNDARY)) {
+    return { problems: [RECORDED_RANGE_OBJECT_ABSENT], paths: [] };
+  }
+  const diff = spawnSync("git", ["diff", "--no-renames", "--name-only", C6_CANDIDATE_SHA, WINDOWS_EVIDENCE_BOUNDARY], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  if (diff.status !== 0) {
+    return { problems: [`recorded range diff fails closed: ${diff.stderr?.trim() || "unknown"}`], paths: [] };
+  }
+  const paths = (diff.stdout ?? "").split("\n").map((line) => line.trim()).filter(Boolean);
+  if (!samePathSet(paths, C6_RECORDED_PATHS)) return { problems: ["recorded range path list fails closed"], paths };
+  return { problems: [], paths };
+}
+
 export function windowsEvidenceProblems(
   root: string,
   run: GitRunner = defaultGitRunner,
-  boundary: string = WINDOWS_EVIDENCE_BOUNDARY,
+  boundary?: string,
 ): string[] {
   const problems: string[] = [];
   const active = path.join(root, ".ngrace", "changes", "active", WINDOWS_EVIDENCE_BUNDLE_ID);
@@ -780,7 +877,9 @@ export function windowsEvidenceProblems(
   try {
     record = JSON.parse(readFileSync(sidecar, "utf8")) as Record<string, unknown>;
   } catch (error) {
-    return [`ci-evidence.json is not valid JSON: ${(error as Error).message}`];
+    const message = `ci-evidence.json is not valid JSON: ${(error as Error).message}`;
+    if (!activeExists && boundary === undefined) return [`${message}; fails closed`];
+    return [message];
   }
 
   if (record.schemaVersion !== "1.0.0") problems.push("schemaVersion must be exactly 1.0.0");
@@ -797,6 +896,8 @@ export function windowsEvidenceProblems(
     } catch (error) {
       problems.push(`changed-path inventory failed: ${(error as Error).message}`);
     }
+  } else if (boundary === undefined) {
+    problems.push(...omittedBoundaryWitness(root, sha));
   } else {
     problems.push(...archivedProvenanceProblems(root, sha, boundary, run));
   }
@@ -851,9 +952,13 @@ export function windowsEvidenceProblems(
     }
   }
 
-  for (const file of collectBundleFiles(bundle)) {
-    const link = findActionsLink(readFileSync(file, "utf8"));
-    if (link) problems.push(`full GitHub Actions link in ${path.relative(root, file)}`);
+  try {
+    for (const file of collectBundleFiles(bundle)) {
+      const link = findActionsLink(readFileSync(file, "utf8"));
+      if (link) problems.push(`full GitHub Actions link in ${path.relative(root, file)}`);
+    }
+  } catch (error) {
+    problems.push(`bundle link inventory failed: ${(error as Error).message}; fails closed`);
   }
 
   return problems;
@@ -1354,51 +1459,374 @@ describe("C-LINUX-VALIDATION-REPAIR-6 archived-mode boundary", () => {
   });
 });
 
-describe("tracked active-directory marker", () => {
-  it("a git archive HEAD checkout with active bundles removed lints clean and module find exits 0, and deleting active/ reddens", () => {
-    expect(gitRun(repoRoot, ["ls-files", "--error-unmatch", ".ngrace/changes/active/.gitkeep"]).trim()).toBe(".ngrace/changes/active/.gitkeep");
-    expect(spawnSync("git", ["cat-file", "-e", "HEAD:.ngrace/changes/active/.gitkeep"], { cwd: repoRoot }).status).toBe(0);
-    const dest = mkdtempSync(path.join(os.tmpdir(), "c7-archive-checkout-"));
+const C6_PATH_LITERALS = [
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/design-context.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/plan.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/run-ledger.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/run.xml",
+  ".ngrace/changes/active/C-LINUX-VALIDATION-REPAIR-6-62765C22/spec.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/ci-evidence.json",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/design-context.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/plan.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/run-ledger.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/run.xml",
+  ".ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/spec.xml",
+  "scripts/audit-regressions.test.ts",
+] as const;
+
+function withPinnedArchiveCopy(body: (root: string) => void): void {
+  const root = mkdtempSync(path.join(os.tmpdir(), "c6-pin-copy-"));
+  const dest = path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR);
+  mkdirSync(dest, { recursive: true });
+  const src = path.join(repoRoot, WINDOWS_EVIDENCE_ARCHIVE_DIR);
+  for (const name of Object.keys(C6_ARCHIVE_SHA256)) writeFileSync(path.join(dest, name), readFileSync(path.join(src, name)));
+  try {
+    body(root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+describe("omitted-boundary content witness", () => {
+  it("omitted-boundary content witness: this repository is green with zero git spawns", () => {
+    expect([...C6_RECORDED_PATHS]).toEqual([...C6_PATH_LITERALS]);
+    expect(recordedPathListProblems(C6_RECORDED_PATHS)).toEqual([]);
+    expect(recordedPathListProblems(["src/forbidden.ts"]).some((problem) => problem.includes("fails closed"))).toBe(true);
+    const marker = path.join(os.tmpdir(), `prepin-git-spawn-${process.pid}`);
+    rmSync(marker, { force: true });
+    const bin = mkdtempSync(path.join(os.tmpdir(), "prepin-git-bin-"));
+    writeFileSync(path.join(bin, "git"), `#!/bin/sh\necho spawned >> ${JSON.stringify(marker)}\nexit 1\n`, { mode: 0o755 });
+    chmodSync(path.join(bin, "git"), 0o755);
+    const saved = process.env.PATH;
+    let runnerCalls = 0;
+    const failing = (() => {
+      runnerCalls += 1;
+      return { status: 128, stdout: "", stderr: "git runner consulted" };
+    }) as GitRunner;
+    process.env.PATH = bin;
+    let problems: string[] = [];
     try {
-      const extracted = spawnSync("bash", ["-c", 'git archive HEAD | tar -x -C "$1"', "extract-head-archive", dest], {
+      problems = windowsEvidenceProblems(repoRoot, failing);
+    } finally {
+      process.env.PATH = saved;
+      rmSync(bin, { recursive: true, force: true });
+    }
+    expect(problems, problems.join("\n")).toEqual([]);
+    expect(problems.join("\n")).not.toContain("not an ancestor of HEAD");
+    expect(problems.join("\n")).not.toContain("is absent");
+    expect(runnerCalls).toBe(0);
+    expect(existsSync(marker)).toBe(false);
+  });
+
+  it("omitted-boundary content witness: a pinned copy stays green under a failing runner, and byte, extra, and missing faults fail closed", () => {
+    withPinnedArchiveCopy((root) => {
+      const failing = (() => {
+        throw new Error("git runner consulted");
+      }) as GitRunner;
+      expect(windowsEvidenceProblems(root, failing)).toEqual([]);
+      expect(recordedRangeCrossCheck(root).problems).toEqual([RECORDED_RANGE_OBJECT_ABSENT]);
+      const sidecar = path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR, "ci-evidence.json");
+      const pinned = path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR, "design-context.xml");
+      const savedPin = readFileSync(pinned);
+      const flippedPin = Buffer.from(savedPin);
+      flippedPin[0] ^= 0xff;
+      writeFileSync(pinned, flippedPin);
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("fails closed"))).toBe(true);
+      writeFileSync(pinned, savedPin);
+      expect(windowsEvidenceProblems(root)).toEqual([]);
+      const saved = readFileSync(sidecar);
+      const flipped = Buffer.from(saved);
+      flipped[0] ^= 0xff;
+      writeFileSync(sidecar, flipped);
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("fails closed"))).toBe(true);
+      writeFileSync(sidecar, saved);
+      expect(windowsEvidenceProblems(root)).toEqual([]);
+      const extra = path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR, "extra.txt");
+      writeFileSync(extra, "extra\n");
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("fails closed"))).toBe(true);
+      rmSync(extra);
+      expect(windowsEvidenceProblems(root)).toEqual([]);
+      rmSync(path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR, "spec.xml"));
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("fails closed"))).toBe(true);
+      writeFileSync(path.join(root, WINDOWS_EVIDENCE_ARCHIVE_DIR, "spec.xml"), readFileSync(path.join(repoRoot, WINDOWS_EVIDENCE_ARCHIVE_DIR, "spec.xml")));
+      expect(windowsEvidenceProblems(root)).toEqual([]);
+      const record = JSON.parse(readFileSync(sidecar, "utf8")) as Record<string, unknown>;
+      record.candidateSha = "0123456789abcdef0123456789abcdef01234567";
+      writeFileSync(sidecar, `${JSON.stringify(record, null, 2)}\n`);
+      expect(windowsEvidenceProblems(root).some((problem) => problem.includes("fails closed"))).toBe(true);
+      writeFileSync(sidecar, saved);
+      expect(windowsEvidenceProblems(root)).toEqual([]);
+    });
+  });
+});
+
+describe("explicit boundary", () => {
+  it("explicit boundary: a throwaway keeps git when its boundary is passed, and an omitted call on unmatched pins fails closed", () => {
+    const fixture = makeArchivedEvidenceFixture();
+    try {
+      const omitted = windowsEvidenceProblems(fixture.root);
+      expect(omitted.some((problem) => problem.includes("fails closed")), omitted.join("\n")).toBe(true);
+      expect(windowsEvidenceProblems(fixture.root, defaultGitRunner, fixture.boundary)).toEqual([]);
+      const absent = windowsEvidenceProblems(fixture.root, defaultGitRunner, WINDOWS_EVIDENCE_BOUNDARY);
+      expect(absent.some((problem) => problem.includes("fails closed")), absent.join("\n")).toBe(true);
+      gitRun(fixture.root, ["checkout", "-q", "--detach", "HEAD~1"]);
+      writeFileSync(path.join(archiveEvidencePath(fixture.root), "ci-evidence.json"), fixture.sidecarText);
+      gitRun(fixture.root, ["add", "-A"]);
+      gitRun(fixture.root, ["commit", "-q", "-m", "alternate head"]);
+      const offHead = windowsEvidenceProblems(fixture.root, defaultGitRunner, fixture.boundary);
+      expect(offHead.some((problem) => problem.includes("fails closed")), offHead.join("\n")).toBe(true);
+      gitRun(fixture.root, ["checkout", "-q", "-f", "--detach", fixture.boundary]);
+      expect(windowsEvidenceProblems(fixture.root, defaultGitRunner, fixture.boundary)).toEqual([]);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  it("explicit boundary: active mode omits the boundary and does not consult the content pins", () => {
+    const fixture = makeEvidenceFixture();
+    try {
+      expect(existsSync(path.join(fixture.root, WINDOWS_EVIDENCE_ARCHIVE_DIR))).toBe(false);
+      expect(windowsEvidenceProblems(fixture.root)).toEqual([]);
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("recorded range cross-check", () => {
+  it("recorded range cross-check: present objects match the twelve paths and absent objects report a named reason", () => {
+    const measured = recordedRangeCrossCheck(repoRoot);
+    if (commitExists(repoRoot, C6_CANDIDATE_SHA) && commitExists(repoRoot, WINDOWS_EVIDENCE_BOUNDARY)) {
+      expect(measured.problems, measured.problems.join("\n")).toEqual([]);
+      expect([...measured.paths].sort()).toEqual([...C6_RECORDED_PATHS].sort());
+    } else {
+      expect(measured.problems).toEqual([RECORDED_RANGE_OBJECT_ABSENT]);
+      expect(measured.paths).toEqual([]);
+    }
+    const empty = mkdtempSync(path.join(os.tmpdir(), "c6-range-absent-"));
+    try {
+      gitRun(empty, ["init", "-q"]);
+      const absent = recordedRangeCrossCheck(empty);
+      expect(absent.problems).toEqual([RECORDED_RANGE_OBJECT_ABSENT]);
+      expect(windowsEvidenceProblems(repoRoot)).toEqual([]);
+    } finally {
+      rmSync(empty, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("prepin fixture discovery", () => {
+  it("prepin fixture discovery: planting a test file under the fixture makes metrics stale", () => {
+    const dir = path.join(repoRoot, "scripts/fixtures", "prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262");
+    expect(readdirSync(dir).sort()).toEqual(["archive.tar", "manifest.json"]);
+    const walk = (current: string): string[] => {
+      const found: string[] = [];
+      for (const entry of readdirSync(current, { withFileTypes: true })) {
+        const full = path.join(current, entry.name);
+        if (entry.isDirectory()) found.push(...walk(full));
+        else found.push(full);
+      }
+      return found;
+    };
+    expect(walk(dir).some((full) => full.endsWith(".test.ts"))).toBe(false);
+    const metrics = path.join(repoRoot, "test-metrics.json");
+    expect(artifactIsStale(repoRoot, metrics)).toBe(false);
+    const planted = path.join(dir, "planted.test.ts");
+    writeFileSync(planted, "export const planted = 1;\n");
+    try {
+      expect(artifactIsStale(repoRoot, metrics)).toBe(true);
+    } finally {
+      rmSync(planted, { force: true });
+    }
+    expect(artifactIsStale(repoRoot, metrics)).toBe(false);
+  });
+});
+
+describe("tracked active-directory marker", () => {
+  it("keeps the marker as a regular file in a path-scoped HEAD archive and drives an isolated minimal project green then red", () => {
+    const marker = ".ngrace/changes/active/.gitkeep";
+    expect(gitRun(repoRoot, ["ls-files", "--error-unmatch", marker]).trim()).toBe(marker);
+
+    // The git status and the tar status are read from their own processes, never a pipeline.
+    const archive = spawnSync("git", ["archive", "HEAD", marker], { cwd: repoRoot });
+    expect(archive.status, archive.stderr?.toString()).toBe(0);
+    const listed = spawnSync("tar", ["-tf", "-"], { input: archive.stdout, encoding: "utf8" });
+    expect(listed.status).toBe(0);
+    const entries = listed.stdout.split("\n").filter((entry) => entry && !entry.endsWith("/"));
+    expect(entries).toEqual([marker]);
+
+    const extracted = mkdtempSync(path.join(os.tmpdir(), "c4-archive-"));
+    try {
+      const unpack = spawnSync("tar", ["-x", "-C", extracted], { input: archive.stdout });
+      expect(unpack.status).toBe(0);
+      const markerPath = path.join(extracted, marker);
+      const stat = lstatSync(markerPath);
+      expect(stat.isFile() && !stat.isSymbolicLink(), "the archive entry is a regular file, not a symlink").toBe(true);
+      const blob = spawnSync("git", ["show", `HEAD:${marker}`], { cwd: repoRoot });
+      expect(blob.status).toBe(0);
+      expect(readFileSync(markerPath).equals(blob.stdout), "the archived marker bytes equal the HEAD blob").toBe(true);
+
+      // The real repository keeps its active replacement links: lint is clean.
+      const rootLint = spawnSync(process.execPath, ["run", "ngrace", "lint", "--path", repoRoot, "--fail-on", "warnings"], {
         cwd: repoRoot,
         encoding: "utf8",
+        maxBuffer: 64 * 1024 * 1024,
       });
-      expect(extracted.status, extracted.stderr).toBe(0);
-      const active = path.join(dest, ".ngrace", "changes", "active");
-      for (const name of readdirSync(active)) {
-        if (name.startsWith("C-")) rmSync(path.join(active, name), { recursive: true, force: true });
-      }
-      expect(existsSync(path.join(active, ".gitkeep")), "the marker survives removal of active bundles").toBe(true);
-      symlinkSync(path.join(repoRoot, "node_modules"), path.join(dest, "node_modules"));
-      const lintArgs = ["run", "ngrace", "lint", "--path", dest, "--fail-on", "warnings"];
-      const lint = spawnSync(process.execPath, lintArgs, { cwd: dest, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-      const lintText = `${lint.stdout}\n${lint.stderr}`;
-      expect(lint.status, lintText).toBe(0);
-      expect(lintText).toMatch(/^Errors: 0$/m);
-      expect(lintText).toMatch(/^Warnings: 0$/m);
-      expect(lintText).not.toContain("project.missing-change-directory");
+      const rootText = `${rootLint.stdout}\n${rootLint.stderr}`;
+      expect(rootLint.status, rootText).toBe(0);
+      expect(rootText).toMatch(/^Errors: 0$/m);
+      expect(rootText).toMatch(/^Warnings: 0$/m);
+    } finally {
+      rmSync(extracted, { recursive: true, force: true });
+    }
+
+    // A separately constructed valid minimal project with no change bundles, exactly the marker under active/.
+    const project = new GraceProjectBuilder(createTempProject("c4-marker-"))
+      .module({ id: "M-EXAMPLE", path: "src/example.ts" })
+      .governedFile({
+        path: "src/example.ts",
+        purpose: "Marker fixture runtime.",
+        scope: "Marker fixture.",
+        depends: ["none"],
+        links: ["M-EXAMPLE"],
+        role: "RUNTIME",
+        mapMode: "EXPORTS",
+        mapEntries: ["run"],
+        body: "export function run() { return true; }",
+      })
+      .write();
+    try {
+      const active = path.join(project, ".ngrace", "changes", "active");
+      const install = spawnSync("tar", ["-x", "-C", project], { input: archive.stdout });
+      expect(install.status).toBe(0);
+      expect(readdirSync(active)).toEqual([".gitkeep"]);
+
+      const lintArgs = ["run", "ngrace", "lint", "--path", project, "--fail-on", "warnings"];
+      const green = spawnSync(process.execPath, lintArgs, { cwd: repoRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      expect(green.status, `${green.stdout}\n${green.stderr}`).toBe(0);
       for (const args of [
-        ["run", "ngrace", "module", "find", "true", "--path", dest],
-        ["run", "ngrace", "module", "find", "false", "--path", dest],
-        ["run", "ngrace", "module", "find", "--json=true", "--path", dest],
+        ["run", "ngrace", "module", "find", "true", "--path", project],
+        ["run", "ngrace", "module", "find", "false", "--path", project],
+        ["run", "ngrace", "module", "find", "--json=true", "--path", project],
       ]) {
-        const found = spawnSync(process.execPath, args, { cwd: dest, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+        const found = spawnSync(process.execPath, args, { cwd: repoRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
         expect(found.status, `${args.join(" ")}\n${found.stdout}\n${found.stderr}`).toBe(0);
       }
+
       rmSync(active, { recursive: true, force: true });
-      const red = spawnSync(process.execPath, lintArgs, { cwd: dest, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+      const red = spawnSync(process.execPath, lintArgs, { cwd: repoRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
       const redText = `${red.stdout}\n${red.stderr}`;
       expect(red.status, redText).toBe(1);
       expect(redText).toContain("project.missing-change-directory");
-      const redFind = spawnSync(process.execPath, ["run", "ngrace", "module", "find", "true", "--path", dest], {
-        cwd: dest,
+      const redFind = spawnSync(process.execPath, ["run", "ngrace", "module", "find", "true", "--path", project], {
+        cwd: repoRoot,
         encoding: "utf8",
         maxBuffer: 64 * 1024 * 1024,
       });
       expect(redFind.status, `${redFind.stdout}\n${redFind.stderr}`).not.toBe(0);
     } finally {
-      rmSync(dest, { recursive: true, force: true });
+      rmSync(project, { recursive: true, force: true });
     }
+  });
+});
+
+
+const RETIRED_VALIDATE_STEP_NAMES = [
+  "Checkout exact head for pre-pin behavior",
+  "Install exact-head dependencies",
+  "Stamp pre-pin behavior head",
+  "Run pre-pin controls",
+  "Require pre-pin behavior files",
+  "Upload pre-pin behavior JUnit",
+] as const;
+
+const PREPIN_SPECIFIC_MARKERS = ["prepin-behavior", "b53d13d"] as const;
+
+const RETAINED_VALIDATE_STEP_NAMES = [
+  "Checkout",
+  "Setup Bun",
+  "Install dependencies",
+  "Run CI validation",
+  "Run local release consistency check",
+] as const;
+
+const RETAINED_WINDOWS_STEP_NAMES = [
+  "Run the platform-agnostic pin and Windows directory-pin regressions",
+  "Run the implicit-supersede pin release regressions",
+] as const;
+
+const RETAINED_DART_STEP_NAMES = ["Run the real Dart adapter regression"] as const;
+
+type GuardStep = { name?: string; run?: string; uses?: string; with?: Record<string, unknown> };
+type GuardDocument = { jobs?: Record<string, { steps?: GuardStep[] }> };
+
+function workflowRetirementProblems(document: GuardDocument): string[] {
+  const problems: string[] = [];
+  const jobs = document?.jobs ?? {};
+  for (const job of ["validate", "windows-compatibility", "dart-adapter"]) {
+    if (!jobs[job]) problems.push(`retained job missing: ${job}`);
+  }
+  const validateSteps = jobs.validate?.steps ?? [];
+  const validateNames = validateSteps.map((step) => step.name ?? "");
+  for (const retired of RETIRED_VALIDATE_STEP_NAMES) {
+    if (validateNames.includes(retired)) problems.push(`retired validate step present: ${retired}`);
+  }
+  for (const retained of RETAINED_VALIDATE_STEP_NAMES) {
+    if (!validateNames.includes(retained)) problems.push(`retained validate step missing: ${retained}`);
+  }
+  const serialized = JSON.stringify(validateSteps);
+  for (const marker of PREPIN_SPECIFIC_MARKERS) {
+    if (serialized.includes(marker)) problems.push(`pre-pin marker present in validate steps: ${marker}`);
+  }
+  const windowsNames = (jobs["windows-compatibility"]?.steps ?? []).map((step) => step.name ?? "");
+  for (const retained of RETAINED_WINDOWS_STEP_NAMES) {
+    if (!windowsNames.includes(retained)) problems.push(`retained windows step missing: ${retained}`);
+  }
+  const dartNames = (jobs["dart-adapter"]?.steps ?? []).map((step) => step.name ?? "");
+  for (const retained of RETAINED_DART_STEP_NAMES) {
+    if (!dartNames.includes(retained)) problems.push(`retained dart step missing: ${retained}`);
+  }
+  return problems;
+}
+
+const RETIRED_STEP_PAYLOADS: GuardStep[] = [
+  { name: RETIRED_VALIDATE_STEP_NAMES[0], uses: "actions/checkout@v5", with: { path: "prepin-behavior" } },
+  { name: RETIRED_VALIDATE_STEP_NAMES[1], run: "bun install --frozen-lockfile", with: { "working-directory": "prepin-behavior" } },
+  { name: RETIRED_VALIDATE_STEP_NAMES[2], run: "git rev-parse HEAD > prepin-behavior-head.txt" },
+  { name: RETIRED_VALIDATE_STEP_NAMES[3], run: "bun test --timeout=0 src/grace-generate.test.ts src/grace-cursor.test.ts -t b53d13d --reporter=junit" },
+  { name: RETIRED_VALIDATE_STEP_NAMES[4], run: "test -f prepin-behavior-junit.xml && test -f prepin-behavior-head.txt" },
+  { name: RETIRED_VALIDATE_STEP_NAMES[5], uses: "actions/upload-artifact@v7", with: { name: "prepin-behavior-junit" } },
+];
+
+describe("prepin CI retirement", () => {
+  it("prepin CI retirement: the guard rejects retired steps and markers, allows unrelated JUnit and uploads, and passes the retained workflow", () => {
+    const real = Bun.YAML.parse(readFileSync(path.join(repoRoot, ".github/workflows/validate.yml"), "utf8")) as GuardDocument;
+    expect(workflowRetirementProblems(real), "the retired workflow is clean").toEqual([]);
+
+    for (const step of RETIRED_STEP_PAYLOADS) {
+      const mutated = structuredClone(real);
+      mutated.jobs?.validate?.steps?.push(structuredClone(step));
+      expect(workflowRetirementProblems(mutated), `planted ${step.name}`).not.toEqual([]);
+    }
+
+    const innocent = structuredClone(real);
+    innocent.jobs?.validate?.steps?.push({ name: "Innocent step", run: "bun test -t b53d13d" });
+    expect(workflowRetirementProblems(innocent), "innocent-named pre-pin step").not.toEqual([]);
+
+    const restored = structuredClone(innocent);
+    restored.jobs!.validate!.steps = restored.jobs!.validate!.steps!.filter((step) => step.name !== "Innocent step");
+    expect(workflowRetirementProblems(restored), "restored workflow").toEqual([]);
+
+    const unrelated = structuredClone(real);
+    unrelated.jobs?.validate?.steps?.push({
+      name: "Run unrelated unit tests",
+      run: "bun test src/project-utils.test.ts --reporter=junit --reporter-outfile=report-junit.xml",
+    });
+    unrelated.jobs?.validate?.steps?.push({
+      name: "Upload unrelated diagnostics",
+      uses: "actions/upload-artifact@v7",
+      with: { name: "diagnostics", path: "diagnostics.txt" },
+    });
+    expect(workflowRetirementProblems(unrelated), "unrelated JUnit and upload steps stay green").toEqual([]);
   });
 });
