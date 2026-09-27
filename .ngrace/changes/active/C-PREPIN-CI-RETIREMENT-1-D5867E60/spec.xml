@@ -1,0 +1,111 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-PREPIN-CI-RETIREMENT-1-D5867E60>
+    <Summary>
+      Retire the extra exact-head pre-pin CI route, verifier, and exclusive tests; guard its absence
+      and measure the changed test cases. Keep the local fixture and unrelated CI coverage.
+    </Summary>
+    <Goals>
+      <Goal>Remove the six historical Validate steps, verifier, three verifier tests, and exclusive
+      helpers; replace their simulation with one narrow YAML guard.</Goal>
+      <Goal>Regenerate test-metrics.json from a measured suite run.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Tier T1. Baseline c2c73bc1dd4417e0dd40a0116fb64b88db272de2. The only product writes are
+        .github/workflows/validate.yml, deletion of scripts/verify-prepin-linux-evidence.ts,
+        scripts/audit-regressions.test.ts, and derived test-metrics.json. None has a LINKS header or is
+        module-ownable (src/lint/core.ts:735); M-RELEASE-AUTOMATION is named here, in AffectedAreas,
+        and in VerificationIntent. Existing archives are untouched; the close adds this bundle.
+      </Constraint>
+      <Constraint>
+        Delete only these Validate steps: Checkout exact head for pre-pin behavior; Install exact-head
+        dependencies; Stamp pre-pin behavior head; Run pre-pin controls; Require pre-pin behavior files;
+        Upload pre-pin behavior JUnit. Keep Checkout (fetch-depth 0), Setup Bun, Install dependencies,
+        Run CI validation, Run local release consistency check, both Windows pin selectors and other
+        Windows coverage, and the Dart job.
+      </Constraint>
+      <Constraint>
+        Superseded C-SQUASH-WITNESS-1-87D77A3D/spec.xml:16-19,34,83-86 created the exact-head route
+        and AC-PREPIN-BEHAVIOR; applied C4 spec.xml:13-19 re-homed its retirement. The artifact linked a
+        behavior run to HEAD, but inode recycling does not prove serialization; a content hash is an
+        integrity pin, never a lock. Applied C-LINUX-VALIDATION-REPAIR-6-62765C22/spec.xml:452-632
+        still binds its recycled-identity, pin lifecycle, and Windows criteria. This slice retires none
+        of them. The local fixture and C6 content/explicit-boundary witnesses remain; local b53d13d
+        controls may skip and cannot establish serialization.
+      </Constraint>
+      <Constraint>
+        Replace the verifier simulation with one test in scripts/audit-regressions.test.ts using
+        Bun.YAML.parse, without another parser or test file. It rejects the six retired names and the
+        pre-pin-specific markers prepin-behavior and b53d13d in Validate steps; the former covers the
+        artifact and stamp filenames. Unrelated JUnit reports and uploads remain valid. It requires
+        the retained job and step names. Probe every retired step and an innocent-named pre-pin step
+        red, removal green, and unrelated JUnit/upload steps green.
+      </Constraint>
+      <Constraint>
+        scripts/test-metrics.ts:82-98 can call a same-file case deletion fresh. Invalidate
+        test-metrics.json, run bun run test:metrics once, and reconcile its cases with that run's JUnit;
+        do not edit the runner. Close-time bun run validate:ci is the second full-suite invocation.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>README.md and examples/ stay unchanged. Owner: unchanged; no user-visible surface.</NonGoal>
+      <NonGoal>Runtime changes and C6 pin/Windows retirement await separate approved work.</NonGoal>
+      <NonGoal>The local pre-pin fixture and b53d13d cases await the next slice.</NonGoal>
+      <NonGoal>Metrics-runner repair belongs to provisional C-METRICS-SOURCE-PIN.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-RETIRED-CHAIN>
+        In the applied archive, the six named steps and all Validate-step occurrences of
+        prepin-behavior or b53d13d are absent; the five retained Validate steps and Windows/Dart jobs
+        remain. scripts/verify-prepin-linux-evidence.ts, the three "prepin linux verifier" cases, and
+        their exclusive support code are absent. One "prepin CI retirement" test proves the specified
+        guard's green, red, and restored directions, including unrelated JUnit/upload greens.
+        <CloseEvidence><Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t "prepin CI retirement"</Command></CloseEvidence>
+      </AC-RETIRED-CHAIN>
+      <AC-RETAINED-CONTROLS>
+        The plan compares parsed baseline and target step arrays: only the six Validate steps leave.
+        src/grace-generate.test.ts, src/grace-cursor.test.ts, and
+        scripts/fixtures/prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262/ match baseline
+        c2c73bc1dd4417e0dd40a0116fb64b88db272de2 byte-for-byte. The combined C6 and fixture
+        discovery command passes six tests.
+        <CloseEvidence>
+          <Command>git diff --exit-code c2c73bc1dd4417e0dd40a0116fb64b88db272de2 -- src/grace-generate.test.ts src/grace-cursor.test.ts scripts/fixtures/prepin-b53d13df47cdf8d85f75b33502c6ecd9e97ff262</Command>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t "omitted-boundary content witness|explicit boundary|recorded range cross-check|prepin fixture discovery"</Command>
+        </CloseEvidence>
+      </AC-RETAINED-CONTROLS>
+      <AC-METRICS-MEASURED>
+        After invalidation and one measured bun run test:metrics, test-metrics.json has exactly that
+        run's JUnit case identities and counts, the new guard title, no removed verifier title, no
+        (provisional) entry, and a per-file count sum equal to its case count.
+      </AC-METRICS-MEASURED>
+      <AC-CLOSE-LINT>
+        Post-archive lint of the repository root exits 0 with zero errors and zero warnings.
+        <CloseEvidence><Command>bun run ngrace lint --path . --fail-on warnings</Command></CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-RELEASE-AUTOMATION />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 scripts/audit-regressions.test.ts -t "prepin CI retirement"</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path . --fail-on warnings</ExpectedCommand>
+      <ExpectedEvidence>M-RELEASE-AUTOMATION anchors the plan. Map the three non-lint ACs to their
+      completed tasks; compare parsed retained arrays with baseline and reconcile metrics with the
+      producing JUnit. Run bun run validate:ci at close only.</ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      Phase 1 left the extra checkout and verifier in place. They duplicate CI work to measure inode
+      recycling; this slice removes that route while local controls and C6 witnesses remain.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        Measured 2026-09-27 at baseline c2c73bc1dd4417e0dd40a0116fb64b88db272de2: lint 0/0;
+        retained controls 6 pass; verifier 3 pass; local fixture 3 pass / 2 skip; artifactIsStale
+        remained false after a same-file case deletion. Mint verbatim:
+        mint: C-PREPIN-CI-RETIREMENT-1-D5867E60 slug=PREPIN-CI-RETIREMENT lineage=1 hash=D5867E60 branch=docs/grace-implementation-findings timestamp=2026-09-27T09:26:39.000Z
+        mint-search: 0 active, 0 archive prior bundle(s) share slug PREPIN-CI-RETIREMENT
+        Full suite, validate:ci, and metrics regeneration are unrun.
+      </Assumption>
+    </Assumptions>
+  </C-PREPIN-CI-RETIREMENT-1-D5867E60>
+</NgraceChangeSpec>
