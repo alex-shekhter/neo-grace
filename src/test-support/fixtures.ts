@@ -1,6 +1,6 @@
 // START_MODULE_CONTRACT
-//   PURPOSE: Test fixtures and defect corpus
-//   SCOPE: Temp projects, corpus seeds, and token-accounting helpers
+//   PURPOSE: Test fixtures, defect corpus, and the direct-worker supervisor contract
+//   SCOPE: Temp projects, corpus seeds, token-accounting helpers, and process supervision
 //   DEPENDS: none
 //   LINKS: M-TEST-SUPPORT
 //   ROLE: RUNTIME

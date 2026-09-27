@@ -92,8 +92,8 @@
     </V-M-CONTEXT>
     <V-M-TEST-SUPPORT>
       <Command>bun test src/test-support</Command>
-      <Scenario>Temp project fixtures and defect corpus seed stable, deterministic test projects.</Scenario>
-      <TraceAssertion>test-support tests cover fixture builders and corpus pattern ids.</TraceAssertion>
+      <Scenario>Temp project fixtures and defect corpus seed stable, deterministic test projects; the supervisor preflights plans, stages direct workers, and bounds and reaps them.</Scenario>
+      <TraceAssertion>test-support tests cover fixture builders, corpus pattern ids, preflight refusal, and bounded direct-worker termination.</TraceAssertion>
     </V-M-TEST-SUPPORT>
     <V-M-CALIBRATION>
       <Command>bun test src/calibration</Command>
