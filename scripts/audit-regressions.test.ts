@@ -1730,307 +1730,103 @@ describe("tracked active-directory marker", () => {
   });
 });
 
-const PREPIN_TITLES = [
-  "AC-CLEANUP-BOUNDED pre-pin control: b53d13d deletes the recycled replacement",
-  "AC-CANDIDATE-RECLAIM-EXCLUSIVE pre-pin control: b53d13d unlinks the recycled replacement",
+
+const RETIRED_VALIDATE_STEP_NAMES = [
+  "Checkout exact head for pre-pin behavior",
+  "Install exact-head dependencies",
+  "Stamp pre-pin behavior head",
+  "Run pre-pin controls",
+  "Require pre-pin behavior files",
+  "Upload pre-pin behavior JUnit",
 ] as const;
 
-type WorkflowStep = { name: string; ifClause: string; run: string; uses: string; with: Record<string, string> };
+const PREPIN_SPECIFIC_MARKERS = ["prepin-behavior", "b53d13d"] as const;
 
-function parseValidateSteps(yaml: string): WorkflowStep[] {
-  const lines = yaml.split("\n");
-  const steps: WorkflowStep[] = [];
-  let inValidate = false;
-  let inSteps = false;
-  let validateIndent = -1;
-  let current: WorkflowStep | null = null;
-  let blockKey = "";
-  let blockIndent = -1;
-  let block: string[] | null = null;
-  const flushBlock = (): void => {
-    if (current && blockKey && block) current.with[blockKey] = block.join("\n");
-    block = null;
-    blockKey = "";
-  };
-  for (const line of lines) {
-    if (!inValidate) {
-      const job = /^(\s*)validate:\s*$/.exec(line);
-      if (job) {
-        inValidate = true;
-        validateIndent = job[1].length;
-      }
-      continue;
-    }
-    if (/^\s+\S/.test(line) === false && line.trim() === "") continue;
-    const top = /^(\s*)([A-Za-z0-9_-]+):\s*$/.exec(line);
-    if (top && top[1].length === validateIndent) break;
-    if (!inSteps) {
-      if (/^\s+steps:\s*$/.test(line)) inSteps = true;
-      continue;
-    }
-    if (block) {
-      const indent = line.match(/^\s*/)?.[0].length ?? 0;
-      if (line.trim() !== "" && indent > blockIndent) {
-        block.push(line.trim());
-        continue;
-      }
-      flushBlock();
-    }
-    const named = /^\s+- name:\s*(.*)$/.exec(line);
-    if (named) {
-      flushBlock();
-      current = { name: named[1].trim(), ifClause: "", run: "", uses: "", with: {} };
-      steps.push(current);
-      continue;
-    }
-    if (!current) continue;
-    const clause = /^\s+if:\s*(.*)$/.exec(line);
-    if (clause) {
-      current.ifClause = clause[1].trim();
-      continue;
-    }
-    const uses = /^\s+uses:\s*(.*)$/.exec(line);
-    if (uses) {
-      current.uses = uses[1].trim();
-      continue;
-    }
-    const run = /^\s+run:\s*(.*)$/.exec(line);
-    if (run) {
-      current.run = run[1];
-      continue;
-    }
-    const field = /^(\s+)([A-Za-z0-9_-]+):\s*(.*)$/.exec(line);
-    if (!field) continue;
-    const key = field[2];
-    const value = field[3].trim();
-    if (value === "|" || value === ">") {
-      blockKey = key;
-      block = [];
-      blockIndent = field[1].length;
-      continue;
-    }
-    if (key === "if") current.ifClause = value;
-    else if (key === "run") current.run = value;
-    else if (key === "uses") current.uses = value;
-    else current.with[key] = value;
+const RETAINED_VALIDATE_STEP_NAMES = [
+  "Checkout",
+  "Setup Bun",
+  "Install dependencies",
+  "Run CI validation",
+  "Run local release consistency check",
+] as const;
+
+const RETAINED_WINDOWS_STEP_NAMES = [
+  "Run the platform-agnostic pin and Windows directory-pin regressions",
+  "Run the implicit-supersede pin release regressions",
+] as const;
+
+const RETAINED_DART_STEP_NAMES = ["Run the real Dart adapter regression"] as const;
+
+type GuardStep = { name?: string; run?: string; uses?: string; with?: Record<string, unknown> };
+type GuardDocument = { jobs?: Record<string, { steps?: GuardStep[] }> };
+
+function workflowRetirementProblems(document: GuardDocument): string[] {
+  const problems: string[] = [];
+  const jobs = document?.jobs ?? {};
+  for (const job of ["validate", "windows-compatibility", "dart-adapter"]) {
+    if (!jobs[job]) problems.push(`retained job missing: ${job}`);
   }
-  flushBlock();
-  return steps;
-}
-
-function simulatePrepin(steps: WorkflowStep[], present: Set<string>, controlFails: boolean): { uploadRan: boolean; jobFailed: boolean } {
-  let failed = false;
-  let uploadRan = false;
-  for (const step of steps) {
-    const always = step.ifClause.includes("always()");
-    if (failed && !always) continue;
-    const upload = step.uses.includes("actions/upload-artifact@v7") && step.with.name === "prepin-behavior-junit";
-    if (upload) {
-      uploadRan = true;
-      const paths = (step.with.path ?? "").split("\n").map((item) => item.trim()).filter(Boolean);
-      const missing = paths.filter((item) => !present.has(item) && ![...present].some((have) => have.endsWith(path.basename(item))));
-      if (step.with["if-no-files-found"] === "error" && missing.length > 0) failed = true;
-    }
-    if (step.run.includes("bun test") && step.run.includes("-t b53d13d") && controlFails) failed = true;
-    if (step.run.includes("test -f")) {
-      for (const name of ["prepin-behavior-junit.xml", "prepin-behavior-head.txt"]) {
-        if (![...present].some((item) => item.endsWith(name))) failed = true;
-      }
-    }
+  const validateSteps = jobs.validate?.steps ?? [];
+  const validateNames = validateSteps.map((step) => step.name ?? "");
+  for (const retired of RETIRED_VALIDATE_STEP_NAMES) {
+    if (validateNames.includes(retired)) problems.push(`retired validate step present: ${retired}`);
   }
-  return { uploadRan, jobFailed: failed };
-}
-
-function prepinJunit(cases: Array<{ name: string; body?: string }>, extras: Array<{ name: string; body?: string }> = []): string {
-  const rendered = [...cases, ...extras].map((item) => `<testcase name="${item.name}" time="0.01">${item.body ?? ""}</testcase>`).join("");
-  return `<?xml version="1.0" encoding="UTF-8"?><testsuites>${rendered}</testsuites>`;
-}
-
-function writeFakeGh(bin: string, scenarioPath: string): void {
-  const script = `#!/usr/bin/env bun
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import path from "node:path";
-const scenario = JSON.parse(readFileSync(${JSON.stringify(scenarioPath)}, "utf8"));
-const args = process.argv.slice(2);
-if (args[0] === "run" && args[1] === "list") {
-  if (scenario.listExit) {
-    console.error(scenario.listError ?? "list failed");
-    process.exit(scenario.listExit);
+  for (const retained of RETAINED_VALIDATE_STEP_NAMES) {
+    if (!validateNames.includes(retained)) problems.push(`retained validate step missing: ${retained}`);
   }
-  if (args[args.indexOf("--workflow") + 1] !== "validate.yml") process.exit(2);
-  if (args[args.indexOf("--limit") + 1] !== "20") process.exit(2);
-  if (!String(args[args.indexOf("--json") + 1] ?? "").includes("databaseId")) process.exit(2);
-  process.stdout.write(JSON.stringify(scenario.list ?? []));
-  process.exit(0);
-}
-if (args[0] === "run" && args[1] === "download") {
-  if (scenario.downloadExit) {
-    console.error(scenario.downloadError ?? "download failed");
-    process.exit(scenario.downloadExit);
+  const serialized = JSON.stringify(validateSteps);
+  for (const marker of PREPIN_SPECIFIC_MARKERS) {
+    if (serialized.includes(marker)) problems.push(`pre-pin marker present in validate steps: ${marker}`);
   }
-  if (args[args.indexOf("--name") + 1] !== "prepin-behavior-junit") process.exit(2);
-  const dir = args[args.indexOf("--dir") + 1];
-  mkdirSync(dir, { recursive: true });
-  if (!scenario.omitJunit) writeFileSync(path.join(dir, "prepin-behavior-junit.xml"), scenario.junit ?? "");
-  if (!scenario.omitHead) writeFileSync(path.join(dir, "prepin-behavior-head.txt"), scenario.head ?? "");
-  process.exit(0);
-}
-console.error("unexpected gh " + args.join(" "));
-process.exit(2);
-`;
-  writeFileSync(path.join(bin, "gh"), script, { mode: 0o755 });
-  chmodSync(path.join(bin, "gh"), 0o755);
-}
-
-function runPrepinVerifier(env: NodeJS.ProcessEnv): { status: number; text: string } {
-  const result = spawnSync(process.execPath, ["test", "--timeout=0", "./scripts/verify-prepin-linux-evidence.ts"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    env,
-  });
-  return { status: result.status ?? 1, text: `${result.stdout ?? ""}\n${result.stderr ?? ""}` };
-}
-
-describe("prepin linux verifier", () => {
-  function withScenario(scenario: Record<string, unknown>, body: (env: NodeJS.ProcessEnv) => void): void {
-    const root = mkdtempSync(path.join(os.tmpdir(), "prepin-gh-"));
-    const bin = path.join(root, "bin");
-    mkdirSync(bin);
-    const scenarioPath = path.join(root, "scenario.json");
-    writeFileSync(scenarioPath, JSON.stringify(scenario));
-    writeFakeGh(bin, scenarioPath);
-    const git = Bun.which("git");
-    if (!git) throw new Error("git is absent");
-    symlinkSync(git, path.join(bin, "git"));
-    try {
-      body({ ...process.env, PATH: `${bin}${path.delimiter}${path.dirname(process.execPath)}` });
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+  const windowsNames = (jobs["windows-compatibility"]?.steps ?? []).map((step) => step.name ?? "");
+  for (const retained of RETAINED_WINDOWS_STEP_NAMES) {
+    if (!windowsNames.includes(retained)) problems.push(`retained windows step missing: ${retained}`);
   }
+  const dartNames = (jobs["dart-adapter"]?.steps ?? []).map((step) => step.name ?? "");
+  for (const retained of RETAINED_DART_STEP_NAMES) {
+    if (!dartNames.includes(retained)) problems.push(`retained dart step missing: ${retained}`);
+  }
+  return problems;
+}
 
-  const sha = gitRun(repoRoot, ["rev-parse", "HEAD"]).trim();
-  const goodJunit = prepinJunit(
-    PREPIN_TITLES.map((name) => ({ name })),
-    [{ name: "filtered control", body: "<skipped message=\"filtered\"/>" }],
-  );
+const RETIRED_STEP_PAYLOADS: GuardStep[] = [
+  { name: RETIRED_VALIDATE_STEP_NAMES[0], uses: "actions/checkout@v5", with: { path: "prepin-behavior" } },
+  { name: RETIRED_VALIDATE_STEP_NAMES[1], run: "bun install --frozen-lockfile", with: { "working-directory": "prepin-behavior" } },
+  { name: RETIRED_VALIDATE_STEP_NAMES[2], run: "git rev-parse HEAD > prepin-behavior-head.txt" },
+  { name: RETIRED_VALIDATE_STEP_NAMES[3], run: "bun test --timeout=0 src/grace-generate.test.ts src/grace-cursor.test.ts -t b53d13d --reporter=junit" },
+  { name: RETIRED_VALIDATE_STEP_NAMES[4], run: "test -f prepin-behavior-junit.xml && test -f prepin-behavior-head.txt" },
+  { name: RETIRED_VALIDATE_STEP_NAMES[5], uses: "actions/upload-artifact@v7", with: { name: "prepin-behavior-junit" } },
+];
 
-  it("prepin linux verifier: accepts the newest successful exact-head artifact and ignores filtered skips", () => {
-    withScenario({
-      list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
-      head: `${sha}\n`,
-      junit: goodJunit,
-    }, (env) => {
-      const result = runPrepinVerifier(env);
-      expect(result.status, result.text).toBe(0);
-    });
-  });
+describe("prepin CI retirement", () => {
+  it("prepin CI retirement: the guard rejects retired steps and markers, allows unrelated JUnit and uploads, and passes the retained workflow", () => {
+    const real = Bun.YAML.parse(readFileSync(path.join(repoRoot, ".github/workflows/validate.yml"), "utf8")) as GuardDocument;
+    expect(workflowRetirementProblems(real), "the retired workflow is clean").toEqual([]);
 
-  it("prepin linux verifier: refuses a newest failure that has an older success, a missing run, a bad stamp, a bad target, a missing gh, and a failed download", () => {
-    withScenario({
-      list: [
-        { databaseId: 22, headSha: sha, status: "completed", conclusion: "failure" },
-        { databaseId: 11, headSha: sha, status: "completed", conclusion: "success" },
-      ],
-      head: `${sha}\n`,
-      junit: goodJunit,
-    }, (env) => {
-      expect(runPrepinVerifier(env).status).not.toBe(0);
-    });
-    withScenario({ list: [], head: `${sha}\n`, junit: goodJunit }, (env) => {
-      expect(runPrepinVerifier(env).status).not.toBe(0);
-    });
-    withScenario({
-      list: [{ databaseId: 11, headSha: "a".repeat(40), status: "completed", conclusion: "success" }],
-      head: `${sha}\n`,
-      junit: goodJunit,
-    }, (env) => {
-      expect(runPrepinVerifier(env).status).not.toBe(0);
-    });
-    withScenario({
-      list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
-      head: `${"b".repeat(40)}\n`,
-      junit: goodJunit,
-    }, (env) => {
-      expect(runPrepinVerifier(env).status).not.toBe(0);
-    });
-    withScenario({
-      list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
-      omitHead: true,
-      junit: goodJunit,
-    }, (env) => {
-      expect(runPrepinVerifier(env).status).not.toBe(0);
-    });
-    withScenario({
-      list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
-      head: `${sha}\n`,
-      junit: prepinJunit([{ name: PREPIN_TITLES[0] }]),
-    }, (env) => {
-      expect(runPrepinVerifier(env).status).not.toBe(0);
-    });
-    withScenario({
-      list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
-      head: `${sha}\n`,
-      junit: prepinJunit([{ name: PREPIN_TITLES[0] }, { name: PREPIN_TITLES[0] }, { name: PREPIN_TITLES[1] }]),
-    }, (env) => {
-      expect(runPrepinVerifier(env).status).not.toBe(0);
-    });
-    for (const body of ["<skipped message=\"inode\"/>", "<failure message=\"x\">no</failure>", "<error message=\"x\">no</error>"]) {
-      withScenario({
-        list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
-        head: `${sha}\n`,
-        junit: prepinJunit([{ name: PREPIN_TITLES[0], body }, { name: PREPIN_TITLES[1] }]),
-      }, (env) => {
-        expect(runPrepinVerifier(env).status).not.toBe(0);
-      });
+    for (const step of RETIRED_STEP_PAYLOADS) {
+      const mutated = structuredClone(real);
+      mutated.jobs?.validate?.steps?.push(structuredClone(step));
+      expect(workflowRetirementProblems(mutated), `planted ${step.name}`).not.toEqual([]);
     }
-    withScenario({
-      list: [{ databaseId: 11, headSha: sha, status: "in_progress", conclusion: "" }],
-      head: `${sha}\n`,
-      junit: goodJunit,
-    }, (env) => {
-      expect(runPrepinVerifier(env).status).not.toBe(0);
-    });
-    withScenario({
-      list: [{ databaseId: 11, headSha: sha, status: "completed", conclusion: "success" }],
-      downloadExit: 1,
-      head: `${sha}\n`,
-      junit: goodJunit,
-    }, (env) => {
-      expect(runPrepinVerifier(env).status).not.toBe(0);
-    });
-    const bare = mkdtempSync(path.join(os.tmpdir(), "prepin-no-gh-"));
-    try {
-      const git = Bun.which("git");
-      if (!git) throw new Error("git is absent");
-      symlinkSync(git, path.join(bare, "git"));
-      const missing = runPrepinVerifier({ ...process.env, PATH: bare });
-      expect(missing.status, missing.text).not.toBe(0);
-    } finally {
-      rmSync(bare, { recursive: true, force: true });
-    }
-  });
 
-  it("prepin linux verifier: the upload still runs after a failed control, and a missing junit or head file fails the job", () => {
-    const yaml = readFileSync(path.join(repoRoot, ".github/workflows/validate.yml"), "utf8");
-    expect(yaml).not.toContain("ngrace gate verdict");
-    const steps = parseValidateSteps(yaml);
-    const checkout = steps.find((step) => step.name === "Checkout");
-    expect(checkout?.with["fetch-depth"]).toBe("0");
-    expect(checkout?.with.ref ?? "").toBe("");
-    expect(checkout?.with.path ?? "").toBe("");
-    expect(steps.some((step) => step.with.ref?.includes("github.event.pull_request.head.sha") && step.with.ref.includes("github.sha"))).toBe(true);
-    const both = new Set([
-      "prepin-behavior/prepin-behavior-junit.xml",
-      "prepin-behavior/prepin-behavior-head.txt",
-    ]);
-    const failedControl = simulatePrepin(steps, both, true);
-    expect(failedControl.uploadRan).toBe(true);
-    expect(failedControl.jobFailed).toBe(true);
-    const happy = simulatePrepin(steps, both, false);
-    expect(happy.uploadRan).toBe(true);
-    expect(happy.jobFailed).toBe(false);
-    expect(simulatePrepin(steps, new Set(["prepin-behavior/prepin-behavior-head.txt"]), false).jobFailed).toBe(true);
-    expect(simulatePrepin(steps, new Set(["prepin-behavior/prepin-behavior-junit.xml"]), false).jobFailed).toBe(true);
+    const innocent = structuredClone(real);
+    innocent.jobs?.validate?.steps?.push({ name: "Innocent step", run: "bun test -t b53d13d" });
+    expect(workflowRetirementProblems(innocent), "innocent-named pre-pin step").not.toEqual([]);
+
+    const restored = structuredClone(innocent);
+    restored.jobs!.validate!.steps = restored.jobs!.validate!.steps!.filter((step) => step.name !== "Innocent step");
+    expect(workflowRetirementProblems(restored), "restored workflow").toEqual([]);
+
+    const unrelated = structuredClone(real);
+    unrelated.jobs?.validate?.steps?.push({
+      name: "Run unrelated unit tests",
+      run: "bun test src/project-utils.test.ts --reporter=junit --reporter-outfile=report-junit.xml",
+    });
+    unrelated.jobs?.validate?.steps?.push({
+      name: "Upload unrelated diagnostics",
+      uses: "actions/upload-artifact@v7",
+      with: { name: "diagnostics", path: "diagnostics.txt" },
+    });
+    expect(workflowRetirementProblems(unrelated), "unrelated JUnit and upload steps stay green").toEqual([]);
   });
 });

@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-PREPIN-CI-RETIREMENT-1-D5867E60>
     <IntentSummary>
       Two tasks, then the closed ceremony. T-001 removes the six historical Validate steps, deletes

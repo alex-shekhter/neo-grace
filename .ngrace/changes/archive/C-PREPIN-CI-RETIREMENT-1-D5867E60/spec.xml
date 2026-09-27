@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-PREPIN-CI-RETIREMENT-1-D5867E60>
     <Summary>
       Retire the extra exact-head pre-pin CI route, verifier, and exclusive tests; guard its absence
