@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-SQUASH-WITNESS-2-29EFA92A>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-SQUASH-WITNESS-2-29EFA92A><Replacement>C-SQUASH-WITNESS-3-CC8FBE18</Replacement>
     <IntentSummary>
       Execute the approved T1 spec committed at 3893c7b925e850fd8b0bc8c5b71c8d6397dcc78b. Step 1 retires invalid inode and descriptor proof while preserving C6 content/provenance and functional token-and-byte serialization controls. Step 2, the coordinator, is outside this bundle. Three serial tasks: T-001 deletes the identity/pin lifecycle tests, historical fixture and verifier while preserving C6; T-002 removes their workflow steps and replaces positive Windows pin-step guards with a discriminating YAML absence guard; T-003 repairs the metrics runner with a canonical SHA-256 source pin and observed JUnit case comparison. During the execute stage, the executor implements and probes in a faithful disposable clone; the authority reviews before production application. No GitHub cloud call, runtime lock edit, README/examples edit, or archive edit is a task. The final MustPassCommand is bun run validate:ci and is run once at final; its metered suite writes the measured metrics artifact. AC-OBSOLETE-TESTS-REMOVED maps to T-001, AC-HISTORICAL-MACHINERY-REMOVED maps to T-002 when its last guard is retired, and AC-METRICS-MEASURED maps to T-003. AC-WORKFLOW-LEAN and the inherited C6 criteria are close-bound and are not Satisfies targets.
     </IntentSummary>

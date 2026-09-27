@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-SQUASH-WITNESS-2-29EFA92A>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-SQUASH-WITNESS-2-29EFA92A><Replacement>C-SQUASH-WITNESS-3-CC8FBE18</Replacement>
     <Summary>
       Supersede C-SQUASH-WITNESS-1-87D77A3D to remove invalid inode-dependent CI evidence before designing the coordinator. Retain the independent C6 content and explicit-boundary witness. Repair test metrics so removing tests from an existing file yields a measured artifact.
     </Summary>
