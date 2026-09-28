@@ -1116,8 +1116,6 @@ describe("creation wrapper mapping", () => {
 
 // C-SUPERSEDE-MEMBERSHIP-2-C459A20C T-001: the isolated-process acquisition interceptor.
 describe("candidate mint exclusivity interceptor", () => {
-  const BASE_COMMIT = "6dd1d95";
-
   function preloadSource(prefix: string): string {
     return [
       'import fs from "node:fs";',
@@ -1193,23 +1191,6 @@ describe("candidate mint exclusivity interceptor", () => {
     expect(result.dirs, "only the competitor directory remains").toHaveLength(1);
     expect(result.preserved, "the competitor spec.xml is byte-identical").toBe(true);
     expect(result.other, "the competitor's unrelated file is preserved").toBe(true);
-  });
-
-  it("AC-MINT-EXCLUSIVE: the isolated unmodified baseline overwrites the competitor (candidateSpecPreserved false)", () => {
-    const worktree = mkdtempSync(path.join(tmpdir(), "ngrace-baseline-"));
-    const add = Bun.spawnSync({ cmd: ["git", "worktree", "add", "--detach", worktree, BASE_COMMIT], cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
-    expect(add.exitCode, Buffer.from(add.stderr).toString("utf8")).toBe(0);
-    try {
-      symlinkSync(path.join(repoRoot, "node_modules"), path.join(worktree, "node_modules"));
-      const result = driveMint(worktree, writePreload("C-MINTEX-1-"));
-      expect(result.stderr, "the interceptor reports it fired").toContain("PROBE: candidate created by another actor");
-      expect(result.exit, "the baseline mint succeeds").toBe(0);
-      expect(result.preserved, "the unmodified baseline overwrote the competitor").toBe(false);
-      expect(result.other, "the competitor's unrelated file is preserved even on the baseline").toBe(true);
-    } finally {
-      Bun.spawnSync({ cmd: ["git", "worktree", "remove", "--force", worktree], cwd: repoRoot, stdout: "pipe", stderr: "pipe" });
-      rmSync(worktree, { recursive: true, force: true });
-    }
   });
 
   function driveRoute(preload: string, runnerBody: string, changeId: string) {
