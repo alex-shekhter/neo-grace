@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-MINT-BASELINE-CONTROL-2-C2E3D3A3>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-MINT-BASELINE-CONTROL-2-C2E3D3A3><Replacement>C-MINT-BASELINE-CONTROL-3-F04434E4</Replacement>
     <IntentSummary>
       Draft plan for approved C-MINT-BASELINE-CONTROL-2-C2E3D3A3 (T1, base
       `fea312695e58510ab1b681e0ea4f468de4e70a55`). Two serial tasks. **T-001** removes the permanent

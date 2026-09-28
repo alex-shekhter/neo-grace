@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-MINT-BASELINE-CONTROL-3-F04434E4>
+    <Summary>Summary of C-MINT-BASELINE-CONTROL-3-F04434E4.</Summary>
+    <Goals>
+      <Goal>Goal for C-MINT-BASELINE-CONTROL-3-F04434E4.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-MINT-BASELINE-CONTROL-3-F04434E4.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-MINT-BASELINE-CONTROL-3-F04434E4; replace this placeholder by deciding README.md and examples/. Owner: the author.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-MINT-BASELINE-CONTROL-3-F04434E4.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-MINT-BASELINE-CONTROL-3-F04434E4.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-MINT-BASELINE-CONTROL-3-F04434E4>
+</NgraceChangeSpec>

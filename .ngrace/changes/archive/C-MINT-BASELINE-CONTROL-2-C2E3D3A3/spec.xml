@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-MINT-BASELINE-CONTROL-2-C2E3D3A3>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-MINT-BASELINE-CONTROL-2-C2E3D3A3><Replacement>C-MINT-BASELINE-CONTROL-3-F04434E4</Replacement>
     <Summary>
       **First, narrow successor slice: remove only the permanent historical mint regression control.**
       This bundle is the lineage successor of the archived `C-MINT-BASELINE-CONTROL-1-5202CCD1`
