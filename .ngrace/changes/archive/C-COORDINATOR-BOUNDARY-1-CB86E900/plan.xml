@@ -1,0 +1,148 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-COORDINATOR-BOUNDARY-1-CB86E900>
+    <IntentSummary>
+      Two serial tasks, then the closed ceremony. T-001 creates the supervisor module
+      (src/test-support/coordinator.ts, LINKS: M-TEST-SUPPORT), writes its focused behavior suite
+      (src/test-support/coordinator.test.ts), and makes the M-TEST-SUPPORT scope truthful in its
+      header, graph summary, and verification scenario; its verification is the focused suite against
+      the module it just created, plus typecheck. T-002 depends on T-001 and regenerates
+      test-metrics.json from one measured run through a red-to-green artifact guard that requires a
+      metrics identity for each of T-001's six coordinator criteria. The target gate is
+      bun run validate:ci under --assertions final --run-commands; AC-CLOSE-LINT is evaluated
+      post-archive. ObservedWriteScope carries the six forced paths and this bundle's own archive
+      arrival.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustContain><File>src/test-support/fixtures.ts</File><Text>LINKS: M-TEST-SUPPORT</Text></MustContain>
+      <MustExist><Value>.ngrace/graph/main.xml</Value></MustExist>
+      <MustExist><Value>.ngrace/verification/main.xml</Value></MustExist>
+      <MustContain><File>.ngrace/graph/main.xml</File><Text>M-TEST-SUPPORT</Text></MustContain>
+      <MustContain><File>.ngrace/verification/main.xml</File><Text>V-M-TEST-SUPPORT</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>src/test-support/coordinator.ts</Value></MustExist>
+      <MustContain><File>src/test-support/coordinator.ts</File><Text>LINKS: M-TEST-SUPPORT</Text></MustContain>
+      <MustContain><File>src/test-support/coordinator.ts</File><Text>function validateCoordinatorPlan</Text></MustContain>
+      <MustContain><File>src/test-support/coordinator.ts</File><Text>function runCoordinator</Text></MustContain>
+      <MustContain><File>src/test-support/fixtures.ts</File><Text>supervisor</Text></MustContain>
+      <MustContain><File>.ngrace/graph/main.xml</File><Text>supervisor</Text></MustContain>
+      <MustContain><File>.ngrace/verification/main.xml</File><Text>supervisor</Text></MustContain>
+      <MustExist><Value>src/test-support/coordinator.test.ts</Value></MustExist>
+      <MustContain><File>src/test-support/coordinator.test.ts</File><Text>AC-COORDINATOR-PREFLIGHT-REFUSES</Text></MustContain>
+      <MustContain><File>src/test-support/coordinator.test.ts</File><Text>AC-COORDINATOR-AWAITS-ALL</Text></MustContain>
+      <MustNotContain><File>test-metrics.json</File><Text>(provisional)</Text></MustNotContain>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/test-support/coordinator.ts</File>
+      <File>src/test-support/coordinator.test.ts</File>
+      <File>src/test-support/fixtures.ts</File>
+      <File>.ngrace/graph/main.xml</File>
+      <File>.ngrace/verification/main.xml</File>
+      <File>test-metrics.json</File>
+      <Glob>.ngrace/changes/archive/C-COORDINATOR-BOUNDARY-1-CB86E900/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Create the supervisor module, its focused behavior suite, and the truthful M-TEST-SUPPORT scope</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first (pre-implementation probe, not a baseline assertion): an existence guard fails
+            before implementation because src/test-support/coordinator.ts is absent. Then create
+            src/test-support/coordinator.ts with the module header LINKS: M-TEST-SUPPORT and a contract
+            that preflights a plan before any spawn or workspace creation using canonical
+            (symlink-resolved) containment, refusing the twenty cases enumerated in
+            AC-COORDINATOR-PREFLIGHT-REFUSES: duplicate worker ids; equal workspaces; nested
+            workspaces; symlink-aliased workspaces; an output escaping its own workspace; two outputs
+            with the same name across workers; an output equal to a reserved log path; a start-gate path
+            inside a workspace; a startAfterTimeoutMs of zero, negative, NaN, and Infinity; a global
+            deadline of zero, negative, NaN, and Infinity; a workspace that contains project/; a
+            workspace nested inside project/; a workspace that contains control/; and a workspace nested
+            inside control/. The module exports a runner that creates each workers/&lt;id&gt; workspace,
+            spawns direct workers in plan order (a worker may be staged behind a bounded, finite
+            startAfterPath gate), drains each worker's stdout and stderr into that worker's own logs,
+            returns only after every direct worker has exited or the finite global deadline is reached,
+            and bounded-kills and reaps every still-running direct worker, naming an unreaped PID
+            explicitly. On any spawn, gate, output-read, or stream-pump failure it stops immediately,
+            bounded-kills and reaps every already-started direct worker, and propagates the original
+            error composed with any cleanup failure; a stream-pump fault interrupts every phase,
+            including the staged gate wait. A declared output is snapshotted only after its owning
+            worker exits; only direct worker PIDs are guaranteed. Write src/test-support/coordinator.test.ts
+            covering all six ordinary criteria, with each focused test title carrying its AC id. The
+            preflight test drives all twenty cases through runCoordinator with a spawn spy, asserting
+            the intended refusal reason, zero spawns, and no newly created workspace, accounting for
+            deliberately precreated symlink and root fixtures. The fail-fast cleanup test drives a
+            plainly running first worker and a gated spawn failure, with cleanup-skip red and restored.
+            The remaining fail-fast branches are covered explicitly: an unreadable present output (a
+            directory passed as a declared output) throws after cleanup; a worker exit 7 is returned as
+            data and does not throw; and a failed kill or reap returns a bounded error naming the
+            unreaped PID. The real-CLI test uses directly staged publisher and contender, a while-held
+            contemporaneous check that the contender started and is pending with no plan.xml and
+            spec.xml bytes equal to a paused-write SHA-256 baseline before the control/ release, then
+            final exits, no plan or marker or lock, and byte equality again, with a planted byte
+            mutation reddening the hold comparison and restored. Bounded termination and both
+            global-deadline precedence directions are covered. Stream faults are covered in the running
+            phase (ignore-pump red, restored) and during the staged gate wait, each verified by
+            direct-PID liveness after the throw, with any deliberately leaked red-control PID killed
+            before the throwaway root is removed. Also extend the PURPOSE and SCOPE of the
+            src/test-support/fixtures.ts module header, the M-TEST-SUPPORT Summary in
+            .ngrace/graph/main.xml, and the V-M-TEST-SUPPORT Scenario and TraceAssertion in
+            .ngrace/verification/main.xml to describe the supervisor. Do not pin a projected test or
+            metrics count.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/test-support/coordinator.test.ts</Command>
+          <Command>bun run typecheck</Command>
+        </Verification>
+        <Satisfies>
+          <AC-COORDINATOR-PREFLIGHT-REFUSES />
+          <AC-COORDINATOR-AWAITS-ALL />
+          <AC-COORDINATOR-TIMEOUT-KILLS />
+          <AC-COORDINATOR-DEADLINE-PRECEDENCE />
+          <AC-COORDINATOR-FAIL-FAST-CLEANUP />
+          <AC-COORDINATOR-STREAM-FAULT />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Invalidate and regenerate the measured test-metrics.json</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red first: the artifact guard below rejects the committed test-metrics.json because it does
+            not yet carry the coordinator test identities. Then invalidate the committed
+            test-metrics.json so the runner's file-set-and-count-sum freshness predicate cannot leave it
+            untouched, and run the artifact-producing action exactly once with bun run test:metrics;
+            this is the single artifact-producing run. After it, the same guard passes: at least one
+            metrics case identity for each of T-001's six coordinator criteria
+            (AC-COORDINATOR-PREFLIGHT-REFUSES, AC-COORDINATOR-AWAITS-ALL, AC-COORDINATOR-TIMEOUT-KILLS,
+            AC-COORDINATOR-DEADLINE-PRECEDENCE, AC-COORDINATOR-FAIL-FAST-CLEANUP,
+            AC-COORDINATOR-STREAM-FAULT), no (provisional) entry, and a per-file count sum equal to the
+            case count. scripts/test-metrics.ts is not edited, and no projected figure is asserted. A
+            later bun run validate:ci invokes test:metrics again, but a fresh artifact is left untouched
+            (scripts/test-metrics.ts:78-130) and is not a second artifact-producing run.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun -e 'const fs=require("fs");const a=JSON.parse(fs.readFileSync("test-metrics.json","utf8"));const need=["AC-COORDINATOR-PREFLIGHT-REFUSES","AC-COORDINATOR-AWAITS-ALL","AC-COORDINATOR-TIMEOUT-KILLS","AC-COORDINATOR-DEADLINE-PRECEDENCE","AC-COORDINATOR-FAIL-FAST-CLEANUP","AC-COORDINATOR-STREAM-FAULT"];const missing=need.filter(id=>!a.tests.some(t=>t.file==="src/test-support/coordinator.test.ts"&amp;&amp;t.name.includes(id)));const provisional=a.tests.filter(x=>x.name==="(provisional)");const sum=a.files.reduce((s,f)=>s+f.tests,0);if(missing.length)throw new Error("missing coordinator identities: "+missing.join(","));if(provisional.length||sum!==a.tests.length)throw new Error("stale: provisional="+provisional.length+" sum="+sum+"/"+a.tests.length);console.log("artifact current:",a.tests.length,"cases; coordinator ids present:",need.length);'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-METRICS-MEASURED />
+        </Satisfies>
+      </T-002>
+    </ImplementationPlan>
+  </C-COORDINATOR-BOUNDARY-1-CB86E900>
+</NgraceChangePlan>

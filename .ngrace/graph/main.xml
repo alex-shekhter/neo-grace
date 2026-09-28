@@ -90,7 +90,7 @@
       <Type>ENTRY_POINT</Type>
     </M-CONTEXT>
     <M-TEST-SUPPORT>
-      <Summary>Test fixtures, defect corpus, and token-accounting helpers for the suite.</Summary>
+      <Summary>Test fixtures, defect corpus, token-accounting helpers, and the direct-worker supervisor contract for the suite.</Summary>
       <Path>src/test-support/fixtures.ts</Path>
       <Type>UTILITY</Type>
     </M-TEST-SUPPORT>

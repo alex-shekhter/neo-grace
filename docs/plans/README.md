@@ -56,7 +56,8 @@ sequencing; nothing here is blocked by anything else on this page.
 
 The [GRACE implementation findings queue](./active/RM-GOVERNED-PATH/grace-implementation-queue.md)
 records the merged-tree check of block markers, source annotations, logging,
-and PILOT evidence. It is a non-normative supplement to the existing D29 charters
+PILOT evidence, and the unscheduled first-class diagram teaching/validation question. It is a
+non-normative supplement to the existing D29 charters
 and PILOT review; it schedules no bundle.
 
 ### `RM-ADAPTIVE-BUNDLE-SIZING` — recorded 2026-09-20
