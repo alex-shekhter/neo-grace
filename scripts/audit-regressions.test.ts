@@ -401,7 +401,7 @@ export function validateJobCheckoutDepth(xml: string): string | null {
 }
 
 describe("C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 checkout and README guards", () => {
-  it("the validate job checks out full history for the pinned baseline control", () => {
+  it("the validate job checks out full history for the declaration-count coverage guard's historical base", () => {
     const xml = readFileSync(path.join(repoRoot, ".github/workflows/validate.yml"), "utf8");
     expect(validateJobCheckoutDepth(xml), "validate checkout fetch-depth").toBe("0");
   });

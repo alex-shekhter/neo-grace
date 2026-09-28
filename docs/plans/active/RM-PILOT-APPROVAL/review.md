@@ -4,7 +4,7 @@ kind: context
 status: draft
 supersededBy: null
 created: 2026-09-01
-updated: 2026-09-01
+updated: 2026-09-28
 baseline: null
 targets: []
 normative: false
@@ -216,3 +216,49 @@ The proposed three-amendment budget in §3 is a different counter and is not
 silently converted into an execute-turn limit here. This entry records the
 measured case and the maintainer's direction; it does not activate pilot
 amendments or set a numeric stage threshold.
+
+## 9. Approval provenance failure after completed execution (2026-09-28)
+
+`C-MINT-BASELINE-CONTROL-2-C2E3D3A3` reached final execution validation after the
+authority interpreted an earlier standalone `approved` as ratification of its
+spec. The maintainer later stated that he had **not** approved that spec. The
+CLI's spec and plan approval decisions carried fingerprints matching the
+artifact bytes, but those records did not establish what the maintainer had
+ratified. The authority had already checkpointed the spec and plan, completed
+and checkpointed both tasks, and run the selected final gate. No apply or
+archive-close action ran. The maintainer directed supersede. The authority
+minted draft successor `C-MINT-BASELINE-CONTROL-3-F04434E4` with
+`ngrace spec new --supersedes`, then `ngrace supersede --replacement` archived
+this bundle as `superseded`.
+
+Measured 2026-09-28 UTC from **every** `Event` in the archived
+`.ngrace/changes/archive/C-MINT-BASELINE-CONTROL-2-C2E3D3A3/run-ledger.xml`
+(SHA-256 `957ce2f15f89c6d61e9d2700673e356d2a13b7c152a2c0b9556ce46df1c3bc9b`):
+
+| measured unit | archived bundle |
+|---|---:|
+| completed implementation tasks | 2 (`T-001`, `T-002`) |
+| folded epochs | 3 (two task epochs; one final-command/discard epoch) |
+| attempt events | 4 (2 fail, 2 pass) |
+| final `validate:ci` command events | 2 (exit 1, then exit 0) |
+| applied product changes | 0 |
+| implementation paths retained on the branch | 3 |
+
+The three retained implementation paths are `src/grace-generate.test.ts`,
+`scripts/audit-regressions.test.ts`, and `test-metrics.json`. The measured metrics
+artifact carries 2455 cases across 69 files. This supersede discarded the
+bundle's claimed approval and plan authority, **not** those implementation
+edits. The archive therefore preserves execution counts that a raw supersede
+count misses, while the source diff alone would understate the governance cost.
+The authority's command output identified local temporary-file permissions as
+the first command's failure; the ledger itself records only the exit. No token
+or external-turn total is inferred from the ledger.
+
+This is a different failure class from §1's amendable scope mistake. Pilot's
+constraint that **every amendment re-ratifies** would not cure an absent first
+ratification. Cost reports should distinguish approval-provenance supersedes
+from plan-correction supersedes before using their combined rate to justify a
+pilot budget. The human-authorization boundary belongs with
+[`RM-VERIFIED-APPROVAL`](../RM-VERIFIED-APPROVAL/review.md) and the proposed
+[Sashimi controller](../../../autonomous-agents-and-sashimi.md); this incident
+does not activate either proposal or make a CLI fingerprint proof of consent.

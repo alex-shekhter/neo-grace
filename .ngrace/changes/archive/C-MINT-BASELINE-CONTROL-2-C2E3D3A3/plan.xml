@@ -1,0 +1,261 @@
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-MINT-BASELINE-CONTROL-2-C2E3D3A3><Replacement>C-MINT-BASELINE-CONTROL-3-F04434E4</Replacement>
+    <IntentSummary>
+      Draft plan for approved C-MINT-BASELINE-CONTROL-2-C2E3D3A3 (T1, base
+      `fea312695e58510ab1b681e0ea4f468de4e70a55`). Two serial tasks. **T-001** removes the permanent
+      historical mint regression from `src/grace-generate.test.ts` — the `BASE_COMMIT` constant
+      (`6dd1d95`) and the one detached-worktree test — retains the interceptor describe, the current-code
+      race test, the two exported-route tests, and the implicit-supersede test, and changes only the
+      depth-test title in `scripts/audit-regressions.test.ts` to the approved exact title
+      `the validate job checks out full history for the declaration-count coverage guard's historical base`,
+      preserving `validateJobCheckoutDepth`, `COVERAGE_BASE`, `declaredTests`, `coverageRegressions`,
+      `collectTestFiles`, the `C-TEST-TIME-BUDGET-2-3EC1F016 coverage never falls` test, and
+      `validateCiRerunsSuite`. **T-002** explicitly invalidates `test-metrics.json` and re-emits it with
+      one measured `bun run test:metrics`; bare `test:metrics` on a fresh-looking artifact leaves the
+      deleted and renamed names stale because `artifactIsStale` does not compare source test
+      declarations. **No module anchor is in scope**, so `DurableScope` is `&lt;None /&gt;`.
+      `ObservedWriteScope` is the three implementation paths plus this bundle's lawful archive arrival
+      glob and the predecessor's committed supersede arrival (both non-lifecycle archive files, which
+      the spec's `AC-ARCHIVES-UNTOUCHED` exclusion names and which the scope audit against the recorded
+      base `80cc36f` would otherwise flag). `Satisfies` maps only the two ordinary criteria (`AC-HISTORICAL-MINT-CONTROL-REMOVED`,
+      `AC-ONE-TIME-RED-CONTROL`) to T-001; the eight CloseEvidence criteria are never `Satisfies`
+      targets, and `AC-FETCH-DEPTH-RETAINED-FOR-COUNT-GUARD` has one CloseEvidence with two Commands.
+      **Measured escaping fact:** the JUnit reporter writes the apostrophe in the new title as
+      `&amp;apos;` in `test-metrics.json` (55 such names already in the committed artifact), so the
+      metric-artifact assertion uses the escaped form while the source assertion uses the literal
+      apostrophe. **Baseline needles assert only what stays** (`.github/workflows/validate.yml` with
+      `fetch-depth: 0`, `src/grace-generate.ts`, `scripts/test-metrics.ts`, and the retained guard
+      symbols); the flipped needles (`BASE_COMMIT`, `6dd1d95`, `worktree`, the old depth title, the
+      retired mint test name) are `TargetAssertions`, never baselines. The **full CI-equivalent
+      command** runs at the plan's `TargetAssertions` `MustPassCommand` `bun run validate:ci` under
+      `--assertions final --run-commands`, during execution before maintainer apply approval; **T-002
+      separately runs one measured suite** via `bun run test:metrics` to generate the artifact, and each
+      task names its own narrow instrument. The spec's named byte-invariance base remains
+      `80cc36f789dc35ef789cfe6d753a39e7115dce76`, distinct from this plan's base. Rehearsal status is
+      recorded in `Assumptions`.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/grace-generate.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>test-metrics.json</Value></MustExist>
+      <MustExist><Value>.github/workflows/validate.yml</Value></MustExist>
+      <MustExist><Value>src/grace-generate.ts</Value></MustExist>
+      <MustExist><Value>scripts/test-metrics.ts</Value></MustExist>
+      <MustContain>
+        <File>.github/workflows/validate.yml</File>
+        <Text>fetch-depth: 0</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>validateJobCheckoutDepth</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>COVERAGE_BASE</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>coverageRegressions</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>collectTestFiles</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>validateCiRerunsSuite</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/grace-generate.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>test-metrics.json</Value></MustExist>
+      <MustNotContain>
+        <File>src/grace-generate.test.ts</File>
+        <Text>BASE_COMMIT</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-generate.test.ts</File>
+        <Text>6dd1d95</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/grace-generate.test.ts</File>
+        <Text>worktree</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/grace-generate.test.ts</File>
+        <Text>AC-MINT-EXCLUSIVE: the repaired tree refuses the interspersed competitor and preserves every byte</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-generate.test.ts</File>
+        <Text>AC-MINT-EXCLUSIVE: the exported mintResolvedBundle route refuses the interspersed competitor</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-generate.test.ts</File>
+        <Text>AC-MINT-EXCLUSIVE: the exported mintBundle route refuses the interspersed competitor</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/grace-generate.test.ts</File>
+        <Text>AC-MINT-EXCLUSIVE: the implicit supersede mint refuses the interspersed competitor</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>the validate job checks out full history for the pinned baseline control</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>the validate job checks out full history for the declaration-count coverage guard's historical base</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>coverageRegressions</Text>
+      </MustContain>
+      <MustContain>
+        <File>scripts/audit-regressions.test.ts</File>
+        <Text>validateCiRerunsSuite</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>test-metrics.json</File>
+        <Text>AC-MINT-EXCLUSIVE: the isolated unmodified baseline overwrites the competitor (candidateSpecPreserved false)</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>test-metrics.json</File>
+        <Text>the validate job checks out full history for the pinned baseline control</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>test-metrics.json</File>
+        <Text>the validate job checks out full history for the declaration-count coverage guard&amp;apos;s historical base</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/grace-generate.test.ts</File>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>test-metrics.json</File>
+      <File>.ngrace/changes/archive/C-MINT-BASELINE-CONTROL-1-5202CCD1/spec.xml</File>
+      <File>.ngrace/changes/archive/C-MINT-BASELINE-CONTROL-1-5202CCD1/design-context.xml</File>
+      <Glob>.ngrace/changes/archive/C-MINT-BASELINE-CONTROL-2-C2E3D3A3/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Remove the historical mint test and retitle the depth guard</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            **Red control first, outside the suite.** Before any live edit, on a disposable non-Git copy
+            of this tree, drive the measured two-part mint red control: with only the recursive `mkdir`
+            mutation (`mkdirSync(bundlePath, { recursive: true })`), the retained real-CLI race test
+            stays green because the shipped `flag: "wx"` exclusive spec write still refuses; with the
+            recursive `mkdir` together with the non-exclusive
+            `writeFileSync(candidate.specPath, candidate.expectedSpecBytes)`, the retained race test
+            reddens. Restore the copy's bytes and observe green. The mutation is never committed to the
+            suite and `src/grace-generate.test.ts` gains no planted-defect test. This criterion is
+            `AC-ONE-TIME-RED-CONTROL`.
+          </Criterion>
+          <Criterion>
+            **Remove the permanent historical mint regression.** In `src/grace-generate.test.ts` remove
+            the `BASE_COMMIT` constant (`6dd1d95`) and the test titled
+            `AC-MINT-EXCLUSIVE: the isolated unmodified baseline overwrites the competitor
+            (candidateSpecPreserved false)` including its `git worktree add --detach` block. Retain the
+            interceptor describe, the race test `AC-MINT-EXCLUSIVE: the repaired tree refuses the
+            interspersed competitor and preserves every byte`, the two exported-route tests
+            (`mintResolvedBundle` and `mintBundle`), and the implicit-supersede test. Failure condition:
+            any `6dd1d95`, `BASE_COMMIT`, or `worktree` occurrence remains; a retained test is
+            removed. This criterion is `AC-HISTORICAL-MINT-CONTROL-REMOVED`.
+          </Criterion>
+          <Criterion>
+            **Retitle only the depth guard.** In `scripts/audit-regressions.test.ts` change only the
+            depth test's title from
+            `the validate job checks out full history for the pinned baseline control` to the approved
+            exact title
+            `the validate job checks out full history for the declaration-count coverage guard's historical base`.
+            Preserve `validateJobCheckoutDepth`, its assertion body (`validateJobCheckoutDepth(xml)`
+            equals `"0"`), `COVERAGE_BASE`, `declaredTests`, `coverageRegressions`, `collectTestFiles`,
+            the `C-TEST-TIME-BUDGET-2-3EC1F016 coverage never falls` describe/test, and
+            `validateCiRerunsSuite`. Failure condition: any of those symbols or tests is removed or the
+            assertion body changes.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>set -u; tmp=$(mktemp -d); test -n "$tmp" &amp;&amp; test -d "$tmp" || { echo "no temp root"; exit 1; }; trap 'rm -rf "$tmp"' EXIT; src=src/grace-generate.ts; cp "$src" "$tmp/orig.ts" || { echo "cp original failed"; exit 1; }; mkdir -p "$tmp/repo" || { echo "mkdir failed"; exit 1; }; rsync -a --exclude .git --exclude node_modules --exclude .ngrace/scratch ./ "$tmp/repo/" || { echo "rsync failed"; exit 1; }; test -f "$tmp/repo/$src" || { echo "copy missing source"; exit 1; }; ln -s "$PWD/node_modules" "$tmp/repo/node_modules" || { echo "ln failed"; exit 1; }; perl -0pi -e 's/  mkdirSync\(bundlePath\);/  mkdirSync(bundlePath, { recursive: true });/' "$tmp/repo/$src" || { echo "substitution A failed"; exit 1; }; ! cmp -s "$tmp/orig.ts" "$tmp/repo/$src" || { echo "A did not change bytes"; exit 1; }; cp "$tmp/repo/$src" "$tmp/afterA.ts" || { echo "cp afterA failed"; exit 1; }; if ( cd "$tmp/repo" &amp;&amp; bun test --timeout=0 src/grace-generate.test.ts -t "AC-MINT-EXCLUSIVE: the repaired tree refuses" ) &gt;"$tmp/A.log" 2&gt;&amp;1; then a=0; else a=$?; fi; test $a -eq 0 || { echo "A not green ($a)"; tail -20 "$tmp/A.log"; exit 1; }; perl -0pi -e 's/\(io\.writeFileSync \?\? writeFileSync\)\(candidate\.specPath, candidate\.expectedSpecBytes, \{ flag: "wx" \}\);/(io.writeFileSync ?? writeFileSync)(candidate.specPath, candidate.expectedSpecBytes);/' "$tmp/repo/$src" || { echo "substitution B failed"; exit 1; }; ! cmp -s "$tmp/afterA.ts" "$tmp/repo/$src" || { echo "B did not change bytes"; exit 1; }; if ( cd "$tmp/repo" &amp;&amp; bun test --timeout=0 src/grace-generate.test.ts -t "AC-MINT-EXCLUSIVE: the repaired tree refuses" ) &gt;"$tmp/B.log" 2&gt;&amp;1; then b=0; else b=$?; fi; test $b -ne 0 || { echo "B not red"; exit 1; }; grep -q "the repaired leaf mkdir refuses" "$tmp/B.log" || { echo "B red for wrong reason"; tail -20 "$tmp/B.log"; exit 1; }; cp "$tmp/orig.ts" "$tmp/repo/$src" || { echo "restore cp failed"; exit 1; }; cmp -s "$tmp/orig.ts" "$tmp/repo/$src" || { echo "restore mismatch"; exit 1; }; if ( cd "$tmp/repo" &amp;&amp; bun test --timeout=0 src/grace-generate.test.ts -t "AC-MINT-EXCLUSIVE: the repaired tree refuses" ) &gt;"$tmp/C.log" 2&gt;&amp;1; then c=0; else c=$?; fi; test $c -eq 0 || { echo "C not green ($c)"; tail -20 "$tmp/C.log"; exit 1; }; echo "A(mkdir-only)=$a B(mkdir+clobber)=$b C(restored)=$c"</Command>
+          <Command>bun test --timeout=0 src/grace-generate.test.ts</Command>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t "the validate job checks out full history for the declaration-count coverage guard's historical base"</Command>
+          <Command>for t in "AC-MINT-EXCLUSIVE: the exported mintResolvedBundle route refuses the interspersed competitor" "AC-MINT-EXCLUSIVE: the exported mintBundle route refuses the interspersed competitor" "AC-MINT-EXCLUSIVE: the implicit supersede mint refuses the interspersed competitor"; do bun test --timeout=0 src/grace-generate.test.ts -t "$t" || exit 1; done</Command>
+          <Command>test -z "$(grep -nE 'BASE_COMMIT|6dd1d95|worktree' src/grace-generate.test.ts)" &amp;&amp; grep -q "the validate job checks out full history for the declaration-count coverage guard's historical base" scripts/audit-regressions.test.ts &amp;&amp; ! grep -q "the validate job checks out full history for the pinned baseline control" scripts/audit-regressions.test.ts</Command>
+          <Command>git diff --exit-code fea312695e58510ab1b681e0ea4f468de4e70a55 -- src/ scripts/ ':(exclude)src/grace-generate.test.ts' ':(exclude)scripts/audit-regressions.test.ts'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-HISTORICAL-MINT-CONTROL-REMOVED />
+          <AC-ONE-TIME-RED-CONTROL />
+        </Satisfies>
+      </T-001>
+      <T-002>
+        <Title>Invalidate and regenerate the measured metrics artifact</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Invalidate the stale artifact explicitly (`rm -f test-metrics.json`) and run exactly one
+            measured `bun run test:metrics`. The re-emitted `test-metrics.json` must name neither
+            `AC-MINT-EXCLUSIVE: the isolated unmodified baseline overwrites the competitor
+            (candidateSpecPreserved false)` nor
+            `the validate job checks out full history for the pinned baseline control`, must name the
+            new title `the validate job checks out full history for the declaration-count coverage
+            guard&amp;apos;s historical base`, must list every `.test.ts` under `src/` and `scripts/`, must
+            have its `tests` count equal the sum of its per-file counts, and must contain no
+            `(provisional)` entry. Report the measured test count; never project or pin it. Bare
+            `test:metrics` on the fresh-looking artifact would leave the deleted and renamed names
+            stale because `artifactIsStale` does not compare source test declarations, so the explicit
+            invalidation is required.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun -e 'const m=JSON.parse(require("fs").readFileSync("test-metrics.json","utf8")); const names=new Set(m.tests.map(t=&gt;t.name)); const oldMint="AC-MINT-EXCLUSIVE: the isolated unmodified baseline overwrites the competitor (candidateSpecPreserved false)"; const oldDepth="the validate job checks out full history for the pinned baseline control"; const newDepth="the validate job checks out full history for the declaration-count coverage guard&amp;apos;s historical base"; if(names.has(oldMint))throw new Error("old mint name present"); if(names.has(oldDepth))throw new Error("old depth title present"); if(!names.has(newDepth))throw new Error("new depth title absent"); if([...names].some(n=&gt;n==="(provisional)"))throw new Error("provisional entry present"); const fs=require("fs"),path=require("path"); const walk=(d,acc=[])=&gt;{for(const e of fs.readdirSync(d)){if(["node_modules",".git",".ngrace"].includes(e))continue; const f=path.join(d,e); if(fs.statSync(f).isDirectory())walk(f,acc); else if(e.endsWith(".test.ts"))acc.push(f.replaceAll(path.sep,"/"));} return acc;}; const declared=[...walk("src"),...walk("scripts")].sort(); const listed=m.files.map(f=&gt;f.file).sort(); if(JSON.stringify(declared)!==JSON.stringify(listed))throw new Error("file list mismatch"); if(m.files.reduce((s,f)=&gt;s+f.tests,0)!==m.tests.length)throw new Error("totals disagree"); console.log("metrics relation OK: "+m.tests.length+" tests across "+m.files.length+" files");'</Command>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts</Command>
+          <Command>git diff --exit-code fea312695e58510ab1b681e0ea4f468de4e70a55 -- src/ scripts/ ':(exclude)src/grace-generate.test.ts' ':(exclude)scripts/audit-regressions.test.ts'</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+    <Assumptions>
+      <Assumption>
+        **Rehearsal, 2026-09-28 UTC, on disposable copies at base
+        `fea312695e58510ab1b681e0ea4f468de4e70a55`** carrying `.git`, the read-only
+        `.ngrace/scratch/staged-findings.md` buffer, and `node_modules` symlinked with a bare
+        `.git/info/exclude` entry. Fail-fast red control: the hardened T-001 command checks the exit of
+        `cp` original, `mkdir`, `rsync`, `ln`, both substitutions, `cp afterA`, and the restore `cp`;
+        it ran A(mkdir-only)=0, B(mkdir+clobber)=1, C(restored)=0, exit 0, with the restore confirmed
+        byte-identical by `cmp` and B red for the expected `the repaired leaf mkdir refuses` assertion;
+        with a PATH wrapper that runs the real `rsync` and then exits 1, the same command printed
+        `rsync failed` and exited 1, whereas the pre-hardening command masked the same wrapper and
+        exited 0. Guard spelling: `worktree` is red on the live pre-edit source (exit 1, six matches)
+        and green after the T-001 edit (exit 0); the old `git worktree` spelling matched nothing
+        pre-edit and was a false green. Retained routes: renaming the `mintResolvedBundle` route title
+        reddens both the presence check and the route filter (matched 0 tests), and restoring it greens
+        both. Baseline: `--assertions baseline` on an approved-shaped pre-edit copy exited 0 with 0
+        errors and 0 warnings. Structural target: on a new approved-shaped copy carrying the current
+        plan and the T-001/T-002 prototype outputs, `--assertions target` **without** `--run-commands`
+        exited 0 with only the expected `assertion.command-not-evaluated` (the structural needles, now
+        including the three route titles and the corrected `worktree` needle, all passed); renaming a
+        retained route title produced the specific `assertion.MustContain` finding and exit 1; the byte
+        restore re-drove green. Artifact: `bun test --timeout=0 src/grace-generate.test.ts` ran 57
+        tests, 0 fail, exit 0; T-002's invalidate-then-measure ran `bun run test:metrics` once (2455
+        tests, 2446 pass, 9 skip, 0 fail, exit 0) and the relation check printed `metrics relation OK:
+        2455 tests across 69 files`. Reused unchanged: the full-CI `--assertions target`/`final
+        --run-commands` drives and the post-archive CloseEvidence verdict from the prior faithful copy,
+        whose task commands and spec criteria are byte-identical. These totals are rehearsal
+        observations, never pinned in the plan.
+      </Assumption>
+      <Assumption>
+        The JUnit reporter escapes the apostrophe in the new title as `&amp;apos;` in
+        `test-metrics.json`; the source keeps the literal apostrophe. Both assertions are written
+        accordingly. This is measured, not assumed from the tooling.
+      </Assumption>
+    </Assumptions>
+  </C-MINT-BASELINE-CONTROL-2-C2E3D3A3>
+</NgraceChangePlan>
