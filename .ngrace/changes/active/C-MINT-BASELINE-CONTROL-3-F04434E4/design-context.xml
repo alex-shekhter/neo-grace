@@ -1,0 +1,224 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-MINT-BASELINE-CONTROL-3-F04434E4</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Diagrams>
+    <SequenceDiagram>
+sequenceDiagram
+    autonumber
+    participant M as Maintainer (human)
+    participant A as Implementation authority
+    participant T as Retained mint race test
+    participant P as Spawned publisher
+    participant F as Filesystem interceptor
+    participant CI as Validate job
+    participant G as Declaration-count guard
+    A-&gt;&gt;M: Present the C-3 spec draft for artifact-bound ratification
+    Note over M,A: Stop 1 — spec ratification. Only the maintainer's phrase approves this exact spec.
+    M--&gt;&gt;A: Sufficient approving phrase for the C-3 spec
+    A-&gt;&gt;M: Present the C-3 plan for artifact-bound ratification
+    Note over M,A: Stop 2 — plan ratification. A separate phrase for a separate artifact.
+    M--&gt;&gt;A: Sufficient approving phrase for the C-3 plan
+    A-&gt;&gt;T: Re-verify retained current behavior (no rewrite)
+    T-&gt;&gt;P: Run real CLI with interceptor
+    P-&gt;&gt;F: Create candidate directory
+    F-&gt;&gt;F: Plant competing files
+    F--&gt;&gt;P: EEXIST
+    P--&gt;&gt;T: Refusal (non-zero exit)
+    T-&gt;&gt;T: Check competitor bytes preserved
+    CI-&gt;&gt;G: Run with full history
+    Note over CI,G: Historical 6dd1d95 mint test is gone; the count guard still reads its base
+    A-&gt;&gt;M: Present final `--assertions final --run-commands` evidence
+    Note over M,A: Stop 3 — apply approval after final execution evidence.
+    M--&gt;&gt;A: Explicit apply approval
+    A-&gt;&gt;A: Verdict, gates, apply, archive close
+    Note over A,M: A CLI fingerprint records artifact bytes; it never authenticates the human phrase above.
+    </SequenceDiagram>
+    <ClassDiagram>
+classDiagram
+    class Maintainer
+    class ImplementationAuthority
+    class SpecRatification
+    class PlanRatification
+    class ApplyApproval
+    class MintRaceTest
+    class Publisher
+    class FilesystemInterceptor
+    class ValidationJob
+    class DeclarationCountGuard
+    class TestMetrics
+    Maintainer --&gt; SpecRatification : approves the exact C-3 spec
+    Maintainer --&gt; PlanRatification : approves the exact C-3 plan
+    Maintainer --&gt; ApplyApproval : explicit, after final execution evidence
+    SpecRatification --&gt; ImplementationAuthority : gates the plan
+    PlanRatification --&gt; ImplementationAuthority : gates execution
+    ApplyApproval --&gt; ImplementationAuthority : gates verdict and apply
+    ImplementationAuthority --&gt; MintRaceTest : re-verifies, never rewrites
+    MintRaceTest --&gt; Publisher : exercises current behavior
+    Publisher --&gt; FilesystemInterceptor : intercepted creation
+    ValidationJob --&gt; MintRaceTest : runs
+    ValidationJob --&gt; DeclarationCountGuard : full history retained
+    ValidationJob --&gt; TestMetrics : reads, does not regenerate
+    </ClassDiagram>
+  </Diagrams>
+  <Rationale>
+    This is the second, deliberately small successor in the mint-baseline lineage. `C-MINT-BASELINE-CONTROL-1-5202CCD1`
+    first drafted three removals at once; it was superseded into a narrow slice.
+    `C-MINT-BASELINE-CONTROL-2-C2E3D3A3` implemented that slice: it removed the permanent historical
+    mint regression from `src/grace-generate.test.ts` (the `BASE_COMMIT` constant `6dd1d95` and the
+    detached-worktree test), retitled the depth assertion in `scripts/audit-regressions.test.ts`, and
+    regenerated `test-metrics.json`. C-2 then reached final execution validation after the authority
+    interpreted an earlier standalone `approved` as ratification of its spec. The maintainer later
+    stated he had **not** approved that spec. Its approval records carry fingerprints matching the
+    artifact bytes, but those records do not establish what the maintainer ratified. No apply or
+    archive-close action ran; the maintainer directed a supersede. The verb discarded the bundle's
+    governance, never its code, so the three product edits remain on the branch.
+
+    `C-MINT-BASELINE-CONTROL-3-F04434E4` is the replacement named by that supersede. Its job is to
+    attach valid governance to the already-present work without rewriting it. The adopted state is
+    already the target state, so execution means **verify and close, not build**: the plan's
+    `BaselineAssertions` describe the tree as it is now, an already-green target is acceptable, and no
+    production file is reverted to manufacture a red. This re-ratification follows the archived
+    `C-CITATION-ANCHOR-REPAIR-2`, which re-ratified already-present citation-anchor work; that bundle
+    declared `&lt;None /&gt;` in `ObservedWriteScope`, and C-3 differs there by declaring this
+    bundle's own archive arrival (`.ngrace/changes/archive/C-MINT-BASELINE-CONTROL-3-F04434E4/**`) so
+    the close's write is in scope under the current plan rule, while its production write surface is
+    equally empty.
+
+    The retained tests are the discrimination the lineage keeps. The `spec new` race test and the
+    implicit-supersede test drive the real `ngrace spec new` and `ngrace supersede` verbs against a
+    disposable project; the two exported-route tests spawn Bun runners that import `mintResolvedBundle`
+    and `mintBundle` directly. In every case the spawned process runs under an isolated-process preload
+    that patches `node:fs.mkdirSync`, plants a competitor `spec.xml` and an unrelated file at the
+    creation boundary **inside that process**, and reports that it fired on stderr. The repaired engine
+    acquires the candidate leaf with a non-recursive `mkdir` whose `EEXIST` refuses, so the competitor
+    survives byte-for-byte. Because each test asserts the planted competitor and the non-zero refusal,
+    a green is not vacuous even without the permanent ancestor checkout.
+
+    The predecessor's one-time two-part red control is recorded here as lineage evidence, not as a
+    requirement of this bundle. It was measured 2026-09-28 UTC on a copy of the repository at base
+    `80cc36f789dc35ef789cfe6d753a39e7115dce76` with `node_modules` symlinked and no `.git`:
+
+    - baseline, restored file: `bun test --timeout=0 src/grace-generate.test.ts -t "AC-MINT-EXCLUSIVE:
+      the repaired tree refuses"` exits 0, 1 pass.
+    - mutation A (only the recursive `mkdir`: `mkdirSync(bundlePath, { recursive: true })`): the same
+      command still exits 0, because the shipped `flag: "wx"` exclusive `spec.xml` write still refuses
+      the existing competitor. Half the defect is masked; the red control must drive both halves.
+    - mutation B (recursive `mkdir` together with the non-exclusive
+      `writeFileSync(candidate.specPath, candidate.expectedSpecBytes)`): the same command exits 1 at
+      `expect(result.exit, "the repaired leaf mkdir refuses").not.toBe(0)`, `Expected: not 0`.
+    - restore: `cp` of the saved `src/grace-generate.ts` is byte-identical to the canonical file, and
+      the same command exits 0 again.
+
+    During C-3 draft authoring (2026-09-28 UTC) mutation B was driven once on a disposable
+    `git archive HEAD` copy at base `ac0013fa41aed0b94bba473a9e8113bae7428805` and restored
+    byte-identical. That draft-time measurement is historical evidence only — not a task and not a
+    `CloseEvidence` criterion — and no production file was reverted. The later bundle re-verifies the
+    standing green on the real tree (four `AC-MINT-EXCLUSIVE` tests pass) and does not itself run the
+    mutation. The mutation is not in the suite and `src/grace-generate.test.ts` gains no
+    planted-defect test.
+
+    The depth assertion stays because the declaration-count guard stays. `coverageRegressions`
+    (`scripts/audit-regressions.test.ts:346`) reads
+    `git show 2434fd467458e15c12414a74e37b09f9d71bdfd2:&lt;path&gt;` for every existing `*.test.ts`, so the
+    `validate` job must keep `fetch-depth: 0` and `validateJobCheckoutDepth` must keep asserting it.
+    Carried `AC-WORKFLOW-FULL-HISTORY` (`C-LINUX-VALIDATION-REPAIR-6-62765C22:712-729`) tied
+    `fetch-depth: 0` to the `6dd1d95` control. This lineage overturns that historical-control **purpose
+    clause** — the control is absent — while **retaining** `fetch-depth: 0` and the guard for the count
+    guard's base; the later sequential bundle retires the remaining full-depth mechanism. Only the
+    assertion's test title was untrue after the `6dd1d95` control is gone — it named the pinned
+    baseline control as the reason — so the title is
+    `the validate job checks out full history for the declaration-count coverage guard's historical base`.
+    Every other symbol in the file, including `COVERAGE_BASE`, `declaredTests`, `coverageRegressions`,
+    `collectTestFiles`, the coverage test, and the `validate:ci` one-suite-run guard, is retained.
+
+    `test-metrics.json` is **not** regenerated. `artifactIsStale` does not notice a deletion or a rename
+    inside an existing test file, and this bundle writes no test file, so the artifact is fresh at base:
+    2455 cases across 69 files, the `tests` count equals the sum of the per-file counts, the retired
+    mint test name and the old depth title are absent, and the new depth title is present. The plan
+    asserts that relation; it does not re-emit the artifact.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Re-run the predecessor's work from a pre-removal base (revert the three product files, then
+      re-remove, re-retitle, and re-regenerate). Rejected: the edits are already committed and the verb
+      discards governance, never code; reverting to manufacture a red is a fabricated failure, and the
+      re-ratification exists precisely to avoid rewriting the standing work.
+    </Alternative>
+    <Alternative>
+      Set the base to the pre-implementation commit `80cc36f` and treat the three edits as future
+      writes. Rejected: the edits are already present at HEAD, so a byte-invariance criterion against
+      `80cc36f` would be false by construction, and the spec would pretend the writes are absent.
+    </Alternative>
+    <Alternative>
+      Regenerate `test-metrics.json` to give the bundle a live write. Rejected: the artifact is already
+      measured against the present population and the test-file list is unchanged; a regeneration would
+      change only timings and the generated date, and the purpose is to carry the relation, not to
+      occupy a task slot.
+    </Alternative>
+    <Alternative>
+      Treat the disputed C-2 approval as valid and simply close C-2. Rejected: the maintainer stated he
+      did not approve that spec; the fingerprints prove byte identity, not consent. Calling it valid
+      would repeat the failure the supersede exists to correct.
+    </Alternative>
+    <Alternative>
+      Fix the approval-provenance gap in this bundle (one-time codes, a writable-nowhere approval
+      service, or a pilot amendment budget). Rejected: that is `RM-VERIFIED-APPROVAL` and
+      `RM-PILOT-APPROVAL` scope, and the brief forbids widening this successor into verified approval,
+      Sashimi, or PILOT.
+    </Alternative>
+    <Alternative>
+      Author a baseline that requires the pre-removal tree so the plan starts red. Rejected: it would
+      describe a state the repository is not in and would read as real baseline breakage; an
+      already-green target is the honest shape for a re-ratification.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      The approval-provenance gap belongs to `RM-VERIFIED-APPROVAL`; the incident and its measured cost
+      are recorded in `docs/plans/active/RM-PILOT-APPROVAL/review.md` §9. This bundle neither implements
+      a verifiable-approval service nor treats a CLI fingerprint as proof of consent, and it does not
+      edit that record.
+    </Decision>
+    <Decision>
+      The next sequential bundle after this close retires the declaration-count coverage guard, the
+      retitled depth assertion, and `fetch-depth: 0` together, then regenerates metrics; its expected
+      implementation paths are `scripts/audit-regressions.test.ts`, `.github/workflows/validate.yml`,
+      and `test-metrics.json`. It answers applied `AC-COVERAGE-INTACT` and retires the remaining
+      `AC-WORKFLOW-FULL-HISTORY` full-depth mechanism. This bundle neither mints nor authors it.
+    </Decision>
+    <Decision>
+      Measured executed-code coverage is deferred to a later, separate small bundle, with its rationale
+      recorded in project-specific memory outside this repository. This bundle keeps the weak
+      declaration-count guard and adds no coverage tooling.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      The human-ratification stop: the spec is written `status="draft"` and stops there. The
+      implementation authority requests ratification of `C-MINT-BASELINE-CONTROL-3-F04434E4` at spec
+      stage only after its own review, and only a sufficient phrase from the maintainer moves it to
+      `approved`. No plan, approval gate, execute epoch, apply, or close runs before that phrase.
+    </Scenario>
+    <Scenario>
+      A post-implementation checkout at base with the historical mint worktree operation already gone:
+      the retained `spec new` race test, the implicit-supersede CLI test, and the two exported-route
+      runner tests refuse the interspersed competitor, preserve the competitor bytes, and spawn no
+      `git worktree`. This says nothing about the declaration-count guard's history read: the guard
+      still requires the full-history `validate` job with base `2434fd4…`, and if that base is absent it
+      **fails open** — `git show` exits non-zero and `coverageRegressions` `continue`s — so an
+      absent-base green is a fail-open result, never evidence that the guard checked declarations.
+    </Scenario>
+    <Scenario>
+      The metric refresh relation: the committed `test-metrics.json` is fresh at base, names the new
+      depth title and neither the retired mint test name nor the old depth title, lists every `.test.ts`
+      under `src/` and `scripts/`, and its `tests` count equals the sum of the per-file counts. No
+      regeneration is performed.
+    </Scenario>
+    <Scenario>
+      A post-close applied-archive tree: the historical mint test and `BASE_COMMIT` are absent, the depth
+      assertion is retitled and passing, `.github/workflows/validate.yml` is byte-identical at the base,
+      the declaration-count guard is intact and green under full history, lint is 0/0, and the narrow
+      suites pass. The three adopted production paths are byte-identical to base.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
