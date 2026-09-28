@@ -1,0 +1,176 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-MINT-BASELINE-CONTROL-1-5202CCD1</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Diagrams>
+    <SequenceDiagram>
+sequenceDiagram
+    participant T as Retained mint race test
+    participant P as Spawned publisher
+    participant F as Filesystem interceptor
+    T-&gt;&gt;P: Run current CLI with interceptor
+    P-&gt;&gt;F: Create candidate directory
+    F-&gt;&gt;F: Plant competing files
+    F--&gt;&gt;P: EEXIST
+    P--&gt;&gt;T: Refusal
+    T-&gt;&gt;T: Check competitor bytes
+    Note over T,P: One-time mutation proves the test turns red
+    Note over T,P: CI no longer reads a historical commit
+    </SequenceDiagram>
+    <ClassDiagram>
+classDiagram
+    class MintRaceTest
+    class Publisher
+    class FilesystemInterceptor
+    class ValidationJob
+    class TestMetrics
+    MintRaceTest --&gt; Publisher : exercises current behavior
+    Publisher --&gt; FilesystemInterceptor : intercepted creation
+    ValidationJob --&gt; MintRaceTest : runs
+    ValidationJob --&gt; TestMetrics : regenerates after removals
+    </ClassDiagram>
+  </Diagrams>
+  <Rationale>
+    The permanent historical baseline control is replaced by one-time discrimination. The retained
+    `spec new` race test and the implicit-supersede test drive the real CLI (the real `ngrace spec new`
+    and `ngrace supersede` verbs) against a disposable project; the two exported-route tests spawn Bun
+    runners that import `mintResolvedBundle` and `mintBundle` directly. In every case the spawned
+    process runs under an isolated-process preload that patches `node:fs.mkdirSync`, plants a
+    competitor `spec.xml` and an unrelated file at the creation boundary **inside that process**, and
+    reports that it fired on stderr (`PROBE: candidate created by another actor after existence
+    checks, before mkdir`). The repaired engine acquires the candidate leaf with a non-recursive
+    `mkdir` whose `EEXIST` refuses, so the competitor survives byte-for-byte. The validation job no
+    longer reads a historical Git object: after the three retirements below, a depth-1 `validate`
+    checkout carries every object the job needs (`HEAD` only).
+
+    The old-code checkout existed only to prove that refusal is not vacuous. The replacement is the
+    same proof done once, on a disposable non-Git copy, and recorded here instead of shipped as a
+    permanent suite member. Measured 2026-09-28 UTC on a copy of the repository at base
+    `80cc36f789dc35ef789cfe6d753a39e7115dce76` with `node_modules` symlinked and no `.git`:
+
+    - baseline, restored file: `bun test --timeout=0 src/grace-generate.test.ts -t "AC-MINT-EXCLUSIVE:
+      the repaired tree refuses"` exits 0, 1 pass.
+    - mutation A (only the recursive `mkdir`: `mkdirSync(bundlePath, { recursive: true })`): the same
+      command still exits 0, because the shipped `flag: "wx"` exclusive `spec.xml` write still refuses
+      the existing competitor. Half the defect is masked; the red control must drive both halves.
+    - mutation B (recursive `mkdir` together with the non-exclusive
+      `writeFileSync(candidate.specPath, candidate.expectedSpecBytes)`, i.e. the pre-repair F314 pair):
+      the same command exits 1 at
+      `expect(result.exit, "the repaired leaf mkdir refuses").not.toBe(0)`, `Expected: not 0`.
+    - restore: `cp` of the saved `src/grace-generate.ts` is byte-identical to the canonical file, and
+      the same command exits 0 again.
+
+    Three retirements remove the job's full-history dependency together. (1) The historical mint
+    worktree test (`git worktree add --detach … 6dd1d95`) hard-fails without the object. (2) The
+    `validateJobCheckoutDepth` assertion hard-fails if `.github/workflows/validate.yml` drops
+    `fetch-depth: 0` while the assertion remains; it asserts the key directly. (3) The declaration-count
+    coverage guard (`coverageRegressions`, `scripts/audit-regressions.test.ts:346`) reads
+    `git show 2434fd4…:&lt;path&gt;` for every existing `*.test.ts` and **fails open** — it `continue`s when
+    `git show` exits non-zero (`:352`), so a depth-1 checkout reports a false green. Applied
+    `AC-COVERAGE-INTACT` (`C-TEST-TIME-BUDGET-4-F173437E`) counted textual `it(`/`test(` declarations,
+    not executed code; it never saw a removed test body that kept its declaration, a newly dead branch,
+    or a file absent at the base. Retiring it leaves no broad suite-wide coverage floor; the targeted
+    mint test does not replace one, and measured executed-code coverage is a later separate bundle.
+
+    The mutation is not added to the suite and `src/grace-generate.test.ts` gains no planted-defect
+    test. The permanent suite therefore carries the green direction and none of the mutation, which is
+    the boundary the brief draws.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Keep the permanent `6dd1d95` checkout and its `fetch-depth: 0` plus guard. Rejected: it is one of
+      three consumers that force full history on every `validate` checkout, and the discrimination it
+      provides is reproducible once on a disposable copy without shipping an ancestor tree into the
+      normal suite.
+    </Alternative>
+    <Alternative>
+      Keep the declaration-count coverage guard and merely fetch its base. Rejected: fetching `2434fd4…`
+      to keep a textual declaration count green restores the full-history checkout this bundle removes,
+      and the count still does not measure executed code. The weak guard goes; a real coverage floor is a
+      later separate bundle.
+    </Alternative>
+    <Alternative>
+      Add a broad executed-code coverage floor in this bundle. Rejected for this slice: it is a new
+      mechanism with its own instrumentation, thresholds, and write scope, and the user wants it
+      measured as a later, separate small bundle with its rationale recorded in project-specific memory
+      outside this repository. Retiring the weak guard here is the honest interim state.
+    </Alternative>
+    <Alternative>
+      Keep a permanent static test that greps the test file for `6dd1d95` and `worktree` to guard the
+      removal. Rejected: it adds a new test to a bundle whose whole point is to remove regression
+      controls, it changes the metric population for no behavioral reason, and it guards the absence of
+      a mechanism rather than a live behavior. The removals are verified by the plan's file-wide
+      `MustNotContain` assertions and by the execution-time full CI.
+    </Alternative>
+    <Alternative>
+      Remove `fetch-depth: 0` but keep the `validateJobCheckoutDepth` guard by rewriting it to accept a
+      missing key. Rejected: the guard would then assert the opposite of its original contract and
+      would survive as a contradictory teaching; the guard and its subject go together.
+    </Alternative>
+    <Alternative>
+      Leave `test-metrics.json` untouched because `artifactIsStale` will not red on a test removal.
+      Rejected: the artifact would silently name three tests that no longer exist. Regeneration is
+      driven from a removed stale artifact, and the relation is pinned, not a duration.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Measured executed-code coverage is deferred to a later, separate small bundle, with its rationale
+      recorded in project-specific memory outside this repository. This bundle retires the weak
+      declaration-count guard and adds no coverage tooling. The two criteria that name the interim
+      state (`AC-COVERAGE-GUARD-RETIRED`, and `Problem` item 6) state that no broad suite-wide coverage
+      floor remains and that the targeted mint test does not replace one.
+    </Decision>
+    <Decision>
+      The concurrent-worker `ChangeDetector` design is not part of this artifact. Its future interface
+      identifies changes between each dedicated worker workspace and its baseline, and Git is its first
+      replaceable implementation. This mint-test bundle neither implements that adapter nor decides
+      merging. That design gets its own concurrency artifact and will present its own reviewed sequence
+      and class diagrams before its brief. Nothing here forecloses it.
+    </Decision>
+    <Decision>
+      The canonical-spec/plan/execute phrase "the full CI-equivalent verification is close-time only"
+      is read as terminology for the terminal `--assertions final --run-commands` gate, not as a rule
+      that places final validation after apply or archive. The numbered execute sequence already runs
+      that gate before apply confirmation and before `gate apply` / `gate archive`. This bundle does
+      not edit any skill, mirror, CLI, or teaching-surface test; a product-teaching correction, if the
+      maintainer wants the phase names aligned with the ruling that final validation is execution,
+      apply follows, and archive is close, belongs to a separate bundle with its own forced set
+      (`skills/ngrace/ngrace-spec/SKILL.md`, `skills/ngrace/ngrace-execute/SKILL.md`, the two
+      `plugins/ngrace/skills/ngrace/*` mirrors, `scripts/check-teaching-surface.ts`,
+      `scripts/check-teaching-surface.test.ts`, and `test-metrics.json`).
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      A clean checkout at the base with no ancestor object: the normal mint regression suite runs the
+      retained `spec new` race test, the implicit-supersede CLI test, and the two exported-route runner
+      tests, refuses the interspersed competitor, preserves the competitor bytes, and spawns no
+      `git worktree`; the full suite has no historical-control step and the declaration-count coverage
+      guard is gone.
+    </Scenario>
+    <Scenario>
+      A `pull_request` checkout at the default depth: the `validate` job's checkout carries no
+      `fetch-depth` key; `validate:ci` passes; `validate-marketplace`'s `origin/main...HEAD` diff may
+      return null and fall back to scope-`all`, which is stricter and stays green (the pre-commit hook
+      demonstrates `Scope: all` and PASS); the prepin and recorded-range checks accept a named
+      object-absence, and the scope guard is dormant.
+    </Scenario>
+    <Scenario>
+      A disposable non-Git copy with the pre-repair defect planted: the retained race test reddens; the
+      copy is restored byte-identical; the retained race test greens. The mutation is never committed
+      to the suite.
+    </Scenario>
+    <Scenario>
+      The coverage guard driven both ways on a disposable copy: with its base object absent — the
+      depth-1 analogue — a file with every declaration zeroed leaves `coverageRegressions` green (the
+      false green); with the base present the same file reddens; a byte restore greens. The guard is
+      then removed from the file.
+    </Scenario>
+    <Scenario>
+      A post-close applied-archive tree: the three removed tests are gone, the depth assertion and the
+      coverage guard are gone, `test-metrics.json` names none of the three removed tests, lint is 0/0,
+      the narrow suites pass, and the production and automation paths are byte-unchanged against the
+      base.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
