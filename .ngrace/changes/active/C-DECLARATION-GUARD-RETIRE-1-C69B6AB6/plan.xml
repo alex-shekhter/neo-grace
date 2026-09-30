@@ -1,0 +1,442 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-DECLARATION-GUARD-RETIRE-1-C69B6AB6>
+    <IntentSummary>
+      T1 plan for C-DECLARATION-GUARD-RETIRE-1-C69B6AB6, authored from the approved spec (SHA-256
+      `c3a9487823d8e6276ad2602ffbde6a6f62e0d933fef72065f7ef0636f05d81b4`) at base commit
+      `06996d65dff05e53c7b18fae93a017d55c8c2d55`. Three mechanisms, one bundle: retire the
+      declaration-count guard and the `validate` job's `fetch-depth: 0` (the two ends of one
+      mechanism), replace the committed `test-metrics.json` cache with a raw JUnit report generated
+      afresh for every `test:metrics` invocation, and upload the current report from CI without
+      masking the suite's failure. The owning module is `M-RELEASE-AUTOMATION`
+      (`scripts/test-metrics.ts` and `scripts/test-affected.ts` each declare
+      `LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]`), with `V-M-RELEASE-AUTOMATION` as its
+      verification sibling.
+
+      **Ordering.** T-001 retires the guard, the depth assertion, the JSON import, and the
+      metrics lines in the `prepin fixture discovery` test from `scripts/audit-regressions.test.ts`,
+      and retitles the README-only describe and the prepin test. T-002 replaces
+      `scripts/test-metrics.ts` and `scripts/test-metrics.test.ts` together and depends on T-001:
+      T-001 removes the `artifactIsStale` import while T-002 removes the export, so the write paths
+      are disjoint but the read dependency is real. A disposable export-removal probe produced
+      `Export named 'artifactIsStale' not found` with exit 1 before the import was removed and exit
+      0 after. T-003 deletes `test-metrics.json` and the dead `AFFECTED_EDGES` entry and depends on
+      T-001 and T-002, because both the audit suite and the runner must stop reading the artifact
+      first. T-004 updates `.github/workflows/validate.yml` and depends on T-002, the runner it
+      configures. T-005 updates `README.md` and depends on T-003 and T-004, because it documents
+      their landed behavior and the deletion. The executor runs the graph sequentially with no
+      concurrent workers, branches, or worktrees.
+
+      **Checkpoint.** The source/diff baseline is `06996d…`; this plan was authored at checkpoint
+      `91bfcdeb47fb54ea9c0129768f9d671ba9a6d4c9` against the approved spec (SHA-256
+      `c3a9487823d8e6276ad2602ffbde6a6f62e0d933fef72065f7ef0636f05d81b4`). The runner's new
+      behavior has not been implemented or exercised; the old `scripts/test-metrics.test.ts` passing
+      at the checkpoint is not evidence of the future behavior, and no current CI pass is claimed.
+      The authority reruns the read-only structural and byte checks on the final worktree before
+      apply, without introducing a second suite.
+
+      **All 15 approved `AC-*` are close-bound with complete `CloseEvidence`**, so no task carries
+      `&lt;Satisfies&gt;` — a `Satisfies` of a close-bound criterion is an error, and a close-bound
+      criterion is not a forgotten mapping. The one full CI-equivalent run is this plan's
+      `TargetAssertions` `MustPassCommand` (`bun run validate:ci`) under `--assertions final
+      --run-commands`, before apply/archive; no task `Verification` and no `CloseEvidence` command
+      in the bundle names the root suite or `validate:ci`. The post-archive verdict runs only the
+      focused `CloseEvidence` commands and the combined pinned-base tracked-plus-nonignored-untracked
+      inventory. The close writes this bundle's own archive arrival; `ObservedWriteScope` names the
+      seven production paths, the active run ledger artifacts, and the archive arrival glob. No
+      record entry is paid and no record XML is flushed. No `Clarifications` are open, and no
+      `OutOfPlanScope` is needed because `AffectedAreas` names only `M-RELEASE-AUTOMATION`, which
+      `DurableScope` covers.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-RELEASE-AUTOMATION</Value></MustExist>
+      <MustExist><Value>V-M-RELEASE-AUTOMATION</Value></MustExist>
+      <MustExist><Value>scripts/audit-regressions.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/test-metrics.ts</Value></MustExist>
+      <MustExist><Value>scripts/test-metrics.test.ts</Value></MustExist>
+      <MustExist><Value>scripts/test-affected.ts</Value></MustExist>
+      <MustExist><Value>.github/workflows/validate.yml</Value></MustExist>
+      <MustExist><Value>.github/workflows/publish.yml</Value></MustExist>
+      <MustExist><Value>README.md</Value></MustExist>
+      <MustExist><Value>package.json</Value></MustExist>
+      <MustVerify><Module>M-RELEASE-AUTOMATION</Module></MustVerify>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>collectTestFiles</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>validateCiRerunsSuite</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>C-TEST-TIME-BUDGET-2-3EC1F016 validate:ci one suite run</Text></MustContain>
+      <MustContain><File>.github/workflows/publish.yml</File><Text>fetch-depth: 0</Text></MustContain>
+      <MustContain><File>package.json</File><Text>"test:metrics": "bun run ./scripts/test-metrics.ts"</Text></MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustNotExist><Value>test-metrics.json</Value></MustNotExist>
+      <MustNotContain><File>scripts/audit-regressions.test.ts</File><Text>COVERAGE_BASE</Text></MustNotContain>
+      <MustNotContain><File>scripts/audit-regressions.test.ts</File><Text>declaredTests</Text></MustNotContain>
+      <MustNotContain><File>scripts/audit-regressions.test.ts</File><Text>coverageRegressions</Text></MustNotContain>
+      <MustNotContain><File>scripts/audit-regressions.test.ts</File><Text>validateJobCheckoutDepth</Text></MustNotContain>
+      <MustNotContain><File>scripts/audit-regressions.test.ts</File><Text>artifactIsStale</Text></MustNotContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>prepin fixture discovery finds no test files</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 README guard</Text></MustContain>
+      <MustContain><File>scripts/audit-regressions.test.ts</File><Text>prepin CI retirement</Text></MustContain>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>fetch-depth</Text></MustNotContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>NGRACE_TEST_REPORT_PATH</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>ngrace-test-reports/junit.xml</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>if: always()</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>actions/upload-artifact@v7</Text></MustContain>
+      <MustContain><File>.github/workflows/validate.yml</File><Text>if-no-files-found: ignore</Text></MustContain>
+      <MustNotContain><File>.github/workflows/validate.yml</File><Text>continue-on-error</Text></MustNotContain>
+      <MustNotContain><File>scripts/test-metrics.ts</File><Text>artifactIsStale</Text></MustNotContain>
+      <MustNotContain><File>scripts/test-metrics.ts</File><Text>schemaVersion</Text></MustNotContain>
+      <MustNotContain><File>scripts/test-metrics.ts</File><Text>sourceCount</Text></MustNotContain>
+      <MustContain><File>scripts/test-metrics.ts</File><Text>NGRACE_TEST_REPORT_PATH</Text></MustContain>
+      <MustNotContain><File>scripts/test-affected.ts</File><Text>test-metrics.json</Text></MustNotContain>
+      <MustContain><File>scripts/test-affected.ts</File><Text>README.md</Text></MustContain>
+      <MustContain><File>scripts/test-affected.ts</File><Text>.github/workflows/validate.yml</Text></MustContain>
+      <MustContain><File>package.json</File><Text>"test:metrics": "bun run ./scripts/test-metrics.ts"</Text></MustContain>
+      <MustContain><File>package.json</File><Text>"validate:ci": "bun run typecheck &amp;&amp; bun run test:metrics</Text></MustContain>
+      <MustContain><File>README.md</File><Text>NGRACE_TEST_REPORT_PATH</Text></MustContain>
+      <MustNotContain><File>README.md</File><Text>refresh per-test durations into test-metrics.json</Text></MustNotContain>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-RELEASE-AUTOMATION />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-RELEASE-AUTOMATION />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>scripts/audit-regressions.test.ts</File>
+      <File>.github/workflows/validate.yml</File>
+      <File>scripts/test-metrics.ts</File>
+      <File>scripts/test-metrics.test.ts</File>
+      <File>test-metrics.json</File>
+      <File>scripts/test-affected.ts</File>
+      <File>README.md</File>
+      <File>.ngrace/changes/active/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6/run.xml</File>
+      <File>.ngrace/changes/active/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6/run/**</Glob>
+      <Glob>.ngrace/changes/archive/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Retire the declaration-count guard and depth assertion from the audit suite</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `scripts/audit-regressions.test.ts` removes exactly the `import { artifactIsStale } from
+            "./test-metrics";` line, `COVERAGE_BASE` with its preceding comment banner,
+            `declaredTests`, `coverageRegressions`, the `C-TEST-TIME-BUDGET-2-3EC1F016 coverage
+            never falls` describe and its test, `validateJobCheckoutDepth` with its doc comment, and
+            the depth `it` inside the `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 checkout and README
+            guards` describe. It also removes the `const metrics = ...`, the `artifactIsStale`
+            assertions, and the `planted`/`rmSync` lines from inside the `prepin fixture discovery`
+            test. It changes no other symbol or assertion.
+          </Criterion>
+          <Criterion>
+            The `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 checkout and README guards` describe is
+            retitled `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 README guard` and keeps only its README
+            test. The `prepin fixture discovery` test is retitled to `prepin fixture discovery finds
+            no test files`, and its walker assertion
+            `expect(walk(dir).some((full) => full.endsWith(".test.ts"))).toBe(false)` stays.
+          </Criterion>
+          <Criterion>
+            Retained and green: `collectTestFiles`, `validateCiRerunsSuite` and the
+            `C-TEST-TIME-BUDGET-2-3EC1F016 validate:ci one suite run` describe, the README guard,
+            the `prepin CI retirement` guard, the `prepin fixture discovery` fixture-walker test,
+            and every unrelated assertion. No replacement declaration-count, test-count, or
+            test-volume guard is added.
+          </Criterion>
+          <Criterion>
+            Discrimination belongs to the pinned-base byte reconstruction in `Verification`, not to
+            the suite alone. On a faithful post-T-001 copy the reconstruction accepts the exact
+            approved transform (the three deletions, the two retitles, and the metrics-region
+            removal) and rejects a planted `COVERAGE_BASE` line, a deleted retained README guard
+            statement, and any unrelated appended byte; restoring the transform is accepted again.
+            The focused audit suite is a precondition, not the discriminating instrument: deleting
+            the retained README `it` left it green (94 pass/0 fail), byte restoration returned
+            95 pass/0 fail, and restoring an unused retired `COVERAGE_BASE` also stayed green. No
+            permanent audit test, count/coverage guard, sidecar, or helper source file is added.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+          <Command>bun - &lt;&lt;'BUN'
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+const base = "06996d65dff05e53c7b18fae93a017d55c8c2d55";
+const file = "scripts/audit-regressions.test.ts";
+const found = spawnSync("git", ["show", base + ":" + file]);
+if (found.status !== 0) { console.error("git show pinned base failed: " + found.status); process.exit(found.status ?? 2); }
+let expected = found.stdout.toString("utf8");
+function once(text, token, label) { const a=text.indexOf(token); if(a&lt;0 || text.indexOf(token,a+token.length)&gt;=0) throw new Error(label + ": expected exactly one marker"); return a; }
+function replaceOnce(text, before, after, label) { const at=once(text,before,label); return text.slice(0,at)+after+text.slice(at+before.length); }
+expected = replaceOnce(expected, 'import { artifactIsStale } from "./test-metrics";\n', "", "legacy import");
+const coverageStart = "// ---------------------------------------------------------------------------\n// C-TEST-TIME-BUDGET-2-3EC1F016 T-008: coverage never falls.";
+const coverageEnd = 'describe("C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0 CI governance lint", () =&gt; {';
+const ca=once(expected,coverageStart,"coverage start"), cb=once(expected,coverageEnd,"coverage end");
+if(cb&lt;=ca) throw new Error("coverage markers out of order");
+expected=expected.slice(0,ca)+expected.slice(cb);
+const depthStart = "/** The fetch-depth declared on the `validate` job's own Checkout step, or null when absent. */";
+const depthEnd = "/** The Windows job's own `run:` invocation that selects the grace-generate pin tests. */";
+const da=once(expected,depthStart,"depth start"), db=once(expected,depthEnd,"depth end");
+if(db&lt;=da) throw new Error("depth markers out of order");
+const oldBlock=expected.slice(da,db);
+const itTitle='  it("README documents the fail-closed candidate refusal", () =&gt; {';
+const ia=once(oldBlock,itTitle,"retained README test"), ie=oldBlock.indexOf("  });\n",ia)+"  });\n".length;
+if(ie&lt;=ia) throw new Error("retained README test end not found");
+const retainedIt=oldBlock.slice(ia,ie);
+const replacement='describe("C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 README guard", () =&gt; {\n'+retainedIt+'});\n\n';
+expected=expected.slice(0,da)+replacement+expected.slice(db);
+expected=replaceOnce(expected,'it("prepin fixture discovery: planting a test file under the fixture makes metrics stale", () =&gt; {','it("prepin fixture discovery finds no test files", () =&gt; {',"fixture title");
+const fixtureAt=expected.indexOf('describe("prepin fixture discovery", () =&gt; {');
+const ma=expected.indexOf('    const metrics = path.join(repoRoot, "test-metrics.json");',fixtureAt), mb=expected.indexOf("  });\n});",ma);
+if(fixtureAt&lt;0 || ma&lt;0 || mb&lt;ma) throw new Error("metrics assertions region not found");
+expected=expected.slice(0,ma)+expected.slice(mb);
+const actual=readFileSync(file);
+if(Buffer.compare(actual,Buffer.from(expected,"utf8"))!==0){console.error("audit file differs from exact approved transformation");process.exitCode=1;}
+else console.log("audit exact-byte check OK");
+BUN</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Replace the committed metrics cache with the one-suite raw-JUnit runner and its behavioral tests</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `scripts/test-metrics.ts` no longer contains `artifactIsStale`, `sourceCount`, a
+            `schemaVersion`/`sourceDigest`/`group` field, the provisional tree-derived artifact, the
+            no-write-when-fresh branch, or any committed-JSON reader or writer. It keeps an exported
+            parser (`parseJUnit`) and ranking (`rankSlowest`), and its module map matches its
+            exports. It spawns the inner suite exactly once
+            (`bun test --timeout=0 --reporter=junit --reporter-outfile=&lt;report&gt;`) and exits with
+            the child's exact OS status.
+          </Criterion>
+          <Criterion>
+            Report-path policy: the runner resolves `NGRACE_TEST_REPORT_PATH` when set, else a fresh
+            unique directory under `os.tmpdir()` outside the repository. Before any `mkdir`, unlink,
+            or spawn it canonicalizes (resolves) the target and refuses with a diagnostic nonzero
+            when the resolved path is inside the repository — including an override whose parent is
+            a symlink resolving inside, or a path escaping through `..`. A lexical prefix check is
+            not the check. On an accepted path it creates a missing parent directory, removes any
+            file already at the report path, prints the report path, prints the top-10 slowest
+            ranking parsed from that run's report, and leaves the produced report in place.
+          </Criterion>
+          <Criterion>
+            Refusal paths: a successful child whose current report is missing, unreadable, or
+            malformed exits nonzero with a diagnostic and prints no ranking, reusing no previous
+            report; a Bun launch failure or a child with no usable status exits nonzero with a
+            diagnostic and is not retried. A failing child's exact exit code survives a missing or
+            malformed report, and any report bytes produced are retained. Parsing stays minimal:
+            `&lt;testcase&gt;` file, name, and time, with no generalized schema or threshold.
+          </Criterion>
+          <Criterion>
+            `scripts/test-metrics.test.ts` drives the real outer entry through the absolute Bun
+            executable (`process.execPath`) in a disposable project with a fake `bun` findable only
+            through `PATH` that records a sentinel per invocation, and captures stdout, stderr, the
+            direct exit, the report bytes, and the file bytes independently:
+            (a) a valid outside override under a missing parent directory succeeds and writes
+            exactly there; default output is a unique path outside the repository;
+            (b) an inside-repo override, and an override whose parent is a symlink resolving inside,
+            are refused before any write with zero fake-child invocations and the planted repository
+            file left byte-identical;
+            (c) a poisoned legacy `test-metrics.json` at the disposable root is unchanged and does
+            not influence the run, and the source no longer reads or writes it;
+            (d) child success with a missing, unreadable, and malformed report each exits nonzero
+            with no ranking;
+            (e) a launch failure and an unavailable child status each exit nonzero with exactly one
+            attempt and no retry;
+            (f) a fake child exiting 7 with a missing or malformed report leaves the outer exit at 7
+            and retains produced report bytes when present;
+            (g) a valid accepted run makes exactly one suite attempt, and the parser and ranking are
+            also driven directly (a planted slow case ranks first; a hostname in the JUnit is not
+            retained).
+          </Criterion>
+          <Criterion>
+            No general framework, test-only seam, count floor, second suite, or fixture sidecar is
+            added. A green test file alone is not evidence: the task report pastes the captured
+            stdout, stderr, direct exits, report contents, attempt counts, and file bytes. The
+            behavior tests and the refusal probes are authored here; they have not existed before,
+            so no prior run is claimed.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Delete the committed metrics artifact and its dead selective-runner edge</Title>
+        <DependsOn>T-001 T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `test-metrics.json` is removed from the working tree; the new runner has no reader or
+            writer for it, so a subsequent `test:metrics` run does not recreate it.
+          </Criterion>
+          <Criterion>
+            `scripts/test-affected.ts` equals the pinned base with only the
+            `"test-metrics.json": ["scripts/test-metrics.test.ts"]` edge removed; the `README.md`
+            and `.github/workflows/validate.yml` edges and every other byte stay unchanged. The
+            exact-byte comparison in `Verification` is the discriminating instrument.
+          </Criterion>
+          <Criterion>
+            `scripts/test-affected.test.ts` passes unmodified, and a planted `test-metrics.json` is
+            neither read nor written by the runner.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>test ! -e test-metrics.json</Command>
+          <Command>bun test --timeout=0 scripts/test-affected.test.ts</Command>
+          <Command>bun - &lt;&lt;'BUN'
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+const base="06996d65dff05e53c7b18fae93a017d55c8c2d55", file="scripts/test-affected.ts";
+const found=spawnSync("git",["show",base+":"+file]);
+if(found.status!==0){console.error("git show pinned base failed: "+found.status);process.exit(found.status??2);}
+const source=found.stdout.toString("utf8"), line='  "test-metrics.json": ["scripts/test-metrics.test.ts"],\n';
+if(source.split(line).length-1!==1){console.error("expected one pinned JSON dependency edge");process.exitCode=2;}
+else {const expected=Buffer.from(source.replace(line,""),"utf8"), actual=readFileSync(file); if(Buffer.compare(actual,expected)!==0){console.error("affected map differs from base minus only JSON edge");process.exitCode=1;}else console.log("affected map exact-byte check OK");}
+BUN</Command>
+        </Verification>
+      </T-003>
+      <T-004>
+        <Title>Retire the validate checkout depth and add the report environment and upload</Title>
+        <DependsOn>T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            In `.github/workflows/validate.yml` the `validate` job's Checkout step is `uses:
+            actions/checkout@v5` with no `with:` block and no `fetch-depth`, matching the
+            `windows-compatibility` job's Checkout. The `windows-compatibility` and `dart-adapter`
+            checkouts are unchanged, and `.github/workflows/publish.yml` keeps its three
+            `fetch-depth: 0` declarations.
+          </Criterion>
+          <Criterion>
+            The `validate` job sets the environment variable `NGRACE_TEST_REPORT_PATH` to
+            `${{ runner.temp }}/ngrace-test-reports/junit.xml` so the `test:metrics` run inside
+            `bun run validate:ci` writes the current report there.
+          </Criterion>
+          <Criterion>
+            The `validate` job adds an upload step that uses the official `actions/upload-artifact`
+            action at the current verified major (re-verified against the action's upstream release
+            before the workflow is written; `v7` per the approved spec's `Assumptions`), uploads
+            exactly `${{ runner.temp }}/ngrace-test-reports/junit.xml`, sets `if: always()`, sets
+            `if-no-files-found: ignore`, sets no `continue-on-error`, uploads no unrelated temporary
+            data, and cannot change the job's failure outcome. Its step name is not one of the
+            retired validate step names.
+          </Criterion>
+          <Criterion>
+            Configuration is established by the parsed `jobs.validate` check in `Verification`,
+            which compares the parsed workflow with the pinned base and allows only the Checkout
+            input removal, the validate job report env, and one checked upload step after the CI
+            step; it rejects a comment-only token with the real env/upload absent, a wrong upload
+            condition or path, a report env moved to another job, an empty or extra Checkout input,
+            an unexpected upload field, and any other structural change. The retained
+            `prepin CI retirement` guard stays green as a secondary check, driven both ways on a
+            throwaway copy (a planted retired pre-pin step or a `prepin-behavior`/`b53d13d` marker
+            reddens it; a restore is green). This check establishes workflow configuration, not
+            GitHub's runtime job outcome or report availability. No other job's checkout,
+            `publish.yml`, or `package.json` changes.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t "prepin CI retirement"</Command>
+          <Command>bun - &lt;&lt;'BUN'
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+const base="06996d65dff05e53c7b18fae93a017d55c8c2d55", file=".github/workflows/validate.yml";
+const old=spawnSync("git",["show",base+":"+file]);
+if(old.status!==0){console.error("git show pinned workflow failed: "+old.status);process.exit(old.status??2);}
+const baseline=Bun.YAML.parse(old.stdout.toString("utf8")), actual=Bun.YAML.parse(readFileSync(file,"utf8").toString());
+const errors=[], j=actual?.jobs?.validate, steps=Array.isArray(j?.steps)?j.steps:[];
+if(!j||typeof j!=="object") errors.push("jobs.validate missing or not an object");
+const checkouts=steps.filter(s=&gt;s?.name==="Checkout");
+if(checkouts.length!==1||checkouts[0]?.uses!=="actions/checkout@v5"||Object.hasOwn(checkouts[0]??{},"with")) errors.push("validate Checkout must be actions/checkout@v5 with no inputs");
+if(JSON.stringify(j?.env)!==JSON.stringify({NGRACE_TEST_REPORT_PATH:"${{ runner.temp }}/ngrace-test-reports/junit.xml"})) errors.push("validate job env must contain exactly the report path");
+const ci=steps.filter(s=&gt;s?.name==="Run CI validation"&amp;&amp;s?.run==="bun run validate:ci");
+if(ci.length!==1) errors.push("exactly one Run CI validation step must run bun run validate:ci");
+const uploads=steps.filter(s=&gt;typeof s?.uses==="string"&amp;&amp;s.uses.startsWith("actions/upload-artifact@"));
+if(uploads.length!==1||uploads[0]?.uses!=="actions/upload-artifact@v7") errors.push("validate must have exactly one actions/upload-artifact@v7 step");
+const u=uploads[0], allowedStep=new Set(["name","uses","if","with"]), allowedWith=new Set(["name","path","if-no-files-found"]);
+if(u&amp;&amp;Object.keys(u).some(k=&gt;!allowedStep.has(k))) errors.push("upload step has unexpected step-level fields");
+if(u&amp;&amp;Object.hasOwn(u,"name")&amp;&amp;(typeof u.name!=="string"||u.name.length===0)) errors.push("upload step name must be nonempty text");
+if(u?.if!=="always()") errors.push("upload step must have if: always()");
+if(u?.with?.path!=="${{ runner.temp }}/ngrace-test-reports/junit.xml") errors.push("upload path must be exactly the current JUnit report");
+if(u?.with?.["if-no-files-found"]!=="ignore") errors.push("if-no-files-found must be ignore");
+if(u?.with&amp;&amp;Object.keys(u.with).some(k=&gt;!allowedWith.has(k))) errors.push("upload step has unexpected upload inputs");
+if(Object.hasOwn(j??{},"continue-on-error")||steps.some(s=&gt;Object.hasOwn(s??{},"continue-on-error"))) errors.push("continue-on-error is forbidden on validate job/steps");
+if(ci.length===1&amp;&amp;uploads.length===1&amp;&amp;steps.indexOf(u)&lt;=steps.indexOf(ci[0])) errors.push("upload step must follow the CI step");
+if(!errors.length){
+  const expected=structuredClone(baseline), ej=expected.jobs.validate;
+  const checkout=ej.steps.find(s=&gt;s.name==="Checkout");
+  if(!checkout||checkout.uses!=="actions/checkout@v5"||!Object.hasOwn(checkout,"with")){console.error("pinned base checkout shape changed");process.exit(2);}
+  delete checkout.with;
+  ej.env={NGRACE_TEST_REPORT_PATH:"${{ runner.temp }}/ngrace-test-reports/junit.xml"};
+  const ciIndex=ej.steps.findIndex(s=&gt;s.name==="Run CI validation"&amp;&amp;s.run==="bun run validate:ci");
+  if(ciIndex&lt;0){console.error("pinned base CI step missing");process.exit(2);}
+  ej.steps.splice(ciIndex+1,0,structuredClone(u));
+  try{assert.deepStrictEqual(actual,expected);}catch{errors.push("workflow structure differs from pinned base beyond approved validate edits");}
+}
+if(errors.length){console.error(errors.join("\n"));process.exitCode=1;}
+else console.log("workflow exact-structure check OK");
+BUN</Command>
+        </Verification>
+      </T-004>
+      <T-005>
+        <Title>Document the per-run report and override in README</Title>
+        <DependsOn>T-003 T-004</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `README.md`'s `bun run test:metrics` line describes the single-suite run that writes a
+            fresh raw JUnit report to a path outside the repository and names the
+            `NGRACE_TEST_REPORT_PATH` override; it no longer says the command writes
+            `test-metrics.json`.
+          </Criterion>
+          <Criterion>
+            `README.md` equals the pinned base with only that one line replaced by exactly
+            `bun run test:metrics    # single suite; fresh raw JUnit report outside the repository (override: NGRACE_TEST_REPORT_PATH)`;
+            the product-version line, CLI Overview rows, and measurement cell are unchanged, no
+            other README byte moves, and `examples/` is untouched. The exact-byte comparison in
+            `Verification` is the discriminating instrument.
+          </Criterion>
+          <Criterion>
+            The README-reading guards stay green, and the plan's `MustContain`/`MustNotContain`
+            assertions on `README.md` hold at `--assertions final`.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/docs-claims.test.ts</Command>
+          <Command>bun - &lt;&lt;'BUN'
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+const base="06996d65dff05e53c7b18fae93a017d55c8c2d55", file="README.md";
+const found=spawnSync("git",["show",base+":"+file]);
+if(found.status!==0){console.error("git show pinned base failed: "+found.status);process.exit(found.status??2);}
+const source=found.stdout.toString("utf8");
+const before="bun run test:metrics    # refresh per-test durations into test-metrics.json";
+const after="bun run test:metrics    # single suite; fresh raw JUnit report outside the repository (override: NGRACE_TEST_REPORT_PATH)";
+if(source.split(before).length-1!==1){console.error("expected exactly one pinned old metrics command line");process.exitCode=2;}
+else if(!after.includes("fresh raw JUnit")||!after.includes("outside the repository")||!after.includes("NGRACE_TEST_REPORT_PATH")){console.error("replacement omits required report facts");process.exitCode=2;}
+else {const expected=Buffer.from(source.replace(before,after),"utf8"), actual=readFileSync(file); if(Buffer.compare(actual,expected)!==0){console.error("README differs from base with only the metrics line replaced");process.exitCode=1;}else console.log("README exact-byte check OK");}
+BUN</Command>
+        </Verification>
+      </T-005>
+    </ImplementationPlan>
+    <Assumptions>
+      <Assumption>
+        The source/diff baseline is `06996d65dff05e53c7b18fae93a017d55c8c2d55`; this plan was
+        authored at checkpoint `91bfcdeb47fb54ea9c0129768f9d671ba9a6d4c9` against the approved spec
+        whose SHA-256 is `c3a9487823d8e6276ad2602ffbde6a6f62e0d933fef72065f7ef0636f05d81b4`. The
+        runner's new behaviors and the `scripts/test-metrics.test.ts` titles do not yet exist and
+        have never been implemented or exercised; the old `scripts/test-metrics.test.ts` passing at
+        the checkpoint is not evidence of the future behavior. Prior evidence covers only Bun/JUnit
+        mechanics on a disposable fixture, the combined pinned-base Git command, and the appendix
+        structural/byte checks on disposable copies, not product runner behavior, and no current CI
+        pass is claimed. Every runner behavior and refusal probe in T-002 is owed to implementation.
+      </Assumption>
+      <Assumption>
+        The close writes only this bundle's own archive arrival; the bundle pays no record entry and
+        flushes no record XML. `ObservedWriteScope` therefore names the seven production paths, the
+        active run ledger artifacts, and the archive arrival glob, and the
+        `AC-WRITE-SURFACE-BOUNDED` combined command is evaluated in the applied-archive state.
+      </Assumption>
+    </Assumptions>
+  </C-DECLARATION-GUARD-RETIRE-1-C69B6AB6>
+</NgraceChangePlan>
