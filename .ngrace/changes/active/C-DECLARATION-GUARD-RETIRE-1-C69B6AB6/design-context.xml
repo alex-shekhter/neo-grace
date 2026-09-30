@@ -1,0 +1,296 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-DECLARATION-GUARD-RETIRE-1-C69B6AB6</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Diagrams>
+    <SequenceDiagram>Runner -> resolve report path -> reject repo-internal path before any mutation
+  accepted path -> one Bun suite attempt -> current JUnit report -> current ranking
+      child failure -> preserve exact child exit, retain report if produced
+      missing/bad report after child success -> diagnostic nonzero, no ranking
+      spawn failure -> diagnostic nonzero, no retry
+final full CI once -> apply/archive -> focused CloseEvidence + combined Git inventory</SequenceDiagram>
+    <ClassDiagram>MetricsRunner
+  -> ReportPathPolicy: canonical outside-repo validation before filesystem writes
+  -> SuiteProcess: one attempt; preserve actual child exit
+  -> CurrentJUnitReport: parse current output and rank only validated cases
+
+AuthorityCloseChecks
+  -> GitChangedPaths: tracked diff plus nonignored-untracked inventory</ClassDiagram>
+  </Diagrams>
+  <Rationale>
+    The declaration-count guard was never a coverage measure. It compared `it(`/`test(` occurrences
+    in an existing file at HEAD against the same file at base
+    `2434fd467458e15c12414a74e37b09f9d71bdfd2`. Applied `AC-COVERAGE-INTACT`
+    (`.ngrace/changes/archive/C-TEST-TIME-BUDGET-4-F173437E/spec.xml:527-536`) installed it as a
+    temporary test-deletion brake during a time-budget optimization, and its own text says so. It
+    cannot see executed code, assertion strength, or coverage added in a new file, and it cannot see
+    an assertion deleted from inside a surviving test — the Goodhart weakness. It also fails open:
+    `coverageRegressions` (`scripts/audit-regressions.test.ts:346`) runs `git show`
+    (`:351`) and `continue`s on a non-zero exit (`:353-354`), so in a depth-one checkout it compares
+    nothing and reports green. Reproduced 2026-09-30 UTC at base `06996d…` on a throwaway depth-one
+    clone: `git cat-file -e 2434fd4…` exits 1 and `git show 2434fd4…:scripts/audit-regressions.test.ts`
+    exits 128, while the same `git show` exits 0 in the full repository. A green produced by a failed
+    lookup is not evidence. The guard is retired because it measures the cheapest proxy of behavior
+    rather than behavior, and it can be trivially green when the lookup it depends on never runs.
+
+    The `validate` job's `fetch-depth: 0` existed only to feed that guard's historical read. Applied
+    `AC-WORKFLOW-FULL-HISTORY`
+    (`.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/spec.xml:712-720`) originally tied
+    full history to a `6dd1d95` mint control; `C-MINT-BASELINE-CONTROL-3-F04434E4` retired that
+    control and recorded at `spec.xml:28-38,74-82` that the declaration-count guard is now the only
+    reason for full history, naming this successor at `design-context.xml:183-187` as the bundle that
+    retires the guard, the retitled depth assertion, and `fetch-depth: 0` together. Retiring one
+    without the other is incoherent: the guard without the depth cannot read its base, and the depth
+    without the guard reads nothing.
+
+    The replacement is not a new score. The discipline that continues is contract-specific:
+    behavioral tests, real CLI happy and refusal paths, byte-preservation checks where promised, and
+    targeted fault mutations that prove a test can fail. Static lint and typecheck remain structural
+    checks, not coverage claims. Measured executed-code coverage is diagnostic only and is deferred
+    to a future separately ratified change. This is the honest reading of the maintainer's decision to
+    remove the guard and document why, rather than substitute another number that looks like
+    coverage.
+
+    The committed timing artifact is deleted rather than repaired. It was introduced under
+    `C-TEST-TIME-BUDGET-4-F173437E/spec.xml:484-490`; its freshness predicate came from applied
+    `C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0/spec.xml:358-372` and compared only the file list and the
+    artifact's own count sum (`scripts/test-metrics.ts:82-98`), so a same-file test edit was
+    invisible. Rather than add a digest, a schema version, a group field, a provisional artifact, and
+    a no-write-when-fresh branch to a cache that exists only to avoid recomputing a JUnit report,
+    this bundle removes the cache. `scripts/test-metrics.ts` becomes a one-suite wrapper: it spawns
+    `bun test` exactly once, writes a brand-new raw JUnit report for that invocation to a unique
+    directory under `os.tmpdir()` outside the repository (or to the documented
+    `NGRACE_TEST_REPORT_PATH` override), removes any pre-existing file at the resolved report path
+    before the spawn, prints the report location, parses the current report for the slowest-test
+    ranking, propagates the child's actual nonzero exit, and retains the failure report. A report
+    generated afresh for every invocation is current by construction, so there is no freshness
+    predicate to fail open and no committed churn to manage. An override that resolves inside the
+    repository is refused before any filesystem mutation — `mkdir`, unlink, or spawn — and the check
+    is canonical rather than a lexical prefix, so a symlinked parent or a `..` path cannot write a raw
+    report into the tree. The runner also refuses rather than guessing: a successful child whose report
+    is missing, unreadable, or malformed is a diagnostic nonzero with no ranking and no reuse of an
+    earlier report; a spawn failure is a diagnostic nonzero with no retry; and a failing child's exact
+    OS exit code survives bad report parsing, with any produced report bytes retained.
+
+    The kept surface is the parser, the ranking, and the one-suite runner. `parseJUnit` extracts file,
+    name, and milliseconds from the current report; `rankSlowest` orders descending by milliseconds;
+    the runner prints the ranking. The behavioral tests drive the real runner through the absolute
+    Bun executable in a disposable project with a fake inner `bun` on `PATH`, so the inner spawn is
+    intercepted but the outer process is genuinely the production entry. A passing run produces a
+    current report and ranking; a failing run leaves the OS exit nonzero and retains the report;
+    restoring the assertion passes again. The fake records its invocations, so one inner suite spawn
+    per run is observed rather than asserted across a fake outer process. No test-only seam is
+    mandated; a sensible implementation seam is permitted if the implementation needs one.
+
+    CI uploads the current report with `always()` so a failing suite still produces evidence. The
+    `validate` job sets `NGRACE_TEST_REPORT_PATH` to
+    `${{ runner.temp }}/ngrace-test-reports/junit.xml`, outside the repository, and the upload step
+    references the current verified `actions/upload-artifact` major. The upload step sets no
+    `continue-on-error`, so a successful upload cannot change the job's failure outcome: the earlier
+    failing step still fails the job. Only the current report is uploaded, and no unrelated temporary
+    data is.
+
+    The retirement is honest about what it does **not** replace. No broad floor stands in for
+    `AC-COVERAGE-INTACT`: the removed guard was a declaration-count proxy, never a suite-wide floor,
+    and this bundle adds no percentage or test-volume score. The counterweights the retired bundle
+    carried are retained: visibility into the current slow tests survives as the raw ranking, the
+    single suite invocation survives as `validate:ci` through `test:metrics` once (checked by the
+    retained `validateCiRerunsSuite` guard), committed timing noise is removed by deleting the
+    artifact, and unrelated behavior is preserved because every other guard and assertion stays. A
+    passing `bun test` is not claimed here to prove assertion strength. To keep the removal itself
+    from being a shortcut, the authority runs a one-time surgical review — each changed file equals
+    its base blob plus only the named edits — and a one-time global inventory: a tracked
+    name-set diff union `git ls-files --others --exclude-standard`, driven red with a planted tracked
+    outside path and a planted nonignored untracked outside path and green clean on a throwaway
+    fixture. Those are plan and authority evidence; **no permanent base-pinned test block is added**.
+    Ignored paths are outside Git inventory, and authorized reports live outside the repository, so
+    no local raw report is tracked or committed and no hostname or private absolute path enters a
+    public artifact. The full CI-equivalent `bun run validate:ci` runs once, at the plan's
+    `TargetAssertions` `MustPassCommand` under `--assertions final --run-commands` before
+    apply/archive; the post-archive verdict evaluates focused retained-suite evidence and never reruns
+    the root suite. The `prepin fixture discovery` test is retitled for its truthful no-test-files
+    invariant, and the `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 checkout and README guards` describe is
+    retitled for its README-only content.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Keep the declaration-count guard and its full-history checkout. Rejected: the guard counts
+      declarations in existing files, not executed code or assertion strength, and it fails open in a
+      shallow checkout; keeping it would preserve a falsely reassuring green and the depth requirement
+      that serves only it. This is the decision the maintainer asked to overturn, and the
+      counter-argument is answered in the Rationale rather than ignored.
+    </Alternative>
+    <Alternative>
+      Replace the declaration-count guard with a code-coverage threshold. Rejected: a percentage floor
+      is another volume proxy that a test can satisfy without asserting behavior, it adds a reporter
+      and configuration to a public package, and it is not the policy the repository states.
+      Diagnostic coverage belongs to a future separately ratified change, not to this retirement.
+    </Alternative>
+    <Alternative>
+      Remove the depth requirement but keep the guard by vendoring the historical test bytes into the
+      repository so no Git object is read. Rejected: it preserves a misleading measure, adds a
+      permanent duplicate of test sources that can drift, and does not answer the guard's inability to
+      detect behavioral loss. The guard and the depth requirement retire together.
+    </Alternative>
+    <Alternative>
+      Repair the committed `test-metrics.json` by adding a SHA-256 source digest, a versioned schema,
+      and a `group` field, as the earlier draft proposed. Rejected: that is a cache-repair, not a
+      cache-removal; the digest, the provisional tree-derived artifact, the `sourceCount` helper, and
+      the no-write-when-fresh branch all exist only to keep a committed cache consistent, and the cache
+      adds committed churn without protecting anything a fresh raw report does not already provide.
+      The report is generated afresh per invocation, so it is current by construction.
+    </Alternative>
+    <Alternative>
+      Identify freshness by file mtimes or a timestamp instead of a digest. Rejected: mtimes are
+      checkout-dependent and unstable in CI, and a timestamp cannot detect a content change. This
+      bundle does not need a freshness identity at all.
+    </Alternative>
+    <Alternative>
+      Assert that recorded JUnit case counts equal source `it(`/`test(` declaration counts. Rejected:
+      they are different populations here — one counts executed test cases, the other counts syntactic
+      tokens — so the assertion would be false or would force a count of the wrong thing. No count is
+      compared.
+    </Alternative>
+    <Alternative>
+      Keep `validateJobCheckoutDepth` and add a negative guard that the `validate` job has no
+      `fetch-depth`. Rejected: adding a new static guard for a config key would begin rebuilding the
+      test-volume scaffolding this bundle removes; the removal is covered by the plan's `MustNotContain`
+      assertions on the workflow and by the one-time surgical review.
+    </Alternative>
+    <Alternative>
+      Mandate a test-only runner seam so a fake spawn can prove one-spawn and fresh-output behavior
+      in-process. Rejected: a production file should not grow a test-only seam, and the seam was
+      proposed only to make digest-cache testing cheap. The real runner is driven through the absolute
+      Bun executable with a fake inner `bun` on `PATH`, so the outer process is the production entry
+      and the fake intercepts only the inner suite spawn.
+    </Alternative>
+    <Alternative>
+      Add a permanent base-pinned inventory or surgical-shape test block to the suite. Rejected: that
+      reintroduces a full-history dependency into the depth-one job that this bundle is retiring, and
+      it turns a one-time closure measurement into a permanent source-shape ratchet. The surgical
+      review and the global inventory are one-time close evidence, not a permanent test; both halves
+      are expressed at archive close in one discriminating command that pairs a `git diff --exit-code`
+      negative pathspec with a `git ls-files --others --exclude-standard` capture and an emptiness
+      test.
+    </Alternative>
+    <Alternative>
+      Commit a sanitized report, or keep a tracked cache of a report, so the bytes are reviewable in
+      the repository. Rejected: raw JUnit contains hostnames and absolute paths, so committing it would
+      publish machine identifiers; sanitizing it would make the committed and uploaded evidence differ
+      from the bytes the runner produced; and a tracked cache reintroduces exactly the committed churn
+      this bundle removes. Reports stay outside the repository and are never committed.
+    </Alternative>
+    <Alternative>
+      Run the upload step only with `if: success()`, and make its own failures non-fatal with
+      `continue-on-error`. Rejected: `if: success()` skips the evidence exactly when a failing suite
+      makes it most valuable; `continue-on-error` on the upload step cannot erase an earlier
+      `Run CI validation` failure — the two step statuses are independent and the job still fails —
+      but it would make an upload failure nonfatal, so the step runs with `if: always()` and no
+      `continue-on-error`.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Measured executed-code coverage remains diagnostic-only and unimplemented. If the maintainer
+      chooses to measure it, that is a separate, separately ratified change with its own spec and
+      acceptance criteria; this bundle adds no reporter, threshold, or tooling and does not claim the
+      surviving targeted tests replace a coverage floor.
+    </Decision>
+    <Decision>
+      The record-payment question is answered as none. This bundle writes no
+      `docs/plans/active/RM-GOVERNED-PATH` record entry and flushes no record XML; the overturns are
+      durable in the spec's `Problem`, `Constraints`, and acceptance criteria and here. No
+      byte-invariance criterion is therefore made to permit a record write.
+    </Decision>
+    <Decision>
+      `publish.yml`'s three `fetch-depth: 0` declarations are out of scope and stay; they serve the
+      publish workflow's own contracts, not the retired guard. A future change that needs less history
+      there is its own bundle.
+    </Decision>
+    <Decision>
+      Whether the report should contain only the slowest slice, be truncated, or gain a retention
+      policy is out of scope. This bundle uploads the current report verbatim so the evidence equals
+      what the runner produced; the report lives outside the repository, so no artifact-size or
+      retention question is decided here.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      The human-ratification stop: the spec is written `status="draft"` and stops there. The
+      implementation authority requests ratification of `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6` at
+      spec stage only after its own review, and only a sufficient phrase from the maintainer moves it
+      to `approved`. No plan, approval gate, execute epoch, apply, or close runs before that phrase.
+    </Scenario>
+    <Scenario>
+      The fresh-report path: `test:metrics` runs. No `NGRACE_TEST_REPORT_PATH` is set, so the runner
+      creates a unique directory under `os.tmpdir()`, resolves `junit.xml` inside it, removes any file
+      already there, spawns `bun test` once with `--reporter=junit` writing that file, prints the
+      report path and the slowest ranking parsed from that report, and exits with the child's status.
+      Nothing inside the repository changes.
+    </Scenario>
+    <Scenario>
+      The override and clear path: `NGRACE_TEST_REPORT_PATH` names a path outside the repository. The
+      runner creates the parent directory if needed, removes a stale file already at the path, spawns
+      the suite once, and writes the current report there. A stale report from a previous run can
+      never be mistaken for this run's output.
+    </Scenario>
+    <Scenario>
+      The override refusal path: `NGRACE_TEST_REPORT_PATH` resolves inside the repository, directly or
+      through a symlinked parent. The runner canonicalizes the path, finds it inside the repository,
+      refuses with a diagnostic nonzero, performs no `mkdir`/unlink/spawn, and leaves a planted file at
+      the lexical target byte-identical; the fake child records zero attempts.
+    </Scenario>
+    <Scenario>
+      The report-refusal paths: the child succeeds but the current report is missing, unreadable, or
+      malformed, so the runner exits nonzero with a diagnostic, prints no ranking, and reuses no stale
+      report. The Bun spawn fails or yields no usable status, so the runner exits nonzero and does not
+      retry. A fake child exits 7, so the runner preserves exit 7 and retains any report bytes the fake
+      produced.
+    </Scenario>
+    <Scenario>
+      The suite lifecycle: the full `bun run validate:ci` runs once at the plan's `TargetAssertions`
+      `MustPassCommand` under `--assertions final --run-commands`, before apply/archive. After the
+      archive move the verdict evaluates only the focused retained-suite evidence, so the root suite is
+      never run a second time.
+    </Scenario>
+    <Scenario>
+      The failure path: the inner suite exits non-zero; the runner propagates a nonzero OS exit and
+      leaves the failure report in place. Restoring the failing assertion makes the next run exit zero
+      and produce a fresh report. The fake inner `bun` records exactly one invocation per run, so the
+      single-spawn property is observed on the real outer entry.
+    </Scenario>
+    <Scenario>
+      A poisoned legacy cache: a `test-metrics.json` is planted at the disposable project root, or the
+      old committed artifact is still present in a checkout. The runner neither reads nor writes it;
+      the file is byte-identical afterward, and no digest, schema version, or group field is consulted.
+    </Scenario>
+    <Scenario>
+      CI on a failing suite: `Run CI validation` fails inside `bun run validate:ci`. Because the
+      upload step uses `if: always()`, it still runs and uploads
+      `${{ runner.temp }}/ngrace-test-reports/junit.xml`; because it sets no `continue-on-error`, its
+      success does not change the job's failure outcome, so the test failure is neither hidden nor
+      replaced.
+    </Scenario>
+    <Scenario>
+      A tracked outside write, or a first-time nonignored untracked write: a reviewer appends to
+      `CHANGELOG.md` or drops a new nonignored file under another path. The one-time global inventory
+      lists the extra path, it is outside the seven deliverables and this bundle's arrival, and the
+      close reddens. An ignored path is not reported by `git ls-files --others --exclude-standard`, so
+      it is not claimed by this scenario or any criterion.
+    </Scenario>
+    <Scenario>
+      A shortcut removal: an executor deletes an unrelated assertion, keeps a retired symbol, or
+      reformats beyond the named edits. The plan's `MustContain`/`MustNotContain` assertions and the
+      one-time surgical review catch it; no permanent base-pinned test is needed.
+    </Scenario>
+    <Scenario>
+      A post-close applied-archive tree: the declaration-count guard, `validateJobCheckoutDepth`, the
+      JSON import, and the metrics-staleness assertions are absent; the README-only describe is
+      retitled; the `prepin CI retirement` guard and the `prepin fixture discovery` fixture-walker test
+      are present; `fetch-depth: 0` is absent from the `validate` job; `NGRACE_TEST_REPORT_PATH` and
+      the `always()` upload step are present; `test-metrics.json` is absent; the kept runner, parser,
+      and ranking tests and the focused retained-suite evidence pass; the full `validate:ci` ran once
+      before apply/archive and is not rerun; lint is 0/0; and the combined Git inventory contains
+      only the seven deliverables and this bundle's archive arrival.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
