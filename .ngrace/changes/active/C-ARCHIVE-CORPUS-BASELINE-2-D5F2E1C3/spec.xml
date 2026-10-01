@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3>
+    <Summary>Summary of C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3.</Summary>
+    <Goals>
+      <Goal>Goal for C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3; replace this placeholder by deciding README.md and examples/. Owner: the author.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3>
+</NgraceChangeSpec>

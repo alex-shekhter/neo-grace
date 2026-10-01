@@ -1,0 +1,205 @@
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-ARCHIVE-CORPUS-BASELINE-1-0AA78642><Replacement>C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3</Replacement>
+    <IntentSummary>
+      T1 plan for C-ARCHIVE-CORPUS-BASELINE-1-0AA78642, authored from the approved spec (SHA-256
+      `ca690ccd9b1222e19ed3402ec11718415a729cb82b581b3af564e273f5fcffe6`) at the plan-stage
+      checkpoint `25997d7c667c451a62ad125546b6555c62633981` (the spec's own byte-invariance guards
+      keep their authoring base `f346480034693efde289eb65920be1832d88d189` and are not rewritten).
+      The owning module is `M-REVIEW` (`src/review/core.ts` declares `LINKS: M-REVIEW`), with
+      `V-M-REVIEW` as its verification sibling. `.test.ts` and `.ngrace-lint.json` are not
+      module-ownable write paths, so no synthetic `LINKS:` header or graph anchor is added for them.
+
+      **Ordering.** T-001 rewrites the archive-corpus regression in `src/review/core.test.ts`: it
+      adds `HISTORICAL_CLOSE_C_IDS` (the 26 `AUTHORING_ARCHIVE_C_IDS` plus `C-SUBSTANTIATION-HONESTY`)
+      and replaces the single over-broad test with a frozen historical-close zero, a retired-code-only
+      scan over the complete current archive, and the real-CLI T-005 observability test. T-002 appends
+      the single `bun run validate:ci` entry to `.ngrace-lint.json`
+      `closeEvidenceCommandShapes`. The two writes are disjoint, but T-002 depends on T-001 only for
+      ordering clarity and because the config prefix is meaningful only once the repaired suite and
+      the whole-CI criterion it unblocks are both in place; the executor runs them serially with no
+      concurrent workers, branches, or worktrees.
+
+      **All 11 approved `AC-*` are close-bound with complete `CloseEvidence`**, so no task carries
+      `&lt;Satisfies&gt;`; a `Satisfies` of a close-bound criterion is an error and a close-bound criterion
+      is not a forgotten mapping. The full CI-equivalent `bun run validate:ci` is the plan's
+      `TargetAssertions` `MustPassCommand` under `--assertions final --run-commands` before
+      apply/archive, and it is also the post-archive `AC-CI-GREEN` `CloseEvidence`; the two runs are
+      distinct obligations and the plan claims no invocation count. Per `ngrace-plan` rule 19 the
+      same `CloseEvidence` commands and the full CI are driven in a faithful post-close planning copy
+      before approval. `ObservedWriteScope` names the two production targets, the active run ledger
+      artifacts (`run.xml`, `run-ledger.xml`, and the `run/**` loose-event glob), and the bundle's own
+      archive arrival glob; the bundle's own `spec.xml`, `plan.xml`, and `design-context.xml` are not
+      listed because review skips them by identity (rule 15). No record entry is paid and no record
+      XML is flushed.
+
+      **T-005 identity note.** The spec names the retained finding id `792aa42b0c989c73`. That id is
+      derived in part from the finding's anchor file (`src/review/core.ts:340-357`), and
+      `resolveAttemptPairAnchorFile` (`src/review/core.ts:1371-1394`) resolves to
+      `.../run` only while the empty, untracked `.ngrace/changes/archive/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6/run/`
+      directory is physically present; a fresh checkout has no such directory and the anchor becomes
+      `.../run-ledger.xml`. The plan therefore asserts the T-005 finding's presence by its stable
+      identity — `code` plus `anchorOrHunkKey` `attempt-pair:T-005:14->15` — and records the id it
+      emits; it does not pin an id that changes across a fresh clone. This is surfaced to the
+      authority rather than silently resolved against the approved spec.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-REVIEW</Value>
+      </MustExist>
+      <MustVerify>
+        <Module>M-REVIEW</Module>
+      </MustVerify>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>ATTEMPT_PAIR_FINDING_CODE</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>ABANDONED_ARCHIVE_STATUSES</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.attempt-pair-identical-tree</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>AUTHORING_ARCHIVE_C_IDS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>RETIRED_ATTEMPT_PAIR_CODE</Text>
+      </MustContain>
+      <MustContain>
+        <File>.ngrace-lint.json</File>
+        <Text>"ignoredDirs"</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>HISTORICAL_CLOSE_C_IDS</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>historical close corpus</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>complete archive retired code</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.test.ts</File>
+        <Text>T-005 warning remains observable</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>archive corpus: zero live and retired findings on every dynamically enumerated C-*</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>.ngrace-lint.json</File>
+        <Text>bun run validate:ci</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.test.ts</File>
+      <File>.ngrace-lint.json</File>
+      <File>.ngrace/changes/active/C-ARCHIVE-CORPUS-BASELINE-1-0AA78642/run.xml</File>
+      <File>.ngrace/changes/active/C-ARCHIVE-CORPUS-BASELINE-1-0AA78642/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-ARCHIVE-CORPUS-BASELINE-1-0AA78642/run/**</Glob>
+      <Glob>.ngrace/changes/archive/C-ARCHIVE-CORPUS-BASELINE-1-0AA78642/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Rewrite the archive-corpus regression to freeze the 27-bundle historical close membership and keep the retired-code scan over the whole archive</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `src/review/core.test.ts` adds `const HISTORICAL_CLOSE_C_IDS = [...AUTHORING_ARCHIVE_C_IDS,
+            "C-SUBSTANTIATION-HONESTY"] as const;` beside the existing `AUTHORING_ARCHIVE_C_IDS`, and
+            the single test `archive corpus: zero live and retired findings on every dynamically
+            enumerated C-*` is removed.
+          </Criterion>
+          <Criterion>
+            A test titled to be selectable by `-t "historical close corpus"` enumerates the complete
+            archive `C-*` directories, asserts every `HISTORICAL_CLOSE_C_IDS` member is present, then
+            runs `runReview` over exactly the 27 historical members and asserts 0 live
+            `review.attempt-pair-identical-tree` and 0 retired `review.attempt-pair-unsubstantiated`
+            findings with both aggregates 0. It asserts no exact whole-archive size.
+          </Criterion>
+          <Criterion>
+            A test titled to be selectable by `-t "complete archive retired code"` enumerates the
+            complete current archive and asserts 0 retired `review.attempt-pair-unsubstantiated`
+            findings across it, with no live-zero assertion over the complete archive. A retained live
+            warning in a later delivery therefore does not redden this test.
+          </Criterion>
+          <Criterion>
+            A test titled to be selectable by `-t "T-005 warning remains observable"` drives the real
+            CLI (`bun ./src/grace.ts review --path . --change C-DECLARATION-GUARD-RETIRE-1-C69B6AB6
+            --format json`) and asserts the emitted report still contains the retained
+            `review.attempt-pair-identical-tree` finding whose `anchorOrHunkKey` is
+            `attempt-pair:T-005:14->15`; it tolerates the non-zero review exit (findings remain) and
+            does not synthesize the report. The finding's `findingId` is recorded, not pinned, because
+            the id depends on the anchor file the empty `run/` directory selects (see `IntentSummary`).
+          </Criterion>
+          <Criterion>
+            The detector, its positive identical-tree fixtures, the F286 applied-reddens and
+            abandoned-exempt fixtures, finding-id stability, warning severity, and `REVIEW_CATALOG`
+            registration of `review.attempt-pair-identical-tree` are unchanged; no immutable real
+            attempt event is rewritten and no new finding code is added.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "historical close corpus"</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "complete archive retired code"</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "T-005 warning remains observable"</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "identical-tree"</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Append the exact `bun run validate:ci` CloseEvidence prefix to `.ngrace-lint.json`</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            `.ngrace-lint.json` is exactly the committed base config at
+            `f346480034693efde289eb65920be1832d88d189` with one appended `closeEvidenceCommandShapes`
+            entry, `"bun run validate:ci"`; every other key and value (including
+            `ignoredDirs: ["examples"]` and the three existing prefixes) is byte-preserved, and the
+            two-space/trailing-newline format is kept. No severity is lowered, no `ignoredDirs` entry
+            is added, and no second prefix is introduced.
+          </Criterion>
+          <Criterion>
+            After this task the archived bundle lints clean at warning severity:
+            `bun run ./src/grace.ts lint --path . --change C-ARCHIVE-CORPUS-BASELINE-1-0AA78642
+            --assertions none --fail-on warnings` exits 0 with 0 errors and 0 warnings, because
+            `bun run validate:ci` is now a configured discriminating CloseEvidence shape.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>tmp=$(mktemp -d) || exit 1; git show f346480034693efde289eb65920be1832d88d189:.ngrace-lint.json > "$tmp/base.json" || { ec=$?; rm -rf "$tmp"; exit $ec; }; bun -e 'const fs=require("fs");const b=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));b.closeEvidenceCommandShapes=[...(b.closeEvidenceCommandShapes||[]),"bun run validate:ci"];fs.writeFileSync(process.argv[2],JSON.stringify(b,null,2)+"\n");' "$tmp/base.json" "$tmp/expected.json" || { ec=$?; rm -rf "$tmp"; exit $ec; }; git diff --no-index --exit-code "$tmp/expected.json" .ngrace-lint.json; ec=$?; rm -rf "$tmp"; exit $ec</Command>
+          <Command>bun run ./src/grace.ts lint --path . --change C-ARCHIVE-CORPUS-BASELINE-1-0AA78642 --assertions none --fail-on warnings</Command>
+        </Verification>
+      </T-002>
+    </ImplementationPlan>
+    <Assumptions>
+      <Assumption>
+        The retained finding id named in `AC-T005-OBSERVABLE` (`792aa42b0c989c73`) is the value the
+        engine reports while the empty `.ngrace/changes/archive/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6/run/`
+        directory is present. A fresh checkout omits that untracked empty directory, the anchor
+        resolves to `.../run-ledger.xml`, and the id becomes `9ec25fd441b9122a`; the stable identity
+        asserted by the plan is `code` plus `anchorOrHunkKey`. This is a dated measurement and a
+        surfaced decision, not a license to alter the approved spec.
+      </Assumption>
+    </Assumptions>
+  </C-ARCHIVE-CORPUS-BASELINE-1-0AA78642>
+</NgraceChangePlan>

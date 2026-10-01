@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-ARCHIVE-CORPUS-BASELINE-1-0AA78642>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-ARCHIVE-CORPUS-BASELINE-1-0AA78642><Replacement>C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3</Replacement>
     <Summary>
       Narrow the attempt-pair archive-corpus regression in `src/review/core.test.ts` from an
       unconditional zero over every dynamically enumerated archive bundle to (a) a frozen zero over
