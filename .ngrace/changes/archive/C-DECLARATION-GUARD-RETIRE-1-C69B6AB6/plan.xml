@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-DECLARATION-GUARD-RETIRE-1-C69B6AB6>
     <IntentSummary>
       T1 plan for C-DECLARATION-GUARD-RETIRE-1-C69B6AB6, authored from the approved spec (SHA-256

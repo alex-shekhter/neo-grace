@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-DECLARATION-GUARD-RETIRE-1-C69B6AB6>
     <Summary>
       **Retire the syntax declaration-count guard and the `validate` job's full-history dependency
