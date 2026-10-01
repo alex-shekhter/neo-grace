@@ -82,28 +82,72 @@ export function rankSlowest(tests: TestCase[], n: number): TestCase[] {
   return [...tests].sort((a, b) => b.ms - a.ms).slice(0, n);
 }
 
+/** The OS realpath resolver, preferring the native form that folds path case. */
+type Realpath = typeof realpathSync & { native?: typeof realpathSync };
+
 /**
- * Resolve a path the way the OS does: left to right, following symlinks, applying
- * `..` to the physical directory. Distinct from `path.resolve`, which collapses
- * `..` lexically before any symlink is followed.
+ * Canonicalize an existing path through the OS resolver. `realpathSync.native`
+ * returns the on-disk casing, so a case-insensitive alias of the repository
+ * resolves back onto its canonical spelling and containment becomes identity.
+ */
+function canonicalize(target: string): string {
+  const resolver = realpathSync as Realpath;
+  return resolver.native ? resolver.native(target) : resolver(target);
+}
+
+/**
+ * Resolve a path the way the OS does: left to right, following symlinks and
+ * applying `..` to the physical directory. The root is parsed with the native
+ * `path` module, so win32 drive, UNC, and root-relative forms are preserved
+ * instead of being joined onto the base, and every existing component is
+ * canonicalized so a case-aliased spelling cannot slip past containment.
+ * Distinct from `path.resolve`, which collapses `..` lexically before any
+ * symlink is followed.
  */
 function physicalPath(base: string, target: string): string {
-  let current = path.isAbsolute(target) ? path.sep : base;
-  for (const part of target.split(path.sep)) {
+  const parsed = path.parse(target);
+  let current: string;
+  let rest: string;
+  if (parsed.root === "") {
+    current = base;
+    rest = target;
+  } else if (path.isAbsolute(target)) {
+    current = parsed.root;
+    rest = target.slice(parsed.root.length);
+  } else {
+    // win32 drive-relative form (e.g. `C:junit.xml`): resolve only the drive
+    // prefix against the process current directory on that drive, then walk
+    // the original remaining components physically so `..` is not collapsed
+    // lexically before the traversal visits it.
+    current = path.resolve(base, parsed.root);
+    rest = target.slice(parsed.root.length);
+  }
+  const separator = path.sep === "\\" ? /[\\/]+/ : /\//;
+  for (const part of rest.split(separator)) {
     if (part === "" || part === ".") continue;
     if (part === "..") {
       current = path.dirname(current);
       continue;
     }
     const candidate = path.join(current, part);
-    const link = lstatSync(candidate, { throwIfNoEntry: false });
-    current = link?.isSymbolicLink() ? realpathSync(candidate) : candidate;
+    const entry = lstatSync(candidate, { throwIfNoEntry: false });
+    if (!entry) {
+      current = candidate;
+      continue;
+    }
+    // Resolve every existing component through the OS resolver. A failure — a
+    // dangling symlink, an unreadable component — propagates to the caller's
+    // diagnostic refusal rather than silently keeping an unresolved spelling.
+    current = canonicalize(candidate);
   }
   return current;
 }
 
 function isInside(root: string, target: string): boolean {
-  return target === root || target.startsWith(`${root}${path.sep}`);
+  const relative = path.relative(root, target);
+  if (relative === "") return true;
+  if (path.isAbsolute(relative)) return false;
+  return relative !== ".." && !relative.startsWith(`..${path.sep}`);
 }
 
 /**
@@ -113,7 +157,7 @@ function isInside(root: string, target: string): boolean {
  * before any filesystem mutation.
  */
 function resolveReportPath(root: string, env: NodeJS.ProcessEnv = process.env): string {
-  const physicalRoot = realpathSync(root);
+  const physicalRoot = canonicalize(root);
   const override = env.NGRACE_TEST_REPORT_PATH;
   if (override && override.trim() !== "") {
     let physical: string;

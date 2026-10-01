@@ -7,6 +7,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -190,6 +191,18 @@ function printedReport(stdout: string): string {
   return match[1]!;
 }
 
+/** Drive the real entry with the real `bun` on PATH — no shim and no observer. */
+function runRealRunner(projectRoot: string, reportPath?: string): { status: number | null; stdout: string; stderr: string } {
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined) env[key] = value;
+  }
+  if (reportPath === undefined) delete env.NGRACE_TEST_REPORT_PATH;
+  else env.NGRACE_TEST_REPORT_PATH = reportPath;
+  const result = spawnSync(process.execPath, [RUNNER], { cwd: projectRoot, env, encoding: "utf8" });
+  return { status: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? "" };
+}
+
 function withProject<T>(fn: (root: string, bin: string) => T): T {
   const root = tempDir("ngrace-metrics-");
   try {
@@ -198,6 +211,29 @@ function withProject<T>(fn: (root: string, bin: string) => T): T {
     rmSync(root, { recursive: true, force: true });
   }
 }
+
+/** True when `alias` resolves to the same directory as `root` (a case-insensitive volume). */
+function aliasesSameDirectory(root: string, alias: string): boolean {
+  try {
+    const first = statSync(root);
+    const second = statSync(alias);
+    return first.dev === second.dev && first.ino === second.ino;
+  } catch {
+    return false;
+  }
+}
+
+/** Probed once so the case-alias tests skip honestly on a case-sensitive host. */
+const HOST_ALIASES_CASE = (() => {
+  const outer = tempDir("ngrace-metrics-alias-probe-");
+  try {
+    const lower = path.join(outer, "project");
+    mkdirSync(lower, { recursive: true });
+    return aliasesSameDirectory(lower, path.join(outer, "PROJECT"));
+  } finally {
+    rmSync(outer, { recursive: true, force: true });
+  }
+})();
 
 describe("per-run raw JUnit report path policy", () => {
   it("accepts a valid outside override under a missing parent directory", () => {
@@ -567,6 +603,115 @@ describe("suite-boundary testcase extraction", () => {
   it("keeps aggregate and nested suite cases", () => {
     const names = parseJUnit(AGGREGATE_JUNIT).map((test) => test.name).sort();
     expect(names).toEqual(["first-case", "nested-case"]);
+  });
+});
+
+describe("case-aliased repository spelling", () => {
+  it.skipIf(!HOST_ALIASES_CASE)(
+    "refuses an override spelled with a different case of the repository directory",
+    () => {
+      const outer = tempDir("ngrace-metrics-alias-");
+      try {
+        const project = path.join(outer, "project");
+        const alias = path.join(outer, "PROJECT");
+        mkdirSync(project, { recursive: true });
+        const canary = path.join(project, "canary.xml");
+        const planted = "CANARY-BYTES-ORIGINAL\n";
+        writeFileSync(canary, planted);
+        const bin = makeFakeBin(project);
+        const result = runRunner({
+          projectRoot: project,
+          fakeBin: bin,
+          reportPath: path.join(alias, "canary.xml"),
+          junit: VALID_JUNIT,
+        });
+        expect(result.status).not.toBe(0);
+        expect(result.stderr).not.toBe("");
+        expect(result.attempts).toBe(0);
+        expect(readFileSync(canary, "utf8")).toBe(planted);
+      } finally {
+        rmSync(outer, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.skipIf(!HOST_ALIASES_CASE)(
+    "still accepts a genuinely outside override beside a case-aliased repository name",
+    () => {
+      const outer = tempDir("ngrace-metrics-alias-ok-");
+      try {
+        const project = path.join(outer, "project");
+        mkdirSync(project, { recursive: true });
+        const bin = makeFakeBin(project);
+        const report = path.join(outer, "outside", "junit.xml");
+        const result = runRunner({ projectRoot: project, fakeBin: bin, reportPath: report, junit: VALID_JUNIT });
+        expect(result.status).toBe(0);
+        expect(result.attempts).toBe(1);
+        expect(existsSync(report)).toBe(true);
+        expect(readFileSync(report, "utf8")).toBe(VALID_JUNIT);
+      } finally {
+        rmSync(outer, { recursive: true, force: true });
+      }
+    },
+  );
+});
+
+describe("real runner fixtures", () => {
+  it("writes a fresh report for a real passing suite into a sibling directory", () => {
+    const project = tempDir("ngrace-metrics-simple-out-");
+    const sibling = tempDir("ngrace-metrics-simple-out-report-");
+    try {
+      writeFileSync(
+        path.join(project, "tiny.test.ts"),
+        `import { test, expect } from "bun:test";\ntest("tiny passes", () => { expect(1).toBe(1); });\n`,
+      );
+      const report = path.join(sibling, "junit.xml");
+      const result = runRealRunner(project, report);
+      expect(result.status).toBe(0);
+      expect(existsSync(report)).toBe(true);
+      expect(result.stdout).toContain("tiny passes");
+    } finally {
+      rmSync(project, { recursive: true, force: true });
+      rmSync(sibling, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses an ordinary inside file target, leaves its bytes, and runs no fixture", () => {
+    const project = tempDir("ngrace-metrics-simple-in-");
+    try {
+      const marker = path.join(project, "ran.marker");
+      writeFileSync(
+        path.join(project, "tiny.test.ts"),
+        `import { test, expect } from "bun:test";\nimport { writeFileSync } from "node:fs";\ntest("tiny marks", () => { writeFileSync(${JSON.stringify(marker)}, "ran"); expect(1).toBe(1); });\n`,
+      );
+      const report = path.join(project, "report.xml");
+      writeFileSync(report, "original\n");
+      const result = runRealRunner(project, report);
+      expect(result.status).not.toBe(0);
+      expect(readFileSync(report, "utf8")).toBe("original\n");
+      expect(existsSync(marker)).toBe(false);
+    } finally {
+      rmSync(project, { recursive: true, force: true });
+    }
+  });
+
+  it("propagates a real failing suite and passes again once the fixture is restored", () => {
+    const project = tempDir("ngrace-metrics-simple-cycle-");
+    const sibling = tempDir("ngrace-metrics-simple-cycle-report-");
+    try {
+      const source = path.join(project, "tiny.test.ts");
+      const report = path.join(sibling, "junit.xml");
+      writeFileSync(source, `import { test, expect } from "bun:test";\ntest("tiny", () => { expect(1).toBe(2); });\n`);
+      const failed = runRealRunner(project, report);
+      expect(failed.status).not.toBe(0);
+      expect(existsSync(report)).toBe(true);
+      writeFileSync(source, `import { test, expect } from "bun:test";\ntest("tiny", () => { expect(1).toBe(1); });\n`);
+      const restored = runRealRunner(project, report);
+      expect(restored.status).toBe(0);
+    } finally {
+      rmSync(project, { recursive: true, force: true });
+      rmSync(sibling, { recursive: true, force: true });
+    }
   });
 });
 
