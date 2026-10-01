@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // START_MODULE_CONTRACT
 //   PURPOSE: Per-test metrics emitter
-//   SCOPE: JUnit-derived per-test durations into a committed artifact
+//   SCOPE: One suite run into a fresh raw JUnit report outside the repository; slowest-test ranking
 //   DEPENDS: none
 //   LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]
 //   ROLE: RUNTIME
@@ -9,123 +9,188 @@
 // END_MODULE_CONTRACT
 //
 // START_MODULE_MAP
-//   TestMetrics
-//   artifactIsStale
+//   TestCase
 //   parseJUnit
 //   rankSlowest
 // END_MODULE_MAP
 /**
- * Run the suite once, record per-test durations. Informational: no duration is a
- * gate; the regression signal is a regenerated diff. No hostname is written.
+ * Run the suite once and rank its slowest tests from a raw JUnit report produced
+ * afresh for this invocation. Informational: no duration is a gate, no report is
+ * committed, and the report is written outside the repository by default.
  */
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { XMLParser, XMLValidator } from "fast-xml-parser";
 
-export type TestMetrics = {
-  schemaVersion: "1.0.0";
-  generated: string;
-  files: Array<{ file: string; tests: number; ms: number }>;
-  tests: Array<{ file: string; name: string; ms: number }>;
-};
+export type TestCase = { file: string; name: string; ms: number };
 
-export function parseJUnit(xml: string, generated: string): TestMetrics {
-  const files = new Map<string, { tests: number; ms: number }>();
-  const tests: TestMetrics["tests"] = [];
-  for (const match of xml.matchAll(/<testcase\b[^>]*>/g)) {
-    const tag = match[0];
-    const file = /\bfile="([^"]*)"/.exec(tag)?.[1] ?? "?";
-    const name = /\bname="([^"]*)"/.exec(tag)?.[1] ?? "?";
-    const ms = Number(/\btime="([^"]*)"/.exec(tag)?.[1] ?? "0") * 1000;
-    const entry = files.get(file) ?? { tests: 0, ms: 0 };
-    entry.tests += 1;
-    entry.ms += ms;
-    files.set(file, entry);
-    tests.push({ file, name, ms });
+function asRecords(value: unknown): Record<string, unknown>[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is Record<string, unknown> => !!item && typeof item === "object");
   }
-  return {
-    schemaVersion: "1.0.0",
-    generated,
-    files: [...files].map(([file, v]) => ({ file, tests: v.tests, ms: v.ms })).sort((a, b) => a.file.localeCompare(b.file)),
-    tests,
-  };
+  return value && typeof value === "object" ? [value as Record<string, unknown>] : [];
 }
 
-export function rankSlowest(metrics: TestMetrics, n: number): TestMetrics["tests"] {
-  return [...metrics.tests].sort((a, b) => b.ms - a.ms).slice(0, n);
+/** Take a suite's own cases, then any nested suites. Metadata containers are never entered. */
+function collectSuiteCases(suite: Record<string, unknown>, out: Record<string, unknown>[]): void {
+  for (const testcase of asRecords(suite.testcase)) out.push(testcase);
+  for (const nested of asRecords(suite.testsuite)) collectSuiteCases(nested, out);
 }
 
-function treeTestFiles(root: string): string[] {
-  const out: string[] = [];
-  const walk = (rel: string): void => {
-    for (const entry of readdirSync(path.join(root, rel))) {
-      if (entry === "node_modules" || entry === ".git" || entry === ".ngrace") continue;
-      const full = path.join(rel, entry);
-      if (statSync(path.join(root, full)).isDirectory()) walk(full);
-      else if (entry.endsWith(".test.ts")) out.push(full);
-    }
-  };
-  for (const dir of ["src", "scripts"]) walk(dir);
-  return out.sort();
+/** Follow the testsuites/testsuite hierarchy and take cases only from suite positions. */
+function collectTestcases(root: Record<string, unknown>, out: Record<string, unknown>[]): void {
+  for (const suites of asRecords(root.testsuites)) {
+    for (const suite of asRecords(suites.testsuite)) collectSuiteCases(suite, out);
+  }
+  for (const suite of asRecords(root.testsuite)) collectSuiteCases(suite, out);
 }
 
-function sourceCount(root: string, file: string): number {
-  return (readFileSync(path.join(root, file), "utf8").match(/(?:^|\s)(?:it|test)\s*\(/g) ?? []).length;
+/** Parse the current JUnit report structurally. Minimal: testcase file, name, and time. */
+export function parseJUnit(xml: string): TestCase[] {
+  if (XMLValidator.validate(xml) !== true) {
+    throw new Error("JUnit report is not well-formed XML");
+  }
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: "",
+    parseAttributeValue: false,
+    trimValues: false,
+  });
+  let document: unknown;
+  try {
+    document = parser.parse(xml);
+  } catch (error) {
+    throw new Error(`JUnit report could not be parsed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const root = document && typeof document === "object" ? (document as Record<string, unknown>) : {};
+  const envelope = Object.keys(root).filter((key) => !key.startsWith("?") && !key.startsWith("#"));
+  if (!envelope.includes("testsuites") && !envelope.includes("testsuite")) {
+    throw new Error("report is not a usable JUnit document");
+  }
+  const nodes: Record<string, unknown>[] = [];
+  collectTestcases(root, nodes);
+  return nodes.map((node) => ({
+    file: String(node.file ?? "?"),
+    name: String(node.name ?? "?"),
+    ms: Number(node.time ?? "0") * 1000,
+  }));
+}
+
+export function rankSlowest(tests: TestCase[], n: number): TestCase[] {
+  return [...tests].sort((a, b) => b.ms - a.ms).slice(0, n);
 }
 
 /**
- * Staleness of the committed artifact against the tree, by the freshness predicate
- * (`test-metrics.test.ts`): the file list must match the tree walk and the per-file
- * count sum must equal the recorded test count. A fresh artifact is left untouched.
+ * Resolve a path the way the OS does: left to right, following symlinks, applying
+ * `..` to the physical directory. Distinct from `path.resolve`, which collapses
+ * `..` lexically before any symlink is followed.
  */
-export function artifactIsStale(root: string, outfile: string): boolean {
-  if (!existsSync(outfile)) return true;
-  let committed: TestMetrics;
+function physicalPath(base: string, target: string): string {
+  let current = path.isAbsolute(target) ? path.sep : base;
+  for (const part of target.split(path.sep)) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") {
+      current = path.dirname(current);
+      continue;
+    }
+    const candidate = path.join(current, part);
+    const link = lstatSync(candidate, { throwIfNoEntry: false });
+    current = link?.isSymbolicLink() ? realpathSync(candidate) : candidate;
+  }
+  return current;
+}
+
+function isInside(root: string, target: string): boolean {
+  return target === root || target.startsWith(`${root}${path.sep}`);
+}
+
+/**
+ * Resolve the one report path. `NGRACE_TEST_REPORT_PATH` wins when set; otherwise a
+ * unique directory under the physical temp base is created. Both an override that
+ * physically resolves inside the repository and a temp base that does so are refused
+ * before any filesystem mutation.
+ */
+function resolveReportPath(root: string, env: NodeJS.ProcessEnv = process.env): string {
+  const physicalRoot = realpathSync(root);
+  const override = env.NGRACE_TEST_REPORT_PATH;
+  if (override && override.trim() !== "") {
+    let physical: string;
+    try {
+      physical = physicalPath(physicalRoot, override);
+    } catch (error) {
+      throw new Error(`NGRACE_TEST_REPORT_PATH is not resolvable: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    if (isInside(physicalRoot, physical)) {
+      throw new Error(`NGRACE_TEST_REPORT_PATH resolves inside the repository: ${override}`);
+    }
+    return physical;
+  }
+  const tempBase = os.tmpdir();
+  let physicalTemp: string;
   try {
-    committed = JSON.parse(readFileSync(outfile, "utf8")) as TestMetrics;
+    physicalTemp = physicalPath(physicalRoot, tempBase);
+  } catch (error) {
+    throw new Error(`temporary directory is not resolvable: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (isInside(physicalRoot, physicalTemp)) {
+    throw new Error(`temporary directory resolves inside the repository: ${tempBase}`);
+  }
+  return path.join(mkdtempSync(path.join(tempBase, "ngrace-test-reports-")), "junit.xml");
+}
+
+/** Clear only a stale report file; refuse a directory target before touching it. */
+function prepareReport(reportPath: string): void {
+  const stat = statSync(reportPath, { throwIfNoEntry: false });
+  if (stat?.isDirectory()) {
+    throw new Error(`refusing to replace a directory report target: ${reportPath}`);
+  }
+  if (stat) rmSync(reportPath, { force: true });
+  mkdirSync(path.dirname(reportPath), { recursive: true });
+}
+
+function runMetrics(reportPath: string): number {
+  try {
+    prepareReport(reportPath);
+  } catch (error) {
+    console.error(`test-metrics: ${error instanceof Error ? error.message : String(error)}`);
+    return 1;
+  }
+  console.log(`report: ${reportPath}`);
+  const run = spawnSync("bun", ["test", "--timeout=0", "--reporter=junit", `--reporter-outfile=${reportPath}`], {
+    stdio: "inherit",
+  });
+  if (run.error || run.status === null || run.status === undefined) {
+    console.error(`test-metrics: suite launch failed${run.error ? `: ${run.error.message}` : ""}`);
+    return 1;
+  }
+  if (run.status !== 0) return run.status;
+  let xml: string;
+  try {
+    xml = readFileSync(reportPath, "utf8");
   } catch {
-    return true;
+    console.error(`test-metrics: current report unreadable: ${reportPath}`);
+    return 1;
   }
-  const declared = treeTestFiles(root);
-  const committedFiles = committed.files.map((f) => f.file).sort();
-  if (committedFiles.length !== declared.length) return true;
-  for (let i = 0; i < declared.length; i += 1) {
-    if (committedFiles[i] !== declared[i]) return true;
+  let tests: TestCase[];
+  try {
+    tests = parseJUnit(xml);
+  } catch (error) {
+    console.error(`test-metrics: current report malformed: ${error instanceof Error ? error.message : String(error)}`);
+    return 1;
   }
-  const sum = committed.files.reduce((acc, f) => acc + f.tests, 0);
-  return sum !== committed.tests.length;
+  for (const [index, test] of rankSlowest(tests, 10).entries()) {
+    console.log(`${String(index + 1).padStart(2)}. ${test.ms.toFixed(0).padStart(6)} ms  ${test.file}  ${test.name}`);
+  }
+  return 0;
 }
 
 if (import.meta.main) {
-  const root = process.cwd();
-  const outfile = path.join(root, "test-metrics.json");
-  const junit = path.join(os.tmpdir(), `ngrace-junit-${process.pid}.xml`);
-  const generated = new Date().toISOString().slice(0, 10);
-  const stale = artifactIsStale(root, outfile);
-  // Provisional, tree-derived artifact: the suite's own freshness guard reads this
-  // file, so a stale artifact must already name every current test file before the
-  // metered run. A fresh artifact is left untouched and no provisional write lands.
-  if (stale) {
-    const provisionalFiles = treeTestFiles(root).map((file) => ({ file, tests: sourceCount(root, file), ms: 0 }));
-    const provisional: TestMetrics = {
-      schemaVersion: "1.0.0",
-      generated,
-      files: provisionalFiles,
-      tests: provisionalFiles.flatMap((f) =>
-        Array.from({ length: f.tests }, () => ({ file: f.file, name: "(provisional)", ms: 0 }))),
-    };
-    writeFileSync(outfile, `${JSON.stringify(provisional, null, 2)}\n`);
-  }
-  const run = spawnSync("bun", ["test", "--timeout=0", `--reporter=junit`, `--reporter-outfile=${junit}`], { stdio: "inherit" });
-  if (run.status !== 0) process.exit(run.status ?? 1);
-  const metrics = stale
-    ? parseJUnit(readFileSync(junit, "utf8"), generated)
-    : (JSON.parse(readFileSync(outfile, "utf8")) as TestMetrics);
-  if (stale) {
-    writeFileSync(outfile, `${JSON.stringify(metrics, null, 2)}\n`);
-  }
-  for (const [index, test] of rankSlowest(metrics, 10).entries()) {
-    console.log(`${String(index + 1).padStart(2)}. ${test.ms.toFixed(0).padStart(6)} ms  ${test.file}  ${test.name}`);
+  try {
+    process.exit(runMetrics(resolveReportPath(process.cwd())));
+  } catch (error) {
+    console.error(`test-metrics: refusing report path: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
   }
 }

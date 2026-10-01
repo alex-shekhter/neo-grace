@@ -10,12 +10,12 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      NGRACE_TEST_REPORT_PATH: ${{ runner.temp }}/ngrace-test-reports/junit.xml
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -27,6 +27,14 @@ jobs:
 
       - name: Run CI validation
         run: bun run validate:ci
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ngrace-test-report
+          path: ${{ runner.temp }}/ngrace-test-reports/junit.xml
+          if-no-files-found: ignore
 
       - name: Run local release consistency check
         run: bun run release:check
