@@ -5,6 +5,7 @@
   "closeEvidenceCommandShapes": [
     "bun run ./scripts/validate-marketplace.ts",
     "bun run validate:examples",
-    "bun run validate:teaching-surface"
+    "bun run validate:teaching-surface",
+    "bun run validate:ci"
   ]
 }
