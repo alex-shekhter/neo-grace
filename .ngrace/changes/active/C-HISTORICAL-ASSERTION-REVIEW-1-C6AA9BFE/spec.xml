@@ -1,0 +1,647 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE>
+    <Summary>
+      Draw the boundary by purpose and dependency, not by file version. Archives are historical
+      metadata that may predate current requirements; an unchanged version number cannot establish
+      that today's requirements applied at the historical checkpoint. Current obligations stay
+      strict — root context, graph, verification, active change bundles, current
+      execution/approval/apply, and the selected current close. Unrelated archived change bundles
+      stop being current-validation inputs: they produce no lint error and no lint warning (so
+      `--fail-on warnings` cannot be blocked by history), they grant no fabricated credit, and they
+      are read field-by-field through a historical reader that reports `unavailable` — with a
+      nonempty reason and no scope payload — distinctly from `absent`, `null`, and
+      `declared-none`. Selection is not execution: `change show`, a historical `context --change`,
+      and an explicit historical `review` may read a record for learning without making its old
+      `MustExist` claims requirements on today's filesystem. The historical integrity audits stay
+      honest — the F286 attempt-pair audit and the F16 same-ID relocation / foreign-ID detection
+      remain available as information, separated from current-work gate compliance — and the
+      selected current close keeps evaluating required `CloseEvidence` and refuses a `pass` on
+      failed, incomplete, identity-mismatched, or unavailable evidence, including the measured
+      empty-evaluation hole. Repair the T-005 warning guard and the `ngrace-plan` rule-19 rationale
+      with evidence that fails on an unchanged misleading paragraph, and overturn the whole-archive
+      malformed-refusal contract explicitly.
+    </Summary>
+    <Goals>
+      <Goal>
+        Current obligations stay strict and unchanged: root context, graph, verification, and active
+        change bundles keep their current errors and severities, driven through their real surfaces
+        (grammar and review); a current execution, approval, or apply transition is unaffected by
+        history.
+      </Goal>
+      <Goal>
+        Project-wide lint, index, status, and context are not blocked by, and emit no error or warning
+        for, an unrelated archived change bundle — whether it declares a different version, omits a
+        current-only required section under the current version, or does not parse. Whole-project
+        lint is clean at error and warning severity with such a record present.
+      </Goal>
+      <Goal>
+        A historical read reports supported fields and distinguishes `unavailable` from `absent`,
+        `null`, and `declared-none`; the exact `ChangeDurableScope` and `ChangeView.observedWriteScope`
+        union members, their selection rules, and both JSON and text output are bound and tested with
+        known-field, unknown-field, absent-field, and explicit-`None` controls.
+      </Goal>
+      <Goal>
+        The historical integrity audits remain available and honest: the F286 attempt-pair audit and
+        the F16 same-ID relocation / foreign-ID detection still run and still report, but their
+        historical results are informational and do not block current work or re-enter lint.
+      </Goal>
+      <Goal>
+        The selected current close stays strict after its own archive arrival: every required
+        `CloseEvidence` command is evaluated, a failed or incomplete command refuses `pass`, and a
+        missing or malformed `AcceptanceCriteria` container, wrong wrapper identity, unparsable spec,
+        or unavailable applied-status evidence refuses `pass` instead of recording an empty
+        evaluation.
+      </Goal>
+      <Goal>
+        The T-005 warning guard observes the finding independently of unrelated error counts with
+        controlled warning-only exit 0 and current-error exit 1; and the `ngrace-plan` rule-19
+        rationale, its packaged mirror, the skill-byte footprint pin, and the README footprint row and
+        review note are corrected together, with an unchanged misleading paragraph failing the
+        evidence even when byte totals match.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T3 (architectural), **proposed, not ratified**: this is a redesign of the
+        archive-validation, reader, and close-evidence boundary across five modules, and it changes
+        user-visible lint, review, and `change show` output. The authority may reduce the tier; the
+        tier changes section depth only, never whether gates run.
+      </Constraint>
+      <Constraint>
+        **Purpose and dependency boundary.** Every consumer is classified by purpose. *Current
+        obligations*: project-wide lint/index/status/context and every current transition
+        (`gate approve`, `gate verdict`, `gate apply`, `ngrace apply`, `gate archive`) — strict,
+        current-format, current-filesystem. *Historical learning*: `change show`, `context --change`
+        on an archived bundle, and an explicit historical `review` — field-level reads, no current
+        conformance claim, no filesystem requirement from old `MustExist`. *Historical integrity
+        audit*: the F286 attempt-pair audit and the F16 relocation/foreign-ID detection —
+        informational, separated from gate compliance. A consumer never acquires current obligations
+        merely because it selected a record; in particular a bare `review --change C-ID` is a
+        historical audit, not a close. The close seam is `recordReviewVerdict` /
+        `evaluateCloseEvidenceChildren`, the callers of the selected `gate verdict`.
+      </Constraint>
+      <Constraint>
+        **Field/response contract for the historical view (binding).** `ChangeDurableScope` gains a
+        fourth member `{ state: "unavailable"; reason: string }` and `ChangeView.observedWriteScope`
+        becomes `ChangeScopeSummary | { state: "unavailable"; reason: string } | null`. In both, the
+        unavailable member carries a **nonempty** `reason` and **no** scope payload — never empty
+        files/globs, never called empty. Historical section states are distinguished explicitly:
+        `carried`/summary when the section is present and interpretable, `declared-none` for an
+        explicit `&lt;None /&gt;`, `absent`/`null` when the section is genuinely not present.
+        Selection rules: (a) a *supported historical field shape* — the section parses into the known
+        elements — yields `carried`/summary regardless of the record's `graceVersion`; a version
+        difference alone is never an unavailable-field test; (b) a *genuine field absence* yields
+        `absent`/`null`; (c) an explicit `None` yields the existing shape (durable `declared-none`,
+        observed summary with empty arrays); (d) an *uninterpretable field shape* — the section is
+        present but its shape is not one the reader recognizes, expressed by the existing
+        `scope.invalid-durable-shape` / `scope.invalid-observed-shape` / `scope.invalid-context-artifact`
+        issues — yields `unavailable` with the reason. `formatChangeText`
+        (`src/query/render.ts:196-236`) and `formatDurableScope` must report the unavailable state
+        and its reason distinctly from absent/declared-none; JSON emission
+        (`src/grace-change.ts:118`) carries the exact union member.
+      </Constraint>
+      <Constraint>
+        **Required-field response for historical context (binding).** `context --task T-* --change C-ID`
+        against an archived bundle has one concrete contract: an unparsable plan or spec refuses with
+        `GraceCommandError("invalid-project", "Unreadable plan|spec at …")` carrying **no** `issues`
+        (the existing `src/grace-context.ts:443-455,529-533` shape); a readable plan whose required
+        task is absent or whose `ImplementationPlan` shape is unrecognized refuses with the existing
+        `not-found` / `Task T-* not found in C-ID`; a readable spec whose `Satisfies` target has no
+        body yields the existing per-criterion `{ verdict: "unable-to-determine", reason }` absence,
+        never a silent empty. No current-filesystem `MustExist` requirement is imposed and no future
+        migration is required to read the slice. The `change show` unparsable-spec/plan refusal keeps
+        `project.unreadable-artifact` (`src/query/change.ts:148-164`); the two error shapes stay
+        distinct.
+      </Constraint>
+      <Constraint>
+        **Selected-close evidence contract (binding), closing every empty-evaluation variant.** For a
+        bundle resolved under `archive/`, `gate verdict --outcome pass` refuses unless the spec is
+        readable, uses the `NgraceChangeSpec` root, carries exactly one direct `C-*` wrapper whose tag
+        equals the bundle id, declares `status="applied"`, and has a present, interpretable
+        `AcceptanceCriteria` container with at least one valid `AC-*` criterion. Every `CloseEvidence`
+        child with at least one non-empty `Command` executes through the shell; a non-zero command
+        refuses `pass` with the existing refusal. A `CloseEvidence` child that is incomplete (no
+        `Command`, or an empty `Command`) refuses `pass` — `isCompleteCloseEvidence`
+        (`src/artifact/grammar.ts:2199-2201`) currently drops such children silently, so rejecting
+        only whole-XML parse failure is not enough. A missing/malformed/uninterpretable
+        `AcceptanceCriteria` container, a wrong or missing wrapper identity, an unparsable spec, and
+        unavailable applied-status evidence all refuse `pass`, and none may fall through to the
+        pre-archive empty-return path. A readable applied wrapper with a valid container and genuinely
+        no `CloseEvidence` criterion is the legitimate zero-command case and still permits `pass`. For
+        the active (pre-archive) close the empty-return path is preserved. The verdict vocabulary
+        (`pass | fail | unable-to-determine`) is unchanged.
+      </Constraint>
+      <Constraint>
+        **Close instruments substantiate their promises.** `AC-CURRENT-OBLIGATIONS-STRICT` drives the
+        actual review surface (`runReview` / real `ngrace review`) for the active `MustExist` error,
+        not only the grammar validator. `AC-SKILL-FOOTPRINT` asserts the corrected rule-19 meaning and
+        the bounded README review note with a discriminating content assertion — the old clause
+        absent, the new treatment present — so an unchanged misleading paragraph with matching byte
+        totals fails; the numeric `total`/`totalBytes` pins and the README measurement relation
+        remain. No full suite is duplicated and no implementation-mirroring test is added; the
+        `examples/` byte freeze stays separate from the `bun run validate:examples` behavior check.
+      </Constraint>
+      <Constraint>
+        **Forced production set (9).** `src/artifact/grammar.ts` and `src/artifact/scope.ts`
+        (`M-GRAMMAR`): exclude archived change bundles from current validation, and grant applied
+        scope credit only from readable scope fields. `src/query/core.ts`, `src/query/change.ts`, and
+        `src/query/render.ts` (`M-QUERY`): operational validation blocks on active plans only; the
+        historical view carries the unavailable union and its selection rules; text rendering handles
+        the unavailable member. `src/lint/core.ts` (`M-LINT-CORE`): archived plans leave current
+        assertion lint. `src/review/core.ts` and `src/review/catalog.ts` (`M-REVIEW`): the
+        archived-`MustExist` audit and its `info` guide. `src/gates/ledger.ts` (`M-GATES`): the
+        selected-close evidence contract. `src/grace-context.ts` was re-checked and is **not** forced:
+        its existing refusal and `unable-to-determine` shapes are the bound historical-context
+        contract, and the unrelated-malformed-archive fix lives in grammar/query. Any further required
+        write is reported for ratification before it is added.
+      </Constraint>
+      <Constraint>
+        **Forced non-source set (4).** `skills/ngrace/ngrace-plan/SKILL.md` and its packaged mirror
+        `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md` are corrected: rule 19's rationale for
+        carrying a read-only `.ngrace/scratch` in a faithful post-close copy no longer claims that
+        without it `review.confidently-wrong` fires on archived plans — under this design an archived
+        plan's `MustExist` is a `review.historical-path-absent` historical notice, and the copy is
+        carried so the selected close and any historical audit read the same tree. The two copies stay
+        byte-identical. `src/test-support/token-accounting.test.ts` pins the re-measured skill-text
+        `total`/`totalBytes` **and** asserts the corrected rule-19 meaning; `README.md`'s footprint
+        row is updated to the same re-measured string and gains a bounded `ngrace review` note that
+        archived history is audited as historical information. This is a user-visible documentation
+        change and is not justified by claiming immutability.
+      </Constraint>
+      <Constraint>
+        **Forced test set (9).** `src/artifact/grammar.test.ts`, `src/artifact/scope.test.ts`,
+        `src/query/change.test.ts`, `src/grace-query.test.ts`, `src/grace-context.test.ts`,
+        `src/lint/core.test.ts`, `src/review/core.test.ts`, `src/verification/localize.test.ts`, and
+        `src/gates/core.test.ts`. `src/query/change.test.ts:123-125` accesses
+        `.files`/`.globs` on a non-null-asserted observed scope and is forced to narrow under the new
+        union; the whole `src/**/*.ts` tsconfig includes it. The matrix was re-derived by grepping the
+        whole `src/` and `scripts/` test and teaching-pin population for every moved behavior, the
+        `ChangeView` symbol search, each pinned count, and the skill/README footprint.
+        `src/grace-status.ts` and `src/grace-status.test.ts` are checked and not forced because status
+        consumes the tolerant lint. The plan re-confirms the population before ratification.
+      </Constraint>
+      <Constraint>
+        **No historical lint output.** Archived change bundles are not current-validation inputs, so
+        their grammar, section, status, and assertion issues are neither errors nor warnings in the
+        lint result. A `--fail-on warnings` run over a project carrying a malformed, version-changed,
+        or current-only-section-missing archived bundle exits 0. The corruption is not silently
+        erased: a consumer that selects the record surfaces it — `change show` reports
+        `project.unreadable-artifact` for an unparsable record, and `context --change` refuses with
+        `Unreadable plan|spec at …`.
+      </Constraint>
+      <Constraint>
+        **Historical audit severities.** The archived-`MustExist` audit emits
+        `review.historical-path-absent` at `info` with the F16 relocation/foreign-ID distinctions in
+        its message (present under the same-ID archive alias is silent; missing under both aliases and
+        a foreign-id substitution are reported as historical notices). It never emits
+        `review.confidently-wrong`, and it does not fail a project-wide `review` (which exits nonzero
+        only on errors). Active plans keep `review.confidently-wrong` / `must-exist-missing`,
+        including the same-ID alias resolution, missing-both refusal, and foreign-ID refusal. The F286
+        attempt-pair audit is unchanged at `warning` and its abandoned-bundle exemption is not widened.
+      </Constraint>
+      <Constraint>
+        **Authorized API change and its consequences.** The `ChangeView` union widening above is the
+        only authorized API change. Consequences, all in the write scope: `src/query/render.ts`
+        narrows and renders the unavailable member; `src/query/change.test.ts` narrows its field
+        accesses and gains the known/unknown/absent/None fixtures; JSON consumers receive the exact
+        member and need no change. No other error-shape change is authorized.
+      </Constraint>
+      <Constraint>
+        **Prior-ruling overturns, with counterweights.** (a) The `C-ARCHIVE-CORPUS-BASELINE-2` /
+        `C-PER-BUNDLE-READERS-1-58BB7AB1` regression at `src/grace-context.test.ts:455` requires an
+        **unrelated** malformed archived `spec.xml` to refuse the whole context slice; that is
+        overturned — the unrelated archive is not a current-validation input and the slice returns its
+        base output, while the corruption stays observable through the selected reader's refusal. A
+        **selected** malformed active or archived change still refuses, and the regression is updated
+        two-sided. (b) The F16 counterweight (`C-REPORT-HONESTY/spec.xml:232-242`) made an archived
+        plan's missing-both-alias and foreign-ID `MustExist` errors; under this design those are
+        historical audit notices, because a review of archived history is not a current obligation,
+        while active plans keep the error. The relocation and foreign-ID **detection** is retained and
+        reported. (c) The whole-archive grammar coupling is removed; no version dispatcher is added
+        and no `NGRACE_ARTIFACT_VERSION` bump is required, because no current working state becomes an
+        error. No historical artifact byte is rewritten.
+      </Constraint>
+      <Constraint>
+        `bun run ngrace lint --path . --assertions current` after this draft is the pre-implementation
+        active-baseline check, never target or final evidence. The full CI-equivalent
+        `bun run validate:ci` runs at plan `--assertions final --run-commands` and again as a
+        post-archive close-bound criterion.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        No historical grammar implementation, version dispatcher, or migration tooling. Archives are
+        read as metadata; an uninterpretable field is `unavailable`, never a fabricated
+        interpretation. Owner: a future migration change only if a real historical format is
+        produced.
+      </NonGoal>
+      <NonGoal>
+        No rewrite, move, deletion, or semantic reinterpretation of any archived artifact. Owner:
+        unchanged; archives are immutable.
+      </NonGoal>
+      <NonGoal>
+        No new lint code and no archive lint warning: history does not enter the lint result. Owner:
+        unchanged; the current lint catalog is not extended.
+      </NonGoal>
+      <NonGoal>
+        No suppression of the F286 or F16 audits, no detector change, and no CLI exit-semantics change.
+        Owner: unchanged; the audits stay live and warnings still exit 0.
+      </NonGoal>
+      <NonGoal>
+        No change to current obligations: active assertions, current-source verification, and current
+        transitions keep their strictness. Owner: unchanged; strictness is retained where an
+        obligation is current.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-CURRENT-OBLIGATIONS-STRICT>
+        Root context, graph, verification, and active change bundles keep their current validation
+        errors and severities. The actual review surface is driven, not only the grammar validator: an
+        active plan's present-absence `MustExist` still raises `review.confidently-wrong` /
+        `must-exist-missing` through `runReview` / the real `ngrace review`, including the corr-171
+        same-ID alias resolution (silent when present), missing-both refusal (error), and foreign-ID
+        refusal (error); and a malformed active artifact still refuses through the grammar validator.
+        A test selectable by `-t "current obligations stay strict"` in `src/review/core.test.ts` drives
+        the review half; a test selectable by `-t "active stays strict"` in
+        `src/artifact/grammar.test.ts` drives the grammar half.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "current obligations stay strict"</Command>
+          <Command>bun test --timeout=0 src/artifact/grammar.test.ts -t "active stays strict"</Command>
+        </CloseEvidence>
+      </AC-CURRENT-OBLIGATIONS-STRICT>
+      <AC-HISTORICAL-NOT-CURRENT-OBLIGATIONS>
+        An unrelated archived change bundle produces no lint error and no lint warning in each of
+        three cases: (a) its `graceVersion` differs from the installed version; (b) it parses with the
+        installed version but omits a current-only required section such as `Summary`; and (c) it does
+        not parse. In all three, `bun run ./src/grace.ts lint --path . --fail-on warnings` exits 0
+        with an empty error and warning count; `loadGraceArtifactIndex`, `ngrace status`, and
+        `ngrace context` succeed; and exact restoration of the archived bytes restores the exact base
+        output. The probe mutates a physical throwaway copy, never the production archive. A test
+        selectable by `-t "archived history is not a current obligation"` carries this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/artifact/grammar.test.ts -t "archived history is not a current obligation"</Command>
+        </CloseEvidence>
+      </AC-HISTORICAL-NOT-CURRENT-OBLIGATIONS>
+      <AC-HISTORICAL-VIEW-CONTRACT>
+        The `ChangeView` union is exactly `ChangeDurableScope = carried | declared-none | absent |
+        { state: "unavailable"; reason: string }` and `observedWriteScope = ChangeScopeSummary |
+        { state: "unavailable"; reason: string } | null`, with a nonempty reason and no scope payload
+        on the unavailable member. Real `ngrace change show` JSON emits the exact union member and
+        text reports the unavailable state and reason distinctly from absent/declared-none, for the
+        four controls: (1) a known-field fixture (durable `carried`, observed summary) regardless of a
+        differing `graceVersion`; (2) an explicit `&lt;None /&gt;` (durable `declared-none`, observed
+        empty summary — not unavailable); (3) a genuine absent section (durable `absent`, observed
+        `null`); (4) an uninterpretable field shape (durable or observed `unavailable` with a nonempty
+        reason — not empty, not absent). A version difference alone is never an unavailable-field
+        test. A test selectable by `-t "historical view unavailable contract"` drives both formats.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/query/change.test.ts -t "historical view unavailable contract"</Command>
+        </CloseEvidence>
+      </AC-HISTORICAL-VIEW-CONTRACT>
+      <AC-HISTORICAL-CONTEXT>
+        `ngrace context --task T-* --change C-ID` against an archived bundle reads supported plan and
+        spec fields, imposes no current-filesystem `MustExist` requirement, and does not require a
+        future migration merely to read the slice. An unparsable plan or spec refuses with
+        `invalid-project` / `Unreadable plan|spec at …` and **no** `issues`; a readable plan whose
+        required task is absent or whose `ImplementationPlan` shape is unrecognized refuses with
+        `not-found` / `Task T-* not found in C-ID`; a readable spec whose `Satisfies` target has no
+        body yields the per-criterion `{ verdict: "unable-to-determine", reason }` absence, never a
+        silent empty. A test selectable by `-t "historical context reads supported fields"` carries
+        this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-context.test.ts -t "historical context reads supported fields"</Command>
+        </CloseEvidence>
+      </AC-HISTORICAL-CONTEXT>
+      <AC-NO-FABRICATED-CREDIT>
+        Applied-scope credit is derived only from readable scope fields of an applied archived bundle.
+        A bundle whose plan is unparsable, or whose durable or observed scope fields are unavailable,
+        grants no credit, and the lack of credit is distinguishable from a legitimate
+        `declared-none`/empty scope. A readable archived bundle's applied scope still explains drift
+        exactly as today. A test selectable by `-t "unreadable history grants no credit"` carries this
+        assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/artifact/scope.test.ts -t "unreadable history grants no credit"</Command>
+        </CloseEvidence>
+      </AC-NO-FABRICATED-CREDIT>
+      <AC-REVIEW-ARCHIVED-AUDIT>
+        An archived plan's missing `MustExist` yields `review.historical-path-absent` at severity
+        `info` — never `review.confidently-wrong` — with the same-ID archive alias present silent, and
+        with the missing-both-alias and foreign-id cases reported as historical notices that name the
+        target and state current absence while leaving archive-time presence unevaluated (the message
+        or explanation contains `archive-time` and `unevaluated`). A project-wide `ngrace review`
+        exits 0 with these notices present, and `--severity info` surfaces them. Active plans keep
+        `review.confidently-wrong` / `must-exist-missing` per `AC-CURRENT-OBLIGATIONS-STRICT`. A test
+        selectable by `-t "archived existence claim is a historical audit"` carries this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "archived existence claim is a historical audit"</Command>
+        </CloseEvidence>
+      </AC-REVIEW-ARCHIVED-AUDIT>
+      <AC-PRESERVED-AUDITS>
+        The F286 attempt-pair audit still reddens an `applied` archived bundle at `warning` and still
+        exempts an abandoned `superseded`/`rejected`/`cancelled` bundle; the unemitted verification
+        `Marker` check still fires; the scope, `WriteEvidence`-scope, verdict, approval, and
+        close-evidence audits keep their codes, severities, and finding IDs; and retirement still
+        consumes archive directory names without a new decoder. No historical finding is silently
+        erased. A test selectable by `-t "historical integrity audits preserved"` carries the core
+        half.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "historical integrity audits preserved"</Command>
+        </CloseEvidence>
+      </AC-PRESERVED-AUDITS>
+      <AC-SELECTED-CLOSE-STRICT>
+        For the selected **archived** bundle, `gate verdict --outcome pass` refuses unless the spec is
+        readable, uses the `NgraceChangeSpec` root, has exactly one direct `C-*` wrapper whose tag
+        equals the bundle id, declares `status="applied"`, and has a present, interpretable
+        `AcceptanceCriteria` container with at least one valid `AC-*` criterion. Every complete
+        `CloseEvidence` command executes and a non-zero command refuses `pass` with the existing
+        refusal; an incomplete `CloseEvidence` child (no `Command` or an empty `Command`) refuses
+        `pass` rather than being silently uncounted; a missing/malformed container, wrong/missing
+        wrapper identity, unparsable spec, and unavailable applied-status evidence all refuse `pass`
+        and never fall through to the pre-archive empty-return path. A readable applied wrapper with a
+        valid container and genuinely no `CloseEvidence` criterion still permits `pass`, and the
+        active pre-archive empty-return path is preserved. Exact restoration returns the base
+        behavior. A test selectable by `-t "selected close refuses empty evidence evaluation"` drives
+        the public `gate verdict` cases.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/gates/core.test.ts -t "selected close refuses empty evidence evaluation"</Command>
+        </CloseEvidence>
+      </AC-SELECTED-CLOSE-STRICT>
+      <AC-T005-GUARD>
+        The test selectable by `-t "T-005 warning remains observable"` drives the real CLI for
+        `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`, requires parseable review JSON, and requires exactly
+        one `review.attempt-pair-identical-tree` finding whose `file` is the bundle's resolved anchor
+        file (`…/run` or `…/run-ledger.xml`), whose `anchorOrHunkKey` is
+        `attempt-pair:T-005:14-&gt;15`, whose `severity` is `warning`, and whose `findingId` matches
+        `^[a-f0-9]{16}$`. It does not assert the process exit status, does not accept an unrelated
+        bundle by prefix, and does not depend on unrelated error counts. A test selectable by
+        `-t "T-005 warning remains observable"` carries this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "T-005 warning remains observable"</Command>
+        </CloseEvidence>
+      </AC-T005-GUARD>
+      <AC-CLI-EXIT>
+        A controlled real-CLI warning-only project exits 0 and its JSON names the
+        `review.attempt-pair-identical-tree` warning; a controlled real-CLI project carrying a current
+        `review.confidently-wrong` error exits 1. `ngrace review` still sets `process.exitCode = 1`
+        only when `summary.errors &gt; 0` (`src/review/command.ts:118-120`) and the detector is
+        unchanged. A test selectable by `-t "warning-only review exits zero, errors exit one"` carries
+        this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "warning-only review exits zero, errors exit one"</Command>
+        </CloseEvidence>
+      </AC-CLI-EXIT>
+      <AC-CATALOG-CONTRACT>
+        `REVIEW_CATALOG["review.historical-path-absent"]` exists with `severity: "info"` and
+        `family: "process-audit"`; `patternReviewCodes()` still returns exactly the five family-A
+        codes and does not include it; the info-severity set is exactly
+        `{review.attempt-pair-unpaired-pass, review.historical-path-absent}`; `allReviewCodes()` has
+        length 21; `excludedReviewCodesForLocalization()` has length 18; the three admissible
+        localization codes are unchanged; and no lint catalog code is added. A test selectable by
+        `-t "historical-path notice catalog contract"` carries the review half.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "historical-path notice catalog contract"</Command>
+        </CloseEvidence>
+      </AC-CATALOG-CONTRACT>
+      <AC-OVERTURN-MALFORMED-CONTEXT>
+        The prior contract that an **unrelated** malformed archived governance XML
+        (`&lt;NgraceChangeSpec&gt;&lt;broken&gt;`) refuses the whole context task slice is overturned:
+        the slice returns its exact base output and the malformed archive produces no lint error or
+        warning. A **selected** malformed active change still refuses with `invalid-project` /
+        `Unreadable spec at …`, and a selected malformed archived change also refuses. The regression
+        at `src/grace-context.test.ts:455` is updated to this two-sided shape; no archived artifact is
+        rewritten. A test selectable by `-t "unrelated malformed archive does not fail the slice"`
+        carries this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-context.test.ts -t "unrelated malformed archive does not fail the slice"</Command>
+        </CloseEvidence>
+      </AC-OVERTURN-MALFORMED-CONTEXT>
+      <AC-SKILL-FOOTPRINT>
+        `skills/ngrace/ngrace-plan/SKILL.md` and
+        `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md` are byte-identical to each other; rule 19
+        no longer contains the claim that an archived plan's `MustExist` raises
+        `review.confidently-wrong`, and it states the historical-notice treatment and the
+        selected-close reason for carrying `.ngrace/scratch`. `README.md` contains the re-measured
+        `**N lines** / **M UTF-8 bytes**` footprint cell and a bounded `ngrace review` note that
+        archived history is audited as historical information. `src/test-support/token-accounting.test.ts`
+        passes with the re-measured `skillTextLines().total`/`totalBytes` (the pin equals the
+        measurement, never a projected figure) **and** fails on the unchanged misleading paragraph
+        even when the byte totals match. A test selectable by `-t "rule 19 historical notice meaning"`
+        carries the content half; a test selectable by `-t "skillTextLines"` carries the numeric half.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/test-support/token-accounting.test.ts -t "rule 19 historical notice meaning"</Command>
+          <Command>bun test --timeout=0 src/test-support/token-accounting.test.ts -t "skillTextLines"</Command>
+        </CloseEvidence>
+      </AC-SKILL-FOOTPRINT>
+      <AC-ARCHIVE-IMMUTABLE>
+        Every pre-existing bundle under `.ngrace/changes/archive/` is byte-identical to base
+        `3f68a1b351efa58851f2d8245d9a8eb6ad96555b`. This bundle's own archive arrival
+        (`C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE`) is excluded because the close itself renames the
+        bundle into the archive after the base commit. There is no predecessor exclusion: this is a
+        lineage-1 bundle, not a supersede.
+        <CloseEvidence>
+          <Command>git diff --exit-code 3f68a1b351efa58851f2d8245d9a8eb6ad96555b -- .ngrace/changes/archive ':(exclude).ngrace/changes/archive/C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE'</Command>
+        </CloseEvidence>
+      </AC-ARCHIVE-IMMUTABLE>
+      <AC-WRITE-POPULATION>
+        Against base `3f68a1b351efa58851f2d8245d9a8eb6ad96555b`, every tracked path in the checkout is
+        byte-identical except the nine permitted production files (`src/artifact/grammar.ts`,
+        `src/artifact/scope.ts`, `src/query/core.ts`, `src/query/change.ts`, `src/query/render.ts`,
+        `src/lint/core.ts`, `src/review/core.ts`, `src/review/catalog.ts`, `src/gates/ledger.ts`), the
+        four permitted documentation paths (`skills/ngrace/ngrace-plan/SKILL.md`,
+        `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md`,
+        `src/test-support/token-accounting.test.ts`, `README.md`), the nine permitted test files
+        (`src/artifact/grammar.test.ts`, `src/artifact/scope.test.ts`, `src/query/change.test.ts`,
+        `src/grace-query.test.ts`, `src/grace-context.test.ts`, `src/lint/core.test.ts`,
+        `src/review/core.test.ts`, `src/verification/localize.test.ts`, `src/gates/core.test.ts`), and
+        this bundle's own active and archive directories; and no nonignored untracked path exists
+        outside those exclusions. Ignored paths are outside this inventory. Both a tracked violation
+        and a nonignored untracked violation refuse. The command is a compound `git diff --exit-code`
+        and `test -z` over `git ls-files --others`; neither stage is read through a pipeline whose tail
+        supplies the exit code.
+        <CloseEvidence>
+          <Command>git diff --exit-code 3f68a1b351efa58851f2d8245d9a8eb6ad96555b -- . ':(exclude)src/artifact/grammar.ts' ':(exclude)src/artifact/scope.ts' ':(exclude)src/query/core.ts' ':(exclude)src/query/change.ts' ':(exclude)src/query/render.ts' ':(exclude)src/lint/core.ts' ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/gates/ledger.ts' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)README.md' ':(exclude)src/artifact/grammar.test.ts' ':(exclude)src/artifact/scope.test.ts' ':(exclude)src/query/change.test.ts' ':(exclude)src/grace-query.test.ts' ':(exclude)src/grace-context.test.ts' ':(exclude)src/lint/core.test.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/verification/localize.test.ts' ':(exclude)src/gates/core.test.ts' ':(exclude).ngrace/changes/active/C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE' ':(exclude).ngrace/changes/archive/C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE' &amp;&amp; ngrace_unexpected_paths=$(git ls-files --others --exclude-standard -- . ':(exclude)src/artifact/grammar.ts' ':(exclude)src/artifact/scope.ts' ':(exclude)src/query/core.ts' ':(exclude)src/query/change.ts' ':(exclude)src/query/render.ts' ':(exclude)src/lint/core.ts' ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/gates/ledger.ts' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)README.md' ':(exclude)src/artifact/grammar.test.ts' ':(exclude)src/artifact/scope.test.ts' ':(exclude)src/query/change.test.ts' ':(exclude)src/grace-query.test.ts' ':(exclude)src/grace-context.test.ts' ':(exclude)src/lint/core.test.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/verification/localize.test.ts' ':(exclude)src/gates/core.test.ts' ':(exclude).ngrace/changes/active/C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE' ':(exclude).ngrace/changes/archive/C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE') &amp;&amp; test -z "$ngrace_unexpected_paths"</Command>
+        </CloseEvidence>
+      </AC-WRITE-POPULATION>
+      <AC-DOCS-AND-EXAMPLES>
+        `examples/` is byte-identical to base
+        `3f68a1b351efa58851f2d8245d9a8eb6ad96555b`. The `examples/` half is a byte freeze and does
+        not by itself claim the example's CLI behavior passes; separately,
+        `bun run validate:examples` (which lints `examples/polyglot` and drives the walkthrough's
+        review/scope assertions) passes, so the example behavior is proven by its own instrument.
+        `README.md` changes only its skill-footprint row and the bounded `ngrace review` historical
+        note under `AC-SKILL-FOOTPRINT`.
+        <CloseEvidence>
+          <Command>git diff --exit-code 3f68a1b351efa58851f2d8245d9a8eb6ad96555b -- examples/</Command>
+        </CloseEvidence>
+      </AC-DOCS-AND-EXAMPLES>
+      <AC-CLOSE-LINT>
+        In the applied-archive state the bundle lints clean at warning severity:
+        `bun run ./src/grace.ts lint --path . --change C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE
+        --assertions none --fail-on warnings` exits 0 with 0 errors and 0 warnings.
+        <CloseEvidence>
+          <Command>bun run ./src/grace.ts lint --path . --change C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE --assertions none --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+      <AC-CI-GREEN>
+        In the applied-archive state, including this bundle's own archive arrival, the full
+        CI-equivalent `bun run validate:ci` exits 0. This is the criterion genuinely about the whole
+        CI suite: `test:metrics` runs one full `bun test --timeout=0` suite and the remaining steps run
+        `typecheck`, whole-project lint at error severity, and the marketplace, examples, determinism,
+        packed, schema-reference, skeleton-template, teaching-surface, citation-anchor,
+        record-retirement, and record-preservation validators.
+        <CloseEvidence>
+          <Command>bun run validate:ci</Command>
+        </CloseEvidence>
+      </AC-CI-GREEN>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GATES />
+      <M-GRAMMAR />
+      <M-LINT-CORE />
+      <M-QUERY />
+      <M-REVIEW />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Multi-phase verification. (1) Focused per-criterion `CloseEvidence` commands evaluated by the
+        close in the applied-archive state: `src/review/core.test.ts` for active review strictness, the
+        archived audit, preserved audits, the catalog contract, the T-005 guard, and the CLI exit
+        pair; `src/artifact/grammar.test.ts` for active grammar strictness and the three
+        archived-history cases; `src/query/change.test.ts` for the unavailable-union contract and its
+        four controls in JSON and text; `src/grace-context.test.ts` for historical context and the
+        overturned malformed-archive shape; `src/artifact/scope.test.ts` for no fabricated credit;
+        `src/lint/core.test.ts` for archived assertions leaving current lint; `src/gates/core.test.ts`
+        for the selected-close evidence contract; `src/test-support/token-accounting.test.ts` for the
+        skill-byte footprint and the corrected rule-19 meaning; the tracked-plus-nonignored-untracked
+        scope inventory; the `examples/` byte freeze; and the `--fail-on warnings` lint of the
+        archived bundle. (2) `bun run validate:examples` for the polyglot CLI behavior, separate from
+        the byte freeze. (3) The whole-CI instrument `bun run validate:ci`, run at the plan's
+        `TargetAssertions` `MustPassCommand` under `--assertions final --run-commands` and again as
+        the close-bound `AC-CI-GREEN`. (4) The `ngrace-plan` rule-19 faithful post-close drive, which
+        exercises the new `CloseEvidence` commands in both directions on independent physical copies —
+        the archived-history cases, the historical view and context, the archived audit, and every
+        selected-close variant — with each criterion's `Result`/`Exit` read through the shipped ledger
+        reader. Integration evidence: the historical tolerance, the historical view, and the
+        historical audit must be driven together so that a project with a malformed or version-changed
+        archive is lint-clean and review-green while the selected close still refuses unavailable or
+        incomplete evidence; and the `ChangeView` union must be driven through both `change show`
+        formats so the render consumer and the JSON consumer agree. Verification scope pairs each
+        changed module (`M-GRAMMAR`, `M-QUERY`, `M-LINT-CORE`, `M-REVIEW`, `M-GATES`) with its
+        `V-M-*`. At this draft stage the whole-population figures below are dated measurements, not
+        criteria, and the red direction of every guard is a plan-time fixture duty on independent
+        physical copies. No full suite is executed at this draft stage.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      The queue's “Historical archive compatibility: immediate derivation and defect repair” entry
+      (`docs/plans/active/RM-GOVERNED-PATH/grace-implementation-queue.md`) records the maintainer's
+      instruction to derive and repair confirmed defects promptly. The maintainer's policy is that
+      archives are historical metadata that may predate current requirements, and that an unchanged
+      version number cannot establish that today's requirements applied at the historical checkpoint.
+      “No blanket exemptions” protects current obligations and meaningful integrity evidence; it does
+      not turn unrelated historical records into current obligations.
+
+      **The measured coupling.** All 165 archived bundles (322 spec+plan roots) declare
+      `graceVersion="1.0"`. On a physical throwaway copy of the checkout, the root lint is 0 errors;
+      each of three independent mutations of one **unrelated** archived bundle makes it fail while the
+      mutation is present and returns to 0 when the exact bytes are restored: (a) changing the
+      spec's `graceVersion` to `0.9` yields `artifact.unsupported-grace-version`; (b) removing the
+      required `Summary` section while keeping `1.0` yields `change.spec-missing-section`; (c)
+      malformed XML yields four errors — `change.applied-plan-missing` and three `xml.parse`. Because
+      `validateNgraceProject` (`src/artifact/grammar.ts:1329-1356`) walks the archive and
+      `loadGraceArtifactIndex` (`src/query/core.ts:129-151`) throws on any error, `ngrace status`,
+      `ngrace context`, and the query index all fail because of a record the current work did not
+      select. Case (b) is why the version number cannot be the boundary: a 1.0 archive that predates
+      a later required section is held to a requirement that did not exist at its checkpoint.
+
+      **The filesystem coupling.** `detectConfidentlyWrong` (`src/review/core.ts:504-558`) reads every
+      archived plan's `MustExist` against the current filesystem and reports
+      `review.confidently-wrong` / `must-exist-missing`. Measured 2026-10-02: three such errors on
+      `test-metrics.json` — two in `C-MINT-BASELINE-CONTROL-3-F04434E4/plan.xml` (baseline and
+      target) and one in `C-TEST-TIME-BUDGET-4-F173437E/plan.xml` (target) — whose files coexisted
+      with their applied archived plans at the historical checkpoints (`06996d6`, `a104166`) and were
+      later retired by the approved `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`; a tracked-only copy adds
+      eleven more across eight applied archived plans for the ignored
+      `.ngrace/scratch/staged-findings.md`. The current filesystem cannot decide a historical claim.
+      Selection is not execution: a `change show` or historical `review --change` of one of these
+      records is learning, not a current close.
+
+      **The measured close-evaluation hole.** An authority/Luna empirical probe on a disposable
+      physical copy found that the public `gate verdict --outcome pass` refused an original applied
+      spec with `CloseEvidence Command exited non-zero; refuse to record outcome pass.`; after only
+      the selected fixture spec became malformed, the same acknowledged verdict command recorded
+      `pass` (exit 0), because `evaluateCloseEvidenceChildren` (`src/gates/ledger.ts:546-570`) returns
+      an empty set when the spec has no parseable root. The same probe wrote and then restored the
+      production ledger through a hardlinked fixture; the authority independently verified exact
+      restoration to HEAD and archive diff exit 0. That unsafe method is not repeated here, and the
+      probe attribution is authority/Luna, not the maintainer. `isCompleteCloseEvidence`
+      (`src/artifact/grammar.ts:2199-2201`) also drops an incomplete `CloseEvidence` child silently,
+      so the repair must refuse incomplete evidence, not only unparsable whole XML.
+
+      **The historical-view contract is incomplete without the API.** `ChangeDurableScope` has only
+      `carried | declared-none | absent`, and `ChangeView.observedWriteScope` is
+      `ChangeScopeSummary | null`. `formatChangeText` (`src/query/render.ts:196-236`) dereferences
+      `.files`/`.globs` on any truthy observed scope and `formatDurableScope` switches only over the
+      existing durable states, and `src/query/change.test.ts:123-125` does the same with a non-null
+      assertion. A reader that must distinguish `unavailable` from `absent` therefore forces an API
+      change and its render/test consequences.
+
+      **The same-bundle test and documentation defects.** The real-archive T-005 guard
+      (`src/review/core.test.ts:2036-2055`) asserts a nonzero CLI exit; the CLI exits nonzero only for
+      displayed errors (`src/review/command.ts:118-120`), and the T-005 finding is a warning. It passes
+      today only because three unrelated archived errors share the run, and in a warning-only physical
+      copy it fails at `expect(result.status).not.toBe(0)`. `ngrace-plan` rule 19 also tells a planner
+      that an archived plan's `MustExist` raises `review.confidently-wrong`; under this design it is a
+      historical notice, so the rationale and its footprint pins move, and matching byte totals must
+      not let the misleading paragraph survive.
+
+      **Prior-ruling overturns and counterweights.** The whole-archive malformed-refusal contract
+      (`C-PER-BUNDLE-READERS-1-58BB7AB1`, restated by `C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3`, tested at
+      `src/grace-context.test.ts:455`) is overturned for the unrelated case: the slice returns its base
+      output, the corruption stays observable through the selected reader's refusal, and a selected
+      malformed active or archived change still refuses. The F16 counterweight
+      (`C-REPORT-HONESTY/spec.xml:232-242`) no longer raises an error for an archived plan's
+      missing-both-alias or foreign-id `MustExist`; the relocation and foreign-id **detection** is
+      retained as an informational historical audit, and active plans keep the error. No version
+      dispatcher is added and no `NGRACE_ARTIFACT_VERSION` bump is required, because no current
+      working state becomes an error. No historical artifact byte is rewritten; scope credit is only
+      ever taken from readable fields.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        Measurements re-taken 2026-10-02 on branch `feat/archive-compatibility` at HEAD
+        `3f68a1b351efa58851f2d8245d9a8eb6ad96555b` (one policy/queue checkpoint after merged baseline
+        `b1c925bd26789f660a75c457a44159b716b1b578`; tracked/index clean): 165 archive directories,
+        322 archived spec+plan roots, all `graceVersion="1.0"`; root lint 0/0; plain root review three
+        `review.confidently-wrong` / `must-exist-missing` findings on `test-metrics.json` (keys `#0`
+        and `#1` in `C-MINT-BASELINE-CONTROL-3-F04434E4/plan.xml`, `#0` in
+        `C-TEST-TIME-BUDGET-4-F173437E/plan.xml`). These are occupied states and expire; they are not
+        criteria.
+      </Assumption>
+      <Assumption>
+        Independent physical-copy probes (no hardlinks, no shared writable scratch/.git) confirm the
+        couplings and the latent defects: the three unrelated archived mutations named in `Problem`
+        each fail lint only while present and restore to 0/0; a warning-only copy makes the real CLI
+        review exit 0 with the T-005 warning while the unmodified repository exits 1, and the same
+        warning-only copy fails `bun test --timeout=0 src/review/core.test.ts -t "T-005 warning
+        remains observable"` at line 2044. The close-evaluation hole is the authority/Luna empirical
+        probe plus the code path read; it is not re-probed here, and the unsafe hardlinked-fixture
+        method is not repeated. These are diagnosis, never production execution.
+      </Assumption>
+      <Assumption>
+        The forced-file matrix was re-derived by grepping the whole `src/` and `scripts/` test and
+        teaching-pin population for each moved behavior, the complete `ChangeView` symbol search, each
+        pinned count, and the skill/README footprint. `src/grace-context.ts` is checked and not forced
+        (its existing refusal and `unable-to-determine` shapes are the bound historical-context
+        contract); `src/grace-status.ts` and `src/grace-status.test.ts` are not forced because status
+        consumes the tolerant lint. `README.md`’s footprint row and the skill-byte pin are a dated
+        measurement at a named commit; the rule-19 edit moves the byte total, so the pin and the row
+        move together and the pin states the relation, not a projected figure. The historical view is
+        called “readable/supported metadata”, never “verified”: the reader parses a field, it does not
+        prove the historical claim. Byte-freeze evidence for `examples/` is separate from the polyglot
+        CLI behavior, which `bun run validate:examples` proves on its own.
+      </Assumption>
+    </Assumptions>
+  </C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE>
+</NgraceChangeSpec>
