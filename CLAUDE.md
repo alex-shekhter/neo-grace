@@ -62,6 +62,10 @@ This repo is mainly about methodology content, skill instructions, and marketpla
 
 ## Important Working Rules
 
+- Use neo-grace skills and the `ngrace` CLI lifecycle for all development, including validation; validation is part of neo-grace, not an optional external check.
+- Use Luna delegates for fact collection and `ngrace` CLI execution, including validation. The implementation authority verifies evidence and makes design and acceptance decisions; larger implementation goes to the external executor, COLD unless the maintainer specifies WARM, with refreshed canonical neo-grace skills and CLI use required.
+- Superseding approved governance belongs to the authority and Luna, only after explicit maintainer supersede approval; the sanctioned CLI supersede precedes successor spec authoring and fresh stage ratification.
+- After each delivery or audit, continue to the next concrete action or executor brief; stop at required maintainer ratification only after making the next artifact reviewable. Investigate archive compatibility immediately and repair confirmed defects ASAP through governed stages.
 - Treat `skills/ngrace/*` as the main source of truth unless a task is explicitly about packaged output.
 - Keep `plugins/ngrace/skills/ngrace/*` synchronized with the canonical `skills/ngrace/*` copies when published skills change.
 - Keep versions synchronized across `README.md`, `openpackage.yml`, `.claude-plugin/marketplace.json`, and `plugins/ngrace/.claude-plugin/plugin.json`.

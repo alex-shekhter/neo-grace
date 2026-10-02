@@ -1,7 +1,8 @@
 # GRACE implementation findings queue
 
-> **Non-normative status record, measured 2026-09-26 at `a4d5d9d`.** This records
-> findings for later bundle selection. It does not change the approved
+> **Non-normative status record.** The original survey was measured 2026-09-26
+> at `a4d5d9d`; later entries state their own measurement dates. This records
+> findings and maintainer priorities for governed bundle selection. It does not change the approved
 > [RM-GOVERNED-PATH plan](./plan.md), ratify a new decision, schedule a bundle, or
 > decide [RM-PILOT-APPROVAL](../RM-PILOT-APPROVAL/review.md).
 
@@ -150,10 +151,50 @@ overturned for delivery, and that is a separate decision from storage. This is n
 screenshots, recordings); that question is about references an implementing agent can consume, not
 about sequence/class diagrams authored for review.
 
+## Historical archive compatibility: immediate derivation and defect repair
+
+**Recorded 2026-10-01 at `f346480`; priority: immediate derivation.** The maintainer's
+instruction is: **if a defect is found, fix it ASAP**. Queueing records the work;
+it does not permit known defects to remain unpaid or bypass stage ratification.
+
+The corpus-regression repair is applied and archived as
+`C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3` (merged PR #121; status updated 2026-10-02). Its design replaces
+`C-SUBSTANTIATION-HONESTY`'s ongoing dynamic-zero test with its verified historical
+close baseline while retaining positive detection and current retired-code checks;
+it does not settle the broader format and historical-validation contract.
+
+The compatibility concern rests on these verified mechanisms:
+
+- Current grammar validators process both active and archived bundles and accept
+  only the current `graceVersion` (`src/artifact/grammar.ts:317-349,1345-1360`).
+  The XML reader does not select a historical validator by declared version
+  (`src/artifact/xml.ts:73-120`).
+- Archived plan assertions already receive syntax-only checks because their
+  semantics can become stale (`src/lint/core.ts:544-548`). Other coverage checks
+  and process audits still examine archived evidence under current rules.
+- [D5.2](./rulings.xml) requires a grammar-version bump and migration path when
+  a legitimate working state becomes an error. Local legacy-shape exceptions
+  exist; their coverage does not by itself verify compatibility across the archive population.
+
+**Next action:** Luna measures the complete archive population with the shipped
+validators and real CLI, classifies historical integrity checks separately from
+retroactive requirements, and reproduces candidate compatibility failures using
+ordinary disposable copies. The authority decides the design from that evidence;
+the external executor implements confirmed defects through neo-grace skills,
+CLI gates, and explicit stage ratification. A confirmed defect receives prompt
+corrective work rather than an indefinite queue position or a future-release deferral.
+
+The design review must decide how declared historical formats remain readable,
+how historical acceptance baselines differ from retrospective audits, and how a
+breaking format or policy change migrates interpretation while preserving original
+archive bytes. No version-dispatch or migration mechanism is ratified here. A
+limitation or future risk is not recorded as an already reproduced defect.
+
 ## Queue boundary
 
 The existing D29 charters own module-header enforcement and selective function
 and block adoption. Logging versus `TraceAssertion`, model-effect wording, and
 PILOT cost/cause instrumentation are separate questions to scope after the
-current branch is committed. No implementation order or new bundle identity is
-chosen here.
+current branch is committed. The archive-compatibility entry records the maintainer's
+2026-10-01 urgency without reordering D29's existing charters. No new bundle identity
+or unreviewed implementation mechanism is chosen here.
