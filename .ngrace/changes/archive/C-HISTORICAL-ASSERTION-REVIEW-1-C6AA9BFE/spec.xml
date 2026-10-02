@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE><Replacement>C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B</Replacement>
     <Summary>
       Draw the boundary by purpose and dependency, not by file version. Archives are historical
       metadata that may predate current requirements; an unchanged version number cannot establish

@@ -1,0 +1,24 @@
+<NgraceChangeSpec graceVersion="1.0" status="draft">
+  <C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B>
+    <Summary>Summary of C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B.</Summary>
+    <Goals>
+      <Goal>Goal for C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B.</Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>Constraint for C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B.</Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>Non-goal for C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B; replace this placeholder by deciding README.md and examples/. Owner: the author.</NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SKELETON>Acceptance criterion for C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B.</AC-SKELETON>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-AFFECTED-MODULE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test</ExpectedCommand>
+      <ExpectedEvidence>Evidence for C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B.</ExpectedEvidence>
+    </VerificationIntent>
+  </C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B>
+</NgraceChangeSpec>
