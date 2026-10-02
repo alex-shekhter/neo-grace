@@ -1,0 +1,176 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Diagrams>
+    <SequenceDiagram>
+sequenceDiagram
+    participant X as External draft author
+    participant Y as Authority / Luna
+    participant M as Maintainer
+    participant E as Authorized executor
+    participant N as neo-grace CLI
+    X-&gt;&gt;Y: Draft successor spec and design context
+    Y-&gt;&gt;N: Independent proof, review, and guard drives on copies
+    Y-&gt;&gt;M: Evidence for ratification
+    M-&gt;&gt;Y: Ratify the written stage
+    Y-&gt;&gt;N: Fresh review, then gate approve
+    Y-&gt;&gt;Y: Verify the fingerprint and checkpoint the stage
+    Y-&gt;&gt;E: Hand off the approved spec for new draft-plan work
+    E-&gt;&gt;N: Draft the plan; implement only after fresh plan approval
+    Y-&gt;&gt;N: Own approval gates and the apply/archive close
+    </SequenceDiagram>
+    <ClassDiagram>
+classDiagram
+    ContextCLI --&gt; QueryIndex : consumes a task slice
+    QueryIndex --&gt; ImplementationSourceReader : implementation-file entries
+    QueryIndex --&gt; GovernanceArtifactReader : graph, verification, active/archive XML
+    ImplementationSourceReader : collectCodeFiles excludes ARTIFACT_DIR
+    GovernanceArtifactReader : validates active and archived artifacts
+    CorpusTests --&gt; HistoricalCloseCorpus : zero on the frozen 27
+    CorpusTests --&gt; CurrentArchives : retired-code zero over every C-*
+    CorpusTests --&gt; AttemptPairDetector : positive fixtures preserved
+    CorpusTests --&gt; T005Observation : code + resolved anchor + recorded id
+    </ClassDiagram>
+  </Diagrams>
+  <Rationale>
+    This successor exists because the predecessor's retained T-005 criterion pinned a finding id
+    that is not stable across environments, and because an independent defect was found in the same
+    review. Both are repaired here, under one bounded T1 bundle, without re-opening the archive
+    repair that the predecessor already settled.
+
+    **The archive repair is carried forward, not re-litigated.** `AC-ARCHIVE-CORPUS-ZERO`
+    (`C-SUBSTANTIATION-HONESTY/spec.xml:404-423`) pinned zero attempt-pair findings over 26 authoring
+    bundles, and D0 (`C-SUBSTANTIATION-HONESTY/plan.xml:157-195`) widened that to a dynamic
+    enumeration of the whole archive. The widening was correct for its counterweight — a vanished
+    bundle could not shrink the denominator — but it became a promise that no future delivery may
+    carry a live finding. This bundle keeps the counterweight by freezing the verified 27-bundle
+    historical membership (the 26 `AUTHORING_ARCHIVE_C_IDS` plus `C-SUBSTANTIATION-HONESTY`), requires
+    every member's presence and zero live/retired findings on that exact set, and requires only the
+    retired code `review.attempt-pair-unsubstantiated` to be absent from the complete current archive.
+    It keeps the D0 overturn statement, the positive identical-tree and F286 fixtures, applied-archive
+    auditing, superseded/rejected/cancelled abandonment exemptions, finding-id stability, warning
+    severity, and bound-verdict behavior. It does not edit any real attempt event.
+
+    **The T-005 criterion is corrected, not weakened.** The predecessor asserted a literal finding id
+    `792aa42b0c989c73`. `findingId` hashes the truthful resolved anchor file
+    (`src/review/core.ts:340-352` over the resolver at `src/review/core.ts:1389-1403`), and
+    `resolveAttemptPairAnchorFile` selects `…/run` only while the empty, untracked
+    `.ngrace/changes/archive/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6/run/` directory is physically
+    present. A fresh checkout has no such directory, so the anchor becomes `…/run-ledger.xml` and the
+    id changes. The successor binds the finding to the archived bundle, code
+    `review.attempt-pair-identical-tree`, and anchor `attempt-pair:T-005:14->15`, records the emitted
+    id, and drives the copy proof with and without the empty `run/` directory. The detector, its
+    resolver, and its hashing are preserved; the finding is still detected, and the immutable events
+    are not touched.
+
+    **The query defect is a reader-boundary defect.** Implementation-source collection walks the whole
+    repository. The root lint call already excludes `ARTIFACT_DIR` (`src/lint/core.ts:307`), but the
+    query call does not (`src/query/core.ts:75`), so the gitignored `.ngrace` tree — including whatever
+    a scratch buffer holds — is scanned as if it were project source. The authority's 2026-10-01 causal
+    probe on an ordinary copy measured the original context CLI at 14.31s, a config-only scratch
+    exclusion at 2.55s, and the restored run at 13.61s with byte-for-byte identical output; scratch
+    contributed 6,040 source files / 156,660,197 bytes and 342 scratch projection lines. The repair is
+    one call: pass `ARTIFACT_DIR` to that call's exclusion list, preserving the configured
+    `ignoredDirs` and `codeExtensions`. It does not modify the generic walker, bypass governance
+    validation, prune `.ngrace/scratch`, remove faithful scratch copies, or add `.ngrace` to
+    `ignoredDirs`.
+
+    **The governance read path is separate and stays intact.** `validateNgraceProject`, the active and
+    archived XML readers, the graph and verification projections, and the malformed-artifact refusal
+    are independent of the code walk and are preserved — the same whole-project equivalence and
+    malformed-bundle refusal `C-PER-BUNDLE-READERS-1-58BB7AB1` preserves, and the read-only scratch that
+    `F253` requires in faithful copies. Excluding `.ngrace` code from implementation-source does not
+    stop governance artifacts from being read and validated.
+
+    **The reader boundary is proven by behavior, not by a config tweak.** `AC-QUERY-IMPLEMENTATION-SOURCE`
+    and `AC-CONTEXT-COVERAGE` require focused regression coverage: a real project source file remains
+    discoverable; ordinary governed-code decoys under `.ngrace` are excluded from
+    implementation-source, module, and context entries; configured exclusions and extra extensions
+    still take effect; a real `ngrace context --task … --change … --format json` slice whose selected
+    module projection is affected by a planted scratch copy is byte-identical with and without that
+    copy, while the unpatched collector exposes it; and malformed active or archived governance XML
+    still refuses. The coverage uses ordinary disposable projects and the real CLI, with no mocks,
+    monkey patches, or advanced filesystem probes. The config-only scratch exclusion probed earlier
+    established the defect; it is not this change, which is a code repair.
+
+    **Lifecycle and role split.** `README.md` and `examples/` are unchanged, and no command, option,
+    installation procedure, or API shape is added; query and context output values change only to drop
+    invalid `.ngrace` source entries. The external draft author writes this bundle's `spec.xml` and
+    `design-context.xml`; the authority and Luna independently prove the guards and the reader boundary
+    on disposable copies, obtain maintainer ratification, then run fresh review/approval gates and verify
+    the fingerprint. The authorized executor drafts the plan and implements after fresh plan ratification;
+    the authority and Luna own approval and close
+    transitions and every checkpoint. The full CI-equivalent `bun run validate:ci` remains both the
+    plan's pre-archive `TargetAssertions` `MustPassCommand` and the post-archive `CloseEvidence`, and the
+    plan-time rule-19 drive must finish the post-close gate verdict and read each criterion's
+    `Result`/`Exit` through the shipped ledger reader.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Keep the literal T-005 id from the predecessor. Rejected: the id is not stable across a fresh
+      checkout because it hashes the resolved anchor file, so the criterion would fail on CI. The
+      successor binds the stable bundle/code/anchor instead.
+    </Alternative>
+    <Alternative>
+      Suppress or rewrite the T-005 finding to make the corpus zero true. Rejected: the events are
+      immutable and the detector is correct; silencing it would trade a real signal for a green check.
+    </Alternative>
+    <Alternative>
+      Fix the query defect by adding `.ngrace` to `ignoredDirs` or by pruning `.ngrace/scratch` from the
+      walker. Rejected: `ignoredDirs` is user configuration, the walker is shared, and pruning scratch
+      would diverge from the faithful-copy behavior `F253` requires. The repair is the same bounded
+      `ARTIFACT_DIR` exclusion the root lint call already uses.
+    </Alternative>
+    <Alternative>
+      Add a per-bundle exemption to the corpus zero for the declaration-guard bundle. Rejected: a
+      growing exemption list hides the real question of which baseline the zero is over. A frozen
+      historical set answers it directly.
+    </Alternative>
+    <Alternative>
+      Use the discriminating `bun test --timeout=0` as the whole-CI post-archive instrument and leave
+      `.ngrace-lint.json` untouched. Rejected: the reviewed design mandates the full CI entrypoint,
+      which also runs typecheck, lint, and the validators; the single additive config prefix is the
+      documented remedy.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Broader archive compatibility and bundle-versioning redesign. Outside this bounded deliverable,
+      and it carries the maintainer's standing immediate-investigation-and-ASAP-governed-repair
+      instruction (see `CLAUDE.md`); it is not deferred debt and is not absorbed here.
+    </Decision>
+    <Decision>
+      Whether `bun run validate:ci` (or whole-CI commands generally) should become a default
+      discriminating CloseEvidence shape in the engine rather than a per-project config prefix.
+      Deferred; the additive project config keeps the engine's default set unchanged.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      A later bundle archives with a retained live attempt-pair finding. The historical-close loop does
+      not include it, so the frozen zero holds; the complete-archive loop checks only the retired code,
+      so the live warning does not redden the suite; the post-archive whole-CI run is green.
+    </Scenario>
+    <Scenario>
+      A retired `review.attempt-pair-unsubstantiated` finding reappears anywhere in the archive. The
+      complete-archive retired-code scan reddens, independent of the historical-zero scoping.
+    </Scenario>
+    <Scenario>
+      A historical close member is deleted or renamed. The required-presence assertion reddens,
+      preserving D0's denominator-shrink counterweight.
+    </Scenario>
+    <Scenario>
+      A change suppresses or rewrites the T-005 finding. The real-CLI test reddens because the finding
+      with the T-005 anchor no longer appears; the assertion does not depend on one id.
+    </Scenario>
+    <Scenario>
+      A project carries ordinary governed code under `.ngrace` or a scratch copy of project sources.
+      Implementation-source, module, and context entries exclude it while governance artifacts remain
+      readable and validated; a real project source file remains discoverable.
+    </Scenario>
+    <Scenario>
+      Active or archived governance XML is malformed. Query still refuses rather than returning partial
+      records; the code-walk exclusion does not weaken the artifact checks.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>

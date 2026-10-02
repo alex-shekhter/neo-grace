@@ -393,7 +393,7 @@ bun run test
 bun run ./scripts/validate-marketplace.ts
 bun run validate:packed
 bun run test:affected   # dev loop: only the tests a change touches (never a gate)
-bun run test:metrics    # refresh per-test durations into test-metrics.json
+bun run test:metrics    # single suite; fresh raw JUnit report outside the repository (override: NGRACE_TEST_REPORT_PATH)
 bun run validate:release
 ```
 

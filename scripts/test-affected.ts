@@ -43,7 +43,6 @@ export const AFFECTED_EDGES: Record<string, string[]> = {
   "src/query/render.ts": ["src/grace-query.test.ts"],
   "src/grace.ts": ["src/query/command.test.ts"],
   "README.md": ["src/test-support/token-accounting.test.ts"],
-  "test-metrics.json": ["scripts/test-metrics.test.ts"],
 };
 
 function conventionalCandidates(file: string): string[] {

@@ -372,6 +372,145 @@ describe("buildTaskSlice", () => {
 
 // ─── Skills ──────────────────────────────────────────────────────────────────
 
+function governedQuerySliceFile(links: string): string {
+  return `// START_MODULE_CONTRACT
+//   PURPOSE: Ordinary governed fixture file.
+//   SCOPE: Exercise implementation-source collection.
+//   DEPENDS: none
+//   LINKS: ${links}
+//   ROLE: RUNTIME
+//   MAP_MODE: EXPORTS
+// END_MODULE_CONTRACT
+// START_MODULE_MAP
+//   query
+// END_MODULE_MAP
+export function query() { return "ok"; }
+`;
+}
+
+function writeQuerySliceCliFixture(root: string): void {
+  writeMinimalNgraceProject(root);
+  rmSync(path.join(root, "src/example.ts"), { force: true });
+  writeFile(
+    root,
+    `${ARTIFACT_DIR}/graph/index.xml`,
+    `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-QUERY /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+  );
+  writeFile(
+    root,
+    `${ARTIFACT_DIR}/graph/main.xml`,
+    `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-QUERY><Summary>Query surface.</Summary><Path>src/query.ts</Path></M-QUERY></GD-MAIN></NgraceGraphDocument>`,
+  );
+  writeFile(
+    root,
+    `${ARTIFACT_DIR}/verification/index.xml`,
+    `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-QUERY /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+  );
+  writeFile(
+    root,
+    `${ARTIFACT_DIR}/verification/main.xml`,
+    `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-QUERY><Command>bun test src/query.test.ts</Command><Scenario>Query works.</Scenario></V-M-QUERY></VD-MAIN></NgraceVerificationDocument>`,
+  );
+  writeFile(root, "src/query.ts", governedQuerySliceFile("M-QUERY"));
+  const changeId = "C-QUERY-SLICE";
+  const bundle = `${ARTIFACT_DIR}/changes/active/${changeId}`;
+  writeFile(
+    root,
+    `${bundle}/spec.xml`,
+    `<NgraceChangeSpec graceVersion="1.0" status="approved"><${changeId}><Summary>Fixture.</Summary><Goals><Goal>Slice.</Goal></Goals><Constraints><Constraint>None.</Constraint></Constraints><NonGoals><NonGoal>None.</NonGoal></NonGoals><AcceptanceCriteria><AC-ONE>Body.</AC-ONE></AcceptanceCriteria><AffectedAreas><M-QUERY /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></${changeId}></NgraceChangeSpec>`,
+  );
+  writeFile(
+    root,
+    `${bundle}/plan.xml`,
+    `<NgraceChangePlan graceVersion="1.0" status="approved"><${changeId}><IntentSummary>Fixture.</IntentSummary><BaselineAssertions><MustExist><Value>M-QUERY</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-QUERY</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-QUERY /></GraphAnchors><VerificationAnchors><V-M-QUERY /></VerificationAnchors></DurableScope><ObservedWriteScope><File>src/query.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Query slice task</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Query slice criterion.</Criterion></AcceptanceCriteria><Verification><Command>bun test src/query.test.ts</Command></Verification></T-001></ImplementationPlan></${changeId}></NgraceChangePlan>`,
+  );
+}
+
+describe("context task slice excludes .ngrace code via the real CLI", () => {
+  const sliceArgs = (root: string) => [
+    "context", "--task", "T-001", "--change", "C-QUERY-SLICE", "--format", "json", "--path", root,
+  ];
+
+  it("context task slice omits .ngrace code: byte-identical with and without a planted scratch decoy", () => {
+    const root = tempRoot();
+    writeQuerySliceCliFixture(root);
+    const base = runCli(sliceArgs(root));
+    expect(base.status).toBe(0);
+    const parsed = JSON.parse(base.stdout);
+    expect(parsed.kind).toBe("task-slice");
+    expect(parsed.changeId).toBe("C-QUERY-SLICE");
+    expect(parsed.taskId).toBe("T-001");
+    expect(parsed.modules.map((m: { id: string }) => m.id)).toContain("M-QUERY");
+    expect(parsed.verificationAnchors).toContain("V-M-QUERY");
+    expect(base.stdout).toContain("src/query.ts");
+    expect(base.stdout).not.toContain(".ngrace/scratch");
+
+    writeFile(root, `${ARTIFACT_DIR}/scratch/copy/query-copy.ts`, governedQuerySliceFile("M-QUERY"));
+    const withCopy = runCli(sliceArgs(root));
+    expect(withCopy.status).toBe(0);
+    expect(withCopy.stdout).toBe(base.stdout);
+    expect(withCopy.stdout).not.toContain("query-copy");
+  });
+
+  it("context task slice omits .ngrace code: malformed active and archived governance XML refuse and restore byte-for-byte", () => {
+    const root = tempRoot();
+    writeQuerySliceCliFixture(root);
+    const base = runCli(sliceArgs(root));
+    expect(base.status).toBe(0);
+
+    const graphMain = path.join(root, ARTIFACT_DIR, "graph", "main.xml");
+    const graphBytes = readFileSync(graphMain, "utf8");
+    writeFileSync(graphMain, "<NgraceGraphDocument><broken>");
+    const activeBad = runCli(sliceArgs(root));
+    expect(activeBad.status).not.toBe(0);
+    const activeErr = JSON.parse(activeBad.stdout);
+    expect(activeErr.ok).toBe(false);
+    expect(activeErr.error.code).toBe("invalid-project");
+    expect(activeErr.error.issues).toContain("xml.parse");
+    writeFileSync(graphMain, graphBytes);
+    const activeRestored = runCli(sliceArgs(root));
+    expect(activeRestored.status).toBe(0);
+    expect(activeRestored.stdout).toBe(base.stdout);
+
+    const archiveBadDir = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-BAD-ARCH");
+    mkdirSync(archiveBadDir, { recursive: true });
+    writeFileSync(path.join(archiveBadDir, "spec.xml"), "<NgraceChangeSpec><broken>");
+    const archiveBad = runCli(sliceArgs(root));
+    expect(archiveBad.status).not.toBe(0);
+    const archiveErr = JSON.parse(archiveBad.stdout);
+    expect(archiveErr.ok).toBe(false);
+    expect(archiveErr.error.code).toBe("invalid-project");
+    expect(archiveErr.error.issues).toContain("xml.parse");
+    rmSync(archiveBadDir, { recursive: true, force: true });
+    const archiveRestored = runCli(sliceArgs(root));
+    expect(archiveRestored.status).toBe(0);
+    expect(archiveRestored.stdout).toBe(base.stdout);
+  });
+
+  it("context task slice omits .ngrace code: malformed selected active change spec refuses and restores byte-for-byte", () => {
+    const root = tempRoot();
+    writeQuerySliceCliFixture(root);
+    const base = runCli(sliceArgs(root));
+    expect(base.status).toBe(0);
+
+    const specPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-QUERY-SLICE", "spec.xml");
+    const specBytes = readFileSync(specPath, "utf8");
+    writeFileSync(specPath, "<NgraceChangeSpec><broken>");
+    const bad = runCli(sliceArgs(root));
+    expect(bad.status).not.toBe(0);
+    const err = JSON.parse(bad.stdout);
+    expect(err.ok).toBe(false);
+    expect(err.error.code).toBe("invalid-project");
+    expect(err.error.message).toContain("Unreadable spec at");
+    expect(err.error.message).toContain(specPath);
+    expect(err.error.issues).toBeUndefined();
+    writeFileSync(specPath, specBytes);
+    const restored = runCli(sliceArgs(root));
+    expect(restored.status).toBe(0);
+    expect(restored.stdout).toBe(base.stdout);
+  });
+});
+
 describe("skill recommendations", () => {
   it("absent cursor / no change yields the full published set", () => {
     const root = tempRoot();

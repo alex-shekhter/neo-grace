@@ -1793,6 +1793,8 @@ const AUTHORING_ARCHIVE_C_IDS = [
   "C-TOKEN-INTEGRITY",
 ] as const;
 
+const HISTORICAL_CLOSE_C_IDS = [...AUTHORING_ARCHIVE_C_IDS, "C-SUBSTANTIATION-HONESTY"] as const;
+
 describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
   it("identical-tree must raise: pure identical non-.ngrace digests", () => {
     const findings = auditAttemptPairWriteEvidence({
@@ -1979,20 +1981,19 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     expect(cursor.findings.filter((f) => f.code === RETIRED_ATTEMPT_PAIR_CODE)).toHaveLength(0);
   });
 
-  it("archive corpus: zero live and retired findings on every dynamically enumerated C-*", () => {
+  it("historical close corpus: zero live and retired findings on the frozen 27", () => {
     const repoRoot = path.resolve(import.meta.dir, "../..");
     const archiveDir = path.join(repoRoot, ".ngrace/changes/archive");
-    // Dynamic enumeration — no expect(dirs.length).toBe(26).
     const dirs = readdirSync(archiveDir).filter((name) => {
       if (!name.startsWith("C-")) return false;
       return statSync(path.join(archiveDir, name)).isDirectory();
     });
-    for (const id of AUTHORING_ARCHIVE_C_IDS) {
+    for (const id of HISTORICAL_CLOSE_C_IDS) {
       expect(dirs).toContain(id);
     }
     let totalLive = 0;
     let totalRetired = 0;
-    for (const id of dirs) {
+    for (const id of HISTORICAL_CLOSE_C_IDS) {
       const report = runReview(repoRoot, {
         changeId: id,
         changedFiles: [],
@@ -2008,6 +2009,48 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     }
     expect(totalLive).toBe(0);
     expect(totalRetired).toBe(0);
+  });
+
+  it("complete archive retired code: zero retired findings over every current C-*", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const archiveDir = path.join(repoRoot, ".ngrace/changes/archive");
+    const dirs = readdirSync(archiveDir).filter((name) => {
+      if (!name.startsWith("C-")) return false;
+      return statSync(path.join(archiveDir, name)).isDirectory();
+    });
+    let totalRetired = 0;
+    for (const id of dirs) {
+      const report = runReview(repoRoot, {
+        changeId: id,
+        changedFiles: [],
+        patterns: false,
+        joinEngine: false,
+      });
+      const retired = report.findings.filter((f) => f.code === RETIRED_ATTEMPT_PAIR_CODE);
+      expect(retired).toHaveLength(0);
+      totalRetired += retired.length;
+    }
+    expect(totalRetired).toBe(0);
+  });
+
+  it("T-005 warning remains observable through the real CLI", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const result = spawnSync(
+      "bun",
+      ["run", "./src/grace.ts", "review", "--path", ".", "--change", "C-DECLARATION-GUARD-RETIRE-1-C69B6AB6", "--format", "json"],
+      { cwd: repoRoot, encoding: "utf8" },
+    );
+    // The retained finding remains, so a non-zero review exit is expected.
+    expect(result.status).not.toBe(0);
+    const report = JSON.parse(result.stdout) as { findings: ReviewFinding[] };
+    const findings = report.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE);
+    expect(findings).toHaveLength(1);
+    const finding = findings[0]!;
+    expect(finding.anchorOrHunkKey).toBe("attempt-pair:T-005:14->15");
+    const bundleDir = ".ngrace/changes/archive/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6";
+    expect(finding.file === `${bundleDir}/run` || finding.file === `${bundleDir}/run-ledger.xml`).toBe(true);
+    expect(finding.severity).toBe("warning");
+    expect(finding.findingId).toMatch(/^[a-f0-9]{16}$/);
   });
 
   /** An archived bundle whose run/ holds one uncorroborated fail→pass pair. */

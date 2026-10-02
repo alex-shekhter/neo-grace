@@ -1,0 +1,432 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3>
+    <Summary>
+      Successor to `C-ARCHIVE-CORPUS-BASELINE-1-0AA78642`, carried forward from it with three
+      deliverables. (a) Keep the archive-repair scope: freeze the zero over the verified 27-bundle
+      historical close membership, keep the retired-code-only zero over the complete current archive,
+      and correct the retained T-005 criterion so it binds the finding by code and resolved anchor
+      rather than a directory-dependent id. (b) Repair query implementation-source collection in
+      `src/query/core.ts` so `.ngrace` code is excluded from implementation-source/module/context
+      entries while governance artifacts are still read and validated. (c) Add focused regression
+      coverage in `src/grace-query.test.ts` and consumer coverage in `src/grace-context.test.ts`.
+      Add the single additive `bun run validate:ci` entry to `.ngrace-lint.json`
+      `closeEvidenceCommandShapes`. `README.md` and `examples/` are unchanged; no new command,
+      option, installation procedure, or API shape is introduced. No skill, workflow, packaging,
+      version, or old-archive change. This is corrective work on `feat/retire-declaration-guard`.
+    </Summary>
+    <Goals>
+      <Goal>
+        Restore the CI suite to green on `feat/retire-declaration-guard` by scoping the corpus
+        regression to the verified historical close membership while keeping the retired-code
+        rejection over the complete current archive.
+      </Goal>
+      <Goal>
+        Keep the identical-tree detector, its positive fixtures, applied-archive auditing,
+        abandoned-archive exemptions, finding ids, severities, and bound-verdict behavior intact;
+        the retained T-005 warning stays observable through the real CLI.
+      </Goal>
+      <Goal>
+        Make the post-archive whole-CI run (`bun run validate:ci`) a close-bound criterion evaluated
+        in the applied-archive state, including this bundle's own archive arrival, so the failure
+        the predecessor's pre-archive-only validation missed cannot recur.
+      </Goal>
+      <Goal>
+        Repair implementation-source collection so query and context outputs exclude `.ngrace` code
+        while every governance artifact check, reader, projection, and malformed-artifact refusal is
+        preserved.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module change).
+      </Constraint>
+      <Constraint>
+        The permitted implementation files are exactly `src/review/core.test.ts`, `.ngrace-lint.json`,
+        `src/query/core.ts`, `src/grace-query.test.ts`, and `src/grace-context.test.ts`. Every tracked
+        path outside that set and outside this bundle's own artifact and lifecycle directories is
+        byte-identical to base `19d9e085a4523fdbe86dc5963d227d3ddc246d79`; this bundle's active and
+        archive directories are the permitted lifecycle writes, and no pre-existing archive is
+        exempted. `src/review/core.ts` and `src/review/catalog.ts` are byte-identical to that base,
+        preserving the identical-tree detector, its resolver, and its hashing. In `src/query/core.ts`,
+        the implementation-source `collectCodeFiles` call (`src/query/core.ts:75`) excludes
+        `ARTIFACT_DIR`, the same exclusion the root lint call already uses (`src/lint/core.ts:307`),
+        while preserving the configured `ignoredDirs` and `codeExtensions`; the independent
+        `validateNgraceProject` artifact checks, the active and archived XML readers, the graph and
+        verification projections, and the malformed-artifact refusal are unchanged, the generic
+        walker is not modified, governance validation is not bypassed, `.ngrace/scratch` is not
+        pruned from the walker, faithful scratch copies are not removed, and `.ngrace` is not added
+        to `ignoredDirs`. `.ngrace-lint.json` gains exactly one additive `closeEvidenceCommandShapes`
+        entry, `"bun run validate:ci"`, because that command matches no default discriminating
+        CloseEvidence shape and the lint engine's own remediation
+        (`change.close-evidence-undiscriminating`) names the config prefix as the remedy. The entry is
+        additive; it removes no default command shape and changes no other key or value.
+        `.ngrace-lint.json` and `.test.ts` files are not module-ownable write paths, so no synthetic
+        `LINKS:` header or new graph anchor is added for them.
+      </Constraint>
+      <Constraint>
+        Historical membership is the verified 27-bundle close membership: the existing 26
+        `AUTHORING_ARCHIVE_C_IDS` (authoring-time constant at `src/review/core.test.ts:1767-1794`)
+        plus the authoring bundle `C-SUBSTANTIATION-HONESTY`. It is verified against historical
+        close commit `20b9135b47771b66efebe40709dd7c777936d901` at authoring time and embedded as a
+        constant in the regression. The regression asserts every historical member still exists as a
+        `C-*` directory under `.ngrace/changes/archive/`. It must not assert that today's complete
+        archive contains exactly 27 members. The test consumes only the embedded list and the working
+        tree and requires no historical git object at runtime; full-history CI checkout is not
+        restored.
+      </Constraint>
+      <Constraint>
+        This overturns D0's ongoing dynamic-zero mechanism
+        (`.ngrace/changes/archive/C-SUBSTANTIATION-HONESTY/plan.xml:157-195`), which widened the
+        spec's 26-bundle zero (`C-SUBSTANTIATION-HONESTY/spec.xml:404-423`, `AC-ARCHIVE-CORPUS-ZERO`)
+        to every dynamically enumerated archive bundle. D0's original counterweight was prevention of
+        denominator shrink — a silently vanished bundle could not shrink the set being checked. The
+        frozen historical membership plus the required presence check preserves that counterweight
+        without promising zero live findings over every future delivery. The complete current archive
+        is still enumerated, but only the retired code `review.attempt-pair-unsubstantiated` is
+        required to be absent everywhere.
+      </Constraint>
+      <Constraint>
+        The retained live finding on `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6` (T-005 events 14→15,
+        code `review.attempt-pair-identical-tree`, severity warning) is acknowledged but remains
+        detected. Its immutable run events are not rewritten, no code suppresses the detector, and the
+        historical bound pass's Ack is not transferred to today's different whole snapshot (acks are
+        bound to a change id, snapshot digest, and finding id; `C-BOUND-VERDICT/spec.xml:430-530`).
+        The emitted finding id depends in part on the resolved anchor file — `findingId` hashes the
+        truthful resolved file (`src/review/core.ts:340-352` and `src/review/core.ts:1389-1403`) — so
+        it differs with and without the bundle's empty `run/` directory. The successor binds the
+        assertion to the archived bundle and the anchor `attempt-pair:T-005:14->15`, records the
+        emitted id, and never requires one directory-dependent value. The resolver and hash
+        implementation are preserved.
+      </Constraint>
+      <Constraint>
+        The full CI-equivalent verification runs at two lifecycle points, and neither replaces the
+        other. (a) The plan's `TargetAssertions` `MustPassCommand` runs `bun run validate:ci` under
+        `--assertions final --run-commands` before apply/archive, per `ngrace-plan` rule 20; that is
+        the outer apply/archive gate. (b) The close also evaluates a whole-CI `CloseEvidence`
+        criterion — `bun run validate:ci` again — in the applied-archive state, because the
+        pre-archive tree cannot contain this bundle's own archive arrival and the repaired
+        archive-corpus regression enumerates the archive. (c) Per `ngrace-plan` rule 19, the plan
+        additionally drives the `CloseEvidence` commands and the full CI in a faithful post-close
+        copy at plan time, carrying `.git` and `.ngrace/scratch` per that rule. `bun run validate:ci`
+        runs `test:metrics` (one full `bun test --timeout=0` suite) plus `typecheck`, whole-project
+        lint at error severity, and the marketplace, examples, determinism, packed, schema-reference,
+        skeleton-template, teaching-surface, citation-anchor, record-retirement, and
+        record-preservation validators; its `test:metrics` step executes the repaired archive-corpus
+        regression. No artifact promises that the full suite runs exactly once.
+      </Constraint>
+      <Constraint>
+        `README.md` and `examples/` are both unchanged and byte-identical to base
+        `19d9e085a4523fdbe86dc5963d227d3ddc246d79`; no new command, option, installation procedure, or
+        API shape is introduced. Query and context output values do change — they stop listing
+        invalid `.ngrace` source entries — but that is a corrected value set, not a new surface.
+        Owner: unchanged; no new command, option, or API shape.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        No broader archive compatibility, bundle-versioning, or historical-git restoration redesign
+        inside this repair; archive compatibility carries the maintainer's standing
+        immediate-investigation-and-ASAP-governed-repair instruction (see `CLAUDE.md`) and is not
+        deferred debt. Owner: the authority's archive-compatibility track.
+      </NonGoal>
+      <NonGoal>
+        No second detector, no severity change, and no new finding code. Owner: unchanged; no new
+        surface.
+      </NonGoal>
+      <NonGoal>
+        No rewrite of immutable attempt events and no suppression of the retained T-005 warning; the
+        events are immutable and detection stays live. Owner: unchanged; events are immutable.
+      </NonGoal>
+      <NonGoal>
+        `README.md` and `examples/` are unchanged, and no new command, option, installation
+        procedure, or API shape is added. Owner: unchanged; no new command, option, or API shape.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-HISTORICAL-MEMBERSHIP>
+        The regression embeds the verified 27-bundle historical close membership (the 26
+        `AUTHORING_ARCHIVE_C_IDS` plus `C-SUBSTANTIATION-HONESTY`) and asserts every member still
+        exists as a `C-*` directory under `.ngrace/changes/archive/`. Membership is verified at
+        authoring time against historical close commit
+        `20b9135b47771b66efebe40709dd7c777936d901`, which contains exactly those 27 `C-*` archive
+        directories. The regression must not assert that the complete current archive contains
+        exactly 27 members, and it must not require a historical git object at runtime. A test
+        selectable by `-t "historical close corpus"` carries this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "historical close corpus"</Command>
+        </CloseEvidence>
+      </AC-HISTORICAL-MEMBERSHIP>
+      <AC-HISTORICAL-ZERO>
+        For each of the 27 historical close members, `runReview` yields exactly 0 findings whose code
+        is `review.attempt-pair-identical-tree` and exactly 0 whose code is
+        `review.attempt-pair-unsubstantiated`; the aggregate over the set is 0 for both codes. This
+        zero is unconditional: a vanished member fails `AC-HISTORICAL-MEMBERSHIP` and a member that
+        starts raising fails here. A test selectable by `-t "historical close corpus"` carries this
+        assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "historical close corpus"</Command>
+        </CloseEvidence>
+      </AC-HISTORICAL-ZERO>
+      <AC-CURRENT-ARCHIVE-RETIRED-ZERO>
+        The regression enumerates the complete current archive — every directory under
+        `.ngrace/changes/archive/` whose name starts with `C-` — and asserts 0 findings whose code is
+        `review.attempt-pair-unsubstantiated` across the whole population. It does not assert 0 live
+        `review.attempt-pair-identical-tree` findings over the complete current archive, so a later
+        delivery's retained live warning does not redden the suite. A test selectable by
+        `-t "complete archive retired code"` carries this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "complete archive retired code"</Command>
+        </CloseEvidence>
+      </AC-CURRENT-ARCHIVE-RETIRED-ZERO>
+      <AC-DETECTOR-PRESERVED>
+        The identical-tree detector, its positive fixtures (identical non-`.ngrace/` trees raise,
+        both-empty trees raise, only-`.ngrace/`-differs raises), the applied-archive reddening, the
+        superseded/rejected/cancelled abandonment exemption, finding-id stability, warning severity,
+        and `REVIEW_CATALOG` registration of `review.attempt-pair-identical-tree` (with the retired
+        code absent) are preserved. `src/review/core.ts` and `src/review/catalog.ts` are byte-identical
+        to base `19d9e085a4523fdbe86dc5963d227d3ddc246d79`. The existing fixtures selectable by
+        `-t "identical-tree"` carry this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "identical-tree"</Command>
+        </CloseEvidence>
+      </AC-DETECTOR-PRESERVED>
+      <AC-T005-OBSERVABLE>
+        Fresh real-CLI JSON for the archived bundle `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`
+        (`bun run ./src/grace.ts review --path . --change C-DECLARATION-GUARD-RETIRE-1-C69B6AB6
+        --format json`) contains exactly one warning finding whose code is
+        `review.attempt-pair-identical-tree`, whose `file` is under that bundle's resolved location,
+        and whose `anchorOrHunkKey` is `attempt-pair:T-005:14->15`. The assertion binds the finding to
+        that bundle and anchor and must not match any unrelated bundle sharing a task/event key. The
+        emitted `findingId` is recorded as 16 hexadecimal characters and is never required to equal
+        one directory-dependent value: with the bundle's empty `run/` directory present the resolver
+        selects `…/run`, and without it selects `…/run-ledger.xml`, so the plan-time copy proof drives
+        both, and the resolver/hash implementation at `src/review/core.ts:340-352,1389-1403` is
+        preserved. A captured or synthesized report is not the instrument, detection is not
+        suppressed, and the immutable events are not rewritten. A test selectable by
+        `-t "T-005 warning remains observable"` carries this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "T-005 warning remains observable"</Command>
+        </CloseEvidence>
+      </AC-T005-OBSERVABLE>
+      <AC-QUERY-IMPLEMENTATION-SOURCE>
+        In `src/query/core.ts`, the implementation-source `collectCodeFiles` call
+        (`src/query/core.ts:75`) excludes `ARTIFACT_DIR` while preserving the configured `ignoredDirs`
+        and `codeExtensions`. A real project source file under the project root remains discoverable;
+        ordinary governed-code decoys under `.ngrace` are excluded from implementation-source,
+        module, and context entries; configured exclusions and extra code extensions still take
+        effect; and the independent `validateNgraceProject` artifact checks, the active and archived
+        XML readers, the graph and verification projections, and the malformed-artifact refusal are
+        unchanged. A test selectable by `-t "implementation source excludes .ngrace code"` in
+        `src/grace-query.test.ts` carries the query half; `AC-CONTEXT-COVERAGE` carries the consumer
+        half.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-query.test.ts -t "implementation source excludes .ngrace code"</Command>
+        </CloseEvidence>
+      </AC-QUERY-IMPLEMENTATION-SOURCE>
+      <AC-CONTEXT-COVERAGE>
+        Consumer coverage in `src/grace-context.test.ts` drives the real task-slice path —
+        `ngrace context --task &lt;T-*&gt; --change C-ADAPTER-HONESTY --format json`, or an equivalent
+        complete ordinary throwaway project — whose selected module projection includes `M-QUERY` and
+        is affected by a planted `.ngrace` source decoy. The fixed task-slice output is byte-identical
+        with and without the scratch copy; the unpatched collector exposes that copy in the slice.
+        Malformed active governance XML and malformed archived governance XML each still refuse, and
+        restoring each yields the valid output again. Declared graph and verification records remain;
+        the exclusion concerns collected implementation-file entries and their task-slice projections.
+        The coverage uses ordinary disposable projects and the real CLI, without mocks, monkey
+        patches, or advanced filesystem probes. A test selectable by
+        `-t "context task slice omits .ngrace code"` carries this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-context.test.ts -t "context task slice omits .ngrace code"</Command>
+        </CloseEvidence>
+      </AC-CONTEXT-COVERAGE>
+      <AC-WRITE-POPULATION-BOUNDED>
+        The whole write population is bounded, not a selected path list. Against base
+        `19d9e085a4523fdbe86dc5963d227d3ddc246d79`, every tracked path in the checkout is
+        byte-identical except the five permitted implementation files — `src/review/core.test.ts`,
+        `.ngrace-lint.json`, `src/query/core.ts`, `src/grace-query.test.ts`,
+        `src/grace-context.test.ts` — and this bundle's own active and archive directories; and no
+        nonignored untracked path exists outside those same exclusions. Ignored paths are outside
+        this inventory: a file under the gitignored `.ngrace/scratch/` is not seen by
+        `git ls-files --others --exclude-standard` and does not redden the criterion. Both a tracked
+        violation and a nonignored untracked violation refuse. The command is a compound
+        `git diff --exit-code` and `test -z` over `git ls-files --others`; neither stage is read
+        through a pipeline whose tail supplies the exit code.
+        <CloseEvidence>
+          <Command>git diff --exit-code 19d9e085a4523fdbe86dc5963d227d3ddc246d79 -- . ':(exclude)src/review/core.test.ts' ':(exclude).ngrace-lint.json' ':(exclude)src/query/core.ts' ':(exclude)src/grace-query.test.ts' ':(exclude)src/grace-context.test.ts' ':(exclude).ngrace/changes/active/C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3' ':(exclude).ngrace/changes/archive/C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3' &amp;&amp; ngrace_unexpected_paths=$(git ls-files --others --exclude-standard -- . ':(exclude)src/review/core.test.ts' ':(exclude).ngrace-lint.json' ':(exclude)src/query/core.ts' ':(exclude)src/grace-query.test.ts' ':(exclude)src/grace-context.test.ts' ':(exclude).ngrace/changes/active/C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3' ':(exclude).ngrace/changes/archive/C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3') &amp;&amp; test -z "$ngrace_unexpected_paths"</Command>
+        </CloseEvidence>
+      </AC-WRITE-POPULATION-BOUNDED>
+      <AC-DOCS-AND-EXAMPLES>
+        `README.md` and `examples/` are both byte-identical to base
+        `19d9e085a4523fdbe86dc5963d227d3ddc246d79`; no documentation path changes.
+        <CloseEvidence>
+          <Command>git diff --exit-code 19d9e085a4523fdbe86dc5963d227d3ddc246d79 -- README.md examples/</Command>
+        </CloseEvidence>
+      </AC-DOCS-AND-EXAMPLES>
+      <AC-NO-ARCHIVE-EDIT>
+        Every pre-existing bundle under `.ngrace/changes/archive/` is byte-identical to base
+        `19d9e085a4523fdbe86dc5963d227d3ddc246d79`. This bundle's own archive arrival
+        (`C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3`) is excluded because the close itself renames the
+        bundle into the archive after the base commit. The predecessor `C-ARCHIVE-CORPUS-BASELINE-1-0AA78642`
+        is already archived at that base (the supersede checkpoint), so it is frozen like every other
+        existing archive and no separate predecessor exclusion applies.
+        <CloseEvidence>
+          <Command>git diff --exit-code 19d9e085a4523fdbe86dc5963d227d3ddc246d79 -- .ngrace/changes/archive ':(exclude).ngrace/changes/archive/C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-CLOSE-LINT>
+        Warning-free lint is necessary but insufficient, and the exact config transformation is
+        `AC-LINT-CONFIG-DELTA`. In the applied-archive state the bundle lints clean at warning severity:
+        `bun run ./src/grace.ts lint --path . --change C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3
+        --assertions none --fail-on warnings` exits 0 with 0 errors and 0 warnings. This requires the
+        additive `.ngrace-lint.json` entry that makes the `bun run validate:ci` CloseEvidence
+        discriminating; without it the `change.close-evidence-undiscriminating` warning reddens this
+        criterion.
+        <CloseEvidence>
+          <Command>bun run ./src/grace.ts lint --path . --change C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3 --assertions none --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+      <AC-LINT-CONFIG-DELTA>
+        The `.ngrace-lint.json` change is exactly the additive transformation of the pinned base
+        config: every base key and value preserved, exactly one appended `closeEvidenceCommandShapes`
+        entry `"bun run validate:ci"`, and no other drift (no extra prefix, no `ignoredDirs` change).
+        The check reconstructs the expected file from base
+        `19d9e085a4523fdbe86dc5963d227d3ddc246d79:.ngrace-lint.json` into a disposable directory,
+        appends only that entry with Bun in the existing two-space/trailing-newline format, and
+        compares it to the working `.ngrace-lint.json` with `git diff --no-index --exit-code`.
+        Warning-free lint alone is insufficient and is not this guard: an unrelated prefix plus an
+        `ignoredDirs` addition also lints 0/0 while shrinking the checked population. The command
+        preserves a failed `git show`, Bun, or `git diff` exit through cleanup of the disposable
+        directory; it is close evidence and consumes no historical git object at test runtime.
+        <CloseEvidence>
+          <Command>tmp=$(mktemp -d) || exit 1; git show 19d9e085a4523fdbe86dc5963d227d3ddc246d79:.ngrace-lint.json > "$tmp/base.json" || { ec=$?; rm -rf "$tmp"; exit $ec; }; bun -e 'const fs=require("fs");const b=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));b.closeEvidenceCommandShapes=[...(b.closeEvidenceCommandShapes||[]),"bun run validate:ci"];fs.writeFileSync(process.argv[2],JSON.stringify(b,null,2)+"\n");' "$tmp/base.json" "$tmp/expected.json" || { ec=$?; rm -rf "$tmp"; exit $ec; }; git diff --no-index --exit-code "$tmp/expected.json" .ngrace-lint.json; ec=$?; rm -rf "$tmp"; exit $ec</Command>
+        </CloseEvidence>
+      </AC-LINT-CONFIG-DELTA>
+      <AC-CI-GREEN>
+        In the applied-archive state, including this bundle's own archive arrival, the full
+        CI-equivalent `bun run validate:ci` exits 0. This is the criterion genuinely about the whole
+        CI suite: `test:metrics` runs one full `bun test --timeout=0` suite — which includes the
+        repaired archive-corpus regression over the archive that now holds this bundle — and the
+        remaining steps run `typecheck`, whole-project lint at error severity, and the marketplace,
+        examples, determinism, packed, schema-reference, skeleton-template, teaching-surface,
+        citation-anchor, record-retirement, and record-preservation validators.
+        <CloseEvidence>
+          <Command>bun run validate:ci</Command>
+        </CloseEvidence>
+      </AC-CI-GREEN>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+      <M-QUERY />
+      <M-CONTEXT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        The verification contract has three lifecycle surfaces, and the draft must not overstate any
+        of them. (1) Focused per-criterion CloseEvidence commands, evaluated by the close in the
+        applied-archive state: `bun test --timeout=0 src/review/core.test.ts` selectors for the
+        historical-close corpus, the complete-archive retired-code scan, the preserved identical-tree
+        fixtures, and the corrected real-CLI T-005 finding; `src/grace-query.test.ts` and
+        `src/grace-context.test.ts` selectors for the `.ngrace` implementation-source boundary and
+        its consumer effect; the combined tracked-plus-nonignored-untracked scope inventory and the
+        exact `.ngrace-lint.json` transformation; the README/examples byte-invariance diff; and the
+        `--fail-on warnings` lint of the archived bundle. (2) The whole-CI instrument
+        `bun run validate:ci`, run both at the plan's `TargetAssertions` `MustPassCommand` under
+        `--assertions final --run-commands` before apply/archive and again as a close-bound
+        `CloseEvidence` in the applied-archive state, with the post-close rule-19 gate-verdict drive
+        finishing and its per-criterion Result/Exit read through the shipped ledger reader. (3) The
+        `ngrace-plan` rule 19 faithful post-close planning-copy drive, which exercises the new
+        `CloseEvidence` commands, the T-005 finding with and without the empty `run/` directory, the
+        historical guard on its 27-member fixture in both directions, and the query/context boundary
+        on ordinary disposable projects. Evidence limits at this draft stage: the historical scan
+        proves the selected baseline, not the new guard's red direction; the query boundary is proven
+        by a disposable copy prototype, not a landed regression; and the post-close full-CI aggregate
+        exit and ledger tally belong to plan stage. At authoring time the whole-population scan and
+        the 27-member rescore are dated measurements, not criteria. No full suite is executed at this
+        draft stage.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      CI on branch `feat/retire-declaration-guard` fails the test `archive corpus: zero live and
+      retired findings on every dynamically enumerated C-*` at `src/review/core.test.ts:2004`. CI
+      reported 2,478 pass, 6 skip, 1 fail, and `validate:ci` exited 1; the Windows and Dart jobs
+      passed. The test grew an over-broad assertion from D0's plan-level widening: the spec's
+      `AC-ARCHIVE-CORPUS-ZERO` (`C-SUBSTANTIATION-HONESTY/spec.xml:404-423`) pinned zero over 26
+      authoring bundles, and D0 (`C-SUBSTANTIATION-HONESTY/plan.xml:157-195`) widened that to a
+      dynamic enumeration of the whole archive, asserting zero live findings on every enumerated
+      bundle. That widening was correct for its original counterweight — it caught a silent vanish by
+      enumerating dynamically and asserting presence of a frozen authoring set — but it silently
+      converted the zero into a promise over every future delivery.
+
+      The promise now fails for a legitimate, retained result. Whole-population measurement at the
+      supersede checkpoint `19d9e085a4523fdbe86dc5963d227d3ddc246d79` found 164 direct `C-*` archive
+      directories — including the predecessor archived as `superseded` — one live attempt-pair finding,
+      and zero retired-code findings. The sole live finding is on
+      `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`, T-005 events 14→15, code
+      `review.attempt-pair-identical-tree`, severity warning. The chronology claim for that pair was
+      withdrawn and the finding acknowledged, but the immutable attempt events remain and the detector
+      correctly still raises. The current full review has an unchanged historical tail of
+      `review.confidently-wrong` findings on other archived bundles; the latest historical bound pass's
+      Ack is bound to that historical snapshot, not to today's different whole snapshot, so it does not
+      clear this finding.
+
+      The historical close commit `20b9135b47771b66efebe40709dd7c777936d901` contains exactly 27
+      archive bundles: the 26 `AUTHORING_ARCHIVE_C_IDS` plus `C-SUBSTANTIATION-HONESTY` itself. A
+      fresh rescore of all 27 yields zero live and zero retired findings, and the five existing
+      positive/F286 fixtures pass. That is the verified historical baseline this change freezes.
+
+      The predecessor `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6` ran the full `bun run validate:ci`
+      `MustPassCommand` only before apply/archive (`plan.xml:37-44`) and its post-archive verdict ran
+      only focused commands (`spec.xml:473-480`), explicitly never rerunning the root suite or
+      `validate:ci`. Because the archive-corpus test enumerates the archive, the pre-archive run did
+      not see the bundle's own arrival, and the post-archive focused checks omitted the suite that
+      would have caught it. This change therefore keeps a frozen zero over the verified historical
+      membership, keeps the retired-code rejection over the complete archive, and adds a post-archive
+      whole-suite criterion so the same gap cannot recur.
+
+      A second, independent defect surfaced in the same review. Query and context
+      implementation-source collection walks `.ngrace`. The authority's 2026-10-01 causal probe on an
+      ordinary copy measured the original context CLI at 14.31s, a config-only scratch exclusion at
+      2.55s, and the restored run at 13.61s with byte-for-byte identical output; the gitignored
+      `.ngrace/scratch` contributed 6,040 source files / 156,660,197 bytes and 342 scratch projection
+      lines. The root lint implementation-source call already excludes `ARTIFACT_DIR`
+      (`src/lint/core.ts:307`); the query call does not (`src/query/core.ts:75`). This successor
+      repairs that one call while preserving the independent `validateNgraceProject` artifact checks,
+      the active and archived XML readers, the graph and verification projections, and the
+      malformed-artifact refusal (`C-PER-BUNDLE-READERS-1-58BB7AB1` whole-project equivalence and
+      malformed-bundle refusal), and `F253` read-only scratch in faithful copies.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        Measurements re-taken 2026-10-01 on branch `feat/retire-declaration-guard` at HEAD
+        `19d9e085a4523fdbe86dc5963d227d3ddc246d79` (the tracked tree is clean apart from this draft's
+        own `spec.xml`, which is modified, and its untracked `design-context.xml`; the predecessor is
+        archived as `superseded`; `AGENTS.md` is a symlink to `CLAUDE.md`): 164 direct `C-*` archive
+        directories; the whole-population review produced 1 live `review.attempt-pair-identical-tree`
+        finding (`C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`, emitted id `792aa42b0c989c73` in the real
+        checkout) and 0 retired `review.attempt-pair-unsubstantiated` findings. These are occupied
+        states and expire; they are not criteria.
+      </Assumption>
+      <Assumption>
+        The historical close membership is the 27 bundles present at
+        `20b9135b47771b66efebe40709dd7c777936d901`; a fresh review over those 27 at `19d9e085`
+        produced 0 live and 0 retired attempt-pair findings, and the positive identical-tree and F286
+        detector fixtures pass. The current reading under `bun test --timeout=0 src/review/core.test.ts
+        -t "identical-tree"` is 17 pass / 1 fail; the single failure is the corpus test itself, not a
+        detector fixture. The real-checkout T-005 emitted id is `792aa42b0c989c73` while the empty
+        `run/` directory is present and differs in a fresh clone. These figures expire and are not
+        criteria.
+      </Assumption>
+      <Assumption>
+        The two populations are distinct: the whole-archive failure proves the baseline failure, and
+        the clean 27-member historical scan proves the selected historical baseline, but neither
+        proves the red direction of the historical guard; that direction is a plan-time fixture duty
+        (`VerificationIntent`). The query/context boundary is proven by a disposable-copy prototype at
+        this stage, not a landed regression. The draft-state lint reports the
+        `change.close-evidence-undiscriminating` warning for `AC-CI-GREEN` while the
+        `.ngrace-lint.json` prefix is deliberately not landed; a disposable fixture carrying the
+        intended prefix lints 0/0.
+      </Assumption>
+    </Assumptions>
+  </C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3>
+</NgraceChangeSpec>

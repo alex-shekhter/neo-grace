@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "bun:test";
@@ -150,6 +150,61 @@ function createQueryProject() {
   writeGovernedFiles(root);
   return root;
 }
+
+function governedLinker(links: string): string {
+  return `// START_MODULE_CONTRACT
+//   PURPOSE: Ordinary governed fixture file.
+//   SCOPE: Exercise implementation-source collection.
+//   DEPENDS: none
+//   LINKS: ${links}
+//   ROLE: RUNTIME
+// END_MODULE_CONTRACT
+//
+// START_MODULE_MAP
+//   probe - fixture export
+// END_MODULE_MAP
+export const probe = true;
+`;
+}
+
+describe("implementation source excludes .ngrace code", () => {
+  it("implementation source excludes .ngrace code: keeps governed project source discoverable", () => {
+    const root = createQueryProject();
+    writeProjectFile(root, `${ARTIFACT_DIR}/decoy/planted.ts`, governedLinker("M-DB"));
+    const index = loadGraceArtifactIndex(root);
+    const collected = index.files.map((file) => file.path);
+    expect(collected).toContain("src/provider/config-repo.ts");
+    expect(collected).not.toContain(`${ARTIFACT_DIR}/decoy/planted.ts`);
+    expect(collected.some((file) => file.startsWith(`${ARTIFACT_DIR}/`))).toBe(false);
+    const dbFiles = resolveModule(index, "M-DB").localFiles.map((file) => file.path);
+    expect(dbFiles).toContain("src/db/index.ts");
+    expect(dbFiles).not.toContain(`${ARTIFACT_DIR}/decoy/planted.ts`);
+    expect(index.issues.filter((issue) => issue.severity === "error")).toHaveLength(0);
+  });
+
+  it("implementation source excludes .ngrace code: configured extra extension applies in both directions", () => {
+    const root = createQueryProject();
+    const probe = "src/query/probe.ex";
+    // .ex is absent from the default CODE_EXTENSIONS set, so only config can add it.
+    writeProjectFile(root, probe, governedLinker("M-DB"));
+    expect(loadGraceArtifactIndex(root).files.map((file) => file.path)).not.toContain(probe);
+    writeProjectFile(root, ".ngrace-lint.json", `${JSON.stringify({ codeExtensions: [".ex"] }, null, 2)}\n`);
+    expect(loadGraceArtifactIndex(root).files.map((file) => file.path)).toContain(probe);
+    rmSync(path.join(root, ".ngrace-lint.json"));
+    expect(loadGraceArtifactIndex(root).files.map((file) => file.path)).not.toContain(probe);
+  });
+
+  it("implementation source excludes .ngrace code: configured ignoredDirs applies in both directions", () => {
+    const root = createQueryProject();
+    const vendor = "vendor/skipped.ts";
+    writeProjectFile(root, vendor, governedLinker("M-DB"));
+    expect(loadGraceArtifactIndex(root).files.map((file) => file.path)).toContain(vendor);
+    writeProjectFile(root, ".ngrace-lint.json", `${JSON.stringify({ ignoredDirs: ["vendor"] }, null, 2)}\n`);
+    expect(loadGraceArtifactIndex(root).files.map((file) => file.path)).not.toContain(vendor);
+    rmSync(path.join(root, ".ngrace-lint.json"));
+    expect(loadGraceArtifactIndex(root).files.map((file) => file.path)).toContain(vendor);
+  });
+});
 
 describe("grace query core", () => {
   it("loads .ngrace projections and file-local module context into one index", () => {

@@ -1,0 +1,730 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-DECLARATION-GUARD-RETIRE-1-C69B6AB6>
+    <Summary>
+      **Retire the syntax declaration-count guard and the `validate` job's full-history dependency
+      together, and replace the committed timing cache with raw JUnit generated afresh on every
+      `test:metrics` invocation.** The guard (`coverageRegressions`, `scripts/audit-regressions.test.ts:346`)
+      reddens when a `*.test.ts` at HEAD carries fewer `it(`/`test(` occurrences than the same file at
+      base `2434fd467458e15c12414a74e37b09f9d71bdfd2`. It counted syntactic declarations in files that
+      already existed — never executed code, assertion strength, or coverage added in a new file — and
+      its `git show` error path `continue`s (`:353-354`), so a shallow checkout compares nothing and
+      reports green. That fail-open is reproduced below and is the reason the guard is retired, not
+      replaced by a different count or a coverage percentage. The `validate` job checked out full
+      history (`.github/workflows/validate.yml`, `fetch-depth: 0`) solely so the guard could read one
+      historical object.
+
+      The committed `test-metrics.json` is deleted. `scripts/test-metrics.ts` becomes a one-suite
+      wrapper (the `package test:metrics` and `validate:ci` one-suite arrangement is unchanged): it
+      spawns `bun test` once, writes a brand-new raw JUnit report for that invocation to a unique OS
+      temporary directory outside the repository — or to the documented `NGRACE_TEST_REPORT_PATH`
+      override — removes any pre-existing configured report before spawning so an old file cannot be
+      mistaken for this run, prints the report location, parses the current report for the
+      slowest-test ranking, propagates the child's actual nonzero exit, and retains the failure report.
+      An override that resolves inside the repository is refused before any `mkdir`, unlink, or spawn —
+      including through a symlinked parent, which a lexical prefix check cannot see — so a raw report
+      can never be written into the tree. A successful child whose report is missing, unreadable, or
+      malformed is a diagnostic nonzero with no ranking and no stale reuse; a spawn failure is a
+      diagnostic nonzero with no retry; and a failing child's exact OS exit code survives a missing or
+      malformed report.
+      No digest, `schemaVersion`, `group` field, JSON cache, no-write-when-fresh predicate, or
+      committed timing artifact remains; visibility into the current slow tests, one suite, and no
+      committed timing noise survive as raw output.
+
+      `.github/workflows/validate.yml` loses the `validate` job's `fetch-depth: 0`, sets
+      `NGRACE_TEST_REPORT_PATH` for that job, and adds an upload step using the verified current
+      official `actions/upload-artifact` major with `if: always()`, so a failing suite still yields
+      evidence and a successful upload cannot mask or replace the run's failure.
+
+      **Ceremony tier T1** (single-package change). **Module anchor:** `scripts/test-metrics.ts` and
+      `scripts/test-affected.ts` each declare `LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]`,
+      so `M-RELEASE-AUTOMATION` is the honest module anchor and is named in `AffectedAreas` and
+      wherever this spec enumerates modules; `V-M-RELEASE-AUTOMATION` is its verification sibling. No
+      other touched path is module-ownable — `isModuleOwnableWritePath` (`src/lint/core.ts:735-744`)
+      owns only non-test `src/` paths — so no synthetic module is minted and no `LINKS:` header is
+      added to a script.
+
+      The write surface is exactly seven deliverable paths — `scripts/audit-regressions.test.ts`,
+      `.github/workflows/validate.yml`, `scripts/test-metrics.ts`, `scripts/test-metrics.test.ts`,
+      `test-metrics.json` (deleted), `scripts/test-affected.ts`, and `README.md` — plus this bundle's
+      own artifacts under `.ngrace/changes/active/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6/**`.
+      `package.json`, `examples/`, `.github/workflows/publish.yml`, applied archives, and record XML do
+      not change. This bundle pays no finding and writes no record XML; the overturns are durable in
+      this spec's `Problem`, `Constraints`, and acceptance criteria and in `design-context.xml`.
+    </Summary>
+    <Goals>
+      <Goal>
+        **Remove the declaration-count guard and only the symbols that constitute it.**
+        `scripts/audit-regressions.test.ts` loses `COVERAGE_BASE` (`:340`), `declaredTests` (`:342`),
+        `coverageRegressions` (`:346`), the `C-TEST-TIME-BUDGET-2-3EC1F016 coverage never falls`
+        describe and its test (`:358-362`), and `validateJobCheckoutDepth` (`:374`). It retains
+        `collectTestFiles` (`:102`), `validateCiRerunsSuite` (`:316`) and the
+        `C-TEST-TIME-BUDGET-2-3EC1F016 validate:ci one suite run` test (`:327-336`), the README guard
+        (`:409-412`), the `prepin CI retirement` guard (`:1801-1830`), and every unrelated assertion.
+        The `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 checkout and README guards` describe is retitled
+        `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 README guard` and keeps only its README test, because the
+        checkout it named is retired. The JSON-only import (`:7`) and the metrics-staleness assertions
+        inside the `prepin fixture discovery` test (`:1632-1641`) are removed, while the containing
+        test stays, retitled to a truthful invariant such as `prepin fixture discovery finds no test
+        files` (`:1619`), and its fixture-walker invariant
+        (`walk(dir).some((full) => full.endsWith(".test.ts"))`, `:1631`) stays. Two named tests lose
+        declarations: the `C-TEST-TIME-BUDGET-2-3EC1F016 coverage never falls` test (`:358-362`) and
+        the checkout-depth `it` inside the `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 checkout and README
+        guards` describe (`:403-407`). No replacement declaration-count, test-count, or test-volume
+        guard is added.
+      </Goal>
+      <Goal>
+        **Retire the `validate` job's full-history dependency with the guard it served.**
+        `.github/workflows/validate.yml`'s `validate` job Checkout step declares no `with:` block and no
+        `fetch-depth`, so it is `uses: actions/checkout@v5` with no inputs. `publish.yml` keeps all
+        three of its `fetch-depth: 0` declarations (`:34`, `:137`, `:194`), and `validate.yml`'s
+        `windows-compatibility` and `dart-adapter` checkouts are unchanged.
+      </Goal>
+      <Goal>
+        **Replace the committed timing cache with a fresh raw JUnit report per invocation.**
+        `scripts/test-metrics.ts` spawns `bun test` exactly once, writes a new raw JUnit report for that
+        invocation, prints the slowest-test ranking parsed from that current report and the report
+        location, propagates the child's nonzero exit, and retains the produced report. `test-metrics.json`
+        is deleted, and no digest, `schemaVersion`, `group` field, provisional JSON, cache, or
+        no-write-when-fresh branch remains. It reports a diagnostic nonzero with no ranking and no
+        stale reuse when the child succeeds but the current report is missing, unreadable, or
+        malformed, and a diagnostic nonzero without retry when the Bun spawn fails or yields no usable
+        status.
+      </Goal>
+      <Goal>
+        **Handle the report path safely and document one override.** The default report path is a
+        unique directory under `os.tmpdir()`, outside the repository. When `NGRACE_TEST_REPORT_PATH` is
+        set, the report is written exactly there (its parent directory created if absent), and any file
+        already at that path is removed before the suite spawns, so a stale report cannot be mistaken
+        for the current run. The produced location is always printed. Any override that resolves
+        inside the repository is refused before `mkdir`, unlink, or spawn, including an override whose
+        parent is a symlink into the repository; the check is canonical (resolved) rather than a
+        lexical prefix, so a `..` or symlinked path cannot slip a raw report into the tree.
+      </Goal>
+      <Goal>
+        **Upload the current report in CI without masking the run's failure.**
+        `.github/workflows/validate.yml` sets `NGRACE_TEST_REPORT_PATH` to
+        `${{ runner.temp }}/ngrace-test-reports/junit.xml` and adds an upload step for exactly that file
+        using the verified current official `actions/upload-artifact` major with `if: always()` and no
+        `continue-on-error`, so the step runs after a failing suite, uploads only the current report,
+        and cannot replace or hide the test failure.
+      </Goal>
+      <Goal>
+        **Discriminate the kept runner, parser, and ranking behaviorally.**
+        `scripts/test-metrics.test.ts` is rewritten without the committed-artifact tests and drives the
+        real runner in a disposable project with a fake inner `bun` on `PATH`: a passing run produces a
+        current report and ranking; a failing run leaves the real runner's exit nonzero and retains the
+        report; restoring the assertion passes again; a poisoned legacy `test-metrics.json` is neither
+        read nor written; and the fake records exactly one inner suite spawn per run. The same tests
+        drive the refusal paths: an in-repository override (including through a symlinked parent) is
+        refused with zero child attempts and a planted repository file left unchanged; a child that
+        succeeds with a missing, unreadable, or malformed report is a diagnostic nonzero with no
+        ranking; a spawn failure is a diagnostic nonzero with no retry; and a fake child exiting 7
+        preserves exit 7 and retains any produced report bytes. The parser and ranking are also driven
+        directly.
+      </Goal>
+      <Goal>
+        **Prove the removal and the branch-wide scope without permanent base-pinned tests.** The
+        surgical review (each changed file equals its base blob plus only the named edits) and the
+        global tracked-plus-nonignored-untracked inventory are one-time plan and authority evidence, not
+        a test block added to the suite. Close evidence stays reproducible and fail-closed.
+      </Goal>
+      <Goal>
+        **Document the behavior change and keep the dev-loop map honest.**
+        `README.md` describes the single-suite run, the fresh raw report written outside the repository,
+        and the `NGRACE_TEST_REPORT_PATH` override, and no longer says the command writes
+        `test-metrics.json`. `scripts/test-affected.ts` drops the now-dead `test-metrics.json` edge.
+      </Goal>
+      <Goal>
+        **Answer the overturns durably.** This spec's `Problem`, `Constraints`, and acceptance criteria
+        and its `design-context.xml` cite applied `AC-COVERAGE-INTACT` and `AC-WORKFLOW-FULL-HISTORY`
+        and applied `C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0`'s freshness and no-churn contracts, state
+        exactly why each is overturned, and name the counterweights that are retained. No applied
+        archive byte is edited.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        **Tier and base.** Ceremony tier **T1** (single-package module change). Base commit
+        `06996d65dff05e53c7b18fae93a017d55c8c2d55`, the branch tip at authoring. That full hash is the
+        baseline for every close-time diff and byte-invariance relation. This bundle is not a supersede
+        and pays no finding, and it commits into no roadmap phase.
+      </Constraint>
+      <Constraint>
+        **Write surface, enumerated consistently.** The production write surface is exactly seven paths:
+        `scripts/audit-regressions.test.ts`, `.github/workflows/validate.yml`, `scripts/test-metrics.ts`,
+        `scripts/test-metrics.test.ts`, `test-metrics.json` (deleted), `scripts/test-affected.ts`, and
+        `README.md`. The bundle also writes its own artifacts under
+        `.ngrace/changes/active/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6/**` (this `spec.xml`,
+        `design-context.xml`, the later `plan.xml`, and the execution `run.xml`, `run/`, and
+        `run-ledger.xml`), and the close renames that directory to
+        `.ngrace/changes/archive/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6/**`. No other path is written:
+        `package.json` keeps `validate:ci` and `test:metrics` byte-identical, `.github/workflows/publish.yml`
+        and every other job's checkout are untouched, `examples/` and every `src/`, graph, verification,
+        context, skill, and applied-archive byte are untouched, and no new fixture, sidecar test, or
+        `.gitignore` entry is added. The seven files are enumerated in the `Summary` and here; the
+        module list is enumerated in the `Summary`, in the module-anchor Constraint, and in
+        `AffectedAreas`. Every repetition must agree (F136.1).
+      </Constraint>
+      <Constraint>
+        **The guard retirement is a bounded removal, not a rewrite.**
+        `scripts/audit-regressions.test.ts` removes exactly `import { artifactIsStale } from "./test-metrics";`
+        (`:7`), `COVERAGE_BASE` with its preceding comment banner, `declaredTests`, `coverageRegressions`,
+        the `C-TEST-TIME-BUDGET-2-3EC1F016 coverage never falls` describe and its test,
+        `validateJobCheckoutDepth` with its doc comment, and the depth `it` inside the
+        `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 checkout and README guards` describe; it removes the
+        metrics lines inside the `prepin fixture discovery` test (`:1632-1641`); it retitles that
+        now-README-only describe to `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 README guard`; and it
+        retitles the `prepin fixture discovery` test (`:1619`) to a truthful invariant such as
+        `prepin fixture discovery finds no test files`, preserving the containing test and its walker
+        assertion (`:1631`). Two tests lose declarations: the coverage guard test (`:358-362`) and the
+        checkout-depth guard test (`:403-407`). It changes no other symbol or assertion. Do not remove
+        another guard, do not weaken an unrelated assertion,
+        do not remove the `prepin fixture discovery` test, do not remove the `prepin CI retirement`
+        guard, and do not add a replacement declaration-count or test-volume guard.
+      </Constraint>
+      <Constraint>
+        **Full history retires only where the guard required it.**
+        `.github/workflows/validate.yml`'s `validate` job Checkout step drops the `with:` block and the
+        `fetch-depth: 0` line, so the step is `uses: actions/checkout@v5` with no inputs, matching the
+        `windows-compatibility` job's Checkout. Nothing else about that checkout changes.
+        `publish.yml` keeps all three `fetch-depth: 0` declarations, and `validate.yml`'s
+        `windows-compatibility` and `dart-adapter` checkouts are unchanged. The claim recorded here is
+        that the `validate` job no longer needs a historical object; that is true only because
+        `coverageRegressions` and its `2434fd4…` read are gone.
+      </Constraint>
+      <Constraint>
+        **The report is raw, fresh per invocation, and outside the repository.**
+        `scripts/test-metrics.ts` writes a raw JUnit report produced by this invocation and no other.
+        The default output is a unique directory created under `os.tmpdir()`; the only override is the
+        documented environment variable `NGRACE_TEST_REPORT_PATH`. Any file already at the resolved
+        report path is removed before `bun test` is spawned, and the parent directory is created when
+        missing, so a previous run's report cannot be read as this run's. The runner prints the report
+        path. On a nonzero child status the runner exits nonzero and leaves the produced report in
+        place; on success the report is also left in place. No report is written inside the repository
+        by default, no report is committed, and no hostname or private absolute path from a local report
+        is pasted into a public artifact. An override that resolves inside the repository, including
+        through a symlinked parent, is refused before `mkdir`, unlink, or spawn, because the check is
+        canonical rather than lexical.
+      </Constraint>
+      <Constraint>
+        **One suite invocation is preserved, and the inner spawn happens exactly once.**
+        `validate:ci` runs the whole suite exactly once through `bun run test:metrics` and adds no
+        second test command; the retained `validateCiRerunsSuite` guard reads that. The production path
+        makes exactly one suite-launch attempt when preparation succeeds; a refused override makes zero attempts
+        (`bun test --timeout=0 --reporter=junit --reporter-outfile=&lt;report&gt;`); the plan proves this with
+        a real runner launch and a fake inner `bun`, never with an assertion about a fake outer process.
+        The runner exits non-zero when the suite fails. No duration gates the build.
+      </Constraint>
+      <Constraint>
+        **Runner refusal paths are diagnostic.** A successful child whose
+        current JUnit report is missing, unreadable, or malformed yields a diagnostic nonzero exit with
+        no fabricated ranking and no reuse of a previous report. A Bun spawn failure or a child with no
+        usable status yields a diagnostic nonzero exit with no retry. A failing child's exact OS exit
+        code survives a missing or malformed report, and any report bytes the child produced are
+        retained. A valid run makes exactly one suite attempt; an invalid override makes zero attempts;
+        a spawn failure makes one attempt and is not retried. Parsing stays minimal: the parser reads
+        `&lt;testcase&gt;` file, name, and time and adds no generalized schema or threshold.
+      </Constraint>
+      <Constraint>
+        **CI upload semantics.** The `validate` job sets
+        `NGRACE_TEST_REPORT_PATH` to `${{ runner.temp }}/ngrace-test-reports/junit.xml`, an absolute
+        path outside the repository. The upload step uses the official
+        `actions/upload-artifact` action at the current verified major, uploads exactly that one report
+        path, runs with `if: always()` so it also runs after a failing suite, sets no
+        `continue-on-error`, and uploads no unrelated temporary data. The upload step cannot change the
+        job's failure outcome, so an upload success never hides or replaces the test failure. The chosen
+        action major is verified at execution against the action's upstream release rather than copied
+        from a scratch fixture; the verification is recorded in `Assumptions`.
+      </Constraint>
+      <Constraint>
+        **The dependency map drops the deleted artifact and nothing else.**
+        `scripts/test-affected.ts` removes only the `"test-metrics.json": ["scripts/test-metrics.test.ts"]`
+        edge (`:46`), because the artifact no longer exists. Every other edge, including the `README.md`
+        and `.github/workflows/validate.yml` edges, stays. `scripts/test-affected.test.ts` is unchanged
+        and must still pass.
+      </Constraint>
+      <Constraint>
+        **The overturn of the guard, with citations and the counter-argument answered.** Applied
+        `AC-COVERAGE-INTACT` (`.ngrace/changes/archive/C-TEST-TIME-BUDGET-4-F173437E/spec.xml:527-536`)
+        required that no `*.test.ts` at HEAD carry fewer `it(`/`test(` declarations than at base
+        `2434fd4…`. It was a test-deletion brake during a time-budget optimization, not a
+        code-coverage or assertion-strength measure; it counts syntactic declarations in files that
+        already exist, ignores coverage added elsewhere, and `continue`s when `git show` fails, so a
+        depth-one checkout makes it falsely green (reproduced; see `Problem`). Applied
+        `AC-WORKFLOW-FULL-HISTORY`
+        (`.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/spec.xml:712-720`) required
+        `fetch-depth: 0` so a historical mint control was present. That control is gone.
+        **No broad behavioral floor replaces `AC-COVERAGE-INTACT`.** The removed guard was a
+        declaration-count proxy, never a suite-wide floor, and this bundle substitutes no new floor,
+        percentage, or test-volume score. The counterweights the retired bundle carried are retained:
+        visibility into the current slow tests survives as the raw ranking, the single suite invocation
+        survives as the `validate:ci` one-suite guard, committed timing noise is removed by deleting the
+        artifact, and unrelated behavior is preserved by retaining every other guard and assertion.
+        What continues is the existing contract-specific discipline — behavioral tests, real CLI happy
+        and refusal paths, byte-preservation checks where promised, and targeted fault mutations that
+        prove a test can fail — and each future change must bring that evidence for its own subject.
+        Static lint and typecheck remain structural checks; they are not claims of behavioral coverage.
+      </Constraint>
+      <Constraint>
+        **The overturn of the committed JSON cache, with citations and the counter-argument answered.**
+        The committed timing artifact was introduced under
+        `C-TEST-TIME-BUDGET-4-F173437E/spec.xml:484-490`, and its one-suite freshness predicate under
+        applied `C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0/spec.xml:358-372`. Those applied contracts required
+        a committed `test-metrics.json` that is byte-identical when the test population is unchanged and
+        regenerates only when stale, so that a bundle adding no test file leaves no churn. This bundle
+        overturns that requirement because the artifact is a cache of a JUnit report and a cache is not
+        needed to view current slow tests: a report generated afresh for every invocation is by
+        construction current, has no freshness predicate to fail open, and produces no committed churn
+        because nothing is committed. The retained counterweights are stated: one suite
+        (`validate:ci` still runs `test:metrics` once), no committed timing noise (the artifact is
+        deleted), and current visibility (the runner prints the ranking from this run's report). The
+        bundle adds no JSON cache, quality score, broad log-analysis framework, arbitrary threshold, or
+        second suite.
+      </Constraint>
+      <Constraint>
+        **Withdrawn mechanisms, named so none returns by accident.** This design withdraws and binds
+        absent: the SHA-256 source digest and any `sourceDigest` field; a `"2.0.0"` schema version or
+        any versioned artifact format; a `group` field on recorded cases; a runner seam mandated solely
+        for digest-cache testing; permanent base-pinned ordinary-suite inventory or surgical-shape test
+        blocks; and any bundle-local close test. A sensible implementation seam is permitted if the
+        implementation needs one, but no test-only seam is required and no probe may assert across a
+        fake outer process. The kept surface is the parser, the ranking, and the one-suite runner.
+      </Constraint>
+      <Constraint>
+        **No coverage threshold replaces the guard, and no coverage tooling is added.** This bundle
+        adds no coverage reporter, no percentage floor, and no minimum test count. Measured executed
+        code coverage is diagnostic-only and belongs to a future separately ratified change
+        (`design-context.xml` DeferredDecisions). No criterion in this spec asserts a coverage
+        percentage.
+      </Constraint>
+      <Constraint>
+        **Module anchor honesty.** `M-RELEASE-AUTOMATION` is named in `AffectedAreas` and in every
+        place this spec enumerates modules. `V-M-RELEASE-AUTOMATION` is its verification sibling.
+        `scripts/test-metrics.ts` and `scripts/test-affected.ts` already declare both in their `LINKS:`
+        headers; this bundle does not add or change a `LINKS:` header, does not mint a synthetic module,
+        and does not anchor a module the touched paths do not link.
+      </Constraint>
+      <Constraint>
+        **No record payment.** This bundle writes no `docs/plans/active/RM-GOVERNED-PATH` record entry
+        and flushes no record XML. The close writes only this bundle's own archive arrival. The
+        overturns are durable in this spec and in `design-context.xml`.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        **`examples/` is unchanged.** Owner: unchanged; no example exercises the declaration-count
+        guard, the `validate` checkout depth, or the metrics runner, so no expected output changes. The
+        write scope permits no `examples/` byte.
+      </NonGoal>
+      <NonGoal>
+        **No code-coverage threshold, reporter, or test-volume score is added.** Owner: a later,
+        separately ratified change for diagnostic coverage, if the maintainer chooses it. This bundle
+        adds none and makes the guard retirement conditional on none.
+      </NonGoal>
+      <NonGoal>
+        **No record XML is written or flushed.** Owner: this bundle's empty payment set; the close
+        writes no `docs/plans/active/RM-GOVERNED-PATH` entry.
+      </NonGoal>
+      <NonGoal>
+        **`.github/workflows/publish.yml` and every non-`validate` checkout are unchanged.** Owner:
+        unchanged; the publish workflow's depth contracts are independent of the retired guard.
+      </NonGoal>
+      <NonGoal>
+        **No other guard or unrelated assertion is removed or weakened.** Owner: the retained bytes of
+        `scripts/audit-regressions.test.ts`; `collectTestFiles`, the `validate:ci` one-suite guard, the
+        README guard, the `prepin CI retirement` guard, the `prepin fixture discovery` fixture-walker
+        test, and every unrelated assertion stay.
+      </NonGoal>
+      <NonGoal>
+        **No committed timing artifact and no second suite.** Owner: unchanged; `test-metrics.json` is
+        deleted, no replacement JSON is committed, no report is tracked, and no second suite command is
+        added to `validate:ci` or `validate:release`.
+      </NonGoal>
+      <NonGoal>
+        **Timing values never gate the build.** Owner: unchanged; the raw report and ranking are
+        informational, no duration is a pass/fail threshold, and no criterion asserts a timing budget.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-GUARD-RETIRED>
+        `scripts/audit-regressions.test.ts` at HEAD contains none of `COVERAGE_BASE`, `declaredTests`,
+        `coverageRegressions`, `validateJobCheckoutDepth`, the `C-TEST-TIME-BUDGET-2-3EC1F016 coverage
+        never falls` describe, the JSON import `import { artifactIsStale } from "./test-metrics";`, or
+        the metrics-staleness assertions previously at `:1632-1641`. It retains `collectTestFiles`,
+        `validateCiRerunsSuite`, the `C-TEST-TIME-BUDGET-2-3EC1F016 validate:ci one suite run` describe,
+        the README guard, the `prepin CI retirement` guard, and the `prepin fixture discovery` test
+        retitled for its truthful no-test-files invariant, with its fixture-walker invariant. The
+        `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 checkout and README
+        guards` describe is retitled `C-LINUX-VALIDATION-REPAIR-1-DE5A1A05 README guard` and keeps only
+        the README test. Two `it` bodies are removed: the coverage guard test (`:358-362`) and the
+        checkout-depth guard test (`:403-407`). No replacement declaration-count, test-count, or
+        test-volume guard is added.
+        The absence checks are carried by the plan's `MustNotContain`/`MustContain` assertions evaluated
+        at `--assertions final`; the command below proves the retained suite still passes.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+        </CloseEvidence>
+      </AC-GUARD-RETIRED>
+      <AC-WORKFLOW-DEPTH-RETIRED>
+        In `.github/workflows/validate.yml` the `validate` job's Checkout step is `uses:
+        actions/checkout@v5` with no `with:` block and no `fetch-depth`; the `windows-compatibility` and
+        `dart-adapter` checkouts are unchanged. `.github/workflows/publish.yml` is byte-identical to base
+        `06996d65dff05e53c7b18fae93a017d55c8c2d55` and still declares `fetch-depth: 0` exactly three
+        times. A missing base makes `git diff` exit non-zero, so no base-presence prefix is needed.
+        <CloseEvidence>
+          <Command>git diff --exit-code 06996d65dff05e53c7b18fae93a017d55c8c2d55 -- .github/workflows/publish.yml</Command>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+        </CloseEvidence>
+      </AC-WORKFLOW-DEPTH-RETIRED>
+      <AC-WORKFLOW-REPORT-ENV-AND-UPLOAD>
+        The `validate` job sets the environment variable `NGRACE_TEST_REPORT_PATH` to
+        `${{ runner.temp }}/ngrace-test-reports/junit.xml`, an absolute path outside the repository. It
+        adds an upload step that uses the current verified official `actions/upload-artifact` major,
+        uploads exactly that report path, runs with `if: always()`, sets `if-no-files-found: ignore` so
+        it uploads when the report exists, sets no `continue-on-error`, and uploads no unrelated
+        temporary data. The step name is not one of the retired validate step names the `prepin CI
+        retirement` guard forbids. The upload step cannot change the job's failure outcome, so a
+        successful upload never hides or replaces a failing suite. The `prepin CI retirement` guard
+        reads the real workflow and stays green with the added step. The `MustContain` assertions on
+        the environment variable, the `if: always()` line, the action reference, and the report path
+        are carried by the plan at `--assertions final`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts</Command>
+        </CloseEvidence>
+      </AC-WORKFLOW-REPORT-ENV-AND-UPLOAD>
+      <AC-METRICS-RAW-REPORT>
+        Driven as the real entry through the absolute Bun executable in a disposable project,
+        `scripts/test-metrics.ts` produces a brand-new raw JUnit report for that invocation, prints the
+        report location and the slowest-test ranking parsed from that current report, spawns the inner
+        suite exactly once, and leaves the produced report in place. Its default report path is a unique
+        directory under `os.tmpdir()`, outside the repository. When `NGRACE_TEST_REPORT_PATH` is set the
+        report lands exactly there, a pre-existing file at that path is removed before the suite spawns,
+        and a missing parent directory is created. A poisoned legacy `test-metrics.json` at the
+        disposable project root is neither read nor written and is left byte-identical. The parser
+        exposes each case's file, name, and milliseconds, and the ranking orders by milliseconds
+        descending and takes the requested count. The behavioral probes capture stdout, stderr, the
+        direct exit, the report bytes, and the file state independently; expected log text alone is not
+        evidence.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts</Command>
+        </CloseEvidence>
+      </AC-METRICS-RAW-REPORT>
+      <AC-METRICS-FAILURE-EXIT>
+        When the inner suite exits nonzero, the runner exits nonzero to the OS and retains the produced
+        failure report; restoring the failing assertion in the disposable project makes the next run
+        pass and produce a fresh report. The fake inner `bun` records its invocations, so the plan and
+        authority observe exactly one inner suite spawn per accepted suite run and not an assertion about a fake outer
+        process. The suite is not run a second time.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts</Command>
+        </CloseEvidence>
+      </AC-METRICS-FAILURE-EXIT>
+      <AC-METRICS-OVERRIDE-REFUSED>
+        `NGRACE_TEST_REPORT_PATH` is validated as a canonical (resolved) path before any `mkdir`,
+        unlink, or spawn. An override that resolves inside the repository is refused with a diagnostic
+        nonzero exit, including an override whose parent is a symlink into the repository or whose
+        path escapes through `..`; a lexical prefix check is insufficient and is not the check. When
+        the override is refused, a planted file at the lexical target is left byte-identical and zero
+        child suite attempts occur. The default remains a unique directory under `os.tmpdir()` outside
+        the repository, and CI uses `${{ runner.temp }}`. The real-entry probe captures the direct
+        exit, the planted file's bytes, and the fake child's invocation count.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts</Command>
+        </CloseEvidence>
+      </AC-METRICS-OVERRIDE-REFUSED>
+      <AC-METRICS-REPORT-AND-SPAWN-REFUSAL>
+        When the child succeeds but the current report is missing, unreadable, or malformed, the runner
+        exits nonzero with a diagnostic, prints no ranking, and reuses no previous report. When the Bun
+        spawn fails or the child yields no usable status, the runner exits nonzero with a diagnostic
+        and does not retry. A valid run makes exactly one suite attempt; an invalid override makes
+        zero; a spawn failure makes one and is not retried. Parsing stays minimal and no generalized
+        schema or threshold is added.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts</Command>
+        </CloseEvidence>
+      </AC-METRICS-REPORT-AND-SPAWN-REFUSAL>
+      <AC-METRICS-CHILD-EXIT-PRESERVED>
+        A failing child's exact OS exit code survives a missing or malformed report. Driven through the
+        real Bun entry with a fake child that exits 7, the runner exits 7, makes exactly one attempt,
+        and retains any report bytes the fake produced. If the report cannot be parsed, no ranking is
+        printed and no stale report is reused.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/test-metrics.test.ts</Command>
+        </CloseEvidence>
+      </AC-METRICS-CHILD-EXIT-PRESERVED>
+      <AC-METRICS-ONE-RUN>
+        `validate:ci` runs the whole suite exactly once through `bun run test:metrics` and adds no
+        second `bun test`; the `C-TEST-TIME-BUDGET-2-3EC1F016 validate:ci one suite run` test passes and
+        `validate:release` still contains `validate:cli`. This preserves the counterweight the retired
+        bundle carried: the suite runs once.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts -t "C-TEST-TIME-BUDGET-2-3EC1F016 validate:ci one suite run"</Command>
+        </CloseEvidence>
+      </AC-METRICS-ONE-RUN>
+      <AC-BEHAVIORAL-EVIDENCE-RETAINED>
+        The retirement removes no behavioral test and no retained guard. The rewritten
+        `scripts/test-metrics.test.ts` behavior, the retained `scripts/audit-regressions.test.ts`
+        guards (including the `prepin CI retirement` guard and the `prepin fixture discovery`
+        fixture-walker test), the `README` guard, and `scripts/test-affected.test.ts` pass in the
+        applied-archive state. This criterion answers the `AC-COVERAGE-INTACT` overturn and does
+        **not** claim that a passing suite proves assertion strength or a suite-wide coverage floor.
+        The removed guard counted declarations in existing files rather than executed code or
+        assertion strength and failed open in a shallow checkout; **no broad floor replaces it**, and
+        this bundle asserts no new floor over future changes. The full CI-equivalent
+        `bun run validate:ci` is the plan's `TargetAssertions` `MustPassCommand` and runs **exactly
+        once**, at `--assertions final --run-commands` before apply/archive; the post-archive verdict
+        evaluates the focused command below and never reruns the root suite or `validate:ci`.
+        Disposable-fixture suites inside `scripts/test-metrics.test.ts` remain allowed; the limit is
+        one full-repository suite.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/audit-regressions.test.ts scripts/test-metrics.test.ts scripts/test-affected.test.ts</Command>
+        </CloseEvidence>
+      </AC-BEHAVIORAL-EVIDENCE-RETAINED>
+      <AC-DOCS-AND-EXAMPLES>
+        `README.md` documents the new `test:metrics` behavior — one suite run that writes a fresh raw
+        JUnit report to a unique path outside the repository, with the documented `NGRACE_TEST_REPORT_PATH`
+        override — and no longer states that the command writes `test-metrics.json`. `examples/` is
+        byte-identical to base `06996d65dff05e53c7b18fae93a017d55c8c2d55`. The README content assertions
+        are carried by the plan's `MustContain`/`MustNotContain` assertions at `--assertions final`; a
+        missing base makes `git diff` exit non-zero.
+        <CloseEvidence>
+          <Command>git diff --exit-code 06996d65dff05e53c7b18fae93a017d55c8c2d55 -- examples/</Command>
+        </CloseEvidence>
+      </AC-DOCS-AND-EXAMPLES>
+      <AC-AFFECTED-MAP-CLEAN>
+        `scripts/test-affected.ts` no longer contains the `test-metrics.json` edge to
+        `scripts/test-metrics.test.ts`; the `README.md` and `.github/workflows/validate.yml` edges remain
+        and every other edge is unchanged. `scripts/test-affected.test.ts` passes unmodified, and no
+        `CloseEvidence` in this bundle runs the selective dev-loop runner.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 scripts/test-affected.test.ts</Command>
+        </CloseEvidence>
+      </AC-AFFECTED-MAP-CLEAN>
+      <AC-WRITE-SURFACE-BOUNDED>
+        In the applied-archive state, the one-time close command below proves both halves of the global
+        inventory in one run: the tracked `git diff --exit-code` against base
+        `06996d65dff05e53c7b18fae93a017d55c8c2d55` with the seven deliverables, the deleted
+        `test-metrics.json`, and this bundle's active and archive arrivals excluded, and the nonignored
+        untracked `git ls-files --others --exclude-standard` with the same exclusions, whose captured
+        output must be empty. The union therefore contains only the seven deliverables and paths under
+        `.ngrace/changes/active/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6/` or
+        `.ngrace/changes/archive/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6/`. Any tracked write beyond the
+        deliverables (for example `CHANGELOG.md`) and any first-time nonignored untracked write
+        elsewhere redden. **The inventory sees only paths Git reports; an ignored path is outside it**,
+        and no criterion claims otherwise. Authorized reports live outside the repository under
+        `os.tmpdir()` or `${{ runner.temp }}`, so no local raw report is tracked or committed. The
+        command propagates Git failures directly and uses no pipeline that masks an exit; a missing
+        base makes `git diff` exit non-zero. This is one-time close evidence, not a permanent test or
+        sidecar. Measured on a throwaway disposable fixture, the command matrix is: clean `0`; allowed
+        tracked plus allowed untracked `0`; unauthorized tracked `1`; unauthorized nonignored untracked
+        with a space in its filename `1`; absent base `128`; restored clean `0`. The older tracked-only
+        form returned `0` while an outside untracked file existed, which is the false green this
+        combined command removes.
+        <CloseEvidence>
+          <Command>git diff --exit-code 06996d65dff05e53c7b18fae93a017d55c8c2d55 -- . ':(exclude)scripts/audit-regressions.test.ts' ':(exclude).github/workflows/validate.yml' ':(exclude)scripts/test-metrics.ts' ':(exclude)scripts/test-metrics.test.ts' ':(exclude)scripts/test-affected.ts' ':(exclude)README.md' ':(exclude)test-metrics.json' ':(exclude).ngrace/changes/active/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6' ':(exclude).ngrace/changes/archive/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6' &amp;&amp; outside=$(git ls-files --others --exclude-standard -- . ':(exclude)scripts/audit-regressions.test.ts' ':(exclude).github/workflows/validate.yml' ':(exclude)scripts/test-metrics.ts' ':(exclude)scripts/test-metrics.test.ts' ':(exclude)scripts/test-affected.ts' ':(exclude)README.md' ':(exclude)test-metrics.json' ':(exclude).ngrace/changes/active/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6' ':(exclude).ngrace/changes/archive/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6') &amp;&amp; test -z "$outside"</Command>
+        </CloseEvidence>
+      </AC-WRITE-SURFACE-BOUNDED>
+      <AC-ARCHIVES-UNTOUCHED>
+        No tracked byte changed under `.ngrace/changes/archive` against base
+        `06996d65dff05e53c7b18fae93a017d55c8c2d55` except this bundle's own archive arrival, which the
+        close adds. A new nonignored untracked path under another archived bundle is covered by
+        `AC-WRITE-SURFACE-BOUNDED`'s global inventory; an ignored path is outside that inventory and is
+        not claimed. Do not edit any applied archive byte.
+        <CloseEvidence>
+          <Command>git diff --exit-code 06996d65dff05e53c7b18fae93a017d55c8c2d55 -- .ngrace/changes/archive ':(exclude).ngrace/changes/archive/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6'</Command>
+        </CloseEvidence>
+      </AC-ARCHIVES-UNTOUCHED>
+      <AC-CLOSE-LINT>
+        Post-close lint of the repository root reports zero errors and zero warnings, evaluated in the
+        applied-archive state.
+        <CloseEvidence>
+          <Command>bun run ngrace lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-RELEASE-AUTOMATION />
+      `M-RELEASE-AUTOMATION` is the honest module anchor: `scripts/test-metrics.ts` and
+      `scripts/test-affected.ts` each declare `LINKS: [M-RELEASE-AUTOMATION, V-M-RELEASE-AUTOMATION]`
+      in their module contracts, and `V-M-RELEASE-AUTOMATION` is their verification sibling. Every
+      other touched path forces no module: `scripts/audit-regressions.test.ts` and
+      `scripts/test-metrics.test.ts` are `.test.ts` files,
+      `.github/workflows/validate.yml` and the deleted `test-metrics.json` are outside `src/`, and
+      `README.md` is documentation; `isModuleOwnableWritePath` (`src/lint/core.ts:735-744`) owns none of
+      them, so none may receive a minted module or a synthetic `LINKS:` header. This module list is
+      repeated in the `Summary` and in the module-anchor Constraint, and the file list is enumerated
+      in the `Summary` and in the write-surface Constraint; every repetition must agree
+      (F136.1).
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 scripts/audit-regressions.test.ts scripts/test-metrics.test.ts scripts/test-affected.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        T1 integration. The retirement is proven by the retained suite and by the plan's
+        `MustContain`/`MustNotContain` assertions: `scripts/audit-regressions.test.ts` loses exactly the
+        named symbols and keeps `collectTestFiles`, `validateCiRerunsSuite`, the one-suite-run describe,
+        the README guard, the `prepin CI retirement` guard, and the `prepin fixture discovery`
+        fixture-walker test; `.github/workflows/validate.yml` drops `fetch-depth` from the `validate`
+        checkout, sets `NGRACE_TEST_REPORT_PATH`, and adds the `always()` upload step. The one-time
+        surgical review compares each changed file with its base blob plus only the named edits, and the
+        one-time global inventory (tracked diff union nonignored untracked; ignored paths are outside
+        the command) confirms the branch-wide scope on a throwaway fixture, driven red with a planted
+        tracked outside path and a planted nonignored untracked outside path and green clean; these are
+        plan and authority evidence and **no permanent base-pinned test block is added**. The metrics
+        behavior is proven by driving the real runner through the absolute Bun executable in a
+        disposable project with a fake inner `bun` on `PATH`: a passing run produces a current raw
+        report and a ranking parsed from it, a failing run leaves a nonzero OS exit and retains the
+        failure report, restoring the assertion passes again, changing test and report names and
+        timings shows fresh output, a poisoned legacy `test-metrics.json` is neither read nor written,
+        and the fake records exactly one inner suite spawn per run. The refusal paths are driven
+        through the real Bun entry: an in-repository override (including through a symlinked parent) is
+        refused with zero child attempts and a planted repository file left byte-identical; a child
+        that succeeds with a missing, unreadable, or malformed report yields a diagnostic nonzero with
+        no ranking and no stale reuse; a spawn failure yields a diagnostic nonzero with no retry; and a
+        fake child exiting 7 preserves exit 7 and retains produced report bytes. The probes capture
+        stdout, stderr, the direct exit, the report bytes, and the file state independently; expected
+        log text alone is not evidence. The chosen `actions/upload-artifact` major is verified against
+        the action's upstream release at execution. The single-suite property is proven by the retained
+        `validateCiRerunsSuite` guard. No broad behavioral floor is claimed; the overturns are answered
+        candidly and the full `bun run validate:ci` is the plan's `TargetAssertions` `MustPassCommand`,
+        run exactly once at `--assertions final --run-commands` before apply/archive; the post-archive
+        verdict evaluates only the focused retained-suite commands and does not rerun the root suite.
+        The pre-implementation active-baseline check is
+        `bun run ngrace lint --path . --assertions current` and is never target or final evidence.
+        Every criterion carries `CloseEvidence`. This draft creates no plan and maps nothing.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      **1. What installed the guard and the full-history requirement.** Under
+      `C-TEST-TIME-BUDGET-4-F173437E` (a time-budget optimization) applied `AC-COVERAGE-INTACT`
+      (`.ngrace/changes/archive/C-TEST-TIME-BUDGET-4-F173437E/spec.xml:527-536`) required that no
+      `*.test.ts` at HEAD carry fewer `it(`/`test(` declarations than at base `2434fd4…`; its own words
+      call the guard a test-deletion brake. The guard landed as `COVERAGE_BASE`, `declaredTests`, and
+      `coverageRegressions` in `scripts/audit-regressions.test.ts`. Because the guard reads a historical
+      object (`git show 2434fd4…:&lt;path&gt;`), `AC-WORKFLOW-FULL-HISTORY`
+      (`.ngrace/changes/archive/C-LINUX-VALIDATION-REPAIR-6-62765C22/spec.xml:712-720`) tied
+      `fetch-depth: 0` to a historical control. The applied successor
+      `.ngrace/changes/archive/C-MINT-BASELINE-CONTROL-3-F04434E4/spec.xml:28-38,74-82` retired the
+      historical mint-control purpose while retaining full depth only for the declaration guard, and its
+      `design-context.xml:183-187` explicitly names this next sequential retirement of the guard, the
+      retitled depth assertion, and `fetch-depth: 0` together. This is that bundle.
+
+      **2. Why the guard is overturned, and what replaces its protection.** The guard counts
+      declarations in files that already exist. It cannot see executed code, assertion strength, or
+      coverage added in a new test file, and it cannot see an assertion deleted from inside a surviving
+      test — the Goodhart weakness: the measured quantity is the cheapest thing to keep while losing
+      the behavior it stands in for. Worse, it fails open: `coverageRegressions` calls
+      `spawnSync("git", ["show", `${COVERAGE_BASE}:${rel}`])` and executes `continue` when the command
+      exits non-zero (`scripts/audit-regressions.test.ts:351-354`), so in a depth-one checkout every
+      file is skipped and the guard is green with no comparison made. **Reproduced** in a depth-one
+      clone at this base: `git cat-file -e 2434fd467458e15c12414a74e37b09f9d71bdfd2` exits 1 and
+      `git show 2434fd467458e15c12414a74e37b09f9d71bdfd2:scripts/audit-regressions.test.ts` exits 128,
+      while the same `git show` exits 0 in the full repository — so the guard's `continue` fires and the
+      result is an empty regression list. A green produced by a failed lookup is not evidence of
+      anything. **Nothing replaces the guard as a broad suite-wide floor.** What continues is the
+      existing contract-specific discipline — behavioral tests, real CLI happy and refusal paths,
+      byte-preservation checks where promised, and targeted fault mutations that prove a test can fail —
+      and each future change must bring that evidence for its own subject; this bundle mints no new
+      floor and does not claim the surviving tests are a coverage substitute. Static lint and typecheck
+      remain structural checks, explicitly not claims of behavioral coverage. Measured code coverage is
+      deferred to a future separately ratified change; no threshold or test-volume score is introduced.
+
+      **3. Why the depth requirement is overturned with it.** `C-MINT-BASELINE-CONTROL-3-F04434E4`
+      removed the `6dd1d95` historical mint control and recorded at `:484-497` and in its
+      `design-context.xml:182-188` that the declaration-count guard was the only remaining reason the
+      `validate` job needed full history, and that the next sequential bundle retires the guard, the
+      retitled depth assertion, and `fetch-depth: 0` together. Removing only the guard would leave a
+      depth requirement serving nothing; removing only the depth would break the guard's `git show`.
+      They move together, and `publish.yml`'s independent depth declarations are untouched.
+
+      **4. Why the committed JSON cache is deleted and replaced with raw JUnit.** The timing artifact
+      was introduced under `C-TEST-TIME-BUDGET-4-F173437E/spec.xml:484-490` and its one-suite freshness
+      predicate under applied `C-CI-LINT-AND-PLAN-SHAPE-1-3526D6F0/spec.xml:358-372`; that predicate
+      compared the committed file list and the artifact's own count sum
+      (`scripts/test-metrics.ts:82-98`) and never read test bytes. A committed cache also required a
+      no-write-when-fresh branch, a provisional tree-derived artifact, and a `sourceCount` helper whose
+      counts could not be compared with the JUnit case population without being wrong. The replacement
+      is not a better cache but no cache: every `test:metrics` invocation runs the suite once, writes a
+      brand-new raw JUnit report for that invocation to a path outside the repository, prints the
+      current slowest-test ranking, propagates the child's exit, and retains the failure report. The
+      report is current by construction, so there is no freshness predicate to fail open and no
+      committed churn to manage. The kept surface is the parser, the ranking, and the one-suite runner.
+
+      **5. What is not being claimed.** This bundle does not claim that the repository now has
+      measured code coverage, that a coverage threshold exists, that a passing suite proves assertion
+      strength, that the `validate` job checks out less than the default for any reason other than the
+      retired guard, that any duration gates the build, or that a local raw report is safe to commit.
+      It does not edit any applied archive byte; the cited criteria are read-only lineage.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        Base and branch. HEAD at authoring is
+        `06996d65dff05e53c7b18fae93a017d55c8c2d55` on branch `feat/retire-declaration-guard`, and
+        `2434fd467458e15c12414a74e37b09f9d71bdfd2` resolves as a commit in the full repository
+        (`git cat-file -t` = `commit`). All base-pinned commands in this spec read
+        `06996d65dff05e53c7b18fae93a017d55c8c2d55`.
+      </Assumption>
+      <Assumption>
+        Fail-open reproduction, measured 2026-09-30 UTC at base `06996d…` on a throwaway depth-one clone
+        (`git clone --depth 1 file://&lt;repository-path&gt;`): `git cat-file -e
+        2434fd467458e15c12414a74e37b09f9d71bdfd2` exits 1 and `git show
+        2434fd467458e15c12414a74e37b09f9d71bdfd2:scripts/audit-regressions.test.ts` exits 128, while the
+        same `git show` exits 0 in the full repository. Because `coverageRegressions`
+        (`scripts/audit-regressions.test.ts:353-354`) `continue`s on a non-zero `git show`, the guard
+        returns an empty list in the shallow checkout. The throwaway clone was removed after the probe.
+      </Assumption>
+      <Assumption>
+        Prior evidence boundary, recorded and **not this author's run and not a CI green**. On
+        2026-09-28 UTC a shallow disposable copy with the two guard tests and the validate-depth input
+        removed reached 2,444 pass / 9 skip / 0 fail across 69 files with root lint 0/0 and marketplace,
+        examples, and determinism passing, followed by a `validate:packed` sandbox failure (DNS and a
+        Bun tempdir `EPERM`) that is an environment outcome, not a product verdict. It executed 2,453
+        tests while the committed artifact still listed 2,455 cases, confirming that the committed
+        artifact is stale after a same-file mutation. A second 2026-09-30 probe used a disposable
+        temp fixture and a hypothetical `.ngrace/scratch/test-reports/...` path to check ignore
+        behavior; it wrote no `.ngrace` scratch report, was not the repository suite, and is not
+        evidence of a root suite, CI, or lint pass.
+      </Assumption>
+      <Assumption>
+        Upload action version, verified 2026-09-30 UTC against the upstream `actions/upload-artifact`
+        repository and release notes rather than copied from a scratch fixture: the action's current
+        major is `v7`, which is the Node 24-native release; `v4` and `v5` target the deprecated Node 20
+        runtime. This matches the repository's convention of tracking current majors
+        (`actions/checkout@v5`, `oven-sh/setup-bun@v2`, `actions/setup-python@v6`). The exact major is
+        re-verified at execution before the workflow is written.
+      </Assumption>
+      <Assumption>
+        Two named tests lose declarations in `scripts/audit-regressions.test.ts`: the coverage guard
+        test (`:358-362`) and the checkout-depth guard test (`:403-407`), which is removed from the
+        retitled README-only describe. The retained one-suite-run test, README guard, `prepin CI
+        retirement` guard, `prepin fixture discovery` fixture-walker test, and unrelated assertions
+        keep their bodies. `scripts/test-metrics.test.ts` is rewritten; no claim is made that it gains
+        or loses coverage, and no declaration-count or JUnit-count figure quoted before implementation
+        is pinned by a criterion.
+      </Assumption>
+      <Assumption>
+        Combined Git close-command matrix, measured 2026-09-30 UTC at base `06996d…` on a throwaway
+        disposable fixture (not this repository): clean `0`; an allowed tracked change plus an allowed
+        untracked file `0`; an unauthorized tracked change `1`; an unauthorized nonignored untracked
+        file with a space in its filename `1`; an absent base `128`; restored clean `0`. The older
+        tracked-only command returned `0` while an outside untracked file existed. The same combined
+        command returns `0` on this repository in its draft state. The runner refusal probes — the
+        in-repository override (including through a symlinked parent), the missing/unreadable/malformed
+        report, the spawn failure, and the exit-7 preservation — have **not** run; the brief records
+        that the override probe is still owed.
+      </Assumption>
+      <Assumption>
+        The close's production write set is empty beyond the seven deliverable paths, which are written
+        during execution, and the bundle's own archive arrival; no `docs/plans/active/RM-GOVERNED-PATH`
+        record entry is written and no record XML is flushed. The record-payment question is therefore
+        answered as none, and no byte-invariance criterion must permit a record write.
+      </Assumption>
+      <Assumption>
+        Mint provenance, recorded verbatim and not re-derived: `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`,
+        minted with `bun ./src/grace.ts spec new DECLARATION-GUARD-RETIRE
+        --timestamp=2026-09-28T18:07:19Z --branch=feat/retire-declaration-guard`; the mint printed
+        `mint-search: 0 active, 0 archive prior bundle(s) share slug DECLARATION-GUARD-RETIRE`.
+      </Assumption>
+    </Assumptions>
+  </C-DECLARATION-GUARD-RETIRE-1-C69B6AB6>
+</NgraceChangeSpec>

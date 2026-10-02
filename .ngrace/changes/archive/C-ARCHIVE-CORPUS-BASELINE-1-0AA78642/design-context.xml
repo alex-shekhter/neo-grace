@@ -1,0 +1,171 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-ARCHIVE-CORPUS-BASELINE-1-0AA78642</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Diagrams>
+    <SequenceDiagram>
+sequenceDiagram
+    participant L as Luna
+    participant N as neo-grace CLI
+    participant T as Corpus tests
+    participant A as Authority
+    L-&gt;&gt;N: Validate final archived tree
+    N-&gt;&gt;T: Run historical baseline and positive fixtures
+    T--&gt;&gt;N: Results; detector remains active
+    N--&gt;&gt;L: Command exits and evidence
+    L--&gt;&gt;A: Exact logs
+    A-&gt;&gt;A: Decide acceptance
+    </SequenceDiagram>
+    <ClassDiagram>
+classDiagram
+    CorpusTests --&gt; HistoricalCloseCorpus : requires zero findings
+    CorpusTests --&gt; CurrentArchives : rejects retired code
+    CorpusTests --&gt; AttemptPairDetector : verifies positive findings
+    HistoricalCloseCorpus : 27 verified close-tree bundles
+    AttemptPairDetector : existing behavior preserved
+    </ClassDiagram>
+  </Diagrams>
+  <Rationale>
+    The failing assertion is a test-scoping defect, not a detector defect. `AC-ARCHIVE-CORPUS-ZERO`
+    (`C-SUBSTANTIATION-HONESTY/spec.xml:404-423`) pinned zero attempt-pair findings over the 26
+    authoring archive bundles. Its plan, D0 (`C-SUBSTANTIATION-HONESTY/plan.xml:157-195`), widened
+    that to a dynamic enumeration of every archive bundle so the denominator could not silently
+    shrink — a bundle vanishing from the corpus would fail the containment check rather than let the
+    zero become vacuous. That counterweight is right, but the widened assertion also became a
+    promise that no future delivery may ever carry a live attempt-pair finding, which the product
+    does not promise and should not.
+
+    The promise is now false for an honest reason. Whole-population measurement on 2026-10-01 found
+    163 archive directories with exactly one live finding —
+    `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`, T-005 events 14→15, id `792aa42b0c989c73` — and zero
+    retired-code findings. The finding's chronology claim was withdrawn and the result acknowledged,
+    but the immutable attempt events remain and the detector correctly raises. Rewriting the events
+    or muting the detector to make the suite green would trade a real signal for a green check; that
+    is the failure mode the corpus regression exists to catch, inverted.
+
+    The freeze is taken from a verifiable past state, not from today's whole archive. Historical
+    close commit `20b9135b47771b66efebe40709dd7c777936d901` contains exactly 27 `C-*` archive
+    bundles: the 26 `AUTHORING_ARCHIVE_C_IDS` plus `C-SUBSTANTIATION-HONESTY` itself. Rescoring all
+    27 on 2026-10-01 produced zero live and zero retired findings, and the existing positive
+    identical-tree and F286 fixtures pass. The 163-member corpus failure and this clean 27-member
+    scan are different populations: together they establish the baseline failure and the selected
+    historical baseline, but they do not by themselves prove the red direction of the new historical
+    guard, which is a plan-time fixture duty (intact fixture passes; a missing member or a real
+    triggering pair in a member of that same fixture fails). Freezing that membership keeps the
+    denominator-shrink defense — every historical
+    member must still exist — while moving the guarantee from "zero findings over every future
+    delivery" to "zero findings over the verified historical baseline, and no retired code anywhere
+    in the complete current archive." The complete archive is still enumerated, so the retired-code
+    rejection remains total; only the live-zero assertion is scoped.
+
+    The change stays test-only for the product runtime. `src/review/core.ts` and
+    `src/review/catalog.ts` are untouched, so the detector, its positive fixtures, the
+    applied-archive reddening, the superseded/rejected/cancelled abandonment exemption, finding-id
+    stability, warning severity, and the bound-verdict Ack machinery all keep their behavior. The
+    retained T-005 warning stays observable through the real CLI, and the historical bound pass's Ack
+    is not treated as clearance for today's different whole snapshot.
+
+    One non-test edit is forced. The reviewed design requires the post-archive whole-CI run
+    `bun run validate:ci` as CloseEvidence. That command matches no default discriminating shape, so
+    the lint engine emits `change.close-evidence-undiscriminating`, whose own remediation is an
+    additive `closeEvidenceCommandShapes` prefix in `.ngrace-lint.json`. The file already carries
+    three project-specific prefixes for exactly this purpose; a fourth, `"bun run validate:ci"`, is
+    additive and removes no default. Without it the mandated criterion would be knowingly
+    undiscriminating and would fail the `--fail-on warnings` close. Warning-free lint is necessary
+    but insufficient: an unrelated prefix plus an `ignoredDirs` addition also lints 0/0 while
+    shrinking the checked population, so the exact additive transformation is its own close guard
+    (`AC-LINT-CONFIG-DELTA`), and the write-population bound (`AC-NO-SOURCE-BEYOND-TEST`) covers
+    tracked and nonignored untracked paths, excluding only the test file, the config file, and this
+    bundle's own arrival.
+
+    The predecessor missed this failure for a structural reason. `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`
+    ran `bun run validate:ci` only as the plan's pre-archive `MustPassCommand`
+    (`plan.xml:37-44`) and its post-archive verdict ran focused commands only
+    (`spec.xml:473-480`), never rerunning the root suite. Because the corpus test enumerates the
+    archive directory, a pre-archive run cannot see the bundle's own arrival, and the post-archive
+    focused checks omitted the only instrument that would have executed the corpus test over the
+    final tree. This change makes the whole-CI run a post-archive criterion, evaluated after the
+    close's own rename, so the final applied-archive state is what the suite sees.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Keep the unconditional dynamic zero and acknowledge today's finding. Rejected: the Ack is
+      bound to a change id, snapshot digest, and finding id (`C-BOUND-VERDICT/spec.xml:430-530`), so
+      the historical bound pass's Ack does not cover today's snapshot, and the finding recurs on
+      every run. The regression would stay red until the immutable events change, which they must
+      not.
+    </Alternative>
+    <Alternative>
+      Rewrite or suppress the T-005 finding to make the corpus zero true. Rejected: the events are
+      immutable and the detector is correct; silencing it would be the exact substitution of a green
+      check for a real signal that the corpus regression was built to prevent.
+    </Alternative>
+    <Alternative>
+      Hardcode 27 as the exact size of today's archive. Rejected: the archive grows by design; an
+      exact-size assertion expires at the next close and would have failed for this very bundle's own
+      arrival. Membership is a required-presence check, not a size check.
+    </Alternative>
+    <Alternative>
+      Keep the whole-archive live-zero assertion but whitelist the declaration-guard bundle.
+      Rejected: a per-bundle exemption list is a growing patch surface that hides the real question —
+      which baseline the zero is actually over. A frozen historical set answers that directly.
+    </Alternative>
+    <Alternative>
+      Use `bun test --timeout=0` as the post-archive whole-suite CloseEvidence, which is already
+      discriminating, and leave `.ngrace-lint.json` unchanged. Rejected for this draft because the
+      reviewed design mandates the full `bun run validate:ci` CI entrypoint, which also runs
+      typecheck, lint, and the validators; the narrow suite command would not cover those.
+    </Alternative>
+    <Alternative>
+      Keep `bun run validate:ci` only as the plan's pre-archive `MustPassCommand`. Rejected: that is
+      precisely the predecessor's arrangement, and it cannot see the bundle's own archive arrival.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Broader archive compatibility and bundle-versioning redesign. Outside this repair, and it
+      carries the maintainer's standing immediate-investigation-and-ASAP-governed-repair instruction
+      (see `CLAUDE.md`); it is not deferred debt and is not absorbed here.
+    </Decision>
+    <Decision>
+      Whether `bun run validate:ci` (or whole-CI commands generally) should become a default
+      discriminating CloseEvidence shape in the engine rather than a per-project config prefix.
+      Deferred; the additive project config is the sanctioned remedy and keeps the engine's default
+      set unchanged.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      A later bundle archives and legitimately carries a retained live attempt-pair finding. The
+      historical-close loop does not include it, so the frozen zero holds; the complete-archive loop
+      checks only the retired code, so the live warning does not redden the suite; `bun run
+      validate:ci` is green in the applied-archive state.
+    </Scenario>
+    <Scenario>
+      A retired `review.attempt-pair-unsubstantiated` finding reappears anywhere in the archive. The
+      complete-archive retired-code scan reddens, independent of the historical-zero scoping.
+    </Scenario>
+    <Scenario>
+      A historical close member is deleted or renamed. The required-presence assertion reddens,
+      preserving D0's denominator-shrink counterweight.
+    </Scenario>
+    <Scenario>
+      A change suppresses or rewrites the T-005 finding on
+      `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`. The real-CLI observability test reddens because the
+      finding id `792aa42b0c989c73` no longer appears in the emitted report.
+    </Scenario>
+    <Scenario>
+      The `.ngrace-lint.json` prefix is dropped. `bun run validate:ci` as CloseEvidence becomes
+      undiscriminating and the `--fail-on warnings` close lint (`AC-CLOSE-LINT`) reddens.
+    </Scenario>
+    <Scenario>
+      The `.ngrace-lint.json` change drifts beyond the single additive entry — an extra prefix, or an
+      `ignoredDirs` addition that shrinks the checked population while lint still reports 0/0. The
+      exact-transformation guard (`AC-LINT-CONFIG-DELTA`) reddens.
+    </Scenario>
+    <Scenario>
+      A tracked path outside the three allowed files, or a nonignored untracked file outside them, is
+      left behind. The combined scope inventory (`AC-NO-SOURCE-BEYOND-TEST`) reddens; an ignored
+      `.ngrace/scratch/` file does not.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
