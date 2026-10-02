@@ -1,0 +1,416 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-HISTORICAL-ASSERTION-REVIEW-3-6B5B3896</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Diagrams>
+    <SequenceDiagram>
+sequenceDiagram
+    participant Op as Project-wide op (lint/index/status/context)
+    participant H as Historical reader
+    participant J as change show JSON consumer
+    participant T as change show text consumer
+    participant A as Historical audits (review)
+    participant C as Selected close (gate verdict)
+    Op-&gt;&gt;H: Walk archived change bundles
+    H--&gt;&gt;Op: historical metadata (no error, no warning)
+    Op-&gt;&gt;Op: validate current root/graph/verification/active strictly
+    H-&gt;&gt;J: union member per field (carried incl. present-empty / declared-none / absent / unavailable)
+    H-&gt;&gt;T: same state + reason for unavailable, distinct from absent
+    A-&gt;&gt;H: Audit archived MustExist and attempt streams
+    A--&gt;&gt;A: historical-path-absent (info) / F286 warning
+    A--&gt;&gt;A: relocation and foreign-id reported, never global-blocking
+    C-&gt;&gt;H: Read the selected applied archive
+    alt readable spec, matching wrapper, applied status, valid AC-* or legacy AcceptanceCriteria
+        C-&gt;&gt;C: execute complete CloseEvidence commands
+        alt any command non-zero, or a CloseEvidence child incomplete
+            C--&gt;&gt;C: refuse pass
+        else no CloseEvidence criterion at all
+            C--&gt;&gt;C: permit pass (legitimate zero-command case)
+        end
+    else unreadable spec, wrong identity, missing container, or unavailable status
+        C--&gt;&gt;C: refuse pass (never empty-set success)
+    end
+    </SequenceDiagram>
+    <ClassDiagram>
+classDiagram
+    Consumer --&gt; CurrentObligation
+    Consumer --&gt; HistoricalLearning
+    Consumer --&gt; HistoricalAudit
+    Consumer --&gt; CurrentClose
+    CurrentObligation : root/graph/verification/active strict
+    HistoricalReader --&gt; FieldRead : present + readable
+    FieldRead --&gt; CarriedOrSummary
+    FieldRead --&gt; PresentEmptyReadable : carried empty / summary empty, zero credit
+    FieldRead --&gt; DeclaredNone : explicit None only
+    FieldRead --&gt; AbsentOrNull : section not present
+    FieldRead --&gt; Unavailable : conflicting or unreadable; reason, no payload
+    HistoricalLearning --&gt; HistoricalReader : change show / context --change
+    HistoricalLearning --&gt; JsonConsumer
+    HistoricalLearning --&gt; TextConsumer
+    JsonConsumer : exact union member
+    TextConsumer : state plus reason
+    HistoricalAudit --&gt; HistoricalReader : review archived plans
+    HistoricalAudit --&gt; HistoricalPathNotice : info
+    HistoricalAudit --&gt; AttemptPairAudit : warning (F286)
+    CurrentClose --&gt; HistoricalReader : gate verdict
+    CurrentClose : requires readable wrapper, applied status, valid AC-* or legacy container
+    CurrentClose : executes complete CloseEvidence; refuses pass on fail or incomplete
+    ReviewCatalog --&gt; HistoricalPathNotice : process-audit info
+    ReviewCatalog --&gt; CurrentExistenceError : error (active plans)
+    </ClassDiagram>
+    <SequenceDiagram>
+sequenceDiagram
+    participant Fixture as Cursor diagnostic fixture
+    participant Child as Real child process
+    participant Coord as Coordinator mixed-outcome test
+    participant Spawn as CoordinatorIo.spawn seam
+    participant Sup as runCoordinator supervisor
+    Fixture-&gt;&gt;Child: spawn quick diagnostic child (exit 7, marker, stderr)
+    Note over Fixture,Child: old method inferred completion from a marker or a 200ms wait
+    Fixture-&gt;&gt;Child: await child.exited (repaired precondition)
+    Child--&gt;&gt;Fixture: real numeric exit observed
+    Fixture-&gt;&gt;Fixture: sample exited branch state/exitCode/signal/markers/stderrTail
+    Fixture-&gt;&gt;Fixture: separate running-child kill and bounded reap path unchanged
+    Coord-&gt;&gt;Child: spawn real quick child (exit 7) before the run
+    Coord-&gt;&gt;Child: await exited
+    Coord-&gt;&gt;Spawn: push completed child into procs and hand it back by command shape
+    Spawn--&gt;&gt;Sup: the already-exited real child
+    Sup-&gt;&gt;Sup: register, supervise, snapshot; quick exit 7 / timedOut false
+    Sup-&gt;&gt;Sup: forever worker times out at 100ms, SIGKILL, output absent
+    Sup--&gt;&gt;Coord: mixed outcomes are data, not a fresh-child race
+    </SequenceDiagram>
+    <ClassDiagram>
+classDiagram
+    CursorDiagnosticFixture --&gt; RealChild : awaits exited before sampling
+    CursorDiagnosticFixture : exited branch state/exitCode/signal/markers/stderrTail
+    CursorDiagnosticFixture : separate running-child kill and bounded reap path
+    CoordinatorMixedOutcomeTest --&gt; CoordinatorIo : existing spawn seam
+    CoordinatorMixedOutcomeTest --&gt; RealChild : actually exited quick child
+    CoordinatorMixedOutcomeTest : timeoutMs 100 / pollMs 800 / elapsed less than 700ms
+    CoordinatorMixedOutcomeTest : quick exit 7 timedOut false; forever SIGKILL timedOut true
+    CoordinatorMixedOutcomeTest : separate workers/quick and workers/forever outputs
+    CoordinatorMixedOutcomeTest : result is data, never hand-built
+    RuntimeUnchanged : src/grace-cursor.ts and src/test-support/coordinator.ts byte-identical
+    CursorDiagnosticFixture --&gt; RuntimeUnchanged
+    CoordinatorMixedOutcomeTest --&gt; RuntimeUnchanged
+    </ClassDiagram>
+    <SequenceDiagram>
+sequenceDiagram
+    participant G as gate verdict (public)
+    participant E as evaluateCloseEvidenceChildren
+    participant S as spec.xml AcceptanceCriteria
+    participant L as run-ledger.xml
+    participant Show as change show (JSON + text)
+    G-&gt;&gt;S: read selected applied archived spec first
+    G-&gt;&gt;E: evaluate the readable container
+    E-&gt;&gt;S: walk criteria; collect every attached CloseEvidence and every Command before filtering
+    E-&gt;&gt;S: validate attached evidence (incomplete child beside a valid criterion refuses)
+    E-&gt;&gt;E: run complete commands; sticky fail keeps the first failing numeric Exit
+    E-&gt;&gt;E: one Exit/Result pair per evaluated close-bound criterion across its evidence blocks
+    E--&gt;&gt;L: persist the per-criterion pairs in the verdict record
+    L--&gt;&gt;Show: read back JSON and text
+    Show--&gt;&gt;G: same-block false-&gt;true, true-&gt;false, distinct nonzero exits, all-success
+    Note over G,E: missing root/container/wrapper/status/unparsable spec refuse; never empty-set pass
+    </SequenceDiagram>
+  </Diagrams>
+  <Rationale>
+    **Successor lineage.** This is the lineage-3 successor to the archived
+    `C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B`, itself the lineage-2 successor to
+    `C-HISTORICAL-ASSERTION-REVIEW-1-C6AA9BFE`. The supersede was forced by measurable defects a
+    faithful C2 close discovered, not by a design change: C2's full CI leaf failed at 2500 pass / 9
+    skip / 2 fail, both failures in inherited fixture assumptions outside C2's exact 23-path
+    population, and C2's spec never bound the one-result-per-criterion aggregation its plan named. C2
+    could not close either way — unchanged test files reddened its `AC-CI-GREEN`, changed ones violated
+    `AC-WRITE-POPULATION`. This successor adds `src/grace-cursor.test.ts` and
+    `src/test-support/coordinator.test.ts` to the forced test set and every write-population allowlist,
+    binds the wrapper regression, the two inherited fixture repairs, and the close aggregation to
+    their own close evidence; the remaining boundary is carried forward unchanged.
+
+    **The boundary is purpose and dependency, not file version.** The previous draft drew it at
+    “recognized vs unrecognized” format, which still made an unrelated 1.0 archive a current
+    obligation. The maintainer's policy is that archives are historical metadata that may predate
+    current requirements, and that an unchanged version number cannot establish that today's
+    requirements applied at the historical checkpoint. So the line is: current obligations stay
+    strict; unrelated history is not a current obligation; selection for learning is not execution;
+    the selected current close stays strict.
+
+    **Three measured cases, one rule.** The C2-era census of 165 archived bundles declared `1.0`;
+    this bundle's whole-set shipped-parser census measured 167 archive directories (167 specs and 159
+    plans), every root `1.0`, zero parse failures, as date-stamped history. On physical
+    throwaway copies the root lint is 0 errors; changing one unrelated archived spec to `0.9`,
+    removing its required `Summary` while keeping `1.0`, or making it malformed each fails lint while
+    present and returns to 0 when the bytes are restored. The middle case is the one the version
+    number hides: a 1.0 archive that predates a later required section is held to a requirement that
+    did not exist at its checkpoint. Archived change bundles therefore do not enter project-wide
+    validation at all.
+
+    **Why the fix cannot be a lint warning.** `NgraceIssue` severity is `error | warning`
+    (`src/artifact/types.ts:354-355`), and `--fail-on warnings` fails on any warning
+    (`src/grace-lint.ts:139-145`). A “historical archive warning” would reproduce the same global
+    block the change exists to remove. Archived history is excluded from the lint result entirely,
+    and any diagnostic lives on the selecting consumer.
+
+    **Selection is not execution.** `change show`, a historical `context --change`, and an explicit
+    `review --change` may read one record for learning. They read supported fields — not “verified”
+    facts, since the reader parses a field rather than proving the historical claim — and represent a
+    field whose shape is unknown as `unavailable`, distinct from `absent`. They do not impose an old
+    `MustExist` on today's filesystem and do not require a future migration merely to be read.
+
+    **The historical-view contract is an API contract, not a vocabulary, and the reader collapsed
+    the states.** `ChangeDurableScope` gains `{ state: "unavailable"; reason: string }` and
+    `ChangeView.observedWriteScope` becomes
+    `ChangeScopeSummary | { state: "unavailable"; reason: string } | null`. The unavailable member
+    carries a nonempty reason and no scope payload — never empty files/globs. The correction is that
+    the old reader collapsed a genuinely absent section, a present but structurally empty section,
+    and an explicit `&lt;None /&gt;` into `declared-none` (durable) / empty summary (observed). The
+    intended mapping is: a supported, non-conflicting historical shape yields `carried`/summary
+    regardless of version; a **present-empty** `DurableScope` (no attributes, text, children, or
+    `None`) is readable data that declares nothing and yields `carried` with the six empty arrays,
+    and an empty `ObservedWriteScope` yields `{ files: [], globs: [] }`; a genuine absence yields
+    `absent`/`null`; only an explicit valid `None` yields `declared-none`/empty summary; and
+    conflicting or unreadable field data yields `unavailable` — the existing
+    `scope.invalid-durable-shape` / `scope.invalid-observed-shape` / `scope.invalid-context-artifact`,
+    and also `scope.none-with-entries`, `scope.invalid-path`, and `scope.unsupported-glob`. Both an
+    absent field and a present-empty field supply zero credit; a readable sibling supplies credit on
+    its own. Current active empty-scope validation errors are preserved, so historical readability
+    never depends on today's requirement to spell an empty declaration with `&lt;None /&gt;`. The controls
+    are driven on an
+    **applied archived** bundle (so the archive branch is exercised) with active controls retained
+    separately, and a genuine absence removes the section from an otherwise present, readable plan
+    rather than removing the whole plan. The symbol search forced
+    `src/query/render.ts` (`formatChangeText` dereferences `.files`/`.globs` on a truthy scope and
+    `formatDurableScope` switches over durable states) and `src/query/change.test.ts:123-125`
+    (non-null-asserted field access); both narrow under the union, while the JSON consumer
+    (`src/grace-change.ts:118`) receives the exact member unchanged.
+
+    **The historical-context contract is concrete.** An unparsable plan or spec refuses with
+    `invalid-project` / `Unreadable plan|spec at …` and no `issues`; a readable plan whose required
+    task is absent or whose `ImplementationPlan` is unrecognized refuses with `not-found`; a readable
+    spec whose `Satisfies` target has no body yields the existing per-criterion
+    `{ verdict: "unable-to-determine", reason }` absence. No production change is needed in
+    `src/grace-context.ts`; its existing shapes are the contract, and this is recorded honestly rather
+    than keeping it in the write scope by habit.
+
+    **The historical integrity audits stay honest and non-blocking.** The F286 attempt-pair audit
+    still runs at `warning` with its abandoned-bundle exemption; it is a warning, so it does not fail
+    a project-wide review, and it is acked at a close only for the selected bundle. The F16
+    relocation/foreign-id audit still runs: an archived plan's `MustExist` present under the same-id
+    archive alias is silent, and missing-both or foreign-id is reported as
+    `review.historical-path-absent` at `info` with the distinction named. Active plans keep
+    `review.confidently-wrong` / `must-exist-missing`. No finding is silently erased, no scope credit
+    is fabricated, and a present-day missing file is never reported as proof the historical claim was
+    false.
+
+    **The selected close is the only strict archived operation, and its contract closes every empty
+    variant.** The seam is the actual caller: `recordReviewVerdict` → `evaluateCloseEvidenceChildren`
+    (`src/gates/ledger.ts:451,546-570`), invoked by `gate verdict`; a bare `review --change` is not a
+    close. For an archived bundle the close refuses `pass` unless the spec is readable, uses the
+    `NgraceChangeSpec` root, has exactly one direct `C-*` wrapper matching the bundle id, declares
+    `status="applied"`, and has a present, interpretable `AcceptanceCriteria` container with at least
+    one valid anchored `AC-*`, a valid legacy `Criterion` child, or nonempty legacy criteria text (canonical `ngrace-spec`
+    SKILL.md:112 permits legacy criteria when no `AC-*` exists). Every complete `CloseEvidence`
+    command executes; a non-zero command refuses
+    `pass`; an incomplete `CloseEvidence` child refuses `pass` rather than being dropped (the current
+    `isCompleteCloseEvidence` at `src/artifact/grammar.ts:2199-2201` silently ignores it); a
+    missing/malformed container, wrong identity, unparsable spec, and unavailable applied status all
+    refuse and never fall through to the pre-archive empty path. Every attached `CloseEvidence` child
+    is validated before readable-criterion filtering, including evidence attached to an otherwise
+    empty criterion; incomplete attached evidence refuses even beside a valid criterion, while a bare
+    empty criterion with no attached evidence is not by itself a new refusal and contributes no valid
+    criterion. A readable applied wrapper with a
+    valid container and genuinely no `CloseEvidence` criterion — anchored or legacy — is the
+    legitimate zero-command case
+    and still permits `pass`. The measured hole — an authority/Luna empirical probe in which the
+    post-malformation verdict recorded `pass` because the evaluation returned an empty set — is the
+    case this closes; the probe used a hardlinked fixture that wrote the production ledger, which the
+    authority restored and verified, and that method is not repeated.
+
+    **Scope credit is per field.** `collectAppliedChangeScopes` grants credit per readable field:
+    an unavailable durable field supplies no durable credit, an unavailable observed field supplies
+    no observed credit, and a readable sibling field remains usable; an unparsable or unreadable
+    record supplies no scope credit at all; a present-empty field declares nothing and supplies no
+    credit for that field. The absence is distinguishable from a legitimate
+    empty/`declared-none` scope, evidence drives both directions (invalid durable with valid
+    observed, invalid observed with valid durable, `None` mixed with entries in each field, an
+    invalid path, an unsupported glob, an unparsable plan, present-empty in each field, a readable
+    control, and the `None`/absence distinctions), and metadata availability is never presented as
+    whole-record historical verification.
+
+    **Documentation and skill effects are real.** `ngrace-plan` rule 19 tells a planner that an
+    archived plan's `MustExist` raises `review.confidently-wrong` in a faithful post-close copy. Under
+    this design that is false, so rule 19 is corrected and its packaged mirror kept byte-identical.
+    Rule 19 is one table row, so the skill line count may stay 875 while the byte total moves;
+    `src/test-support/token-accounting.test.ts` and the README footprint row are updated to the
+    re-measured values, and the test also asserts the corrected meaning so an unchanged misleading
+    paragraph with matching byte totals fails. `README.md` also gains a bounded `ngrace review` note
+    that archived history is audited as historical information. `examples/` is byte-frozen, and its
+    CLI behavior is proven separately by `bun run validate:examples`.
+
+    **The wrapper regression is bound.** The correction at `src/grace-lint.test.ts:2303` is the
+    direct regression for the archived-history tolerance on the `change.applied-plan-missing` code
+    path: an archived malformed plan emits no error, while the active `asStatus="applied"` preview
+    at `:2318` and the well-formed active control at `:2331` keep the current obligation strict. It
+    is close-bound in `AC-WRAPPER-REGRESSION`, and `src/grace-lint.test.ts` is part of the forced
+    test set and every write-population allowlist.
+
+    **Prior-ruling overturns.** (a) The unrelated-malformed-archive refusal
+    (`C-PER-BUNDLE-READERS-1-58BB7AB1` / `C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3`,
+    `src/grace-context.test.ts:455`) is overturned for the unrelated case; the counterweight —
+    corruption and unreadability stay observable — is preserved by the selected reader's refusal and
+    the historical audit, and the regression becomes two-sided. (b) The F16 error for an archived
+    plan's missing-both/foreign-id `MustExist` (`C-REPORT-HONESTY/spec.xml:232-242`) becomes an
+    informational audit notice; detection is retained, active plans keep the error. (c) The
+    whole-archive grammar coupling is removed; no version dispatcher is added and no artifact-version
+    bump is required, because no current working state becomes an error. Archived bytes are never
+    rewritten.
+
+    **Lifecycle and role split.** The external executor authors this revised draft spec and design
+    context and stops; implementation is not authorized. The authority and Luna independently
+    validate the boundary on independent physical copies, obtain maintainer ratification of the
+    written spec, then run review, `gate approve`, fingerprint verification, and the checkpoint. The
+    authorized executor drafts the plan after spec ratification and implements after fresh plan
+    ratification; the authority owns apply/archive. The full CI-equivalent `bun run validate:ci` is
+    both the plan's pre-archive `MustPassCommand` and the post-archive `CloseEvidence`.
+    **The inherited fixture repairs are real observations, not longer waits.** The cursor
+    diagnostic's old method inferred the child had exited from a marker or an incidental 200 ms wait;
+    under load the child was still running, so the fixture sampled the running branch and reported
+    `state=running`, `exitCode=null`, `signal=SIGKILL`. The repair awaits the real child's exit before
+    sampling the exited branch and keeps every assertion. The coordinator's mixed-outcome control
+    started its quick worker inside the run, so the worker's completion raced the 100 ms deadline and
+    the quick worker was marked `timedOut=true`; the repair establishes an actually exited real quick
+    child through the existing `CoordinatorIo.spawn` seam, and the supervisor still registers,
+    supervises, and snapshots it. Both repairs are test-only; `src/grace-cursor.ts` and
+    `src/test-support/coordinator.ts` are byte-identical. No repair lengthens a sleep, hand-builds a
+    result, or relaxes the deadline.
+
+    **The close aggregation is bound in the spec, not only in the plan.** C2's plan named a
+    `records one result per criterion across multiple evidence siblings` regression but never pinned
+    it as `CloseEvidence`. Production `evaluateCloseEvidenceChildren` reads only the first
+    `CloseEvidence` block of a criterion and stops it at that block's first non-zero command, dropping
+    every later block; it does not overwrite a failure with a later command. The overwrite behavior
+    was an intermediate all-blocks prototype, now history. C3 binds exactly one persisted
+    `Exit`/`Result` pair per evaluated close-bound criterion, no close-result row for a valid criterion
+    without `CloseEvidence`, a sticky failure that preserves the first failing command's numeric exit
+    even when a later command or block fails with a different code, and validation of every attached
+    `CloseEvidence` child — including one attached to an otherwise empty criterion — before
+    readable-criterion filtering; the outcome is read back through both `change show` formats.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Recognition-based tolerance (the earlier Variant A): exempt only non-current-version or
+      unparsable archives and keep a current-version archive strict. Rejected by direction: the
+      unchanged version number cannot establish that today's requirements applied at the historical
+      checkpoint.
+    </Alternative>
+    <Alternative>
+      Emit archived history as lint warnings. Rejected: `--fail-on warnings` would block, reproducing
+      the global coupling at a different severity.
+    </Alternative>
+    <Alternative>
+      Add a version dispatcher for a historical grammar. Rejected: all measured archives are 1.0, and
+      inventing a grammar claims support the product does not have.
+    </Alternative>
+    <Alternative>
+      Express `unavailable` as an empty scope rather than a distinct union member. Rejected: an empty
+      files/globs value is indistinguishable from a declared-empty scope and would fabricate “no
+      scope” where the shape is unknown.
+    </Alternative>
+    <Alternative>
+      Keep archived `MustExist` as errors when a review is selected with `--change`. Rejected:
+      selection is not execution; only the close seam is a current obligation.
+    </Alternative>
+    <Alternative>
+      Treat a readable wrapper as sufficient proof that no CloseEvidence is required. Rejected: the
+      measured hole; a missing container, wrong identity, unparsable spec, or incomplete
+      `CloseEvidence` child must refuse.
+    </Alternative>
+    <Alternative>
+      Leave rule 19 unchanged because “the selected post-close plan stays strict”. Rejected: the
+      sentence names `review.confidently-wrong` on archived plans, which is now a historical notice.
+    </Alternative>
+    <Alternative>
+      Extend the fixtures with a longer fixed sleep instead of observing the real event. Rejected:
+      the defect is an inference from timing, and a longer sleep only moves the race; the brief forbids
+      an arbitrary longer sleep.
+    </Alternative>
+    <Alternative>
+      Hand-build the coordinator's completed-worker result instead of running a real child. Rejected:
+      the coordinator must still register, supervise, and snapshot the worker, and a fabricated result
+      would not exercise the seam.
+    </Alternative>
+    <Alternative>
+      Leave the close aggregation to the plan's task regression and add no `CloseEvidence`. Rejected:
+      a plan-only regression the spec never pins is exactly the gap that let C2 name it and not bind it.
+    </Alternative>
+    <Alternative>
+      Widen the write population with a wildcard for the two fixture files. Rejected: source writes are
+      not wildcard-expanded; the two paths are named exactly.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Whether a project-wide surface (for example `ngrace status`) should report a non-blocking count
+      of unreadable or anomalous archived records. Deferred; the selected reader's refusal and the
+      historical audits already keep them observable.
+    </Decision>
+    <Decision>
+      A migration tool for a genuinely unsupported historical format. Deferred; none exists in the
+      measured population, and this design stops at field-level reading rather than inventing one.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      An unrelated archived spec is malformed, declares `0.9`, or omits a current-only section. Root
+      lint is 0/0 at `--fail-on warnings`; status, context, and the query index succeed; the archive
+      grants no credit; selecting it with `change show` reports `project.unreadable-artifact` or an
+      `unavailable` field, and `context --change` refuses or reports an explicit absence.
+    </Scenario>
+    <Scenario>
+      A `change show` reads a historical record. JSON emits the exact union member; text prints the
+      unavailable state with its reason, distinct from absent and declared-none; a known-field
+      fixture, an explicit None, a genuine absence, and an unknown field shape select four different
+      results.
+    </Scenario>
+    <Scenario>
+      An archived plan asserts a retired cache such as `test-metrics.json` or a scratch buffer. A
+      project-wide review reports `review.historical-path-absent` at `info` (hidden by default),
+      never `review.confidently-wrong`; the same-id alias case is silent; the foreign-id and
+      missing-both cases are named in the audit notice.
+    </Scenario>
+    <Scenario>
+      A selected applied archive's spec is unparsable, its wrapper identity is wrong, its
+      `AcceptanceCriteria` container is missing, or a `CloseEvidence` child has no Command.
+      `gate verdict --outcome pass` refuses instead of recording an empty close evaluation; a
+      readable applied wrapper with a valid container and no `CloseEvidence` still permits `pass`; an
+      incomplete attached `CloseEvidence` beside a valid criterion refuses, while a bare empty
+      criterion with no attached evidence does not by itself refuse; a
+      failed command still refuses `pass`.
+    </Scenario>
+    <Scenario>
+      A warning-only project runs the real CLI review. It exits 0 and reports the F286 warning; the
+      T-005 guard reads the finding without asserting the exit; an error project still exits 1.
+    </Scenario>
+    <Scenario>
+      A planner edits rule 19 and the packaged mirror. The two copies stay byte-identical, the
+      re-measured skill bytes match the token-accounting pin, the README footprint row matches the
+      same measurement, and the meaning assertion fails if the old misleading paragraph survives.
+    </Scenario>
+    <Scenario>
+      The cursor diagnostic runs under load: the child is still alive when the old fixture samples it.
+      The repaired fixture awaits the real exit first, observes `state` `exited` and numeric code 7,
+      and the running-child kill/reap path is exercised separately.
+    </Scenario>
+    <Scenario>
+      The coordinator runs the mixed control while the machine is loaded. The already-exited quick
+      child is handed through the spawn seam, so the quick worker reports exit 7 / `timedOut` false
+      while the forever worker reports `timedOut` true / SIGKILL within the bounded deadline.
+    </Scenario>
+    <Scenario>
+      A selected applied archive's close-bound criterion carries multiple `Command` children in one
+      `CloseEvidence` block or multiple `CloseEvidence` child blocks. The close records one
+      `Exit`/`Result` pair; a passing-then-failing control refuses `pass` and preserves the first
+      failing exit, a failing-then-passing control refuses with the first failure, distinct nonzero
+      exits preserve the first failing code, an all-success pair records `pass`, and both `change show`
+      formats agree. A valid criterion with no `CloseEvidence` produces no row.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
