@@ -1,0 +1,274 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85>
+    <IntentSummary>
+      T2 plan for the approved current-validation boundary. Three sequential tasks cut the three
+      automatic archive readers while preserving every current guard. T-001 retires automatic
+      archive-content enumeration in `src/artifact/grammar.ts`, keeping directory-name identity
+      checks, active spec-to-plan coverage, and current structural validation. T-002 removes
+      archived-plan assertion discovery from `src/lint/core.ts`, preserving active approved-baseline
+      evaluation, the selected baseline/target/final rules, the shared `validateChangeArtifact`, and
+      the current `--as applied` preview. T-003 removes archive-content inputs from the automatic
+      query index in `src/query/core.ts` and repairs the selected-active context expectation. The
+      unit layer proves the read boundary with a call-through `bun:test` `spyOn` over the real
+      exported `readGraceXmlArtifact`; the CLI layer proves clean/mutate/restored behaviour on
+      ordinary fixtures. The plan touches exactly the eight files named by the approved spec, keeps
+      all four modules and verification anchors, and adds no README, examples, skill, status/scope,
+      historical-navigation, reporting, or apply/close change. The five close-bound criteria keep
+      their commands; full CI remains the selected `--assertions final --run-commands` gate and the
+      whole-suite CloseEvidence criterion, not a per-task command.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/core.ts</Value></MustExist>
+      <MustExist><Value>src/grace-query.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-context.test.ts</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-CONTEXT</Value></MustExist>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-CONTEXT</Module></MustVerify>
+      <MustContain>
+        <File>src/query/core.ts</File>
+        <Text>collectOperationalValidationErrors</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/artifact/grammar.ts</File>
+        <Text>validateChangeBundlesInDirectory</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/artifact/grammar.ts</Value></MustExist>
+      <MustExist><Value>src/artifact/grammar.test.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.ts</Value></MustExist>
+      <MustExist><Value>src/lint/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-lint.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/core.ts</Value></MustExist>
+      <MustExist><Value>src/grace-query.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-context.test.ts</Value></MustExist>
+      <MustExist><Value>M-GRAMMAR</Value></MustExist>
+      <MustExist><Value>M-LINT-CORE</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustExist><Value>M-CONTEXT</Value></MustExist>
+      <MustVerify><Module>M-GRAMMAR</Module></MustVerify>
+      <MustVerify><Module>M-LINT-CORE</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustVerify><Module>M-CONTEXT</Module></MustVerify>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GRAMMAR />
+        <M-LINT-CORE />
+        <M-QUERY />
+        <M-CONTEXT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GRAMMAR />
+        <V-M-LINT-CORE />
+        <V-M-QUERY />
+        <V-M-CONTEXT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/artifact/grammar.ts</File>
+      <File>src/artifact/grammar.test.ts</File>
+      <File>src/lint/core.ts</File>
+      <File>src/lint/core.test.ts</File>
+      <File>src/grace-lint.test.ts</File>
+      <File>src/query/core.ts</File>
+      <File>src/grace-query.test.ts</File>
+      <File>src/grace-context.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Retire automatic archive-content validation in project grammar</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-CURRENT-GRAMMAR-OPAQUE />
+          <AC-ACTIVE-REFUSAL-PRESERVED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first, before the runtime change: a new test selectable by
+            `-t "current grammar treats archive content as opaque"` in `src/artifact/grammar.test.ts`
+            fails, because an unrelated archived bundle with malformed `spec.xml` currently makes
+            `validateNgraceProject` emit an `xml.parse` issue naming the archived path, and the
+            call-through `bun:test` `spyOn` over the real exported `readGraceXmlArtifact` records
+            calls under `.ngrace/changes/archive/`. Capture that red on an ordinary disposable
+            project copy and record the command output.
+          </Criterion>
+          <Criterion>
+            In `src/artifact/grammar.ts`, the archive location of
+            `validateChangeBundlesInDirectory` (invoked at `src/artifact/grammar.ts:1355`) no longer
+            opens archived `spec.xml`, `plan.xml`, companion, or `design-context.xml` content. For
+            an archive bundle it inspects directory names only: the `C-*` bundle-id identity, a
+            loose `.xml` file directly under the archive directory (`change.unexpected-file`), and
+            the required archive directory (`project.missing-change-directory`). Automatic
+            spec-to-plan coverage is retained for active bundles and retired only for archives.
+            Active-bundle section, version, and replacement validation is unchanged. No diagnostic
+            is computed from archived content and then discarded.
+          </Criterion>
+          <Criterion>
+            Read-boundary proof: the test installs the call-through spy over the real exported
+            `readGraceXmlArtifact`, drives the real `validateNgraceProject` over a complete ordinary
+            project, asserts the recorded call set has no path under
+            `.ngrace/changes/archive/` and has at least one current-artifact call as the positive
+            control, then restores the spy. No fake parser, monkey-patched return, or fabricated
+            result is used.
+          </Criterion>
+          <Criterion>
+            Behaviour, one changed archive input at a time, each case observed and then exactly
+            restored before the next: (i) `spec.xml` malformed XML; (ii) `plan.xml` malformed XML;
+            (iii) `spec.xml` with a differing `graceVersion`; (iv) `plan.xml` missing a required
+            section; (v) an invalid `design-context.xml` companion. Each case yields 0 errors and
+            exit 0 with no `xml.parse`, `change.spec-missing-section`, `change.plan-missing-section`,
+            `change.spec-plan-id-mismatch`, `change.unregistered-section`,
+            `change.scope-does-not-cover-spec`, or `change.applied-plan-missing` issue naming an
+            archived path. Directory-name identity still refuses, and the active counterparts — the
+            same malformed, version-invalid, and section-invalid mutations planted in an active
+            bundle, plus an active spec-to-plan coverage mismatch — still refuse.
+          </Criterion>
+          <Criterion>
+            The existing archived superseded-replacement expectation at
+            `src/artifact/grammar.test.ts:471-489` is re-homed: `change.superseded-replacement-not-found`
+            is asserted for an active superseded bundle, not for an archived one, because the
+            automatic archive path no longer reads archived replacement content. Timestamp-bearing
+            lint JSON comparisons omit only the documented `generatedAt` field, and that
+            normalization is disclosed.
+            This is an intentionally invalid active-status control: assert both `change.invalid-active-status` and `change.superseded-replacement-not-found`, not a generic refusal.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/artifact/grammar.test.ts</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Remove archived-plan assertion discovery from current lint</Title>
+        <DependsOn>
+          <Task>T-001</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-LINT-NO-ARCHIVE-ASSERTIONS />
+          <AC-ACTIVE-REFUSAL-PRESERVED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first, before the runtime change: a unit test selectable by
+            `-t "current lint does not read archived plan assertions"` in `src/lint/core.test.ts`,
+            and integration coverage in `src/grace-lint.test.ts`, fail because current lint reads
+            the unrelated archived `plan.xml`. Capture the red with the command output.
+          </Criterion>
+          <Criterion>
+            In `src/lint/core.ts`, the archived-plan enumeration
+            (`listPlanFiles(paths.changesArchiveDir)` at `src/lint/core.ts:727-729` and the
+            archived loop at `src/lint/core.ts:544-547`) is removed, so current lint no longer
+            discovers or extracts archived `BaselineAssertions` / `TargetAssertions`. Active
+            approved-baseline evaluation under `--assertions current`, and the selected baseline,
+            target, and final rules, are unchanged. `applyAsStatePreview` (`src/lint/core.ts:117`)
+            and the shared `validateChangeArtifact` (`src/artifact/grammar.ts:678`) are untouched,
+            including a current `--as applied` preview.
+          </Criterion>
+          <Criterion>
+            Read-boundary proof: a call-through `bun:test` `spyOn` over the real exported
+            `readGraceXmlArtifact` drives the real `lintGraceProject` over a complete ordinary
+            project and records zero calls under `.ngrace/changes/archive/` and at least one
+            current-artifact call; the spy is restored.
+          </Criterion>
+          <Criterion>
+            Behaviour: with an opaque unrelated archive — including a `plan.xml` whose
+            `BaselineAssertions` are malformed and a `MustExist` naming an unknown module, applied
+            one case at a time and exactly restored — current lint reports 0 errors and exits 0 with
+            no `assertion.*` issue naming an archived path. The paired control plants the identical
+            malformed assertion in the selected approved active plan and still refuses. The existing
+            archived-baseline test at `src/lint/core.test.ts:389-407` is rewritten so its premise
+            matches the boundary while the positive archive-opacity assertion is added.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/lint/core.test.ts</Command>
+          <Command>bun test --timeout=0 src/grace-lint.test.ts</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Make the automatic query index and selected context current-only</Title>
+        <DependsOn>
+          <Task>T-002</Task>
+        </DependsOn>
+        <Satisfies>
+          <AC-QUERY-NAV-OPAQUE />
+          <AC-ACTIVE-REFUSAL-PRESERVED />
+          <AC-SOURCE-EXCLUSION-PRESERVED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first, before the runtime change: a test selectable by
+            `-t "module query is unchanged by opaque archive content"` in
+            `src/grace-query.test.ts`, and the selected-active slice test in
+            `src/grace-context.test.ts`, fail because `collectOperationalValidationErrors`
+            (`src/query/core.ts:93-99`) reads archived plans and `loadGraceArtifactIndex`
+            (`src/query/core.ts:127-146`) then throws `invalid-project`. Capture the red with the
+            command output.
+            Run this red after T-001/T-002 using a distinct invalid archived plan/assertion fixture for both module and selected-active slice; the legacy malformed archived-spec expectation is a separate repair, not this red proof.
+          </Criterion>
+          <Criterion>
+            In `src/query/core.ts`, `collectOperationalValidationErrors` reads active plans only;
+            the archive plan directory is removed from its assertion-issue input. The automatic
+            index path no longer reads archive content. The `.ngrace` implementation-source
+            exclusion (`collectCodeFiles` excludes `ARTIFACT_DIR`) and configured `ignoredDirs` and
+            `codeExtensions` are preserved.
+          </Criterion>
+          <Criterion>
+            Read-boundary proof: a call-through `bun:test` `spyOn` over the real exported
+            `readGraceXmlArtifact` drives the real `loadGraceArtifactIndex` over a complete ordinary
+            project and records zero calls under `.ngrace/changes/archive/` and at least one
+            current-artifact call; the spy is restored.
+          </Criterion>
+          <Criterion>
+            Behaviour, one archive change at a time (malformed spec XML, malformed plan XML,
+            differing `graceVersion`, missing required section, invalid companion), each observed
+            and exactly restored after: `ngrace module find M-QUERY --path &lt;root&gt;` exits 0 and
+            returns exactly the same record as against the clean archive, and
+            `ngrace context --task &lt;T-*&gt; --change &lt;C-ACTIVE&gt; --format json` returns
+            exactly the same slice bytes. Context and module output compare byte-for-byte with no
+            field filtering; after restoration both commands match the clean baseline exactly.
+          </Criterion>
+          <Criterion>
+            The forced selected-active expectation at `src/grace-context.test.ts:470-488` is
+            repaired so the malformed unrelated-archive half asserts exit 0 and a byte-identical
+            slice, while the malformed active-graph half (`:461-469`), the malformed selected-active
+            spec half (`:490-510`), active assertion refusal, graph/verification corruption, and the
+            `--as applied` current preview refusal are preserved. The source-exclusion decoy
+            behaviour is preserved.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-query.test.ts</Command>
+          <Command>bun test --timeout=0 src/grace-context.test.ts</Command>
+        </Verification>
+      </T-003>
+    </ImplementationPlan>
+    <Assumptions>
+      <Assumption>
+        The five close-bound criteria and their commands are preserved exactly from the approved
+        spec. Full CI-equivalent verification belongs to execute/final
+        (`--assertions final --run-commands`) and the `AC-CI-GREEN` whole-suite CloseEvidence
+        criterion; it is not a per-task command and is not run during PLAN.
+      </Assumption>
+      <Assumption>
+        The `bun:test` `spyOn` over the real exported `readGraceXmlArtifact` observes the reads of
+        `validateNgraceProject`, `lintGraceProject`, and `loadGraceArtifactIndex`; the authority
+        verified this shape on a normal synthetic fixture. If it does not hold, the fix is a plan
+        revision, not a runtime API change.
+      </Assumption>
+    </Assumptions>
+  </C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85>
+</NgraceChangePlan>
