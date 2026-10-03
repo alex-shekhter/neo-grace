@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D>
     <IntentSummary>Execute the approved C4 review+fixture slice in three serial tasks: T-001 lands the historical review notices, archived alias matrix and active counterweight, preserved audit identities, T-005/CLI exit controls, and the exact catalog/localization relation across four M-REVIEW/M-LOCALIZE files; T-002 lands the real completed-child observation in the cursor and coordinator fixtures across two M-CURSOR/M-TEST-SUPPORT files; T-003 runs the self-contained controlled-delay discrimination instrument (original red, repaired green, byte-exact restoration and replay, frozen-runtime digest verification at source and in all four probe spaces) and genuinely Satisfies AC-REPAIR-DISCRIMINATION. The two fixture runtimes stay byte-frozen; no future B/C/E/F slice is touched.</IntentSummary>
     <BaselineAssertions>
