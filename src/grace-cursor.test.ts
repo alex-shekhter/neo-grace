@@ -7073,6 +7073,9 @@ describe("candidate reclaim pin controls (C-LINUX-VALIDATION-REPAIR-1-DE5A1A05)"
       stderr: "pipe",
     });
     try {
+      // Establish the completed-child precondition by real observation before probing the
+      // exited branch; a marker written before exit is not proof of completion.
+      await child.exited;
       const diagnostic = await reclaimFixtureDiagnostic(child, path.join(root, "never"), markerPaths);
       expect(diagnostic.state, JSON.stringify(diagnostic)).toBe("exited");
       expect(diagnostic.exitCode, JSON.stringify(diagnostic)).toBe(7);
