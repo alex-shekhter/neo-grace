@@ -1,0 +1,208 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Diagrams>
+    <SequenceDiagram>
+sequenceDiagram
+    participant V as Verification
+    participant B as Baseline review
+    participant C as Candidate review
+    participant F as Real child fixture
+    V-&gt;&gt;B: Run preserved-audit fixtures
+    B--&gt;&gt;V: Codes, severities, finding IDs
+    V-&gt;&gt;C: Run identical fixtures and alias matrix
+    C--&gt;&gt;V: Preserved identities and CLI results
+    F-&gt;&gt;F: Await real exit before diagnostic or spawn seam
+    V-&gt;&gt;V: Verify runtime digests and restoration
+    </SequenceDiagram>
+    <ClassDiagram>
+classDiagram
+    SelectorBindings --&gt; ArchivedAliasMatrix
+    SelectorBindings --&gt; CurrentObligationMatrix
+    SelectorBindings --&gt; PreservedFindingIdentities
+    CatalogContract --&gt; ExactCodeMembership
+    DiscriminationProbe --&gt; FrozenRuntimeDigests
+    DiscriminationProbe --&gt; ByteRestorationGuard
+    </ClassDiagram>
+  </Diagrams>
+  <Rationale>
+    **Lineage: superseded production, private rehearsal.** C3 was an omnibus: 22 acceptance
+    criteria, a 25-path write population, and six plan returns. Production C3 was **superseded before
+    production execution or apply** — its bundle is archived `superseded`, never applied. A private
+    faithful rehearsal of the 25-path candidate did reach a post-close prototype, and that rehearsal
+    is **private evidence, not shipped behavior**. The authority superseded C3 with the sanctioned
+    verbs and checkpointed the transition at `2a2639b936176a26b16f4338ef3c18a90158ee40`, which
+    already contains C3's archive arrival. This successor is the **review + fixture slice** of that
+    work: the six files and four modules whose two measured defect categories actually need a close,
+    so the remaining slices can be small and independently closeable. The mint receipt
+    `mint-search: 1 active, 2 archive prior bundle(s) share slug HISTORICAL-ASSERTION-REVIEW` is
+    carried verbatim and never remeasured after the supersede. The split was forced by the verified
+    budget/report history (six plan returns without an accepted governed report), not by a finding
+    that the source population was impossible to close.
+
+    **The two measured problems.** The first is the **current production baseline**: three
+    `review.confidently-wrong` errors report archived plans' literal `MustExist` claims against a
+    retired `test-metrics.json` — two in `C-MINT-BASELINE-CONTROL-3-F04434E4` and one in
+    `C-TEST-TIME-BUDGET-4-F173437E`. The review catalog and its localization exclusion population
+    change with them. The second is the two inherited fixture races observed in the **private**
+    rehearsal: the cursor completed-child diagnostic inferred completion from a marker or an
+    incidental wait and reported `state=running`, `exitCode=null`, `signal=SIGKILL`, and the
+    coordinator mixed-outcome control spawned the quick worker inside the deadline so it reported
+    `timedOut=true`. The six-file union addresses both categories before the first close, and is a
+    candidate until C4's own final and post-archive CI run.
+
+    **Why the historical boundary belongs here, and the grammar leaf does not.** The review surface
+    is where an archived existence claim is read; it is the natural home of the historical notice.
+    But the whole-archive grammar coupling and the applied-scope/view reader are a different
+    dependency: they change how the query index and `change show` treat archived bundles, not how a
+    review reports a historical claim. Splitting them keeps each successor's forced set small and its
+    guard baseline fresh, which is exactly what the omnibus failed to do. The omnibus
+    current-obligations criterion decomposes into a **review leaf** (this spec) and a **grammar leaf**
+    (bundle B, archive/current); neither may silently inherit the other's half. The selected-close
+    gate is a third dependency and is bundle E; production gate hardening is unshipped: current
+    production `src/gates/ledger.ts:546-581` still selects the first `CloseEvidence` child and returns
+    early on a missing wrapper, spec, or root, while the private donor's strict applied-archive
+    refusal and aggregation is prototype work.
+
+    **The localization owner C3 omitted.** C3 forced `src/verification/localize.test.ts` but left its
+    `M-LOCALIZE` owner out of the module lists, so the plan could not anchor it. This slice names
+    `M-LOCALIZE` / `V-M-LOCALIZE` in every enumeration and binds the test as a forced path, without
+    writing the localization runtime.
+
+    **The review/catalog/localization relation.** The historical-path code is `info` /
+    `process-audit`; the five family-A pattern codes are exactly the baseline membership; the three
+    D8 admissible localization codes are exactly the baseline membership; and the exclusion
+    population is exactly the set difference of the whole catalog population and the admissible
+    codes. The relation is asserted over the whole populations, never a projected figure, and the
+    dedicated exhaustive-coverage selector carries it. The measured lengths that remain in the tests
+    (21 and 18) remain enforced selected-test assertions for the measured candidate. They supplement
+    exact membership and the set-difference relation; later catalog changes must re-measure them.
+
+    **The fixture repairs are real observations.** The cursor fixture awaits the real child's exit
+    before sampling the already-exited branch; the coordinator fixture starts and awaits a real quick
+    child at the boundary and returns that completed subprocess through the existing
+    `CoordinatorIo.spawn` seam. Neither lengthens a sleep, hand-builds a process result, or relaxes the
+    deadline. The two runtime counterparts stay byte-identical.
+
+    **The discrimination instrument.** `AC-REPAIR-DISCRIMINATION` is an ordinary criterion with no
+    `CloseEvidence`. Its future plan task `Satisfies` it and runs a self-contained instrument over
+    independent physical probe spaces with sealed read-only dependencies: a controlled delay in only
+    the selected child makes the original method red with the specific timing assertion and the
+    repaired method green with one matched test and no failure; the four fixture files are then
+    restored, SHA-compared, and replayed, and both frozen runtime digests are verified at source and
+    in each space before and after. A `Satisfies` tag and the normal selectors alone do not establish
+    it.
+
+    **Explicit documentation decision.** This slice writes neither `README.md` nor `examples/`; both
+    are byte-frozen against the guard base. The new `ngrace review` historical notice is
+    user-visible, and its documentation is owned by bundle F. It is not silently non-user-visible.
+
+    **Fresh per-bundle guards.** The archive-immutability, write-population, post-archive lint, and CI
+    guards are fresh to this bundle. Each later bundle re-derives its own against its own checkpoint
+    and baseline; C4's commands are not copied forward.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Keep bundle B's archive/current grammar and query reader in this slice. Rejected: adding its
+      eight paths to this six-file scope yields fourteen paths. The grammar leaf is a different
+      dependency and stays in bundle B.
+    </Alternative>
+    <Alternative>
+      Fold the selected-close gate in. Rejected: production gate hardening was never shipped — current
+      `src/gates/ledger.ts:546-581` still takes the first `CloseEvidence` child — and re-specifying it
+      here would widen scope for a dependency whose only evidence is private prototype work. It is
+      bundle E, independently ratified.
+    </Alternative>
+    <Alternative>
+      Add a permanent test instead of a self-contained instrument for the discrimination criterion.
+      Rejected: it would add original-fixture probe runs to every full suite; a plan-time comparison
+      belongs in the plan's command bytes.
+    </Alternative>
+    <Alternative>
+      Fold the skill text and README footprint into this slice. Rejected: that is bundle F; keeping it
+      separate preserves the four-module scope and the fresh guard baseline.
+    </Alternative>
+    <Alternative>
+      Use fixed lengths alone for `allReviewCodes()` and `excludedReviewCodesForLocalization()`.
+      Rejected: lengths do not prove membership. Exact family-A and admissible membership plus the
+      whole-population set-difference relation remain required. Current measured length assertions
+      are retained as additional test guards and must be refreshed when the catalog changes.
+    </Alternative>
+  </Alternatives>
+  <InheritedObligationMap>
+    <Entry><PredecessorAC>AC-CURRENT-OBLIGATIONS-STRICT</PredecessorAC><Owner>C4 review leaf; grammar/malformed-active leaf to B archive/current</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-WRAPPER-REGRESSION</PredecessorAC><Owner>B archive/current</Owner><Retained>false</Retained></Entry>
+    <Entry><PredecessorAC>AC-HISTORICAL-NOT-CURRENT-OBLIGATIONS</PredecessorAC><Owner>B archive/current</Owner><Retained>false</Retained></Entry>
+    <Entry><PredecessorAC>AC-HISTORICAL-VIEW-CONTRACT</PredecessorAC><Owner>C applied-scope/view</Owner><Retained>false</Retained></Entry>
+    <Entry><PredecessorAC>AC-HISTORICAL-CONTEXT</PredecessorAC><Owner>B archive/current</Owner><Retained>false</Retained></Entry>
+    <Entry><PredecessorAC>AC-NO-FABRICATED-CREDIT</PredecessorAC><Owner>C applied-scope/view</Owner><Retained>false</Retained></Entry>
+    <Entry><PredecessorAC>AC-REVIEW-ARCHIVED-AUDIT</PredecessorAC><Owner>C4</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-PRESERVED-AUDITS</PredecessorAC><Owner>C4 (retirement/archive-name-consumption clause restored)</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-SELECTED-CLOSE-STRICT</PredecessorAC><Owner>E selected-close gate</Owner><Retained>false</Retained></Entry>
+    <Entry><PredecessorAC>AC-CURSOR-COMPLETED-CHILD</PredecessorAC><Owner>C4</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-COORDINATOR-MIXED-OUTCOMES</PredecessorAC><Owner>C4</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-REPAIR-DISCRIMINATION</PredecessorAC><Owner>C4</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-T005-GUARD</PredecessorAC><Owner>C4</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-CLI-EXIT</PredecessorAC><Owner>C4</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-CATALOG-CONTRACT</PredecessorAC><Owner>C4</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-OVERTURN-MALFORMED-CONTEXT</PredecessorAC><Owner>B archive/current</Owner><Retained>false</Retained></Entry>
+    <Entry><PredecessorAC>AC-SKILL-FOOTPRINT</PredecessorAC><Owner>F skills/docs</Owner><Retained>false</Retained></Entry>
+    <Entry><PredecessorAC>AC-ARCHIVE-IMMUTABLE</PredecessorAC><Owner>C4</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-WRITE-POPULATION</PredecessorAC><Owner>C4</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-DOCS-AND-EXAMPLES</PredecessorAC><Owner>C4 (explicit per-slice docs decision); F documents the new notice</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-CLOSE-LINT</PredecessorAC><Owner>C4</Owner><Retained>true</Retained></Entry>
+    <Entry><PredecessorAC>AC-CI-GREEN</PredecessorAC><Owner>C4 and every later bundle as close-time suite</Owner><Retained>true</Retained></Entry>
+  </InheritedObligationMap>
+  <DeferredDecisions>
+    <Decision>
+      Bundle B — archive/current boundary (grammar, query/index/status/context; 8 paths), including
+      the malformed-active grammar leaf of the current-obligations criterion and the reader union.
+      Owns removed `AC-WRAPPER-REGRESSION`, `AC-HISTORICAL-NOT-CURRENT-OBLIGATIONS`,
+      `AC-HISTORICAL-CONTEXT`, and `AC-OVERTURN-MALFORMED-CONTEXT`.
+    </Decision>
+    <Decision>
+      Bundle C — applied-scope/view (5 paths). Owns removed `AC-HISTORICAL-VIEW-CONTRACT` and
+      `AC-NO-FABRICATED-CREDIT`.
+    </Decision>
+    <Decision>
+      Bundle E — selected-close gate (2 paths). Owns removed `AC-SELECTED-CLOSE-STRICT`. Production
+      gate hardening is unshipped prototype work; current `src/gates/ledger.ts:546-581` still takes
+      the first `CloseEvidence` child.
+    </Decision>
+    <Decision>
+      Bundle F — canonical/packaged skill and documentation footprint (4 paths). Owns removed
+      `AC-SKILL-FOOTPRINT`, and documents the user-visible `ngrace review` historical notice.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      A project-wide `ngrace review` over a tree whose archive holds an applied plan claiming a
+      retired file. The default run exits 0 and filters the historical notice out of its default
+      finding set; `--severity info` surfaces the concrete `review.historical-path-absent` message
+      naming the target with `archive-time` and `unevaluated`. The same-ID alias case is silent for
+      both codes; a current active plan's claim still errors.
+    </Scenario>
+    <Scenario>
+      The cursor diagnostic runs while the selected synthetic child is delayed. The repaired fixture
+      awaits the real exit, samples `state` `exited`, numeric `exitCode` 7, and the captured stderr;
+      the original method under the same delay samples the running branch and reddens on the specific
+      assertion.
+    </Scenario>
+    <Scenario>
+      The coordinator mixed-outcome control runs with a delayed quick child. The real completed child
+      is supplied through the spawn seam, the quick worker reports exit 7 / `timedOut` false, the
+      forever worker reports `timedOut` true / `SIGKILL` with absent output within the preserved
+      deadline, and cleanup reaps both.
+    </Scenario>
+    <Scenario>
+      Preserved-audit identities are compared on identical inputs against independently captured
+      baseline receipts. A mutation of the fixture input moves the finding ID and reddens the exact
+      assertion; restoring the bytes returns the baseline ID.
+    </Scenario>
+    <Scenario>
+      A guard is driven in both directions: the clean checkpoint passes; a planted archive, source,
+      or examples violation reddens the corresponding criterion; exact byte restoration passes again.
+      The archive guard excludes only C4's own arrival.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
