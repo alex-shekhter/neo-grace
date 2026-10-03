@@ -151,7 +151,9 @@ overturned for delivery, and that is a separate decision from storage. This is n
 screenshots, recordings); that question is about references an implementing agent can consume, not
 about sequence/class diagrams authored for review.
 
-## Historical archive compatibility: immediate derivation and defect repair
+## Historical archive compatibility: withdrawn
+
+**Withdrawn 2026-10-03 by maintainer decision.** The current-only CLI policy in `CLAUDE.md` replaces this compatibility campaign: old archives are opaque historical evidence for LLM interpretation, not current validation or operational inputs. The earlier directions below are history, not queued work. Remove existing archive dependencies through small governed bundles, starting with `C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85`; do not carry forward the obsolete historical-reader compatibility criteria.
 
 **Recorded 2026-10-01 at `f346480`; priority: immediate derivation.** The maintainer's
 instruction is: **if a defect is found, fix it ASAP**. Queueing records the work;
