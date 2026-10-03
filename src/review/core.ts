@@ -541,15 +541,30 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
         const candidates = expandScopePathsForArchiveIdentity([target], identity);
         const present = candidates.some((candidate) => existsSync(path.join(root, candidate)));
         if (!present) {
-          findings.push(
-            makeFinding(
-              "review.confidently-wrong",
-              planRel,
-              `MustExist claims ${target} which is not present on disk.`,
-              "must-exist-missing",
-              `must-exist:${target}#${mustExistOrdinal++}`,
-            ),
-          );
+          if (identity?.planLocation === "archive") {
+            // An archived plan's missing MustExist is historical metadata, not a current obligation:
+            // archive-time presence is unevaluated against today's filesystem. Detection (same-ID
+            // alias, missing-both, foreign-id) is retained as an informational notice.
+            findings.push(
+              makeFinding(
+                "review.historical-path-absent",
+                planRel,
+                `Historical MustExist claims ${target}; archive-time presence is unevaluated against the current filesystem.`,
+                "historical-path-absent",
+                `historical-path:${target}#${mustExistOrdinal++}`,
+              ),
+            );
+          } else {
+            findings.push(
+              makeFinding(
+                "review.confidently-wrong",
+                planRel,
+                `MustExist claims ${target} which is not present on disk.`,
+                "must-exist-missing",
+                `must-exist:${target}#${mustExistOrdinal++}`,
+              ),
+            );
+          }
         }
       }
     }

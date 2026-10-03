@@ -335,6 +335,21 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
     derivedFrom: "C-APPROVAL-FINGERPRINT",
     family: "process-audit",
   },
+  "review.historical-path-absent": {
+    code: "review.historical-path-absent",
+    title: "Historical Existence Claim Is Not A Current Obligation",
+    explanation:
+      "An archived plan's MustExist target is missing on today's filesystem. Archives are historical "
+      + "metadata: archive-time presence is unevaluated, so this is an informational historical notice, "
+      + "not a current review.confidently-wrong error. Active plans keep the error.",
+    remediation: [
+      "No action is required for archived history; the record is reported, not asserted false.",
+      "Do not treat this finding as a lint change.* code and do not raise it from lint.",
+    ],
+    severity: "info",
+    derivedFrom: "C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B / F16",
+    family: "process-audit",
+  },
   [WRITE_EVIDENCE_SCOPE_FINDING_CODE]: {
     code: WRITE_EVIDENCE_SCOPE_FINDING_CODE,
     title: "WriteEvidence Path Outside ObservedWriteScope",

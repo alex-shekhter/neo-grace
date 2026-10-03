@@ -41,6 +41,7 @@ import {
   WRITE_EVIDENCE_SCOPE_FINDING_CODE,
   allReviewCodes,
   guideFor,
+  patternReviewCodes,
 } from "./catalog";
 
 const tempRoots: string[] = [];
@@ -1346,6 +1347,14 @@ describe("C-REPORT-HONESTY T-003 MustExist archive identity (F16)", () => {
         && f.message.includes("MustExist"),
     );
     expect(findings).toHaveLength(0);
+    // The new historical-path notice is silent under the same-ID archive alias too.
+    const notices = runPatternDetectors(root).filter(
+      (f) =>
+        f.code === "review.historical-path-absent"
+        && f.file.includes("C-ARCH-OWN")
+        && f.message.includes("MustExist"),
+    );
+    expect(notices).toHaveLength(0);
   });
 
   it("counterweight: path absent under both active and archive aliases still fires", () => {
@@ -1363,10 +1372,11 @@ describe("C-REPORT-HONESTY T-003 MustExist archive identity (F16)", () => {
     );
     const findings = runPatternDetectors(root).filter(
       (f) =>
-        f.code === "review.confidently-wrong"
+        f.code === "review.historical-path-absent"
         && f.message.includes(".ngrace/changes/active/C-ARCH-MISS/spec.xml"),
     );
     expect(findings.length).toBeGreaterThan(0);
+    expect(findings.every((f) => f.severity === "info")).toBe(true);
   });
 
   it("counterweight: MustExist of a different change id that is absent still fires", () => {
@@ -1391,12 +1401,62 @@ describe("C-REPORT-HONESTY T-003 MustExist archive identity (F16)", () => {
     );
     const findings = runPatternDetectors(root).filter(
       (f) =>
-        f.code === "review.confidently-wrong"
+        f.code === "review.historical-path-absent"
         && f.message.includes(".ngrace/changes/active/C-FOREIGN/spec.xml"),
     );
     // Global active→archive would silence this because archive/C-FOREIGN/spec.xml exists.
-    // Id-scoped Correction 171 must still fire.
+    // Id-scoped Correction 171 must still fire, now as a historical notice.
     expect(findings.length).toBeGreaterThan(0);
+    expect(findings.every((f) => f.severity === "info")).toBe(true);
+  });
+
+  it("archived existence claim is a historical audit", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeFileSync(
+      path.join(root, "src/example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
+    );
+    writeArchivedPlanWithMustExist(root, "C-ARCH-AUDIT", "build/artifacts/archived-audit-absent.bin");
+    const notices = runPatternDetectors(root).filter((f) => f.code === "review.historical-path-absent");
+    expect(notices.length).toBeGreaterThan(0);
+    expect(notices.every((f) => f.severity === "info")).toBe(true);
+    const audit = notices.find((f) => f.message.includes("archived-audit-absent.bin"));
+    expect(audit).toBeDefined();
+    expect(audit!.message).toContain("archive-time");
+    expect(audit!.message).toContain("unevaluated");
+    expect(notices.some((f) => f.code === "review.confidently-wrong" && f.message.includes("C-ARCH-AUDIT"))).toBe(false);
+    // A project-wide review does not fail on these informational notices.
+    expect(runReview(root, { processAudits: false, joinEngine: false }).summary.errors).toBe(0);
+  });
+
+  it("historical notice surfaces only at --severity info on a project-wide review", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeFileSync(
+      path.join(root, "src/example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
+    );
+    writeArchivedPlanWithMustExist(root, "C-ARCH-INFO", "build/artifacts/arch-info-absent.bin");
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const cli = path.join(repoRoot, "src/grace.ts");
+    const run = (args: string[]) => spawnSync("bun", ["run", cli, ...args], { cwd: root, encoding: "utf8" });
+
+    const defaultRun = run(["review", "--path", root, "--format", "json"]);
+    expect(defaultRun.status, defaultRun.stderr).toBe(0);
+    const defaultReport = JSON.parse(defaultRun.stdout) as { findings: ReviewFinding[] };
+    expect(defaultReport.findings.some((f) => f.code === "review.historical-path-absent")).toBe(false);
+
+    const infoRun = run(["review", "--path", root, "--format", "json", "--severity", "info"]);
+    expect(infoRun.status, infoRun.stderr).toBe(0);
+    const infoReport = JSON.parse(infoRun.stdout) as { findings: ReviewFinding[] };
+    const notice = infoReport.findings.find(
+      (f) => f.code === "review.historical-path-absent" && f.message.includes("arch-info-absent.bin"),
+    );
+    expect(notice).toBeDefined();
+    expect(notice!.severity).toBe("info");
+    expect(notice!.message).toContain("archive-time");
+    expect(notice!.message).toContain("unevaluated");
   });
 
   it("counterweight: active plan MustExist of a genuinely missing path still fires", () => {
@@ -2040,8 +2100,8 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
       ["run", "./src/grace.ts", "review", "--path", ".", "--change", "C-DECLARATION-GUARD-RETIRE-1-C69B6AB6", "--format", "json"],
       { cwd: repoRoot, encoding: "utf8" },
     );
-    // The retained finding remains, so a non-zero review exit is expected.
-    expect(result.status).not.toBe(0);
+    // The finding is a warning: the guard reads the finding, never the process exit status, and
+    // never depends on unrelated error counts. C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B
     const report = JSON.parse(result.stdout) as { findings: ReviewFinding[] };
     const findings = report.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE);
     expect(findings).toHaveLength(1);
@@ -2051,6 +2111,53 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     expect(finding.file === `${bundleDir}/run` || finding.file === `${bundleDir}/run-ledger.xml`).toBe(true);
     expect(finding.severity).toBe("warning");
     expect(finding.findingId).toMatch(/^[a-f0-9]{16}$/);
+  });
+
+  it("warning-only review exits zero, errors exit one", () => {
+    const repoRoot = path.resolve(import.meta.dir, "../..");
+    const warnRoot = ensureTempRoot();
+    writeMinimalNgraceProject(warnRoot);
+    writeFileSync(
+      path.join(warnRoot, "src/example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
+    );
+    writeArchivedAttemptPairBundle(warnRoot, "C-WARN-ONLY", "applied");
+    const warn = spawnSync(
+      "bun",
+      ["run", path.join(repoRoot, "src/grace.ts"), "review", "--path", warnRoot, "--change", "C-WARN-ONLY", "--format", "json"],
+      { cwd: warnRoot, encoding: "utf8" },
+    );
+    expect(warn.status, warn.stderr).toBe(0);
+    const warnReport = JSON.parse(warn.stdout) as { findings: ReviewFinding[] };
+    expect(
+      warnReport.findings.some((f) => f.code === ATTEMPT_PAIR_FINDING_CODE && f.severity === "warning"),
+    ).toBe(true);
+
+    const errRoot = ensureTempRoot();
+    writeMinimalNgraceProject(errRoot);
+    writeFileSync(
+      path.join(errRoot, "src/example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
+    );
+    const activeDir = path.join(errRoot, ".ngrace/changes/active/C-ERR-STRICT");
+    mkdirSync(activeDir, { recursive: true });
+    writeFileSync(
+      path.join(activeDir, "plan.xml"),
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-ERR-STRICT>
+  <IntentSummary>err</IntentSummary>
+  <BaselineAssertions><MustExist><Value>build/artifacts/err-strict-absent.bin</Value></MustExist></BaselineAssertions>
+  <TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions>
+  <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>
+  <ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>
+  <ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+</C-ERR-STRICT></NgraceChangePlan>`,
+    );
+    const err = spawnSync(
+      "bun",
+      ["run", path.join(repoRoot, "src/grace.ts"), "review", "--path", errRoot, "--change", "C-ERR-STRICT", "--format", "json"],
+      { cwd: errRoot, encoding: "utf8" },
+    );
+    expect(err.status).toBe(1);
   });
 
   /** An archived bundle whose run/ holds one uncorroborated fail→pass pair. */
@@ -2184,8 +2291,9 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     expect(guide!.remediation.some((r) => /gate verdict|--note|findingId/i.test(r))).toBe(true);
     expect(allReviewCodes()).toContain(ATTEMPT_PAIR_FINDING_CODE);
     expect(allReviewCodes()).not.toContain(RETIRED_ATTEMPT_PAIR_CODE);
-    // C-CRITERION-CLOSE-EVIDENCE adds review.close-evidence-unevaluated (15 → 16).
-    expect(allReviewCodes()).toHaveLength(20);
+    // C-CRITERION-CLOSE-EVIDENCE adds review.close-evidence-unevaluated (15 → 16);
+    // C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B adds review.historical-path-absent (20 → 21).
+    expect(allReviewCodes()).toHaveLength(21);
     expect(guideFor(RETIRED_ATTEMPT_PAIR_CODE)).toBeUndefined();
     const catalogTest = readFileSync(
       path.join(import.meta.dir, "../lint/catalog.test.ts"),
@@ -2736,7 +2844,7 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
     expect(guide!.code).toBe(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
     expect(guide!.severity).toBe("error");
     expect(allReviewCodes()).toContain(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
-    expect(allReviewCodes()).toHaveLength(20);
+    expect(allReviewCodes()).toHaveLength(21);
     // Porcelain sibling still distinct.
     expect(guideFor("review.scope-outside-write-scope")!.severity).toBe("error");
   });
@@ -3578,12 +3686,13 @@ describe("C-FINDING-SEVERITIES T-001 vocabulary", () => {
     expect([...REVIEW_ISSUE_SEVERITIES]).toEqual(["error", "warning", "info"]);
   });
 
-  it("the only live REVIEW_CATALOG code at severity info is the unpaired-pass code", () => {
+  it("the two live REVIEW_CATALOG codes at severity info are the unpaired-pass and historical-path codes", () => {
     expect(
       Object.values(REVIEW_CATALOG)
         .filter((guide) => guide.severity === "info")
-        .map((guide) => guide.code),
-    ).toEqual(["review.attempt-pair-unpaired-pass"]);
+        .map((guide) => guide.code)
+        .sort(),
+    ).toEqual(["review.attempt-pair-unpaired-pass", "review.historical-path-absent"]);
   });
 
   it("guideFor of the two warnings and the two live scope errors stay", () => {
@@ -4074,7 +4183,7 @@ describe("C-REVIEW-ARCHIVE-SCOPE location filter", () => {
     expect(findings).toHaveLength(1);
   });
 
-  it("FIRE confidently-wrong: applied archive MustExist of a missing path", () => {
+  it("FIRES historical-path-absent: applied archive MustExist of a missing path", () => {
     const root = ensureTempRoot();
     writeMinimalNgraceProject(root);
     emitBlockRun(root);
@@ -4087,10 +4196,11 @@ describe("C-REVIEW-ARCHIVE-SCOPE location filter", () => {
     });
     const findings = runPatternDetectors(root).filter(
       (f) =>
-        f.code === "review.confidently-wrong"
+        f.code === "review.historical-path-absent"
         && f.message.includes("build/artifacts/c-review-archive-scope-absent.bin"),
     );
     expect(findings).toHaveLength(1);
+    expect(findings[0]!.severity).toBe("info");
   });
 
   it("detectZeroOrMoreSwallow title regex source stays byte-identical", () => {
@@ -4284,5 +4394,221 @@ describe("C-EXPLAIN-ANCHOR-COMMANDS-1-FC0ED3DA anchor-key injectivity", () => {
       ),
     );
     expectInjective("review.unthreaded-construct", root, "unknown-verification-child");
+  });
+});
+
+describe("C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B historical audit obligations", () => {
+  it("current obligations stay strict", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeFileSync(
+      path.join(root, "src/example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
+    );
+    const activeDir = path.join(root, ".ngrace/changes/active/C-STRICT-ACTIVE");
+    mkdirSync(activeDir, { recursive: true });
+    writeFileSync(
+      path.join(activeDir, "plan.xml"),
+      `<NgraceChangePlan graceVersion="1.0" status="approved"><C-STRICT-ACTIVE>
+  <IntentSummary>strict</IntentSummary>
+  <BaselineAssertions><MustExist><Value>build/artifacts/strict-active-absent.bin</Value></MustExist></BaselineAssertions>
+  <TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions>
+  <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>
+  <ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>
+  <ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+</C-STRICT-ACTIVE></NgraceChangePlan>`,
+    );
+    const result = runReview(root, { processAudits: false, joinEngine: false });
+    const errors = result.findings.filter(
+      (f) => f.code === "review.confidently-wrong" && f.message.includes("strict-active-absent.bin"),
+    );
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0]!.severity).toBe("error");
+    expect(errors[0]!.ruleId).toBe("must-exist-missing");
+  });
+
+  it("historical integrity audits preserved", () => {
+    const writeArchivedAttemptPair = (
+      root: string,
+      changeId: string,
+      specStatus: "applied" | "rejected" | "cancelled" | "superseded",
+    ): void => {
+      writeChangeBundleFixture(root, { changeId, location: "archive", specStatus, planStatus: specStatus });
+      const runDir = path.join(root, ARTIFACT_DIR, "changes", "archive", changeId, "run");
+      mkdirSync(runDir, { recursive: true });
+      writeFileSync(
+        path.join(runDir, "1-T-001-attempt.xml"),
+        renderAttemptEvent({
+          id: 1,
+          task: "T-001",
+          outcome: "fail",
+          digests: [["src/example.ts", "same"]],
+          signature: { kind: "verification", key: "f286-archive-corpus" },
+        }),
+      );
+      writeFileSync(
+        path.join(runDir, "2-T-001-attempt.xml"),
+        renderAttemptEvent({ id: 2, task: "T-001", outcome: "pass", digests: [["src/example.ts", "same"]] }),
+      );
+    };
+    // Preserved audits keep their shipped severities (driven through the guide, not a catalog copy).
+    expect(guideFor(ATTEMPT_PAIR_FINDING_CODE)!.severity).toBe("warning");
+    expect(guideFor("review.confidently-wrong")!.severity).toBe("error");
+    expect(guideFor("review.scope-outside-write-scope")!.severity).toBe("error");
+    expect(guideFor("review.test-assertion-weakened")!.severity).toBe("error");
+    expect(guideFor(WRITE_EVIDENCE_SCOPE_FINDING_CODE)).toBeDefined();
+
+    // F286 behavior: an applied archived bundle reddens at warning with a stable finding id;
+    // an abandoned (superseded/rejected/cancelled) bundle is exempt.
+    const appliedRoot = ensureTempRoot();
+    writeMinimalNgraceProject(appliedRoot);
+    writeArchivedAttemptPair(appliedRoot, "C-APPLIED-F286", "applied");
+    const appliedReport = runReview(appliedRoot, {
+      changeId: "C-APPLIED-F286",
+      changedFiles: [],
+      patterns: false,
+      joinEngine: false,
+    });
+    const appliedFinding = appliedReport.findings.find((finding) => finding.code === ATTEMPT_PAIR_FINDING_CODE);
+    expect(appliedFinding?.severity).toBe("warning");
+    // Exact identity, not shape. Captured from the committed production baseline (HEAD
+    // 2a2639b) and independently reproduced by a separate sha256 instrument over
+    // (proposedBy,file,anchor,rule); a 16-hex regex or a value recomputed by this same
+    // implementation would not detect a changed id.
+    expect(appliedFinding?.findingId).toBe("05ad5fcbc7c1731d");
+    for (const status of ["superseded", "rejected", "cancelled"] as const) {
+      const root = ensureTempRoot();
+      writeMinimalNgraceProject(root);
+      writeArchivedAttemptPair(root, "C-ABANDONED-F286", status);
+      const report = runReview(root, {
+        changeId: "C-ABANDONED-F286",
+        changedFiles: [],
+        patterns: false,
+        joinEngine: false,
+      });
+      expect(report.findings.filter((finding) => finding.code === ATTEMPT_PAIR_FINDING_CODE), status).toHaveLength(0);
+    }
+
+    // The unemitted verification Marker check still fires as a real anchored finding.
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeFileSync(path.join(root, "src/example.ts"), `export function run() { return "ok"; }\n`);
+    const markers = runReview(root, { processAudits: false, joinEngine: false }).findings.filter(
+      (finding) => finding.code === "review.confidently-wrong" && finding.message.includes("marker"),
+    );
+    expect(markers.length).toBeGreaterThan(0);
+    expect(markers[0]!.anchorOrHunkKey).toMatch(/^marker:/);
+    expect(markers[0]!.findingId).toBe("f2a04796fd85304f"); // production baseline identity
+
+    // Scope and WriteEvidence-scope audits keep emitting their codes and error severity.
+    const scopeFinding = auditScopeOutsideWriteScope(["src/a.ts", "src/secret.ts"], ["src/a.ts"], []).find(
+      (finding) => finding.code === "review.scope-outside-write-scope",
+    );
+    expect(scopeFinding).toBeDefined();
+    expect(scopeFinding!.severity).toBe("error");
+    expect(scopeFinding!.findingId).toBe("1cb322caeef62523"); // production baseline identity
+    const writeEvidenceFinding = auditWriteEvidenceOutsideScope({
+      changeId: "C-A",
+      writeEvidencePaths: [".ngrace/changes/active/C-A/spec.xml"],
+      scopeFiles: ["src/in-scope.ts"],
+      scopeGlobs: [],
+      identity: { changeId: "C-A", planLocation: "active" },
+    }).find((finding) => finding.code === "review.write-evidence-outside-scope");
+    expect(writeEvidenceFinding).toBeDefined();
+    expect(writeEvidenceFinding!.severity).toBe("error");
+    expect(writeEvidenceFinding!.findingId).toBe("36203cbb47eaedbd"); // production baseline identity
+
+    // Approval audit keeps emitting its error finding on an approved bundle with no permit.
+    const approvalRoot = ensureTempRoot();
+    writeMinimalNgraceProject(approvalRoot);
+    writeChangeBundleFixture(approvalRoot, { changeId: "C-REV", location: "active", specStatus: "approved", planStatus: "approved" });
+    const approvalFindings = runReview(approvalRoot, { changeId: "C-REV", changedFiles: [], patterns: false, joinEngine: false }).findings.filter(
+      (finding) => finding.code === "review.approval-never-asked",
+    );
+    expect(approvalFindings.length).toBeGreaterThan(0);
+    expect(approvalFindings.every((finding) => finding.severity === "error")).toBe(true);
+    // Verdict/approval audit: named code, error severity, exact production-baseline identity.
+    expect(approvalFindings[0]!.code).toBe("review.approval-never-asked");
+    expect(approvalFindings[0]!.findingId).toBe("525bb26bc403a44a");
+
+    // Approved fingerprint mismatch remains an exact-identity error finding.
+    const mismatchRoot = ensureTempRoot();
+    writeMinimalNgraceProject(mismatchRoot);
+    writeChangeBundleFixture(mismatchRoot, {
+      changeId: "C-REV",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "draft",
+    });
+    writeFileSync(
+      path.join(mismatchRoot, ARTIFACT_DIR, "changes", "active", "C-REV", "run-ledger.xml"),
+      `<NgraceRunLedger graceVersion="1.0"><C-REV>`
+        + `<Decisions><Decision gate="approve" decision="permit" fingerprint="${"0".repeat(64)}" artifact="spec" /></Decisions>`
+        + `</C-REV></NgraceRunLedger>`,
+    );
+    const mismatchFindings = runReview(mismatchRoot, {
+      changeId: "C-REV", changedFiles: [], patterns: false, joinEngine: false,
+    }).findings.filter((finding) => finding.code === "review.approved-fingerprint-mismatch");
+    expect(mismatchFindings).toHaveLength(1);
+    expect(mismatchFindings[0]!.severity).toBe("error");
+    expect(mismatchFindings[0]!.findingId).toBe("f3955b7d73e78f32");
+
+    // Close-evidence audit keeps emitting its error finding when an applied archive's
+    // CloseEvidence has no recorded evaluation.
+    const closeRoot = ensureTempRoot();
+    writeMinimalNgraceProject(closeRoot);
+    writeChangeBundleFixture(closeRoot, { changeId: "C-CLOSE-AUDIT", location: "archive", specStatus: "applied", planStatus: "applied" });
+    writeFileSync(
+      path.join(closeRoot, ARTIFACT_DIR, "changes", "archive", "C-CLOSE-AUDIT", "spec.xml"),
+      `<NgraceChangeSpec graceVersion="1.0" status="applied"><C-CLOSE-AUDIT><Summary>s</Summary><AcceptanceCriteria><AC-ONE>Body.<CloseEvidence><Command>echo 1</Command></CloseEvidence></AC-ONE></AcceptanceCriteria></C-CLOSE-AUDIT></NgraceChangeSpec>`,
+    );
+    const closeFindings = runReview(closeRoot, { changeId: "C-CLOSE-AUDIT", changedFiles: [], patterns: false, joinEngine: false }).findings.filter(
+      (finding) => finding.code === "review.close-evidence-unevaluated",
+    );
+    expect(closeFindings.length).toBeGreaterThan(0);
+    expect(closeFindings.every((finding) => finding.severity === "error")).toBe(true);
+    expect(closeFindings[0]!.findingId).toBe("a2f19e90c77a1c74"); // production baseline identity
+
+    // Negative control: the identity is input-bound, so a different anchor changes it. The
+    // literal above is not a constant and the assertion can actually redden.
+    const differentPair = auditAttemptPairWriteEvidence({
+      changeId: "C-APPLIED-F286",
+      resolvedAnchorFile: ".ngrace/changes/archive/C-APPLIED-F286/run",
+      pairs: [
+        {
+          task: "T-002",
+          failEventId: 1,
+          passEventId: 2,
+          failDigests: evidenceMap([["src/example.ts", "same"]]),
+          passDigests: evidenceMap([["src/example.ts", "same"]]),
+        },
+      ],
+    });
+    expect(differentPair[0]!.findingId).not.toBe("05ad5fcbc7c1731d");
+  });
+
+  it("historical-path notice catalog contract", () => {
+    expect(REVIEW_CATALOG["review.historical-path-absent"]).toBeDefined();
+    expect(REVIEW_CATALOG["review.historical-path-absent"]!.severity).toBe("info");
+    expect(REVIEW_CATALOG["review.historical-path-absent"]!.family).toBe("process-audit");
+    expect(patternReviewCodes()).toHaveLength(5);
+    expect(patternReviewCodes()).not.toContain("review.historical-path-absent");
+    // Exact baseline family-A membership, not merely a count.
+    expect(patternReviewCodes()).toEqual([
+      "review.confidently-wrong",
+      "review.regex-over-structure",
+      "review.self-referential-comparison",
+      "review.unthreaded-construct",
+      "review.zero-or-more-swallow",
+    ]);
+    // Measured supplementary pin only; the binding relation is the whole-population set
+    // difference asserted in src/verification/localize.test.ts.
+    expect(allReviewCodes()).toHaveLength(21);
+    expect(
+      Object.values(REVIEW_CATALOG)
+        .filter((guide) => guide.severity === "info")
+        .map((guide) => guide.code)
+        .sort(),
+    ).toEqual(["review.attempt-pair-unpaired-pass", "review.historical-path-absent"]);
   });
 });
