@@ -1,0 +1,403 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85>
+    <Summary>
+      First small slice of the current-only CLI policy recorded in `CLAUDE.md:5` and confirmed by the
+      withdrawn compatibility campaign in `docs/plans/active/RM-GOVERNED-PATH/grace-implementation-queue.md:154-156`.
+      Automatic project validation and query-index inputs stop reading archived artifact contents:
+      `validateNgraceProject` (root lint) and `loadGraceArtifactIndex` (module/context navigation)
+      no longer open archived bundles, and `lintGraceProject` no longer discovers or extracts
+      archived `plan.xml` assertions. Active and selected-current validation, graph/verification
+      integrity, the `.ngrace` implementation-source exclusion, and pre-existing archive bytes are
+      preserved. The explicit `--as &lt;status&gt;` preview and the shared single-artifact
+      `validateChangeArtifact` are left intact, so a current `--as applied` validation of a selected
+      artifact still works; retirement of explicit archived selection belongs to its own consumer
+      slice. `README.md` and `examples/` are unchanged: the user-facing cutover, status/scope
+      attribution, explicit archived navigation, historical reporting, and the apply/close
+      transaction are separate dependent bundles. This overturns the unrelated-malformed-archive
+      refusal and the archived spec-to-plan coverage rule recorded in
+      `.ngrace/changes/archive/C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3/spec.xml:211-241` and
+      `src/artifact/grammar.ts:1474-1477`.
+    </Summary>
+    <Goals>
+      <Goal>
+        Make the automatic current project grammar stop opening archived spec, plan, companion, and
+        design-context contents. In `src/artifact/grammar.ts` the archive location of
+        `validateChangeBundlesInDirectory` inspects only directory-name identity (`C-*` name and
+        unsupported loose `.xml` names); malformed XML, a differing `graceVersion`, missing required
+        sections, unregistered sections, spec-to-plan coverage, companion content, and superseded
+        replacement content in an archive bundle create no current grammar or coverage issue.
+        Active-bundle grammar validation and active spec-to-plan coverage are unchanged.
+      </Goal>
+      <Goal>
+        Make automatic current lint stop discovering and parsing archived plan assertions. In
+        `src/lint/core.ts` the archived-plan enumeration and its `BaselineAssertions` /
+        `TargetAssertions` extraction are removed. Active approved-baseline evaluation under
+        `--assertions current`, and the selected baseline, target, and final rules, are unchanged.
+      </Goal>
+      <Goal>
+        Make the query index automatic path current-only. In `src/query/core.ts`,
+        `collectOperationalValidationErrors` reads active plans only; `loadGraceArtifactIndex`,
+        module navigation, and the selected-active task slice stay readable and byte-identical
+        under opaque unrelated archive content.
+      </Goal>
+      <Goal>
+        Preserve every guard that a broader archive boundary could silently disarm: active and
+        selected-current refusal paths, graph and verification integrity, `.ngrace` code exclusion
+        from implementation-source and query/context entries, directory-name archive identity
+        checks, the explicit `--as` preview, and the bytes of every pre-existing archived bundle.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting boundary change).
+      </Constraint>
+      <Constraint>
+        The permitted implementation files are exactly the three runtime files and five tests
+        `src/artifact/grammar.ts`, `src/artifact/grammar.test.ts`, `src/lint/core.ts`,
+        `src/lint/core.test.ts`, `src/grace-lint.test.ts`, `src/query/core.ts`,
+        `src/grace-query.test.ts`, and `src/grace-context.test.ts`. Every tracked path outside that
+        set and outside this bundle's own active and archive directories is byte-identical to base
+        `abb171583e49a0f0c4a5ef2661c12d0b4ad197c6`. A file the deliverable forces stays in scope;
+        any additional forced file the plan derives is added by an explicit spec revision, never by
+        silent scope growth. The authority independently confirmed exactly eight forced files.
+      </Constraint>
+      <Constraint>
+        Module ownership. All four affected modules are enumerated in `AffectedAreas` and all four
+        verification anchors in `VerificationIntent`: `M-GRAMMAR` (`V-M-GRAMMAR`, `src/artifact/grammar.ts`
+        with `src/artifact/grammar.test.ts`), `M-LINT-CORE` (`V-M-LINT-CORE`, `src/lint/core.ts` with
+        `src/lint/core.test.ts` and `src/grace-lint.test.ts`), `M-QUERY` (`V-M-QUERY`,
+        `src/query/core.ts` with `src/grace-query.test.ts`), and `M-CONTEXT` (`V-M-CONTEXT`,
+        `src/grace-context.test.ts`). `M-CONTEXT` is named even though its runtime
+        `src/grace-context.ts` is unchanged: the test file is in scope and the selected-active
+        context behaviour is part of the boundary. No module list omits `M-CONTEXT`; no new graph
+        module or verification anchor is added.
+      </Constraint>
+      <Constraint>
+        Archive identity checks remain, but only on names, never on archived XML. A non-`C-*`
+        directory under the archive makes `change.invalid-bundle-id`; a loose `.xml` file directly
+        under the archive directory makes `change.unexpected-file`; a required archive directory
+        that is missing or not a directory makes `project.missing-change-directory`. On the
+        automatic paths this bundle owns, no archived spec, plan, companion, or design-context file
+        is opened, and no diagnostic is computed from archived contents and then discarded. The
+        no-read claim is scoped to the automatic paths, not to the whole product: the explicit
+        preview below may still read the artifact the user explicitly selected.
+      </Constraint>
+      <Constraint>
+        Preview boundary. This slice removes the automatic archive enumeration
+        (`validateChangeBundlesInDirectory` over `paths.changesArchiveDir`) and the automatic
+        archived-plan assertion reads (`src/lint/core.ts` and `src/query/core.ts`). It leaves
+        `applyAsStatePreview` (`src/lint/core.ts:117`) and the shared single-artifact
+        `validateChangeArtifact` (`src/artifact/grammar.ts:678`) intact, including a current
+        `--as applied` preview: `src/lint/core.ts:134-136` computes the validator location from the
+        requested virtual status, not from where an old archive lives, so `--as applied` validates a
+        selected **current/active** artifact under archive-status rules and must keep doing so.
+        Explicit selection of older archives is removed by its own consumer slice, not retained here
+        as a permanent policy exception.
+      </Constraint>
+      <Constraint>
+        Active and selected-current validation is fully preserved: malformed active governance XML,
+        a version-invalid or required-section-invalid active spec or plan, an invalid active
+        assertion, selected active-corruption refusal, and graph/verification projection corruption
+        each still refuse. Active spec-to-plan coverage is preserved; the archived coverage
+        retirement below does not touch the active rule. The `.ngrace` implementation-source
+        exclusion in `src/query/core.ts` (the `C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3` fix) is
+        preserved, as are configured `ignoredDirs` and `codeExtensions`.
+      </Constraint>
+      <Constraint>
+        Out of scope in this bundle, each owned by a separate dependent bundle: status and scope
+        attribution over archived applied changes, explicit archived navigation and archived
+        measurement modes, historical reporting, post-archive verdict evaluation, and the
+        apply/close transaction. "Out of scope" means no deliberate implementation or API change is
+        made to those consumers in this slice; it is not a promise that their outputs keep
+        diagnostics the shared automatic validator used to emit. Shared-validator consequences are
+        expected and acceptable, because the policy makes old archives opaque history. Their
+        retirement is separate work; no historical-reader compatibility, migration/version dispatch,
+        or archived `ChangeView` guarantee is introduced or tested here.
+      </Constraint>
+      <Constraint>
+        This explicitly overturns two archived-bundle rules. First, the unrelated-malformed-archive
+        refusal preserved by `C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3` (`AC-QUERY-IMPLEMENTATION-SOURCE`
+        and `AC-CONTEXT-COVERAGE`, `.ngrace/changes/archive/C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3/spec.xml:211-241`):
+        that ruling kept "the malformed-artifact refusal unchanged" as the counterweight to
+        excluding `.ngrace` scratch code from implementation-source collection. The counterweight is
+        still answered — the scratch exclusion is preserved and every active, selected-current,
+        graph, verification, identity, preview, and byte-preservation guard stays — but its form
+        changes: archive **contents** are no longer automatic inputs, so a malformed unrelated
+        archive is opaque history rather than a current refusal. Second, the archived spec-to-plan
+        coverage rule in `src/artifact/grammar.ts:1474-1477` ("Run for active and archive:
+        historical bundles that already match stay quiet; mismatches surface so archives remain
+        truthful"; G-05 / Safeguard 5). Current schemas validate current work and the current close;
+        old evidence is retained byte-for-byte without retroactive conformance enforcement, so a
+        historical bundle whose spec and plan coverage no longer match today's schema is not a
+        current issue. The active coverage check is retained. This is not
+        `C-GRAPH-COVERAGE`'s GraphAnchors/OWS archive policy, which is a different rule and is not
+        changed here. Neither predecessor record is revalidated and no archived fixture is edited.
+      </Constraint>
+      <Constraint>
+        The full CI-equivalent verification is close-time only, run under
+        `--assertions final --run-commands` before apply/archive and again by the whole-suite
+        close-bound criterion. A `CloseEvidence` command names the narrow instrument for its
+        subject; `bun run validate:ci` is reserved for the one criterion genuinely about the whole
+        suite. Every leaf test command is written `bun test --timeout=0` so the plan does not
+        inherit a finite per-test ceiling for tests that touch the growing repository population.
+        The draft/baseline structure check is not target, final, or close evidence.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` and `examples/` are unchanged and byte-identical to base
+        `abb171583e49a0f0c4a5ef2661c12d0b4ad197c6`. Owner: the final current-only cutover bundle,
+        which teaches the current-only policy to users and depends on removing the remaining
+        archive consumers; this slice ships no user-visible documentation or example change.
+      </NonGoal>
+      <NonGoal>
+        No deliberate implementation or API change to the apply/close transaction, `ngrace apply`,
+        `ngrace supersede`, gate semantics, run ledger, or cursor in this slice. Owner: the
+        current-close boundary bundle. This is not a promise that those surfaces keep diagnostics
+        emitted by the shared automatic validator.
+      </NonGoal>
+      <NonGoal>
+        No deliberate implementation or API change to status/scope attribution, explicit archived
+        navigation, archived measurement slices, historical reporting, or post-archive verdict
+        evaluation. Owner: their own small dependent bundles, which this bundle neither mints nor
+        designs and for which it authors no compatibility tests. Shared-validator consequences in
+        those consumers are expected.
+      </NonGoal>
+      <NonGoal>
+        No skill, marketplace, packaging, version, or `openpackage.yml` change; `skills/ngrace/*`
+        and `plugins/ngrace/skills/ngrace/*` are untouched by this bundle.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-CURRENT-GRAMMAR-OPAQUE>
+        Automatic current project grammar never reads archive contents, proved at the read boundary
+        and in behaviour. A `bun:test` `spyOn` wraps the real exported `readGraceXmlArtifact`,
+        calls through to the original, and records each call's `file` argument; driving the real
+        `validateNgraceProject` over a complete ordinary project yields an empty set of recorded
+        calls whose path is under `.ngrace/changes/archive/` and a non-empty set of current-artifact
+        calls as the positive control; the spy is restored after each test and no fake parser,
+        monkey-patched return, or fabricated result is used. Behaviour is observed one changed input
+        at a time in the archive, each case observed and then exactly restored before the next:
+        (i) `spec.xml` malformed XML; (ii) `plan.xml` malformed XML; (iii) `spec.xml` with a
+        differing `graceVersion`; (iv) `plan.xml` missing a required section; (v) an invalid
+        `design-context.xml` companion. Each case yields 0 errors and exit 0, with no `xml.parse`,
+        `change.spec-missing-section`, `change.plan-missing-section`, `change.spec-plan-id-mismatch`,
+        `change.unregistered-section`, `change.scope-does-not-cover-spec`, or
+        `change.applied-plan-missing` issue naming an archived path. Directory-name identity still
+        refuses: a non-`C-*` directory under the archive yields `change.invalid-bundle-id`, a loose
+        `.xml` directly under the archive directory yields `change.unexpected-file`, and a missing
+        archive directory yields `project.missing-change-directory`. The active counterparts — the
+        same malformed, version-invalid, and section-invalid mutations planted in the active bundle,
+        plus active spec-to-plan coverage mismatch — still refuse. All comparisons are against base
+        `abb171583e49a0f0c4a5ef2661c12d0b4ad197c6`; timestamp-bearing lint JSON may omit only the
+        documented `generatedAt` field and that normalization is disclosed. A test selectable by
+        `-t "current grammar treats archive content as opaque"` in `src/artifact/grammar.test.ts`
+        carries this.
+      </AC-CURRENT-GRAMMAR-OPAQUE>
+      <AC-LINT-NO-ARCHIVE-ASSERTIONS>
+        Automatic current lint never reads archived plans, proved at the read boundary and in
+        behaviour. A `bun:test` `spyOn` over the real exported `readGraceXmlArtifact`, calling
+        through to the original, records zero calls under `.ngrace/changes/archive/` and at least
+        one current-artifact call while driving the real `lintGraceProject` over a complete ordinary
+        project; the spy is restored. In behaviour, a project with an opaque unrelated archive —
+        including a `plan.xml` whose `BaselineAssertions` are malformed and a `MustExist` naming an
+        unknown module, applied one case at a time and exactly restored — reports 0 errors and exits
+        0 with no `assertion.*` issue naming an archived path. The paired control plants the
+        identical malformed assertion in the selected approved active plan and still refuses.
+        Active approved-baseline evaluation under `--assertions current`, and the selected baseline,
+        target, and final rules, are unchanged. A unit test selectable by
+        `-t "current lint does not read archived plan assertions"` in `src/lint/core.test.ts` and
+        integration coverage in `src/grace-lint.test.ts` carry this.
+      </AC-LINT-NO-ARCHIVE-ASSERTIONS>
+      <AC-QUERY-NAV-OPAQUE>
+        The automatic query index never reads archived plans, and module navigation and the selected
+        slice stay unchanged under opaque history. A `bun:test` `spyOn` over the real exported
+        `readGraceXmlArtifact`, calling through to the original, records zero calls under
+        `.ngrace/changes/archive/` and at least one current-artifact call while driving the real
+        `loadGraceArtifactIndex` over a complete ordinary project; the spy is restored. In
+        behaviour, with an opaque unrelated archive applied one changed input at a time (malformed
+        spec XML, malformed plan XML, differing `graceVersion`, missing required section, invalid
+        companion) and exactly restored after each, `ngrace module find M-QUERY --path &lt;root&gt;`
+        exits 0 and returns exactly the same record as against the clean archive, and
+        `ngrace context --task &lt;T-*&gt; --change &lt;C-ACTIVE&gt; --format json` returns exactly
+        the same slice bytes. Context and module output are compared byte-for-byte with no field
+        filtering; after restoration both commands again match the clean baseline exactly. A test
+        selectable by `-t "module query is unchanged by opaque archive content"` in
+        `src/grace-query.test.ts` and the selected-active slice test in
+        `src/grace-context.test.ts` carry this.
+      </AC-QUERY-NAV-OPAQUE>
+      <AC-ACTIVE-REFUSAL-PRESERVED>
+        The archive boundary does not disable a validator, and the explicit preview boundary is
+        preserved. Paired clean/red/restored controls still refuse: (a) malformed active governance
+        XML at both project and selected-change level; (b) a version-invalid or
+        required-section-invalid active spec or plan; (c) an invalid active assertion; (d) graph or
+        verification projection corruption; (e) selected active-change corruption; and (f) the
+        explicit `--as applied --assertions current` preview over a selected current artifact whose
+        `plan.xml` is corrupted, which still reports `xml.parse`, `change.applied-plan-missing`, and
+        `gate.apply.no-plan` and recovers on exact restoration. Each red direction exits non-zero
+        and, on exact restoration, recovers the prior byte-identical green output; the preview
+        comparison may omit only `generatedAt` from lint JSON, disclosed. A mutation that changes
+        nothing observable and a mutation that reddens are both exercised, so a green result
+        discriminates an archive boundary from a disabled validator. This carries no CloseEvidence:
+        it is ordinary behaviour evidence, evaluated by the plan's task gates.
+      </AC-ACTIVE-REFUSAL-PRESERVED>
+      <AC-SOURCE-EXCLUSION-PRESERVED>
+        The `.ngrace` implementation-source exclusion survives. Ordinary governed-code decoys
+        under `.ngrace` remain excluded from implementation-source, module, and context entries
+        while real project sources stay discoverable; configured `ignoredDirs` and `codeExtensions`
+        still take effect. This preserves the `C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3`
+        `AC-QUERY-IMPLEMENTATION-SOURCE` behaviour, whose counterweight argument is answered in
+        this bundle's `Constraints` even though its unrelated-archive refusal is overturned.
+      </AC-SOURCE-EXCLUSION-PRESERVED>
+      <AC-NO-ARCHIVE-EDIT>
+        Every pre-existing bundle under `.ngrace/changes/archive/` is byte-identical to base
+        `abb171583e49a0f0c4a5ef2661c12d0b4ad197c6`. This bundle's own archive arrival
+        (`C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85`) is excluded because the close itself renames
+        the bundle into the archive after the base commit; there is no predecessor supersede, so
+        no further exclusion applies. No archived fixture is edited to manufacture success. The
+        command is evaluated in the applied-archive state and is not read through a pipe.
+        <CloseEvidence>
+          <Command>git diff --exit-code abb171583e49a0f0c4a5ef2661c12d0b4ad197c6 -- .ngrace/changes/archive ':(exclude).ngrace/changes/archive/C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85'</Command>
+        </CloseEvidence>
+      </AC-NO-ARCHIVE-EDIT>
+      <AC-WRITE-POPULATION-BOUNDED>
+        The whole write population is bounded, not a selected path list. Against base
+        `abb171583e49a0f0c4a5ef2661c12d0b4ad197c6`, every tracked path in the checkout is
+        byte-identical except the eight permitted implementation files and this bundle's own
+        active and archive directories, and no nonignored untracked path exists outside those same
+        exclusions. Ignored paths are outside this inventory: a file under the gitignored
+        `.ngrace/scratch/` is not seen by `git ls-files --others --exclude-standard` and does not
+        redden the criterion. Both a tracked violation and a nonignored untracked violation refuse.
+        The command is a compound `git diff --exit-code` and `test -z` over `git ls-files --others`;
+        neither stage is read through a pipeline whose tail supplies the exit code.
+        <CloseEvidence>
+          <Command>git diff --exit-code abb171583e49a0f0c4a5ef2661c12d0b4ad197c6 -- . ':(exclude)src/artifact/grammar.ts' ':(exclude)src/artifact/grammar.test.ts' ':(exclude)src/lint/core.ts' ':(exclude)src/lint/core.test.ts' ':(exclude)src/grace-lint.test.ts' ':(exclude)src/query/core.ts' ':(exclude)src/grace-query.test.ts' ':(exclude)src/grace-context.test.ts' ':(exclude).ngrace/changes/active/C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85' ':(exclude).ngrace/changes/archive/C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85' &amp;&amp; ngrace_unexpected_paths=$(git ls-files --others --exclude-standard -- . ':(exclude)src/artifact/grammar.ts' ':(exclude)src/artifact/grammar.test.ts' ':(exclude)src/lint/core.ts' ':(exclude)src/lint/core.test.ts' ':(exclude)src/grace-lint.test.ts' ':(exclude)src/query/core.ts' ':(exclude)src/grace-query.test.ts' ':(exclude)src/grace-context.test.ts' ':(exclude).ngrace/changes/active/C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85' ':(exclude).ngrace/changes/archive/C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85') &amp;&amp; test -z "$ngrace_unexpected_paths"</Command>
+        </CloseEvidence>
+      </AC-WRITE-POPULATION-BOUNDED>
+      <AC-DOCS-AND-EXAMPLES>
+        `README.md` and `examples/` are both byte-identical to base
+        `abb171583e49a0f0c4a5ef2661c12d0b4ad197c6`; no documentation, install, or example path
+        changes, and the complete user-facing current-only cutover is not claimed as shipped.
+        Owner of the eventual documentation change: the final current-only cutover bundle.
+        <CloseEvidence>
+          <Command>git diff --exit-code abb171583e49a0f0c4a5ef2661c12d0b4ad197c6 -- README.md examples/</Command>
+        </CloseEvidence>
+      </AC-DOCS-AND-EXAMPLES>
+      <AC-CLOSE-LINT>
+        In the applied-archive state, including this bundle's own archive arrival, the bundle
+        lints clean at warning severity:
+        `bun run ./src/grace.ts lint --path . --assertions none --fail-on warnings` exits 0 with 0
+        errors and 0 warnings. This is the narrow instrument for the archive boundary under the
+        real repository archive; it is not the whole-suite criterion. The command matches the
+        `grace-ts-lint-fail-on` default discriminating shape, so no `.ngrace-lint.json` change is
+        required.
+        <CloseEvidence>
+          <Command>bun run ./src/grace.ts lint --path . --assertions none --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+      <AC-CI-GREEN>
+        In the applied-archive state, including this bundle's own archive arrival, the full
+        CI-equivalent `bun run validate:ci` exits 0. This is the criterion genuinely about the whole
+        suite: `test:metrics` runs one full `bun test --timeout=0` suite — which now includes the
+        repaired archive-opacity regressions over the archive that holds this bundle — and the
+        remaining steps run `typecheck`, whole-project lint at error severity, and the marketplace,
+        examples, determinism, packed, schema-reference, skeleton-template, teaching-surface,
+        citation-anchor, record-retirement, and record-preservation validators.
+        <CloseEvidence>
+          <Command>bun run validate:ci</Command>
+        </CloseEvidence>
+      </AC-CI-GREEN>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GRAMMAR />
+      <M-LINT-CORE />
+      <M-QUERY />
+      <M-CONTEXT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        The four affected module verification surfaces stay green and gain archive-opacity coverage:
+        `V-M-GRAMMAR` (`src/artifact/grammar.test.ts`), `V-M-LINT-CORE`
+        (`src/lint/core.test.ts`, `src/grace-lint.test.ts`), `V-M-QUERY`
+        (`src/grace-query.test.ts`), and `V-M-CONTEXT` (`src/grace-context.test.ts`); no new
+        `V-M-*` anchor is created. The unit layer observes the real read boundary with a
+        `bun:test` `spyOn` over the real exported `readGraceXmlArtifact`: zero archive-path calls
+        and a positive current-artifact call for each of `validateNgraceProject`,
+        `lintGraceProject`, and `loadGraceArtifactIndex`; the CLI layer exercises the same
+        boundary end-to-end with clean/mutate/restored ordinary fixtures. Per-module narrow
+        instruments, all with the repository timeout ceiling:
+        `bun test --timeout=0 src/artifact/grammar.test.ts`,
+        `bun test --timeout=0 src/lint/core.test.ts`,
+        `bun test --timeout=0 src/grace-lint.test.ts`,
+        `bun test --timeout=0 src/grace-query.test.ts`, and
+        `bun test --timeout=0 src/grace-context.test.ts`. Pre-implementation active-baseline check:
+        `ngrace lint --path . --assertions current` is recommended before implementation and is
+        never target or final evidence. Final evidence is selected `--assertions final
+        --run-commands` plus the close-bound `AC-CLOSE-LINT`, `AC-NO-ARCHIVE-EDIT`,
+        `AC-WRITE-POPULATION-BOUNDED`, `AC-DOCS-AND-EXAMPLES`, and `AC-CI-GREEN` commands in the
+        applied-archive state. All four module ids `M-GRAMMAR`, `M-LINT-CORE`, `M-QUERY`, and
+        `M-CONTEXT` are in `AffectedAreas`; no enumeration here is partial.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      The maintainer's policy states that CLI determinism serves current project state, active
+      changes and implementation, and the bundle being closed, while older archives are passive
+      historical evidence (`CLAUDE.md:5`). Today the automatic path does the opposite. Three
+      readers open archived XML on every root lint and every navigation:
+      `src/artifact/grammar.ts:1353-1355` runs `validateChangeBundlesInDirectory` over
+      `paths.changesArchiveDir`, and the archive branch at `src/artifact/grammar.ts:1424-1504`
+      parses archived spec, plan, and companion files and runs current specification, section, and
+      spec-to-plan coverage checks; `src/lint/core.ts:544-547` and
+      `src/lint/core.ts:727-729` separately enumerate archived `plan.xml` files and extract their
+      assertions; and `src/query/core.ts:93-99` reads active **and** archive plan assertions while
+      `src/query/core.ts:127-146` builds the query index that module navigation and the
+      selected-active context slice consume. The result, reproduced against the real CLI, is that a
+      malformed, differently versioned, or section-incomplete unrelated archive bundle makes
+      `ngrace lint`, `ngrace module find`, and `ngrace context --task` fail with codes such as
+      `xml.parse` and `change.applied-plan-missing`, so historical format drift drives current
+      operational results. This bundle removes archive contents from the automatic validation and
+      query-index paths while preserving every active, selected-current, identity, projection,
+      exclusion, preview, and byte-preservation guard. It is deliberately narrow:
+      status/scope attribution, explicit archived navigation, historical reporting, post-archive
+      verdict evaluation, and the apply/close transaction still read archives and require their own
+      dependent bundles, and those consumers are expected to inherit the shared validator's new
+      current-only behaviour rather than a permanent exception. It overturns two archived-bundle
+      rules. First, the unrelated-malformed-archive refusal that `C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3`
+      preserved as the counterweight to excluding `.ngrace` scratch code; the exclusion and all
+      guards survive, so the counterweight's purpose is met by a current-only rather than a
+      whole-corpus validator. Second, the archived spec-to-plan coverage rule at
+      `src/artifact/grammar.ts:1474-1477`, which kept historical bundles "truthful" by re-running
+      current coverage over them (G-05 / Safeguard 5); current schemas validate current work and
+      the current close, so old evidence is retained without retroactive conformance enforcement,
+      while active coverage is preserved. This is not `C-GRAPH-COVERAGE`'s GraphAnchors/OWS
+      archive policy. The explicit preview is untouched: `--as applied` computes its validator
+      location from the requested virtual status (`src/lint/core.ts:134-136`), so it can validate a
+      selected current artifact under archive-status rules and remains intact.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        Private authority receipts from 2026-10-03 and the authority's 2026-10-03 archive-free
+        fixtures reproduce current behaviour on ordinary disposable projects and are treated as
+        baseline reproduction, not as candidate passes: clean current lint 0/0 exit 0 and
+        `module find M-QUERY` one record exit 0; malformed unrelated archive spec or plan makes
+        lint and navigation exit 1 with `xml.parse` and `change.applied-plan-missing`; a delete of a
+        required Goals section yields `change.spec-missing-section`; exact restoration recovers
+        clean lint and the exact module-query output. If a receipt has expired, the same behaviour
+        is reproduced on a throwaway fixture before it is cited.
+      </Assumption>
+      <Assumption>
+        A `bun:test` `spyOn` over the real exported `readGraceXmlArtifact` observes the reads of
+        `validateNgraceProject`, `lintGraceProject`, and `loadGraceArtifactIndex`; the authority
+        verified this on a normal synthetic fixture, each path currently reading an archive
+        sentinel and a current control. The spy calls through to the original reader and is
+        restored.
+      </Assumption>
+      <Assumption>
+        The five close-bound commands and the baseline hash are unchanged from the accepted
+        revision. Structural counts in the accompanying report come from the shipped parser over
+        the authored artifact, not from `grep -c`, and the report dates them at the measurement.
+      </Assumption>
+    </Assumptions>
+  </C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85>
+</NgraceChangeSpec>
