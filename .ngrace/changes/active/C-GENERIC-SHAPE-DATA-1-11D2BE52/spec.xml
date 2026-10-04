@@ -1,0 +1,409 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-GENERIC-SHAPE-DATA-1-11D2BE52>
+    <Summary>
+      Remove exactly one publisher-specific runtime privilege from the generic review surface:
+      the pattern detector's `fileHoldsShapesAsData` helper exempts any `src` module whose
+      relative path contains the substring `defect-corpus`, regardless of whether the file
+      actually holds detector shapes as data. After this change the only exemption path is the
+      existing explicit file-level opt-in marker `@ngrace-review-shape-data`
+      (`SHAPE_DATA_MARKER`), which stays exactly as it is. The private helper loses its now-unused
+      path parameter and its sole call passes only the file text. A marked module is still
+      reported verbatim in `shapeDataExemptions` and the `summary.shapeDataExemptions` count;
+      detector rules, the `review.regex-over-structure` code and `error` severity, the
+      `markup-or-attribute-regex-guard` rule id, the report shape, and the existing scan
+      population (`.ts`/`.js` under `src`, `.test.ts` excluded) are all preserved. This bundle's
+      own internal `src/test-support/defect-corpus.ts` gains the existing marker as a comment
+      describing its legitimate internal fixture-data role, placed outside the generated source
+      strings it emits. No configurable bypass, filename/root exemption, parser redesign, new
+      export, or changed marker syntax is introduced. The historical rationalization that a
+      directory spelling may stand in for the explicit marker is explicitly overturned, while
+      the original data false-positive concern it answered is preserved.
+    </Summary>
+    <Problem>
+      Neo-grace is a generic methodology and CLI for developing other projects; this repository's
+      tests, corpus, CI, and authority records are internal implementation concerns that must not
+      dictate consumer behavior. The pattern detector in `src/review/core.ts` currently contains a
+      private helper `fileHoldsShapesAsData(rel, text)` whose first branch returns `true` whenever
+      `rel.includes("defect-corpus")`; its call site at the detector loop passes the relative path
+      only for that branch. The intended exemption is the explicit file-level marker
+      `@ngrace-review-shape-data`, introduced by correction 88 (`A37.3`/`A38`) to replace an
+      earlier directory-wide `src/review/` prefix exemption. The marker is sound and generic; the
+      surviving `defect-corpus` filename substring branch is not. An arbitrary consumer module
+      named `fixture-defect-corpus-copy.ts`, or any guard living under a `defect-corpus-fixtures/`
+      directory, is silently exempted although it holds a production guard, not fixture data.
+      Measured on the real source CLI, identical unmarked guard bytes under the exact privileged
+      filename, a substring basename, and a substring directory all exit `0` with no finding and a
+      visible exemption; the same bytes under an ordinary path exit `1` with
+      `review.regex-over-structure`. Filename spelling establishes no consumer ownership, so the
+      branch is a publisher-specific bypass inside a generic detector. This bundle removes it.
+
+      The original reason for an exemption is not overturned. `A37.3` observed that detector
+      sources legitimately hold the defective shapes as data, and `A38` chose the explicit
+      marker over a path prefix for exactly that reason. A whole-module examination confirms that
+      this repository's `src/test-support/defect-corpus.ts` builds temp projects and injects
+      intentional defective code: the apparent structural predicates inside it are string
+      literals that are written into generated files, not runtime guards. This bundle keeps that
+      module exempt by carrying the sanctioned marker and removes only the filename inference. It
+      does not claim that the archived ruling already prohibited every filename exception; it
+      removes the one that survived the ruling.
+    </Problem>
+    <Goals>
+      <Goal>
+        The pattern detector's shape-data exemption depends on content, never on filename. The same
+        unmarked markup-guard fixture under each specified filename raises
+        `review.regex-over-structure` with severity `error` and rule id
+        `markup-or-attribute-regex-guard` regardless of whether its relative path contains
+        `defect-corpus`: exact filename `defect-corpus.ts`, substring basename
+        `fixture-defect-corpus-copy.ts`, and substring directory
+        `defect-corpus-fixtures/guard.ts` all refuse exactly as an ordinary name does. Only
+        path/finding-id report fields may differ after renaming; code, severity, and pattern
+        identity do not.
+      </Goal>
+      <Goal>
+        The existing explicit marker contract is preserved byte-for-byte. A module whose text
+        contains `SHAPE_DATA_MARKER` (`@ngrace-review-shape-data`) is exempt, appears in the
+        visible `shapeDataExemptions` list and the `summary.shapeDataExemptions` count, and is
+        not flagged, while an adjacent unmarked guard still raises. With fixture data that would otherwise trigger the detector, removing only the marker
+        restores the finding; restoring the exact marker bytes restores the prior report
+        byte-for-byte.
+      </Goal>
+      <Goal>
+        The internal corpus is annotated, not altered. `src/test-support/defect-corpus.ts` gains
+        the existing marker as a comment describing its internal fixture-data role, outside the
+        generated source strings it emits. Its stable defect ids, generated fixture bytes,
+        expected findings, and executable behavior are unchanged, and its existing checks in
+        `src/test-support/defect-corpus.test.ts` continue to pass.
+      </Goal>
+      <Goal>
+        The change is surgical and every preserved boundary is provable: detector rules, the
+        `review.regex-over-structure` code and severity, the report shape, and the scan
+        population (`.ts`/`.js` under `src`, `.test.ts` excluded) are unchanged; no second
+        filename/root exemption, configuration switch, parser redesign, new export, or changed
+        marker syntax is introduced; and the new discriminating filename/marker controls in
+        `src/review/core.test.ts` join the retained generalization, refusal, and exemption
+        reporting checks rather than replacing them.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module change). One package (`src/`), no architecture or exported-API
+        change. Full `strict_contract` sections; `--assertions final` remains the release gate.
+        Two owning modules are in scope: `M-REVIEW` and `M-TEST-SUPPORT`.
+      </Constraint>
+      <Constraint>
+        **Owning modules and verification anchors.** `src/review/core.ts` carries `LINKS: M-REVIEW`
+        at line 5 and `src/test-support/defect-corpus.ts` carries `LINKS: M-TEST-SUPPORT` at line
+        5. `src/review/core.test.ts` has no module-contract header and verifies its implementation
+        counterpart, so it is not separately anchored. `AffectedAreas` names `M-REVIEW` and
+        `M-TEST-SUPPORT`; the verification anchors are `V-M-REVIEW`
+        (`.ngrace/verification/main.xml:68`) and `V-M-TEST-SUPPORT`
+        (`.ngrace/verification/main.xml:93`), with graph anchors `M-REVIEW`
+        (`.ngrace/graph/main.xml:67`) and `M-TEST-SUPPORT` (`.ngrace/graph/main.xml:92`). Both
+        owners are named wherever this spec enumerates modules, and both `V-*` anchors wherever it
+        enumerates verification anchors. No graph or verification edit is intended.
+      </Constraint>
+      <Constraint>
+        **The write set is closed and bounded.** The deliverable forces exactly three files:
+        `src/review/core.ts` (remove the `rel.includes("defect-corpus")` branch from
+        `fileHoldsShapesAsData`; remove its now-unused private path parameter and the sole call
+        argument), `src/review/core.test.ts` (add discriminating filename/marker controls; retain
+        the existing meaningful generalization/refusal/reporting checks), and
+        `src/test-support/defect-corpus.ts` (add the existing explicit marker as a comment
+        describing its legitimate internal fixture-data role, outside the generated source
+        strings). A genuinely forced fourth file must be reported with its owner and causal
+        requirement before scope is widened; do not silently expand. The bundle's own archive
+        arrival is the close's write, not an implementation write.
+      </Constraint>
+      <Constraint>
+        **Surgical scope of the runtime change.** In `fileHoldsShapesAsData` remove only the
+        `rel.includes("defect-corpus")` branch and its comment; the helper's remaining body tests
+        `text.includes(SHAPE_DATA_MARKER)` and its path parameter is dropped along with the call
+        argument. Preserve `SHAPE_DATA_MARKER`, file-level opt-in semantics, and the visible
+        `shapeDataExemptions` reporting exactly. Do not modify the detector loop's scan population
+        (`.ts`/`.js` under `src`, `.test.ts` excluded), `usesRegexAsGuard`,
+        `extractRegexPatternSources`, `patternSourceLooksLikeMarkupGuard`,
+        `isDefectiveUnstrippedMarkerLineGuard`, the finding code
+        `review.regex-over-structure`, its `error` severity, its
+        `markup-or-attribute-regex-guard` rule id, or the report shape.
+      </Constraint>
+      <Constraint>
+        **No new exemption surface.** Do not add another filename, path, root, or directory
+        exemption; do not add a configuration key, suppression list, override flag, or new
+        exported predicate; do not redesign the parser/detector; do not change the marker syntax
+        or turn the file-level marker into a line-level one. The only remaining exemption is the
+        explicit `@ngrace-review-shape-data` file marker.
+      </Constraint>
+      <Constraint>
+        **Test change adds rather than flips.** Add discriminating controls that pin the removed
+        filename privilege in both directions: identical unmarked guard bytes under the exact
+        privileged filename, a substring basename, a substring directory, and an ordinary name
+        each produce exactly one `review.regex-over-structure` finding with severity `error`, and
+        a legitimately marked data module is visibly exempt while an adjacent unmarked guard
+        raises. Retain the existing generalization, refusal, dataflow, and
+        `shapeDataExemptions` reporting checks; do not delete unrelated controls to obtain green.
+        Byte comparison is used only to prove that one input changed and was restored (same source
+        contents across filename cases, exact marker-only change, exact restoration); do not
+        require output bytes or finding ids to stay equal across different filenames. Native
+        `bun test` commands are this repository's internal verification, not a new generic skill
+        mandate.
+      </Constraint>
+      <Constraint>
+        **Corpus annotation is comment-only and outside generated strings.** In
+        `src/test-support/defect-corpus.ts` the marker is added as a comment that describes the
+        module's internal fixture-data role; it must not land inside a generated source string
+        (the existing structural predicates that appear in emitted defective code, e.g. a
+        generated `&lt;Item id="…"&gt;`-style guard literal, are data, not runtime guards).
+        Preserve corpus ids, generated fixture bytes, expected findings, and executable behavior;
+        `src/test-support/defect-corpus.test.ts` continues to pass. When governed data is copied
+        into a consumer fixture, keep its artifact ownership coherent.
+      </Constraint>
+      <Constraint>
+        **The original concern is answered, not contradicted.** This bundle overturns the
+        surviving filename branch and preserves the explicit-marker remedy. It does not claim the
+        archived ruling (`A37.3`/`A38`) already prohibited every filename exception; the archived
+        predecessor is read as history only and is not edited, and the historical corpus is not
+        re-validated or rehearsed against current schemas.
+      </Constraint>
+      <Constraint>
+        **`README.md` and `examples/` are unchanged.** The behavior change is observable: an
+        unmarked privileged filename starts raising `review.regex-over-structure`. They stay
+        unchanged because the README's and examples' current generic descriptions do not promise
+        that privilege, and no command, flag, or example demonstrates the detector's filename
+        exemption. Owner: unchanged; no user-visible surface claims the removed privilege, and
+        `examples/` is a separate nested project covered by `validate:examples`. This does not
+        claim there is no user-visible behavior change.
+      </Constraint>
+      <Constraint>
+        **History and other surfaces stay immutable; this bundle's own lifecycle writes are
+        sanctioned at their stages.** Do not edit `docs/plans/**`, pre-existing content under
+        `.ngrace/changes/archive/**`, any other change bundle, the product record
+        (`decisions.md`/`decisions.xml`/retired siblings), `CHANGELOG.md`, any version surface
+        (`package.json`, README packaged version, `openpackage.yml`, marketplace/plugin
+        manifests), or canonical/packaged skills. No product version bump. This bundle's own
+        later plan, engine lifecycle, ratification, applied statuses, and archive arrival are
+        permitted at their separately authorized stages.
+      </Constraint>
+      <Constraint>
+        **Do not absorb the larger cleanup.** The internal-history isolation, generic
+        archive-policy restoration, and portable-teaching cleanup are separate bundles with their
+        own stages; this slice neither schedules nor asserts a defect on those surfaces.
+      </Constraint>
+      <Constraint>
+        Escape markup in this bundle's XML artifacts as character data (`&lt;`, `&gt;`, `&amp;`).
+        Do not paraphrase an angle-bracketed token away; markup-byte assertions belong in a
+        TypeScript test.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` and `examples/` are unchanged. Reason: the change is observable — an unmarked
+        privileged filename now raises `review.regex-over-structure` — but the README's and
+        examples' current generic descriptions do not claim the removed filename exemption and no
+        command, flag, or example demonstrates it; the consumer-facing subject is the existing
+        explicit marker. Owner: unchanged; no user-visible surface claims the privilege, and
+        `examples/` is covered by `validate:examples`.
+      </NonGoal>
+      <NonGoal>
+        Redesigning the detector to distinguish fixture literals from runtime guards without an
+        annotation. Owner: none; the existing explicit marker already provides the intended
+        opt-in, and changing the detector's analysis would broaden this bundle beyond the measured
+        filename privilege.
+      </NonGoal>
+      <NonGoal>
+        Internal-history isolation, generic archive-policy restoration (automatic archive
+        validation and the XML parser comment exceptions), and portable skill/resource/template
+        teaching cleanup. Owner: separate authorized cleanup bundles, sequenced after this small
+        repair. This bundle requires no historical conformance population at any stage.
+      </NonGoal>
+      <NonGoal>
+        Changing the shape-data marker syntax or moving it to line level; changing the scan
+        population; changing the `review.regex-over-structure` code, severity, rule id, or report
+        shape. Owner: none; explicitly out of scope.
+      </NonGoal>
+      <NonGoal>
+        Packaging, release, version, catalog, or packaged-mirror changes. Owner: separate release
+        bundles; this bundle is version-neutral and asserts no defect on those surfaces.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-FILENAME-INDEPENDENT>
+        The shape-data exemption no longer depends on path spelling. Driven with the real source
+        CLI on complete ordinary consumer projects, identical unmarked structural-guard bytes
+        placed at exact `src/test-support/defect-corpus.ts`, at a substring basename
+        `src/fixture-defect-corpus-copy.ts`, at a substring directory
+        `src/defect-corpus-fixtures/guard.ts`, and at an ordinary name each produce exactly one
+        `review.regex-over-structure` finding with severity `error` and rule id
+        `markup-or-attribute-regex-guard`, and none of those four paths appears in
+        `shapeDataExemptions`. Same source contents across the filename cases are proven by byte
+        equality of the input; output bytes and finding ids naturally differ after renaming and
+        are not required to match. Failure conditions: any of the four paths is exempt or silent;
+        a different finding code or lowered severity; a replacement filename/path/root
+        exemption; the ordinary name regresses.
+      </AC-FILENAME-INDEPENDENT>
+      <AC-EXPLICIT-MARKER-PRESERVED>
+        The explicit marker contract is preserved and visibly reported. A legitimate shape-data
+        module carrying `@ngrace-review-shape-data` (`SHAPE_DATA_MARKER`) is not flagged, appears
+        in `shapeDataExemptions` and in `summary.shapeDataExemptions`, and an adjacent unmarked
+        real guard still raises. On fixture data that would otherwise trigger the detector, removing only the marker makes both files raise; restoring the
+        exact marker bytes restores the prior report byte-for-byte on the original root and
+        input. The scan population stays `.ts`/`.js` under `src` with `.test.ts` excluded, and no
+        second exemption mechanism exists. Failure conditions: marker recognition removed or
+        changed; exemption silent (not reported); a marked module still flagged; adjacent guard
+        suppressed; a new line-level or configuration opt-in added.
+      </AC-EXPLICIT-MARKER-PRESERVED>
+      <AC-INTERNAL-FIXTURE-PRESERVED>
+        The internal corpus is annotated, not altered. `src/test-support/defect-corpus.ts` gains
+        the existing marker as a comment describing its internal fixture-data role, outside the
+        generated source strings it emits; the module stays exempt and appears in
+        `shapeDataExemptions`. Its stable defect ids, generated fixture bytes, expected findings,
+        and executable behavior are unchanged: `src/test-support/defect-corpus.test.ts` passes
+        (unique ids, per-pattern coverage, clean pre-apply baseline, declared rationales,
+        surface reachability fields, and `apply()` mutation). No corpus count or historical
+        conformance population is pinned. Failure conditions: a generated fixture string is
+        altered; an id, expected finding, or rationale changes; the module is no longer exempt; a
+        corpus check is deleted to obtain green.
+      </AC-INTERNAL-FIXTURE-PRESERVED>
+      <AC-CLOSE-BOUNDED-WRITES>
+        The whole write population is bounded and history is immutable. Against base
+        `69bfe9417c14761dae16b49e7c5eb1b6865be0f7`, every tracked path in the checkout is
+        byte-identical except the three permitted implementation files (`src/review/core.ts`,
+        `src/review/core.test.ts`, `src/test-support/defect-corpus.ts`) and this bundle's own
+        active and archive directories, and no nonignored untracked path exists outside those
+        same exclusions. This inherently pins archive immutability: every pre-existing bundle
+        under `.ngrace/changes/archive/` and every path under `docs/plans/` is byte-identical to
+        base. This bundle's own archive arrival (`C-GENERIC-SHAPE-DATA-1-11D2BE52`) is excluded
+        because the close itself renames the bundle into the archive after the base commit; there
+        is no predecessor supersede, so no further exclusion applies. Ignored paths are outside
+        this inventory: a file under the gitignored `.ngrace/scratch/` is not seen by
+        `git ls-files --others --exclude-standard` and does not redden the criterion. Both the
+        worktree and the index (staged state) are checked against the same frozen base with the
+        same exclusions, so an outside change staged past the worktree check cannot hide from a
+        commit. Both a tracked or staged violation and a nonignored untracked violation refuse.
+        The command is a compound `git diff --exit-code` (worktree), `git diff --cached
+        --exit-code` (index), and `test -z` over `git ls-files --others`; no stage is read through
+        a pipeline whose tail supplies the exit code. Evaluated in the applied-archive state.
+        <CloseEvidence>
+          <Command>git diff --exit-code 69bfe9417c14761dae16b49e7c5eb1b6865be0f7 -- . ':(exclude)src/review/core.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/test-support/defect-corpus.ts' ':(exclude).ngrace/changes/active/C-GENERIC-SHAPE-DATA-1-11D2BE52' ':(exclude).ngrace/changes/archive/C-GENERIC-SHAPE-DATA-1-11D2BE52' &amp;&amp; git diff --cached --exit-code 69bfe9417c14761dae16b49e7c5eb1b6865be0f7 -- . ':(exclude)src/review/core.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/test-support/defect-corpus.ts' ':(exclude).ngrace/changes/active/C-GENERIC-SHAPE-DATA-1-11D2BE52' ':(exclude).ngrace/changes/archive/C-GENERIC-SHAPE-DATA-1-11D2BE52' &amp;&amp; ngrace_unexpected_paths=$(git ls-files --others --exclude-standard -- . ':(exclude)src/review/core.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/test-support/defect-corpus.ts' ':(exclude).ngrace/changes/active/C-GENERIC-SHAPE-DATA-1-11D2BE52' ':(exclude).ngrace/changes/archive/C-GENERIC-SHAPE-DATA-1-11D2BE52') &amp;&amp; test -z "$ngrace_unexpected_paths"</Command>
+        </CloseEvidence>
+      </AC-CLOSE-BOUNDED-WRITES>
+      <AC-CLOSE-LINT>
+        In the applied-archive state, including this bundle's own archive arrival, the bundle
+        lints clean at warning severity: `bun run ./src/grace.ts lint --path . --assertions none
+        --fail-on warnings` exits 0 with 0 errors and 0 warnings. This is the narrow instrument
+        for the review surface under the real repository archive, not the whole-suite criterion.
+        The command matches the default discriminating shape `ngrace lint --fail-on`, so no
+        `.ngrace-lint.json` change is required.
+        <CloseEvidence>
+          <Command>bun run ./src/grace.ts lint --path . --assertions none --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+      <AC-CI-GREEN>
+        In the applied-archive state, including this bundle's own archive arrival, the full
+        CI-equivalent `bun run validate:ci` exits 0. This is the criterion genuinely about the
+        whole suite: `test:metrics` runs one full `bun test --timeout=0` suite — which now
+        includes the new discriminating review controls and the annotating corpus — and retains
+        its raw JUnit report outside the repository with counts parsed, and the remaining steps
+        run `typecheck`, whole-project lint at error severity, and the marketplace, examples,
+        determinism, packed, schema-reference, skeleton-template, teaching-surface,
+        citation-anchor, record-retirement, and record-preservation validators. The command is an
+        explicit `.ngrace-lint.json` `closeEvidenceCommandShapes` prefix. Native suite commands
+        are this repository's internal verification, not a new generic skill mandate.
+        <CloseEvidence>
+          <Command>bun run validate:ci</Command>
+        </CloseEvidence>
+      </AC-CI-GREEN>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 src/test-support/defect-corpus.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ./src/grace.ts lint --path . --assertions none --fail-on warnings</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Ordinary synthetic fixtures and the real source CLI on complete ordinary consumer
+        projects, under owning modules `M-REVIEW` and `M-TEST-SUPPORT` and verification anchors
+        `V-M-REVIEW` (`bun test src/review`) and `V-M-TEST-SUPPORT`
+        (`bun test src/test-support`). Narrow checks run in each task's resulting tree; the final
+        CI run belongs to EXECUTE, with its JUnit retained and counts parsed. Required probes,
+        each driven mutate &#8594; observed &#8594; exact restoration with honest provenance (no
+        manufactured red, no historical archive used as the acceptance population): (1) identical
+        unmarked guard bytes under the exact `defect-corpus.ts` filename, a substring basename, a
+        substring directory, and an ordinary name each refuse with exactly
+        `review.regex-over-structure`, severity `error`, and no exemption; (2) a legitimate marked
+        data module is visibly exempt while an adjacent unmarked guard refuses, removing only the
+        marker exposes both, and restoring exact marker bytes restores the report byte-for-byte;
+        (3) the internal corpus keeps its ids, fixtures, expectations, and behavior, with its
+        comment-only marker outside generated strings. A planted regression that restores the
+        filename bypass must make the new discriminator fail, driven on the real CLI; genuine
+        red-first execution is recorded truthfully and private mutation proof is not production
+        attempt history. Byte-level archive immutability is covered by
+        `AC-CLOSE-BOUNDED-WRITES`. The `README.md`/`examples/` decision is recorded as a `NonGoal`
+        with its owner.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Authoring base is HEAD `69bfe9417c14761dae16b49e7c5eb1b6865be0f7` on branch
+        `feat/archive-compatibility`. The bundle was minted by the source CLI from the bare slug
+        `GENERIC-SHAPE-DATA` with the supplied timestamp `2026-10-04T07:54:54Z`, producing
+        `C-GENERIC-SHAPE-DATA-1-11D2BE52`; the initial scaffold SHA-256 was
+        `35ff1f65c276c2f320ba9d632ab1d57c28ab69fba0e3eb4445fbc2270f4c09c8`. The scaffold is
+        rewritten wholesale; the id is not re-minted or renamed.
+      </Assumption>
+      <Assumption>
+        Reviewed explanatory design: `.ngrace/scratch/briefs/GENERIC-SHAPE-DATA-design-review.md`
+        (ignored working document, not a ratified artifact). Its two diagrams are reproduced in
+        this bundle's `design-context.xml` with non-normative status. `spec.xml` remains the
+        source of truth; requirements bind only there.
+      </Assumption>
+      <Assumption>
+        Preserved baseline source, restated rather than re-derived here:
+        `src/review/core.ts` SHA-256
+        `a66c22089e892fec65873526d64b56617067f569ba0db36d09a77eb61665f47d`,
+        `src/review/core.test.ts` SHA-256
+        `fbbc7c2ce3d5a24b9afa25c4b1d098929ec726359e522703d11faa703f0be401`, and
+        `src/test-support/defect-corpus.ts` SHA-256
+        `f72c10be938f7f5a3bb4c78be46787d42fbaaf975541ebef66fdc495619f1bf2`. The
+        `defect-corpus` branch lives in `fileHoldsShapesAsData` at `src/review/core.ts:679-685`
+        with its sole call at `:817`.
+      </Assumption>
+      <Assumption>
+        The authority's pre-handoff probes on complete throwaway projects with the source CLI
+        established the defect and the preserved controls, not acceptance: identical unmarked
+        guard bytes under the exact privileged filename, a substring basename, and a substring
+        directory each exited `0` with no finding and a visible exemption, while the same bytes
+        under an ordinary path exited `1` with `review.regex-over-structure`. A separate probe
+        copied the complete internal corpus to a nonprivileged name: unmarked it raised, marked
+        it was visibly exempt while an adjacent unmarked guard still raised, and removing only the
+        marker exposed both. Each isolated input removal restored the clean report byte-exactly.
+        An earlier probe that merely marked executable guard code is retained and explicitly
+        labeled mechanical-only; it is not cited as legitimate-data evidence. These are the
+        defect baseline for EXECUTE to falsify, not evidence of the implementation.
+      </Assumption>
+      <Assumption>
+        The installed `ngrace` skills were measured byte-identical to the canonical
+        `skills/ngrace/*` population on 2026-10-04 UTC: 16 canonical skill directories / 61 files,
+        with the published, packaged, and corresponding installed files identical (a measured
+        no-op refresh). Refresh does not authorize changing canonical or packaged skills. Commands
+        use `bun run ./src/grace.ts`; an installed binary is not evidence of this checkout's
+        behavior.
+      </Assumption>
+      <Assumption>
+        The close writes this bundle's own archive arrival (the rename of the active directory
+        into `.ngrace/changes/archive/`). No other close write is assigned by this spec: there is
+        no product-record edit, no version surface, and no predecessor supersede. The
+        bounded-writes criterion therefore excludes only the three implementation files and this
+        bundle's two locations.
+      </Assumption>
+      <Assumption>
+        EXECUTE is genuinely red-first for the filename defect: the new discriminating controls
+        fail against the pre-change detector and pass after the removal, recorded through the real
+        CLI with a private mutant that restores the filename bypass proving non-vacuity. No
+        manufactured retrospective red or hand-written lifecycle evidence is supplied.
+      </Assumption>
+    </Assumptions>
+  </C-GENERIC-SHAPE-DATA-1-11D2BE52>
+</NgraceChangeSpec>

@@ -1,0 +1,92 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-GENERIC-SHAPE-DATA-1-11D2BE52</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    Explanatory context for the generic shape-data exemption removal. Requirements bind only in
+    this bundle's `spec.xml`; this companion adds none. The reviewed approach is variant 1 from
+    `.ngrace/scratch/briefs/GENERIC-SHAPE-DATA-design-review.md`: use the existing explicit
+    file-level marker rather than redesigning the detector. The measured defect is that the
+    pattern detector in `src/review/core.ts` exempts any `src` module whose relative path contains
+    the substring `defect-corpus`, so an ordinary consumer guard named
+    `fixture-defect-corpus-copy.ts`, or any guard under a `defect-corpus-fixtures/` directory, is
+    silently exempted although it holds a production guard. The explicit marker
+    `@ngrace-review-shape-data` (`SHAPE_DATA_MARKER`) already expresses the intended opt-in for a
+    module that holds detector shapes as data, and is the remedy correction 88 chose over a
+    directory prefix. Removing the filename branch restores generic filename behavior while
+    keeping the marker contract, its visible `shapeDataExemptions` reporting, the detector rules,
+    the finding code/severity, and the scan population intact. The internal
+    `src/test-support/defect-corpus.ts` is fixture construction and intentional defect injection,
+    verified from the whole module and real CLI probes, so it carries the marker legitimately; it
+    gains only a comment, not a behavior change.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Redesign the detector to distinguish fixture literals from runtime guards without an
+      annotation. Pros: could reduce manual opt-ins and inspect mixed fixture/runtime modules more
+      precisely. Cons: changes source-analysis semantics beyond the confirmed filename privilege
+      and requires its own larger design and generalization controls; it is not required to repair
+      the privilege. Rejected in favor of the existing marker, which gives this small bundle a
+      defined consumer contract.
+    </Alternative>
+    <Alternative>
+      Keep a narrower filename-based exemption (for example an exact-basename match instead of a
+      substring). Pros: preserves the internal corpus exemption without touching its source.
+      Cons: still lets a consumer filename stand in for the explicit content-based contract, and
+      the defect measured is precisely that inference; it would leave the reviewer blind to a
+      production guard under that name. Rejected.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Internal-history isolation, the generic archive-policy restoration, and portable
+      skill/resource/template teaching cleanup are separate bundles and are not decided here. The
+      corpus annotation in this slice preserves the existing marker contract rather than adding a
+      broader suppression mechanism.
+    </Decision>
+    <Decision>
+      The marker remains a file-level opt-in, not a line-level one, and does not certify arbitrary
+      annotated runtime guards as data. Any move to line-level granularity is out of scope and
+      would need its own design and generalization controls.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Consumer scan decision, after the change:
+
+      ```mermaid
+      sequenceDiagram
+          participant F as Consumer source file
+          participant C as ngrace review
+          participant D as Pattern detector
+          C->>F: Read source bytes
+          C->>D: Scan file
+          D->>F: Check explicit shape-data marker
+          alt Marker is present
+              D-->>C: Report file in shapeDataExemptions
+          else Marker is absent
+              D->>D: Run existing structural-guard checks
+              D-->>C: Existing finding or no finding
+          end
+          Note over C,D: Filename gives no exemption
+      ```
+    </Scenario>
+    <Scenario>
+      Existing function and artifact roles; no new runtime classes are proposed:
+
+      ```mermaid
+      classDiagram
+          class ReviewEngine
+          class PatternDetector
+          class SourceFile
+          class ShapeDataContract
+          class ReviewReport
+          class InternalDefectCorpus
+          ReviewEngine --> PatternDetector : runReview()
+          PatternDetector --> SourceFile : reads and scans
+          PatternDetector --> ShapeDataContract : SHAPE_DATA_MARKER
+          PatternDetector --> ReviewReport : emits existing results
+          InternalDefectCorpus --> ShapeDataContract : declares data role
+      ```
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
