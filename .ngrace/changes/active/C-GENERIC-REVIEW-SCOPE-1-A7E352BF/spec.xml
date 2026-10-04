@@ -1,0 +1,402 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-GENERIC-REVIEW-SCOPE-1-A7E352BF>
+    <Summary>
+      Remove exactly one publisher-specific runtime privilege from the generic review surface:
+      the ledger-backed WriteEvidence scope audit
+      (`auditWriteEvidenceOutsideScope` / `review.write-evidence-outside-scope`) silently exempts
+      every `docs/plans/` path via `isDocsPlansPath`. After this change a comparable WriteEvidence
+      path under `docs/plans/` raises the same error as any other undeclared content path, and a
+      matching declared `File` or relevant `Glob` makes it pass. The separate working-tree scope
+      audit (`auditScopeOutsideWriteScope` / `review.scope-outside-write-scope`), the CLI lifecycle
+      exclusions, the exact canonical engine candidate-lock exception and its near-miss refusals,
+      finding deduplication/union/severity, and the missing/empty-evidence statuses are all
+      preserved. No configurable bypass or new API is added. The historical rationalization in
+      `C-DECLARED-WRITES` is explicitly overturned: a directory spelling establishes no consumer
+      ownership, and concurrent work is coordinated through actual declared scope and evidence
+      boundaries rather than a tool-defined path prefix.
+    </Summary>
+    <Problem>
+      Neo-grace is a generic methodology and CLI for developing other projects; this repository's
+      tests, development archive corpus, CI, and authority records are internal implementation
+      concerns and must not dictate consumer behavior. `C-DECLARED-WRITES` introduced the
+      ledger-backed scope audit and, in `AC-LEDGER-SCOPE-RULE`, gave every path with prefix
+      `docs/plans/` a tool-defined exclusion. Its own `Assumption` conceded that "any edit under
+      `docs/plans/` that appears in WriteEvidence will not raise this finding." The exclusion was
+      accepted because this repository had concurrent authority edits under that prefix and the
+      residual was said to be process plus git history.
+
+      That argument does not generalize to a consumer project. `docs/plans/` is an arbitrary
+      directory name; nothing about the spelling establishes that the repository owner authored the
+      write, that the path is out of the executor's control, or that a declared
+      `ObservedWriteScope` may not cover it. A consumer whose own roadmap lives under a different
+      prefix — or which relies on the audit to notice an undeclared write under its roadmap — gets
+      no such privilege. Concurrent work is coordinated through actual declared scope and evidence
+      boundaries: a path that must change is declared in the plan's `ObservedWriteScope`, and a
+      finding states that a recorded path is outside scope without inferring who authored it. The
+      current behavior is a publisher-specific bypass inside a generic audit; this bundle removes
+      it and makes documentation paths ordinary declared scope.
+
+      Removing the exemption is a surgical deletion of one predicate definition and its single
+      bypass call plus the associated comments. The rest of the audit — union across attempts,
+      deduplication, archive-identity expansion for `.ngrace/` bundle artifacts, the lifecycle and
+      candidate-lock exceptions, the report fields, and the absence statuses — is unchanged. This
+      is the first small bundle from the design's authorized cleanup; the remaining groups (generic
+      archive-traversal restoration, the nine XML parser comment exceptions, other historical test
+      consumers, and skill/resource/template cleanup) are separate bundles with their own stages and
+      are NonGoals here. Skill-composition measurement and packaging/version repair are not asserted
+      as defects owed by this cleanup; assessment of those surfaces is not an implementation
+      decision of this bundle.
+    </Problem>
+    <Goals>
+      <Goal>
+        A WriteEvidence content path under `docs/plans/` that is not covered by the plan's
+        `ObservedWriteScope` raises `review.write-evidence-outside-scope` with severity `error`,
+        exactly as the same path would under any other undeclared prefix. `isDocsPlansPath` and its
+        single bypass call are removed from `auditWriteEvidenceOutsideScope`; the finding is produced
+        by the ordinary coverage path, not by a replacement exemption.
+      </Goal>
+      <Goal>
+        A `docs/plans/` path covered by an exact declared `File` or a relevant declared `Glob` does
+        not raise, so declaring consumer documentation at plan time is sufficient and ordinary.
+        Ordinary documentation coverage is exact-file or glob only. The audit adds no new way to
+        declare, suppress, or configure coverage.
+      </Goal>
+      <Goal>
+        Every preserved boundary is provable: the separate working-tree audit still reports changed
+        `docs/plans/` paths under `review.scope-outside-write-scope`; the CLI lifecycle exclusion
+        (`run.xml`, `run-ledger.xml`, `run/**` under a canonical `C-*` bundle) and the exact
+        canonical engine candidate lock are still filtered, with every near-miss still raising;
+        undeclared approved `spec.xml`/`plan.xml` and other non-lifecycle `.ngrace/` content still
+        raise; the same-ID `.ngrace/changes/{active,archive}/&lt;id&gt;/...` identity expansion for the
+        reviewed change's own bundle artifacts remains while an undeclared path naming another change's bundle
+        still raises; and path deduplication, union across attempts, finding code/severity, report
+        fields, and the missing/empty-evidence statuses are unchanged.
+      </Goal>
+      <Goal>
+        Correct the catalog explanation of `review.write-evidence-outside-scope` so it no longer
+        claims authority ownership of `docs/plans/`; state the path-class exclusions that remain
+        (CLI lifecycle, exact canonical candidate lock) and that non-lifecycle `.ngrace/` paths
+        raise.
+      </Goal>
+      <Goal>
+        Replace the affected publisher-history test expectations with ordinary synthetic fixtures.
+        The direct `C-ESCALATION-HONESTY`/`docs/plans` exemption coupling and the whole-archive
+        WriteEvidence multiset ratchet are removed and replaced by synthetic projects that preserve
+        their useful generic controls: undeclared docs refusal, exact-file and glob declared docs
+        success, undeclared ordinary path refusal, undeclared non-lifecycle `.ngrace/` refusal,
+        lifecycle and candidate-lock near-miss refusals, and `unable-to-determine` on empty
+        evidence. Existing byte-immutability, lifecycle, candidate-lock, and unrelated controls are
+        kept, not deleted to obtain green.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module change). One package (`src/review/`) and one owning module. Full
+        `strict_contract` sections; `--assertions final` remains the release gate.
+      </Constraint>
+      <Constraint>
+        **Owning module is `M-REVIEW`.** `src/review/core.ts` and `src/review/catalog.ts` both carry
+        `LINKS: M-REVIEW` at line 5. `src/review/core.test.ts` has no module-contract header and
+        verifies its implementation counterpart, so it is not separately anchored.
+        `AffectedAreas` names `M-REVIEW`; the verification anchor is `V-M-REVIEW`
+        (`.ngrace/verification/main.xml:68`). `M-REVIEW` is named wherever this spec enumerates
+        modules and `V-M-REVIEW` wherever it enumerates verification anchors. No other graph or
+        verification edit is intended.
+      </Constraint>
+      <Constraint>
+        **The write set is closed and bounded.** The deliverable forces exactly:
+        `src/review/core.ts` (remove `isDocsPlansPath` and its bypass; update comments),
+        `src/review/catalog.ts` (correct the explanation), and `src/review/core.test.ts` (replace
+        the publisher-history expectations and the whole-archive ratchet with synthetic fixtures).
+        An unexpected genuinely forced extra file must be reported with its owner and causal
+        requirement before scope is widened; do not silently expand. The bundle's own archive
+        arrival is the close's write, not an implementation write.
+      </Constraint>
+      <Constraint>
+        **This spec explicitly overturns the `C-DECLARED-WRITES` `docs/plans/` exemption
+        (`AC-LEDGER-SCOPE-RULE`).** It answers the original argument rather than contradicting it
+        silently: the exclusion was accepted because of this repository's concurrent authority edits
+        and its own Assumption conceded the hole. Directory spelling establishes no consumer
+        ownership, and generic product behavior cannot carry a publisher-local privilege.
+        Concurrency is coordinated through actual declared `ObservedWriteScope` and evidence
+        boundaries; a finding reports that a recorded path is outside scope and does not infer
+        authorship. The archived predecessor is read as history only; it is not edited, and the
+        historical corpus is not rehearsed against current schemas.
+      </Constraint>
+      <Constraint>
+        **Surgical scope of the runtime change.** Remove only `isDocsPlansPath` and its single
+        bypass call in `auditWriteEvidenceOutsideScope`. Do not modify
+        `auditScopeOutsideWriteScope`, `isCliLifecyclePath`,
+        `isCanonicalEngineCandidateLockPath`, `expandScopePathsForArchiveIdentity`,
+        `observedWriteScopeContains`, the `WriteEvidenceScopeAuditReport` fields, or the
+        ledger/loose event loading. Preserve deduplication, union across attempts, `.ngrace/`
+        archive-identity expansion for the reviewed change's own bundle artifacts, severity `error`,
+        and the `unable-to-determine` status for missing/empty WriteEvidence.
+      </Constraint>
+      <Constraint>
+        **No new configurable bypass or API.** Do not add a suppression list, an override flag, a
+        configuration key, or an exported predicate that reinstates the privilege under another
+        name. The only path-class exclusions that remain are the CLI lifecycle class and the exact
+        canonical engine candidate lock.
+      </Constraint>
+      <Constraint>
+        **Preserve the near-miss controls.** The canonical candidate lock is still filtered only at
+        `.ngrace/changes/active/.candidate-&lt;C-ID&gt;.lock` for a valid canonical `C-*` id; every
+        near miss — archive location, extra nesting, another top-level directory, a malformed id —
+        still raises. The lifecycle exclusion remains restricted to `run.xml`, `run-ledger.xml`, and
+        `run/**` under a canonical `C-*` bundle and is never widened.
+      </Constraint>
+      <Constraint>
+        **Test change replaces rather than flips.** The direct `C-ESCALATION-HONESTY`/`docs/plans`
+        exemption coupling and the whole-archive WriteEvidence multiset ratchet are replaced by
+        ordinary synthetic projects. Do not merely flip expected historical finding counts, exclude
+        docs findings from a corpus count, or preserve a new historical multiset. Do not delete
+        byte-immutability, lifecycle, candidate-lock, or other unrelated controls to obtain green.
+        Native `bun test` commands are this repository's internal verification, not new generic
+        skill mandates.
+      </Constraint>
+      <Constraint>
+        **`README.md` and `examples/` are unchanged.** The behavior change is observable: review
+        results and the `review.write-evidence-outside-scope` catalog explanation change, because an
+        undeclared `docs/plans/` path now raises. They stay unchanged because the README's and
+        examples' current generic scope descriptions do not claim the removed exemption and the
+        corrected explanation lands in `src/review/catalog.ts`. Owner: unchanged; no command, flag,
+        or example demonstrates the ledger scope audit, and `examples/` is a separate nested project
+        covered by `validate:examples`.
+      </Constraint>
+      <Constraint>
+        **History and other bundles stay immutable; this bundle's own lifecycle writes are
+        sanctioned at their stages.** Do not edit `docs/plans/**`, pre-existing content under
+        `.ngrace/changes/archive/**`, any other change bundle, the product record
+        (`decisions.md`/`decisions.xml`/retired siblings), CHANGELOG.md, or any version surface
+        (`package.json`, README packaged version, `openpackage.yml`, marketplace/plugin manifests,
+        packaged skills). No product version bump. This bundle's own lifecycle artifacts are
+        permitted at their authorized stages through the normal ratified process: `plan.xml` at the
+        plan stage, and the CLI-owned run/lifecycle, approval/apply, and archive-arrival writes
+        during EXECUTE and close. Those stages are not authorized now: this repair stops at draft
+        SPEC and writes only `spec.xml` and `design-context.xml`.
+      </Constraint>
+      <Constraint>
+        Escape markup in this bundle's XML artifacts as character data (`&lt;`, `&gt;`, `&amp;`).
+        Do not paraphrase an angle-bracketed token away; markup-byte assertions belong in a
+        TypeScript test.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` and `examples/` are unchanged. Reason: the change is observable in review
+        results and in the `review.write-evidence-outside-scope` catalog explanation corrected in
+        `src/review/catalog.ts`, but the README's and examples' current generic scope descriptions
+        do not claim the removed exemption; the consumer-facing subject is the ordinary
+        `docs/plans/` path prefix. Owner: unchanged; no command, flag, or example demonstrates the
+        ledger scope audit.
+      </NonGoal>
+      <NonGoal>
+        Generic archive-traversal restoration: correcting
+        `C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85`'s global automatic archive validation and removing
+        the XML parser's nine publisher-archive comment exceptions. Owner: a separate authorized
+        cleanup bundle, sequenced after the internal validation inputs are isolated.
+      </NonGoal>
+      <NonGoal>
+        Other historical test consumers beyond the three blocks this bundle replaces. Owner: the
+        internal-validation-inputs bundle. This bundle requires no new historical conformance
+        population at any stage; its final CI obligation retains the existing suite, whose other
+        historical tests are separately assessed.
+      </NonGoal>
+      <NonGoal>
+        Outside this slice: skill, resource, and template cleanup; portable-workflow teaching that
+        removes publisher-corpus assumptions; skill-composition measurement; other catalog
+        provenance. Owner: separate authorized cleanup bundles. This bundle neither schedules nor
+        asserts a defect on those surfaces; assessment is not an implementation decision here.
+      </NonGoal>
+      <NonGoal>
+        Outside this slice: README/roadmap policy repair, packaging, release, and version changes.
+        Owner: separate authorized cleanup bundles; this bundle is version-neutral and asserts no
+        defect on those surfaces.
+      </NonGoal>
+      <NonGoal>
+        Changing the WriteEvidence schema, the `ngrace cursor` event kinds, ledger fold ordering,
+        gate policy, attempt-pair rules, or the porcelain scope audit. Owner: none; explicitly out
+        of scope.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-UNDECLARED-DOCS-PATH-RAISES>
+        A WriteEvidence content path under `docs/plans/` that is not covered by the plan's
+        `ObservedWriteScope` raises `review.write-evidence-outside-scope` with severity `error`,
+        exactly as the same path would under any other undeclared prefix. Synthetic fixtures in
+        `src/review/core.test.ts` prove, without consulting the repository archive: (a) an undeclared
+        `docs/plans/active/&lt;X&gt;/decisions.md` and an undeclared
+        `docs/plans/active/&lt;X&gt;/review.md` each produce exactly one finding whose code is the
+        catalog constant `WRITE_EVIDENCE_SCOPE_FINDING_CODE`, whose severity is `error`, and whose
+        `file` is that path; (b) an undeclared ordinary path `src/secret.ts` raises identically; (c)
+        the same undeclared path repeated across WriteEvidence appearances still yields exactly one
+        finding (deduplication); and (d) the union of content paths recorded on separate ledger and
+        loose attempt events is audited, so a `docs/plans/` path present on only one attempt still
+        raises. The finding shape and the `writeEvidenceScopeAudit` report fields (`status`,
+        `reason`, `changeId`, `pathCount`, `findingCount`) are unchanged. Failure conditions:
+        `docs/plans/` still silent; a replacement allowlist or one-off file list instead of ordinary
+        coverage; dedup lost; only the last attempt consulted; severity lowered; finding or report
+        fields renamed.
+      </AC-UNDECLARED-DOCS-PATH-RAISES>
+      <AC-DECLARED-DOCS-PASSES>
+        A WriteEvidence path under `docs/plans/` that is covered by the plan's
+        `ObservedWriteScope` does not raise, by the same coverage rules the audit already uses:
+        an exact declared `File` or a relevant declared `Glob`. Active↔archive identity expansion
+        applies only to the reviewed change's own `.ngrace/changes/{active,archive}/&lt;id&gt;/...`
+        bundle artifacts and does not alias ordinary `docs/plans/` paths. Synthetic fixtures prove
+        each declared form passes with zero `review.write-evidence-outside-scope` findings, and that
+        the coverage is not widened to swallow a sibling undeclared path. Missing or empty
+        comparable WriteEvidence still yields `writeEvidenceScopeAudit.status ===
+        "unable-to-determine"` with a non-empty reason, never a clean `ran`; a change with at least
+        one comparable path yields `ran` and `findingCount` may be 0. Failure conditions: declared
+        docs path raises; glob coverage ignored; archive-identity expansion misapplied to ordinary
+        `docs/plans/` paths; empty evidence reported as clean `ran`; coverage widened to a broader
+        prefix.
+      </AC-DECLARED-DOCS-PASSES>
+      <AC-PRESERVED-BOUNDARIES>
+        The change is surgical and no preserved boundary moves. (a) The separate working-tree audit
+        `auditScopeOutsideWriteScope` still reports changed `docs/plans/` paths under
+        `review.scope-outside-write-scope`, distinct from the ledger code. (b) The CLI lifecycle
+        exclusion still filters only `run.xml`, `run-ledger.xml`, and `run/**` under a canonical
+        `C-*` bundle, never `spec.xml` or `plan.xml`. (c) The exact canonical engine candidate lock
+        `.ngrace/changes/active/.candidate-&lt;C-ID&gt;.lock` for a valid canonical id is still
+        filtered, and every near miss still raises: archive location, extra nesting, another
+        top-level directory, and a malformed id. (d) An undeclared approved `spec.xml`/`plan.xml` and
+        any other undeclared non-lifecycle `.ngrace/` content still raise. (e) The active↔archive
+        identity expansion for the reviewed change's own
+        `.ngrace/changes/{active,archive}/&lt;id&gt;/...` bundle artifacts remains, and a
+        WriteEvidence path naming another change's bundle still raises when undeclared. (f) No configurable
+        bypass, allowlist, override flag, configuration key, or new public API is introduced; the
+        finding code remains bound to `WRITE_EVIDENCE_SCOPE_FINDING_CODE`. Failure conditions:
+        porcelain audit changed or merged; lifecycle widened to all of `.ngrace/`; candidate-lock
+        near miss silently exempted; non-lifecycle `.ngrace/` write silenced; other-ID bundle path
+        aliased to the reviewed id; a new exemption surface added.
+      </AC-PRESERVED-BOUNDARIES>
+      <AC-CLOSE-BOUNDED-WRITES>
+        The whole write population is bounded and history is immutable. Against base
+        `3d732c12d779195429d291dd132684ce26962728`, every tracked path in the checkout is
+        byte-identical except the three permitted implementation files (`src/review/core.ts`,
+        `src/review/catalog.ts`, `src/review/core.test.ts`) and this bundle's own active and archive
+        directories, and no nonignored untracked path exists outside those same exclusions. This
+        inherently pins archive immutability: every pre-existing bundle under
+        `.ngrace/changes/archive/` and every path under `docs/plans/` is byte-identical to base.
+        This bundle's own archive arrival (`C-GENERIC-REVIEW-SCOPE-1-A7E352BF`) is excluded because
+        the close itself renames the bundle into the archive after the base commit; there is no
+        predecessor supersede, so no further exclusion applies. Ignored paths are outside this
+        inventory: a file under the gitignored `.ngrace/scratch/` is not seen by
+        `git ls-files --others --exclude-standard` and does not redden the criterion. Both the
+        worktree and the index (staged state) are checked against the same frozen base with the same
+        exclusions, so an outside change staged past the worktree check cannot hide from a commit.
+        Both a tracked or staged violation and a nonignored untracked violation refuse. The command
+        is a compound `git diff --exit-code` (worktree), `git diff --cached --exit-code` (index),
+        and `test -z` over `git ls-files --others`; no stage is read through a pipeline whose tail
+        supplies the exit code. Evaluated in the applied-archive state.
+        <CloseEvidence>
+          <Command>git diff --exit-code 3d732c12d779195429d291dd132684ce26962728 -- . ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts' ':(exclude).ngrace/changes/active/C-GENERIC-REVIEW-SCOPE-1-A7E352BF' ':(exclude).ngrace/changes/archive/C-GENERIC-REVIEW-SCOPE-1-A7E352BF' &amp;&amp; git diff --cached --exit-code 3d732c12d779195429d291dd132684ce26962728 -- . ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts' ':(exclude).ngrace/changes/active/C-GENERIC-REVIEW-SCOPE-1-A7E352BF' ':(exclude).ngrace/changes/archive/C-GENERIC-REVIEW-SCOPE-1-A7E352BF' &amp;&amp; ngrace_unexpected_paths=$(git ls-files --others --exclude-standard -- . ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts' ':(exclude).ngrace/changes/active/C-GENERIC-REVIEW-SCOPE-1-A7E352BF' ':(exclude).ngrace/changes/archive/C-GENERIC-REVIEW-SCOPE-1-A7E352BF') &amp;&amp; test -z "$ngrace_unexpected_paths"</Command>
+        </CloseEvidence>
+      </AC-CLOSE-BOUNDED-WRITES>
+      <AC-CLOSE-LINT>
+        In the applied-archive state, including this bundle's own archive arrival, the bundle lints
+        clean at warning severity: `bun run ./src/grace.ts lint --path . --assertions none
+        --fail-on warnings` exits 0 with 0 errors and 0 warnings. This is the narrow instrument for
+        the review surface under the real repository archive, not the whole-suite criterion. The
+        command matches the default discriminating shape `ngrace lint --fail-on`, so no
+        `.ngrace-lint.json` change is required.
+        <CloseEvidence>
+          <Command>bun run ./src/grace.ts lint --path . --assertions none --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+      <AC-CI-GREEN>
+        In the applied-archive state, including this bundle's own archive arrival, the full
+        CI-equivalent `bun run validate:ci` exits 0. This is the criterion genuinely about the whole
+        suite: `test:metrics` runs one full `bun test --timeout=0` suite — which now includes the
+        replaced synthetic review-scope fixtures — and retains its raw JUnit report outside the
+        repository with counts parsed, and the remaining steps run `typecheck`, whole-project lint
+        at error severity, and the marketplace, examples, determinism, packed, schema-reference,
+        skeleton-template, teaching-surface, citation-anchor, record-retirement, and
+        record-preservation validators. The command is an explicit
+        `.ngrace-lint.json` `closeEvidenceCommandShapes` prefix. Native suite commands are this
+        repository's internal verification, not a new generic skill mandate.
+        <CloseEvidence>
+          <Command>bun run validate:ci</Command>
+        </CloseEvidence>
+      </AC-CI-GREEN>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ./src/grace.ts lint --path . --assertions none --fail-on warnings</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Ordinary synthetic fixtures in `src/review/core.test.ts` and the real source CLI on a clean
+        committed throwaway tree, under owning module `M-REVIEW` and verification anchor
+        `V-M-REVIEW`. Narrow checks run in each
+        task's resulting tree; the final CI run belongs to EXECUTE, with its JUnit retained and
+        counts parsed. Required probes, each driven mutate &#8594; observed &#8594; exact
+        restoration with honest provenance (no manufactured red, no old publisher archive used as
+        the acceptance population): (1) undeclared `docs/plans/` WriteEvidence refuses with exactly
+        `review.write-evidence-outside-scope`, severity `error`; (2) the same path declared as an
+        exact `File` passes, and as a relevant `Glob` passes; (3) an ordinary undeclared path
+        (`src/secret.ts`) still refuses; (4) undeclared non-lifecycle `.ngrace/` content
+        (`spec.xml`/`plan.xml`) still refuses; (5) the lifecycle `run.xml`/`run-ledger.xml`/`run/**`
+        and the exact canonical candidate lock are filtered while each near miss still refuses; (6)
+        empty/missing WriteEvidence reports `unable-to-determine`. Byte-level archive immutability
+        is covered by `AC-CLOSE-BOUNDED-WRITES`. The `docs/plans/` decision is `README.md` and
+        `examples/` unchanged, recorded as a `NonGoal` with its owner.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        Authoring base is HEAD `3d732c12d779195429d291dd132684ce26962728` on branch
+        `feat/archive-compatibility`. The bundle was minted by the source CLI from the bare slug
+        `GENERIC-REVIEW-SCOPE` with the supplied timestamp `2026-10-04T03:45:31Z`, producing
+        `C-GENERIC-REVIEW-SCOPE-1-A7E352BF`; the initial scaffold SHA-256 was
+        `e5520e843a3ec39e8b0389e4b545929e99a10b9d779b1f4a4021f757c777a9fe`. The scaffold is
+        rewritten wholesale; the id is not re-minted or renamed.
+      </Assumption>
+      <Assumption>
+        Reviewed explanatory design:
+        `.ngrace/scratch/briefs/GENERIC-PRODUCT-BOUNDARY-design-review.md` (ignored working
+        document, not a ratified artifact). Its two diagrams are reproduced in this bundle's
+        `design-context.xml` with non-normative status. `spec.xml` remains the source of truth.
+      </Assumption>
+      <Assumption>
+        Preserved publisher-history coupling, restated rather than re-measured here:
+        `src/review/core.test.ts` currently contains a `docs/plans/`-silent fixture, a direct
+        `C-ESCALATION-HONESTY`/`docs/plans` expectation, and a whole-archive WriteEvidence ratchet
+        that enumerates `.ngrace/changes/archive/C-*` and pins a fixed product multiset plus a
+        non-lifecycle `.ngrace/` triple. Removing the bypass changes what that enumeration computes
+        whenever an archived bundle's WriteEvidence names a `docs/plans/` path, so the ratchet is
+        replaced with synthetic fixtures. Historical archive schemas are not re-validated or
+        rehearsed. Current archive counts are deliberately not pinned in this spec; the fixture set
+        is dynamic and figure-free.
+      </Assumption>
+      <Assumption>
+        The authority's pre-handoff probes on a complete throwaway Git project with clean review
+        trees established the present defect, not acceptance: undeclared `docs/plans/` evidence
+        yielded exit 0 with no finding; undeclared `src/secret.ts` yielded exit 1 with exactly
+        `review.write-evidence-outside-scope`; declared documentation and lifecycle controls yielded
+        exit 0. A mutate&#8594;restore probe changed a `docs/plans/` path to `src/secret.ts` and back
+        byte-exactly, moving the review between exit 1 and exit 0. These are the defect baseline for
+        EXECUTE to falsify, not evidence of the implementation.
+      </Assumption>
+      <Assumption>
+        The installed `ngrace` skills were measured byte-identical to the canonical
+        `skills/ngrace/*` population on 2026-10-04 UTC: 16 canonical skill directories / 61 files,
+        with the published, packaged, and corresponding installed files identical (a measured no-op
+        refresh). Refresh does not authorize changing canonical or packaged skills. Commands use
+        `bun run ./src/grace.ts`; an installed binary is not evidence of this checkout's behavior.
+      </Assumption>
+      <Assumption>
+        The close writes this bundle's own archive arrival (the rename of the active directory into
+        `.ngrace/changes/archive/`). No other close write is assigned by this spec: there is no
+        product-record edit, no version surface, and no predecessor supersede. The bounded-writes
+        criterion therefore excludes only the three implementation files and this bundle's two
+        locations.
+      </Assumption>
+    </Assumptions>
+  </C-GENERIC-REVIEW-SCOPE-1-A7E352BF>
+</NgraceChangeSpec>
