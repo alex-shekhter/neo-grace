@@ -357,8 +357,11 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
       "A path recorded in durable WriteEvidence (tool-generated git digests on cursor attempts) is "
       + "not covered by the plan's ObservedWriteScope. Distinct from review.scope-outside-write-scope, "
       + "which reads the working tree (porcelain/base/explicit) and is blind on a clean close tree. "
-      + "Lifecycle run artifacts and docs/plans/ authority paths are excluded by path class (F11 / F27.1). "
-      + "Non-lifecycle .ngrace/ paths (e.g. undeclared edits to approved spec.xml) raise.",
+      + "Consumer documentation is ordinary declared scope: a docs/plans/ path raises unless an exact "
+      + "ObservedWriteScope File or a relevant Glob covers it. The only path-class exclusions are the "
+      + "CLI lifecycle artifacts (run.xml, run-ledger.xml, run/** under a canonical C-* bundle) and the "
+      + "exact canonical engine candidate lock. Non-lifecycle .ngrace/ paths (e.g. undeclared edits to "
+      + "approved spec.xml) raise.",
     remediation: [
       "Add the path to ObservedWriteScope at plan time (including what the deliverable forces — "
         + "skill-footprint pin, rule fixtures), or revert the out-of-scope write.",

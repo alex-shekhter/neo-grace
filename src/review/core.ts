@@ -1118,19 +1118,6 @@ export function auditScopeOutsideWriteScope(
 }
 
 /**
- * Authority roadmap tree (F27.1 / C-DECLARED-WRITES).
- * Hole this exclusion wrongly permits: an agent (or anyone) editing under
- * docs/plans/ (roadmap, decisions, review notes) without this finding firing.
- * Those paths are authority-owned concurrent work in this repo's model; the
- * residual is process + git history, not this audit. Does not swallow src/,
- * skills/, or non-lifecycle .ngrace/ paths.
- */
-function isDocsPlansPath(rel: string): boolean {
-  const n = normalizeRel(rel);
-  return n === "docs/plans" || n.startsWith("docs/plans/");
-}
-
-/**
  * The exact canonical engine candidate-lock path: the sibling of a bundle leaf
  * under `active/`, `.candidate-<C-ID>.lock` for a valid canonical C-* id. Reached
  * only from `auditWriteEvidenceOutsideScope`; deliberately NOT part of
@@ -1160,8 +1147,11 @@ export type WriteEvidenceScopeAuditInput = {
 
 /**
  * Ledger-backed scope audit (C-DECLARED-WRITES / F27): raise when a WriteEvidence
- * content path is outside ObservedWriteScope after lifecycle + docs/plans/
- * exclusions. Distinct code from porcelain auditScopeOutsideWriteScope.
+ * content path is outside ObservedWriteScope after the CLI-lifecycle and exact
+ * canonical candidate-lock exclusions. Consumer documentation is ordinary
+ * declared scope: a `docs/plans/` path is judged like any other path, and only an
+ * exact declared File or a relevant Glob covers it. Distinct code from the
+ * porcelain auditScopeOutsideWriteScope.
  *
  * Non-lifecycle .ngrace/ paths (spec.xml, plan.xml, graph, verification) raise
  * when undeclared — approved-artifact immutability.
@@ -1182,8 +1172,6 @@ export function auditWriteEvidenceOutsideScope(
     // F11: tool-owned lifecycle only (run.xml / run-ledger.xml / run/**) — not
     // spec.xml or plan.xml.
     if (isCliLifecyclePath(changed)) continue;
-    // F27.1: authority concurrent roadmap — hole named on isDocsPlansPath.
-    if (isDocsPlansPath(changed)) continue;
     // Durable historical WriteEvidence may name the exact canonical engine
     // candidate lock; that is transient coordination evidence, not a breach.
     // Local to this audit — isCliLifecyclePath is never widened.

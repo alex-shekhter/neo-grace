@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-GENERIC-REVIEW-SCOPE-1-A7E352BF>
     <IntentSummary>
       Remove the publisher-specific `docs/plans/` exemption from the ledger-backed WriteEvidence
