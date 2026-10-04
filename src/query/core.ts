@@ -91,7 +91,10 @@ function listPlanFiles(directory: string): string[] {
 }
 
 function collectOperationalValidationErrors(paths: ReturnType<typeof resolveNgracePaths>) {
-  const assertionIssues = [paths.changesActiveDir, paths.changesArchiveDir]
+  // Current-only boundary (C-CURRENT-VALIDATION-BOUNDARY): archived plan assertion extraction is
+  // retired from the automatic query index. Only active plan assertions are read here; scope
+  // attribution was already active-only (collectActiveChangeScopes) and is unchanged.
+  const assertionIssues = [paths.changesActiveDir]
     .flatMap(listPlanFiles)
     .flatMap((planFile) => (["BaselineAssertions", "TargetAssertions"] as const)
       .flatMap((section) => extractAssertionsWithIssues(planFile, section).issues));

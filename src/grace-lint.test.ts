@@ -368,6 +368,40 @@ describe("lintGraceProject", () => {
     expect(result.issues.filter((issue) => issue.code === "assertion.MustVerify")).toHaveLength(0);
   });
 
+  it("current lint integration does not discover archived plan assertions", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const archivePlan = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OPAQUE", "plan.xml");
+    const cleanBytes = `<NgraceChangePlan graceVersion="1.0" status="applied"><C-OPAQUE><IntentSummary>Opaque.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan></ImplementationPlan></C-OPAQUE></NgraceChangePlan>`;
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/archive/C-OPAQUE/plan.xml`, cleanBytes);
+    const strip = (value: unknown) => {
+      const { generatedAt, ...rest } = value as Record<string, unknown>;
+      return rest;
+    };
+
+    const cleanRun = spawnLintJson(root, []);
+    expect(cleanRun.exitCode).toBe(0);
+    const cleanJson = JSON.parse(Buffer.from(cleanRun.stdout ?? "").toString("utf8"));
+
+    // One input at a time: malformed BaselineAssertions, then unknown-module MustExist.
+    const archiveCases = [
+      `<NgraceChangePlan graceVersion="1.0" status="applied"><C-OPAQUE><IntentSummary>Opaque.</IntentSummary><BaselineAssertions><MustExist></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan></ImplementationPlan></C-OPAQUE></NgraceChangePlan>`,
+      `<NgraceChangePlan graceVersion="1.0" status="applied"><C-OPAQUE><IntentSummary>Opaque.</IntentSummary><BaselineAssertions><MustExist><Value>M-UNKNOWN</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan></ImplementationPlan></C-OPAQUE></NgraceChangePlan>`,
+    ];
+    for (const bytes of archiveCases) {
+      writeFileSync(archivePlan, bytes);
+      const mutatedRun = spawnLintJson(root, []);
+      expect(mutatedRun.exitCode).toBe(0);
+      const mutatedJson = JSON.parse(Buffer.from(mutatedRun.stdout ?? "").toString("utf8"));
+      expect((mutatedJson.issues ?? []).filter((issue: { code: string }) => issue.code.startsWith("assertion."))).toEqual([]);
+      expect(strip(mutatedJson)).toEqual(strip(cleanJson));
+      writeFileSync(archivePlan, cleanBytes);
+      const restoredRun = spawnLintJson(root, []);
+      expect(restoredRun.exitCode).toBe(0);
+      expect(JSON.parse(Buffer.from(restoredRun.stdout ?? "").toString("utf8")).issues ?? []).toEqual([]);
+    }
+  });
+
   it("requires one approved identity-matched active change for selected assertion modes", () => {
     const root = createProject();
     writeMinimalNgraceProject(root);
@@ -2285,23 +2319,7 @@ describe("as-state pure preview", () => {
     expect(after).toEqual(before);
   });
 
-  it("emits change.applied-plan-missing at applied when plan.xml carries no previewable status", () => {
-    // The overlay leaves an unparseable plan.xml rootless, so it carries no status into the
-    // preview. grammar.ts:1319 fires on exactly that shape, so the preview must fire too.
-    const real = createProject();
-    writeMinimalNgraceProject(real);
-    writeChangeBundleFixture(real, {
-      changeId: "C-AS-PREV",
-      location: "archive",
-      specStatus: "applied",
-      planStatus: "applied",
-    });
-    writeFileSync(
-      path.join(real, ARTIFACT_DIR, "changes", "archive", "C-AS-PREV", "plan.xml"),
-      '<NgraceChangePlan graceVersion="1.0" status="applied"><C-AS-PREV>',
-    );
-    expect(lintGraceProject(real).issues.some((issue) => issue.code === "change.applied-plan-missing")).toBe(true);
-
+  it("as-state pure preview refuses a corrupted selected active plan with all three codes and recovers exactly", () => {
     const root = createProject();
     writeMinimalNgraceProject(root);
     writeChangeBundleFixture(root, {
@@ -2310,12 +2328,35 @@ describe("as-state pure preview", () => {
       specStatus: "approved",
       planStatus: "approved",
     });
-    writeFileSync(
-      path.join(root, ARTIFACT_DIR, "changes", "active", "C-AS-PREV", "plan.xml"),
-      '<NgraceChangePlan graceVersion="1.0" status="approved"><C-AS-PREV>',
-    );
-    const preview = lintGraceProject(root, { asStatus: "applied", changeId: "C-AS-PREV" });
-    expect(preview.issues.some((issue) => issue.code === "change.applied-plan-missing")).toBe(true);
+    const planPath = path.join(root, ARTIFACT_DIR, "changes", "active", "C-AS-PREV", "plan.xml");
+    const cleanBytes = readFileSync(planPath, "utf8");
+    const cleanHash = createHash("sha256").update(cleanBytes).digest("hex");
+    const previewArgs = ["--change", "C-AS-PREV", "--as", "applied", "--assertions", "current"];
+    const strip = (value: unknown) => {
+      const { generatedAt, ...rest } = value as Record<string, unknown>;
+      return rest;
+    };
+
+    const cleanRun = spawnLintJson(root, previewArgs);
+    expect(cleanRun.exitCode).toBe(0);
+    const cleanJson = JSON.parse(Buffer.from(cleanRun.stdout ?? "").toString("utf8"));
+    expect((cleanJson.issues ?? []).some((issue: { code: string }) => issue.code === "change.applied-plan-missing")).toBe(false);
+
+    writeFileSync(planPath, '<NgraceChangePlan graceVersion="1.0" status="approved"><C-AS-PREV>');
+    const badRun = spawnLintJson(root, previewArgs);
+    expect(badRun.exitCode).not.toBe(0);
+    const badJson = JSON.parse(Buffer.from(badRun.stdout ?? "").toString("utf8"));
+    const badCodes = (badJson.issues ?? []).map((issue: { code: string }) => issue.code);
+    expect(badCodes).toContain("xml.parse");
+    expect(badCodes).toContain("change.applied-plan-missing");
+    expect(badCodes).toContain("gate.apply.no-plan");
+
+    writeFileSync(planPath, cleanBytes);
+    expect(createHash("sha256").update(readFileSync(planPath, "utf8")).digest("hex")).toBe(cleanHash);
+    const restoredRun = spawnLintJson(root, previewArgs);
+    expect(restoredRun.exitCode).toBe(0);
+    const restoredJson = JSON.parse(Buffer.from(restoredRun.stdout ?? "").toString("utf8"));
+    expect(strip(restoredJson)).toEqual(strip(cleanJson));
   });
 
   it("stays silent on change.applied-plan-missing at applied when plan.xml is well formed", () => {

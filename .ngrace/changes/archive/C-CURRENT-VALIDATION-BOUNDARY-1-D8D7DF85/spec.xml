@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85>
     <Summary>
       First small slice of the current-only CLI policy recorded in `CLAUDE.md:5` and confirmed by the

@@ -452,7 +452,7 @@ describe("context task slice excludes .ngrace code via the real CLI", () => {
     expect(withCopy.stdout).not.toContain("query-copy");
   });
 
-  it("context task slice omits .ngrace code: malformed active and archived governance XML refuse and restore byte-for-byte", () => {
+  it("context task slice omits .ngrace code: active refusal and opaque archive content restore byte-for-byte", () => {
     const root = tempRoot();
     writeQuerySliceCliFixture(root);
     const base = runCli(sliceArgs(root));
@@ -472,19 +472,53 @@ describe("context task slice excludes .ngrace code via the real CLI", () => {
     expect(activeRestored.status).toBe(0);
     expect(activeRestored.stdout).toBe(base.stdout);
 
-    const archiveBadDir = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-BAD-ARCH");
-    mkdirSync(archiveBadDir, { recursive: true });
-    writeFileSync(path.join(archiveBadDir, "spec.xml"), "<NgraceChangeSpec><broken>");
-    const archiveBad = runCli(sliceArgs(root));
-    expect(archiveBad.status).not.toBe(0);
-    const archiveErr = JSON.parse(archiveBad.stdout);
-    expect(archiveErr.ok).toBe(false);
-    expect(archiveErr.error.code).toBe("invalid-project");
-    expect(archiveErr.error.issues).toContain("xml.parse");
-    rmSync(archiveBadDir, { recursive: true, force: true });
-    const archiveRestored = runCli(sliceArgs(root));
-    expect(archiveRestored.status).toBe(0);
-    expect(archiveRestored.stdout).toBe(base.stdout);
+    // Current-only boundary: archived content is opaque history. Observe each approved archive case
+    // separately, require complete byte-identical slice output, then restore exactly and require
+    // identical clean recovery before the next.
+    const archiveDir = path.join(root, ARTIFACT_DIR, "changes", "archive");
+    const bundleDir = path.join(archiveDir, "C-OPAQUE");
+    mkdirSync(bundleDir, { recursive: true });
+    const specFile = path.join(bundleDir, "spec.xml");
+    const planFile = path.join(bundleDir, "plan.xml");
+    const designFile = path.join(bundleDir, "design-context.xml");
+    const historicalFile = path.join(bundleDir, "custom-old-companion.xml");
+    const cleanSpec = `<NgraceChangeSpec graceVersion="1.0" status="applied"><C-OPAQUE><Summary>Opaque.</Summary><Goals><Goal>Opaque.</Goal></Goals><Constraints><Constraint>Opaque.</Constraint></Constraints><NonGoals><NonGoal>Opaque.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Opaque.</Criterion></AcceptanceCriteria><AffectedAreas><M-QUERY /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></C-OPAQUE></NgraceChangeSpec>`;
+    const cleanPlan = `<NgraceChangePlan graceVersion="1.0" status="applied"><C-OPAQUE><IntentSummary>Opaque.</IntentSummary><BaselineAssertions><MustExist><Value>M-QUERY</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-QUERY</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-QUERY /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/query.ts</File></ObservedWriteScope><ImplementationPlan><T-001><Title>Opaque</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>Opaque.</Criterion></AcceptanceCriteria><Verification><Command>bun test</Command></Verification></T-001></ImplementationPlan></C-OPAQUE></NgraceChangePlan>`;
+    const cleanDesign = `<NgraceChangeDesignContext graceVersion="1.0"><Change>C-OPAQUE</Change><Rationale>Opaque.</Rationale></NgraceChangeDesignContext>`;
+    writeFileSync(specFile, cleanSpec);
+    writeFileSync(planFile, cleanPlan);
+    writeFileSync(designFile, cleanDesign);
+    const opaque = runCli(sliceArgs(root));
+    expect(opaque.status).toBe(0);
+    expect(opaque.stdout).toBe(base.stdout);
+
+    const archiveCases: Array<{ label: string; file: string; text: string; clean: string | null }> = [
+      { label: "malformed spec", file: specFile, text: "<NgraceChangeSpec><broken>", clean: cleanSpec },
+      { label: "malformed plan", file: planFile, text: "<NgraceChangePlan><broken>", clean: cleanPlan },
+      { label: "differing spec graceVersion", file: specFile, text: cleanSpec.replace('graceVersion="1.0"', 'graceVersion="9.9.9"'), clean: cleanSpec },
+      {
+        label: "missing required plan section",
+        file: planFile,
+        text: `<NgraceChangePlan graceVersion="1.0" status="applied"><C-OPAQUE><IntentSummary>Missing.</IntentSummary></C-OPAQUE></NgraceChangePlan>`,
+        clean: cleanPlan,
+      },
+      { label: "invalid design companion", file: designFile, text: "<NgraceChangeDesignContext><broken>", clean: cleanDesign },
+      { label: "unknown historical member", file: historicalFile, text: "<NgraceOldThing><Legacy /></NgraceOldThing>", clean: null },
+    ];
+    for (const entry of archiveCases) {
+      writeFileSync(entry.file, entry.text);
+      const mutated = runCli(sliceArgs(root));
+      expect(mutated.status, entry.label).toBe(0);
+      expect(mutated.stdout, entry.label).toBe(base.stdout);
+      if (entry.clean === null) {
+        rmSync(entry.file, { force: true });
+      } else {
+        writeFileSync(entry.file, entry.clean);
+      }
+      const recovered = runCli(sliceArgs(root));
+      expect(recovered.status, `${entry.label} restored`).toBe(0);
+      expect(recovered.stdout, `${entry.label} restored`).toBe(base.stdout);
+    }
   });
 
   it("context task slice omits .ngrace code: malformed selected active change spec refuses and restores byte-for-byte", () => {

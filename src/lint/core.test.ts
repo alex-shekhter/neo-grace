@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -6,6 +6,7 @@ import path from "node:path";
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { writeChangeBundleFixture, writeMinimalNgraceProject } from "../artifact/test-fixtures";
 import { formatTextReport, lintGraceProject } from "./core";
+import * as xmlModule from "../artifact/xml";
 import { isGateIssueCode } from "../gates/catalog";
 import { advanceCursor, listLooseEvents } from "../grace-cursor";
 import { isReviewIssueCode } from "../review/catalog";
@@ -386,26 +387,78 @@ describe("C-REPORT-HONESTY T-006: AC-BASELINE-LINT-FRAMING", () => {
     expect(report).not.toMatch(/^Baseline assertion failures/im);
   });
 
-  it("archived plan baselines stay syntax-only and contribute 0 to N", () => {
-    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-arch-baseline-"));
+  it("current lint does not read archived plan assertions: zero archive reads, isolated archive cases", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "ngrace-arch-opaque-"));
     tempRoots.push(root);
     writeMinimalNgraceProject(root);
+
+    const archiveBundle = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OPAQUE");
+    mkdirSync(archiveBundle, { recursive: true });
+    const planFile = path.join(archiveBundle, "plan.xml");
+    const archivePrefix = path.join(root, ARTIFACT_DIR, "changes", "archive") + path.sep;
+    const cleanPlan = `<NgraceChangePlan graceVersion="1.0" status="applied"><C-OPAQUE><IntentSummary>Opaque.</IntentSummary><BaselineAssertions><MustExist><Value>M-EXAMPLE</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan></ImplementationPlan></C-OPAQUE></NgraceChangePlan>`;
+    writeFileSync(planFile, cleanPlan);
+    expect(lintGraceProject(root, {}).summary.errors).toBe(0);
+
+    // Read boundary with try/finally restore, so a throwing real API still restores the spy.
+    let readPaths: string[] = [];
+    const spy = spyOn(xmlModule, "readGraceXmlArtifact");
+    try {
+      lintGraceProject(root, {});
+      readPaths = spy.mock.calls.map((call) => String(call[0]));
+    } finally {
+      spy.mockRestore();
+    }
+    expect(readPaths.some((file) => file.startsWith(archivePrefix))).toBe(false);
+    expect(readPaths.some((file) => file.endsWith(path.join("context", "requirements.xml")))).toBe(true);
+
+    // Independent archive case 1: malformed BaselineAssertions.
+    writeFileSync(
+      planFile,
+      `<NgraceChangePlan graceVersion="1.0" status="applied"><C-OPAQUE><IntentSummary>Opaque.</IntentSummary><BaselineAssertions><MustExist></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan></ImplementationPlan></C-OPAQUE></NgraceChangePlan>`,
+    );
+    const malformed = lintGraceProject(root, {});
+    expect(malformed.summary.errors).toBe(0);
+    expect(malformed.issues.filter((issue) => issue.file.startsWith(archivePrefix))).toEqual([]);
+    writeFileSync(planFile, cleanPlan);
+    expect(lintGraceProject(root, {}).summary.errors).toBe(0);
+
+    // Independent archive case 2: unknown-module BaselineAssertions.
+    writeFileSync(
+      planFile,
+      `<NgraceChangePlan graceVersion="1.0" status="applied"><C-OPAQUE><IntentSummary>Opaque.</IntentSummary><BaselineAssertions><MustExist><Value>M-UNKNOWN</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope><ImplementationPlan></ImplementationPlan></C-OPAQUE></NgraceChangePlan>`,
+    );
+    const unknownModule = lintGraceProject(root, {});
+    expect(unknownModule.summary.errors).toBe(0);
+    expect(unknownModule.issues.filter((issue) => issue.file.startsWith(archivePrefix))).toEqual([]);
+    writeFileSync(planFile, cleanPlan);
+    expect(lintGraceProject(root, {}).summary.errors).toBe(0);
+
+    // Selected approved active control: the malformed assertion refuses on the active path.
     writeChangeBundleFixture(root, {
-      changeId: "C-ARCH-BASE",
-      location: "archive",
+      changeId: "C-ACTIVE-BAD",
+      location: "active",
       specStatus: "approved",
-      planStatus: "applied",
-      // Would fail if evaluated semantically (file exists)
-      planBaselineAssertions: `<MustNotExist><Value>src/example.ts</Value></MustNotExist>`,
+      planStatus: "approved",
+      planBaselineAssertions: `<MustExist></MustExist>`,
     });
+    const activeMalformed = lintGraceProject(root, {});
+    expect(
+      activeMalformed.issues.some((issue) => issue.code.startsWith("assertion.") && issue.file.includes("C-ACTIVE-BAD")),
+    ).toBe(true);
 
-    const result = lintGraceProject(root, {});
-    // Archived: no semantic MustNotExist evaluation
-    expect(result.issues.filter((i) => i.code === "assertion.MustNotExist")).toHaveLength(0);
-
-    const report = formatTextReport(result);
-    expect(report.split("\n")[0]).toBe("neo-grace Lint Report");
-    expect(report).not.toMatch(/^Baseline assertion failures/im);
+    // Unknown-module Baseline MustExist additionally proves current semantic refusal.
+    writeChangeBundleFixture(root, {
+      changeId: "C-ACTIVE-UNKNOWN",
+      location: "active",
+      specStatus: "approved",
+      planStatus: "approved",
+      planBaselineAssertions: `<MustExist><Value>M-UNKNOWN</Value></MustExist>`,
+    });
+    const activeUnknown = lintGraceProject(root, {});
+    expect(
+      activeUnknown.issues.some((issue) => issue.code === "assertion.MustExist" && issue.file.includes("C-ACTIVE-UNKNOWN")),
+    ).toBe(true);
   });
 
   it("malformed BaselineAssertions: N includes extraction issues from that call (design ruling)", () => {

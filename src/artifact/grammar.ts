@@ -1448,6 +1448,17 @@ function validateChangeBundlesInDirectory(
       bundleIssues.push(issue("error", "change.invalid-bundle-id", entryPath, `Change bundle directory '${bundleId}' must use a C-* identifier.`));
     }
 
+    if (location === "archive") {
+      // Current-only boundary (C-CURRENT-VALIDATION-BOUNDARY): archive contents are opaque
+      // history. Only the C-* directory name and a loose XML file directly under the archive
+      // parent are identity checks; no archived member XML is opened or name-interpreted, and no
+      // diagnostic is computed from archived content.
+      if (bundleIssues.length > 0) {
+        results.push({ file: entryPath, issues: bundleIssues });
+      }
+      continue;
+    }
+
     const specFile = path.join(entryPath, "spec.xml");
     const planFile = path.join(entryPath, "plan.xml");
     const specArtifact = readGraceXmlArtifact(specFile);
@@ -1471,9 +1482,9 @@ function validateChangeBundlesInDirectory(
       if (specWrapper && planWrapper && specWrapper.tag !== planWrapper.tag) {
         planResult.issues.push(issue("error", "change.spec-plan-id-mismatch", planFile, `spec.xml uses ${specWrapper.tag}, but plan.xml uses ${planWrapper.tag}.`));
       }
-      // Spec→plan coverage (G-05). Run for active and archive: historical bundles that
-      // already match stay quiet; mismatches surface so archives remain truthful.
-      // Safeguard 5 decided by fixture audit: well-formed archives stay quiet; no active-only gate.
+      // Spec→plan coverage (G-05) runs for active bundles only. The current-only boundary retired
+      // archived coverage: historical bundles are opaque evidence and are not re-checked against
+      // today's schema, while current coverage stays enforced.
       for (const coverageIssue of validateSpecPlanCoverage(specArtifact, planArtifact, specFile, planFile)) {
         if (coverageIssue.file === specFile) {
           specResult.issues.push(coverageIssue);
@@ -1485,15 +1496,8 @@ function validateChangeBundlesInDirectory(
     }
 
     const specStatus = specArtifact.root?.attributes.status;
-    const planStatus = planArtifact?.root?.attributes.status;
-    if (location === "active" && planArtifact && specStatus !== "approved") {
+    if (planArtifact && specStatus !== "approved") {
       bundleIssues.push(issue("error", "change.plan-requires-approved-spec", entryPath, "An active plan may exist only beside an approved spec."));
-    }
-    if (location === "archive" && planArtifact && specStatus && planStatus && specStatus !== planStatus) {
-      bundleIssues.push(issue("error", "change.archive-status-mismatch", entryPath, `Archived spec status '${specStatus}' must match plan status '${planStatus}'.`));
-    }
-    if (location === "archive" && specStatus === "applied" && (!planArtifact || planStatus !== "applied")) {
-      bundleIssues.push(issue("error", "change.applied-plan-missing", entryPath, "An applied archived bundle requires an applied plan.xml."));
     }
 
     // Companions admitted by NGRACE_CHANGE_BUNDLE_COMPANIONS (A11.1) — filename, root, validator.

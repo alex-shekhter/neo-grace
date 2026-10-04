@@ -488,7 +488,6 @@ function validateAssertions(
   result: LintResult,
   paths: NgraceProjectPaths,
   planFilesActive: string[],
-  planFilesArchived: string[],
   graph: GraphProjection,
   verification: VerificationProjection,
   root: string,
@@ -539,12 +538,6 @@ function validateAssertions(
       true,
     );
     evaluateSection(result, planFile, "TargetAssertions", context, false);
-  }
-
-  for (const planFile of planFilesArchived) {
-    // Archived plans: syntax only, never semantic (baseline may be stale, target may be superseded by later changes)
-    evaluateSection(result, planFile, "BaselineAssertions", context, false, true, false, true);
-    evaluateSection(result, planFile, "TargetAssertions", context, false, true, false, true);
   }
 
   if (assertionMode === "current") {
@@ -725,8 +718,9 @@ export function lintGraceProject(projectRoot: string, options: LintOptions = {})
   validateGraphAnchorsOwnWriteScope(result, activeScopes, governedRecords, root);
 
   const planFilesActive = [...listPlanFiles(paths.changesActiveDir)];
-  const planFilesArchived = [...listPlanFiles(paths.changesArchiveDir)];
-  validateAssertions(result, paths, planFilesActive, planFilesArchived, graph, verification, root, options);
+  // Current-only boundary (C-CURRENT-VALIDATION-BOUNDARY): archived plans are opaque history and
+  // are not discovered or parsed by current lint. Only active plans contribute assertions.
+  validateAssertions(result, paths, planFilesActive, graph, verification, root, options);
 
   return finalizeResult(result);
 }
