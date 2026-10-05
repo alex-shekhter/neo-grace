@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-GENERIC-SHAPE-DATA-1-11D2BE52>
     <Summary>
       Remove exactly one publisher-specific runtime privilege from the generic review surface:

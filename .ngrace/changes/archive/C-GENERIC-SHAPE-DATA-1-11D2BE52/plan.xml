@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-GENERIC-SHAPE-DATA-1-11D2BE52>
     <IntentSummary>
       Remove the publisher filename privilege from the generic pattern detector so the shape-data
