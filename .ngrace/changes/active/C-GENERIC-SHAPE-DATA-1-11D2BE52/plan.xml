@@ -1,0 +1,200 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-GENERIC-SHAPE-DATA-1-11D2BE52>
+    <IntentSummary>
+      Remove the publisher filename privilege from the generic pattern detector so the shape-data
+      exemption depends on content, never on path spelling: `fileHoldsShapesAsData` drops the
+      `rel.includes("defect-corpus")` branch and its now-unused private path parameter, leaving
+      the explicit file-level marker `@ngrace-review-shape-data` (`SHAPE_DATA_MARKER`) as the only
+      exemption. The internal `src/test-support/defect-corpus.ts` keeps its exemption by carrying
+      that marker as a comment describing its fixture-data role, outside the generated source
+      strings it emits; `src/review/core.ts` is freed of one filename inference; and
+      `src/review/core.test.ts` gains discriminating filename/marker controls that pin both
+      directions while the retained generalization, refusal, dataflow, and exemption-reporting
+      checks stay. One cohesive task: author the discriminators and witness the genuine red,
+      remove the filename branch and path argument, annotate the corpus, preserve every existing
+      detector/scan-population/corpus behavior, then prove the consumer CLI, the marked-exemption
+      and adjacent-guard controls, and the resulting-tree suites.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/review/core.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/review/core.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/test-support/defect-corpus.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-REVIEW</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-TEST-SUPPORT</Value>
+      </MustExist>
+      <MustVerify>
+        <Module>M-REVIEW</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-TEST-SUPPORT</Module>
+      </MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>src/review/core.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/review/core.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/test-support/defect-corpus.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-REVIEW</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-TEST-SUPPORT</Value>
+      </MustExist>
+      <MustVerify>
+        <Module>M-REVIEW</Module>
+      </MustVerify>
+      <MustVerify>
+        <Module>M-TEST-SUPPORT</Module>
+      </MustVerify>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>rel.includes("defect-corpus")</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>src/test-support/defect-corpus.ts</File>
+        <Text>@ngrace-review-shape-data</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/test-support/defect-corpus.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Remove the defect-corpus filename exemption and keep the explicit marker</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-FILENAME-INDEPENDENT />
+          <AC-EXPLICIT-MARKER-PRESERVED />
+          <AC-INTERNAL-FIXTURE-PRESERVED />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first, before the runtime change: in `src/review/core.test.ts` add discriminating
+            controls that drive `runPatternDetectors` (and `runReview` where the exemption report is
+            under test) over synthetic projects. Place the same unmarked markup-guard fixture bytes
+            at the exact filename `src/test-support/defect-corpus.ts`, at a substring basename
+            `src/fixture-defect-corpus-copy.ts`, at a substring directory
+            `src/defect-corpus-fixtures/guard.ts`, and at an ordinary name, and assert each yields
+            the ordinary `review.regex-over-structure` finding with severity `error`. On the
+            current tree the three `defect-corpus`-containing paths are exempt and silent while the
+            ordinary path refuses; witness and retain that genuine red output with direct exits.
+            Record truthful fail&#8594;pass provenance during EXECUTE; private mutants that restore
+            the filename bypass are non-vacuity evidence only, not production failure attempts.
+          </Criterion>
+          <Criterion>
+            In `src/review/core.ts`, inside `fileHoldsShapesAsData`, remove only the
+            `rel.includes("defect-corpus")` branch and its comment, and drop the now-unused private
+            `rel` path parameter together with the sole call's path argument at the detector loop.
+            The helper's remaining body tests `text.includes(SHAPE_DATA_MARKER)`. Preserve
+            `SHAPE_DATA_MARKER`, file-level opt-in semantics, and the visible `shapeDataExemptions`
+            reporting exactly. Do not modify the scan population (`.ts`/`.js` under `src`,
+            `.test.ts` excluded), `usesRegexAsGuard`, `extractRegexPatternSources`,
+            `patternSourceLooksLikeMarkupGuard`, `isDefectiveUnstrippedMarkerLineGuard`, the finding
+            code `review.regex-over-structure`, its `error` severity, its
+            `markup-or-attribute-regex-guard` rule id, or the report shape.
+          </Criterion>
+          <Criterion>
+            In `src/test-support/defect-corpus.ts`, add the existing explicit marker
+            `@ngrace-review-shape-data` as a comment describing the module's internal fixture-data
+            role, placed outside the generated source strings this module emits (the structural
+            predicates that appear in emitted defective code, e.g. a generated
+            `&lt;Item id="…"&gt;`-style guard literal, are data, not runtime guards — the comment
+            must not be written into a generated string). The module stays exempt and appears in
+            `shapeDataExemptions`. Preserve stable defect ids, generated fixture bytes, expected
+            findings, and executable behavior; `bun test --timeout=0
+            src/test-support/defect-corpus.test.ts` continues to pass (unique ids, per-pattern
+            coverage, clean pre-apply baseline, declared rationales, surface reachability fields,
+            and `apply()` mutation). No corpus count or historical conformance population is
+            pinned.
+          </Criterion>
+          <Criterion>
+            Discriminators and preserved controls, proved by synthetic fixtures and the real source
+            CLI with honest provenance (mutate&#8594;observed&#8594;exact restoration): (a)
+            identical unmarked guard bytes under the exact `defect-corpus.ts` filename, a substring
+            basename, a substring directory, and an ordinary name each produce exactly one
+            `review.regex-over-structure` finding with severity `error` and rule id
+            `markup-or-attribute-regex-guard`, and none of those paths appears in
+            `shapeDataExemptions`; (b) a legitimately marked fixture-data module is not flagged and
+            is visibly listed in `shapeDataExemptions` and `summary.shapeDataExemptions` while an
+            adjacent unmarked real guard raises; (c) on marker-triggering fixture data, removing
+            only the marker exposes both files and restoring the exact marker bytes restores the
+            prior report byte-for-byte on the original root and input; (d) the separate marker-line
+            guard keeps its existing `unstripped-marker-line-guard` rule id, and benign unmarked
+            data need not raise. Byte comparison supports one-input-changed-and-restored claims
+            only; do not require output bytes or finding ids to stay equal across different
+            filenames. Existing generalization, refusal, dataflow, and exemption-reporting checks
+            are retained, not deleted to obtain green.
+          </Criterion>
+          <Criterion>
+            The change is surgical and complete: no second filename/path/root/directory exemption,
+            configuration key, suppression list, override flag, new export, parser/detector
+            redesign, or marker-syntax change is introduced; the only remaining exemption is the
+            explicit `@ngrace-review-shape-data` file marker. The task's resulting-tree instruments
+            are `bun test --timeout=0 src/review/core.test.ts` and `bun test --timeout=0
+            src/test-support/defect-corpus.test.ts`; the whole-suite and applied-archive checks are
+            later, distinct states owned by the close-bound criteria.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/review/core.test.ts</Command>
+          <Command>bun test --timeout=0 src/test-support/defect-corpus.test.ts</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+    <Assumptions>
+      <Assumption>
+        The three close-bound criteria and their commands are preserved exactly from the approved
+        spec. Full CI-equivalent verification (`bun run validate:ci`) belongs to
+        `--assertions final --run-commands` and the `AC-CI-GREEN` whole-suite CloseEvidence
+        criterion; it is not a per-task command and is not run during PLAN.
+      </Assumption>
+      <Assumption>
+        The frozen comparison base for `AC-CLOSE-BOUNDED-WRITES` remains the spec's
+        `69bfe9417c14761dae16b49e7c5eb1b6865be0f7`, not the later approval checkpoint
+        `d58fe620a1b0118828c7e96229dfcd8712e80122`, so the bounded implementation and own-bundle
+        lifecycle writes are measured from the approved baseline.
+      </Assumption>
+      <Assumption>
+        No fourth implementation path surfaced in review. If EXECUTE finds a genuinely forced extra
+        file, report its owner and causal requirement before widening scope rather than silently
+        expanding.
+      </Assumption>
+      <Assumption>
+        The baseline and target string needles supplement the behavioral guards: the absence needle
+        `rel.includes("defect-corpus")` bounds the removed runtime branch in `src/review/core.ts`
+        (which contains no other occurrence of the substring), and the presence needle
+        `@ngrace-review-shape-data` pins the corpus annotation. Neither proves exemption semantics or
+        correct comment placement; the synthetic CLI and fixture controls do.
+      </Assumption>
+    </Assumptions>
+  </C-GENERIC-SHAPE-DATA-1-11D2BE52>
+</NgraceChangePlan>
