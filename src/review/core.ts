@@ -676,9 +676,7 @@ function extractRegexPatternSources(source: string): string[] {
   return [...new Set(out)];
 }
 
-function fileHoldsShapesAsData(rel: string, text: string): boolean {
-  // Corpus stores defect text as fixtures (not a production guard).
-  if (rel.includes("defect-corpus")) return true;
+function fileHoldsShapesAsData(text: string): boolean {
   // Explicit opt-in for shape-as-data modules (A37.3 / corr 88) — not a directory prefix.
   if (text.includes(SHAPE_DATA_MARKER)) return true;
   return false;
@@ -814,7 +812,7 @@ function detectRegexOverStructure(root: string): RegexOverStructureScan {
     const text = readText(root, rel);
     if (!text) continue;
     // Corr 88 / 90: exempt only shape-as-data files; report every exemption.
-    if (fileHoldsShapesAsData(rel, text)) {
+    if (fileHoldsShapesAsData(text)) {
       shapeDataExemptions.push(normalizeRel(rel));
       continue;
     }

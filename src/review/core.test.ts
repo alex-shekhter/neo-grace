@@ -491,6 +491,160 @@ export function patternSourceLooksLikeMarkupGuard(p: string) {
 });
 
 /**
+ * C-GENERIC-SHAPE-DATA-1-11D2BE52 — the shape-data exemption depends on content,
+ * never on filename. These discriminating controls join the held-out and corpus
+ * controls above; they do not replace them.
+ */
+describe("generic shape-data exemption — filename independence (C-GENERIC-SHAPE-DATA)", () => {
+  const MARKUP_GUARD = `export function guard(xml: string, id: string): boolean {
+  return new RegExp(\`<Item id="\${id}"\`).test(xml);
+}
+`;
+
+  /** Minimal project whose only detector-relevant source is `rel`. */
+  function projectWithSource(rel: string, body: string): string {
+    const root = track(
+      path.join(os.tmpdir(), `shape-data-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    );
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    writeFileSync(
+      path.join(root, "src", "example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return 1; }\n`,
+    );
+    const abs = path.join(root, rel);
+    mkdirSync(path.dirname(abs), { recursive: true });
+    writeFileSync(abs, body);
+    return root;
+  }
+
+  const filenameCases = [
+    "src/test-support/defect-corpus.ts",
+    "src/fixture-defect-corpus-copy.ts",
+    "src/defect-corpus-fixtures/guard.ts",
+    "src/ordinary-guard.ts",
+  ];
+
+  for (const rel of filenameCases) {
+    it(`refuses identical unmarked markup-guard bytes at ${rel}`, () => {
+      const root = projectWithSource(rel, MARKUP_GUARD);
+      const regexFindings = runPatternDetectors(root).filter(
+        (f) => f.code === "review.regex-over-structure",
+      );
+      expect(regexFindings).toHaveLength(1);
+      expect(regexFindings[0]!.severity).toBe("error");
+      expect(regexFindings[0]!.ruleId).toBe("markup-or-attribute-regex-guard");
+      expect(regexFindings[0]!.file).toBe(rel);
+
+      const result = runReview(root, { processAudits: false, joinEngine: false });
+      expect(
+        result.findings.some(
+          (f) => f.code === "review.regex-over-structure" && f.file === rel,
+        ),
+      ).toBe(true);
+      expect(result.shapeDataExemptions).not.toContain(rel);
+      expect(result.summary.shapeDataExemptions).toBe(0);
+    });
+  }
+
+  it("does not exempt a filename containing the substring only by a nested directory", () => {
+    // The removed privilege keyed on `rel.includes("defect-corpus")` anywhere in the path;
+    // a directory spelling must not resurrect it.
+    const root = projectWithSource("src/defect-corpus-fixtures/nested/guard.ts", MARKUP_GUARD);
+    const result = runReview(root, { processAudits: false, joinEngine: false });
+    expect(result.shapeDataExemptions).toHaveLength(0);
+    expect(result.summary.shapeDataExemptions).toBe(0);
+    expect(result.findings.filter((f) => f.code === "review.regex-over-structure")).toHaveLength(1);
+  });
+
+  it("keeps the separate unstripped-marker-line-guard rule id", () => {
+    const root = projectWithSource(
+      "src/raw-scan.ts",
+      `export function fileLooksGoverned(source: string): boolean {
+  return source.split("\\n").some((l) =>
+    /^(\\s*)(\\/\\/|#)\\s*START_MODULE_CONTRACT/.test(l),
+  );
+}
+`,
+    );
+    const findings = runPatternDetectors(root).filter(
+      (f) => f.file === "src/raw-scan.ts" && f.code === "review.regex-over-structure",
+    );
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.ruleId).toBe("unstripped-marker-line-guard");
+  });
+});
+
+describe("generic shape-data exemption — explicit marker preserved (C-GENERIC-SHAPE-DATA)", () => {
+  const MARKUP_GUARD = `export function guard(xml: string, id: string): boolean {
+  return new RegExp(\`<Item id="\${id}"\`).test(xml);
+}
+`;
+  const MARKER_COMMENT = "// @ngrace-review-shape-data — holds detector shapes as data.\n";
+  /**
+   * Legitimate detector-shape data: guard source held as a string literal, never
+   * executed. Unmarked, the raw text still matches the pattern detector; the
+   * file-level marker is what declares the shapes are data.
+   */
+  const SHAPE_DATA_FIXTURE = `export const DEFECTIVE_GUARD_FIXTURE = {
+  ruleId: 'markup-or-attribute-regex-guard',
+  source: 'const re = /<Item id="x"/; re.test(xml);',
+};
+`;
+  const CORPUS_REL = "src/test-support/shape-data-fixtures.ts";
+  const ADJACENT_REL = "src/adjacent-guard.ts";
+
+  function markedProject(markedCorpusBody: string): string {
+    const root = track(
+      path.join(os.tmpdir(), `shape-marker-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    );
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    writeFileSync(
+      path.join(root, "src", "example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return 1; }\n`,
+    );
+    const corpusAbs = path.join(root, CORPUS_REL);
+    mkdirSync(path.dirname(corpusAbs), { recursive: true });
+    writeFileSync(corpusAbs, markedCorpusBody);
+    writeFileSync(path.join(root, ADJACENT_REL), MARKUP_GUARD);
+    return root;
+  }
+
+  it("keeps a marked data module exempt while an adjacent unmarked guard raises", () => {
+    const root = markedProject(`${MARKER_COMMENT}${SHAPE_DATA_FIXTURE}`);
+    const result = runReview(root, { processAudits: false, joinEngine: false });
+    const regexFindings = result.findings.filter((f) => f.code === "review.regex-over-structure");
+    expect(regexFindings).toHaveLength(1);
+    expect(regexFindings[0]!.file).toBe(ADJACENT_REL);
+    expect(regexFindings[0]!.severity).toBe("error");
+    expect(regexFindings[0]!.ruleId).toBe("markup-or-attribute-regex-guard");
+    expect(result.shapeDataExemptions).toContain(CORPUS_REL);
+    expect(result.summary.shapeDataExemptions).toBe(1);
+  });
+
+  it("removing only the marker exposes both files and restoring exact bytes restores the report", () => {
+    const markedBody = `${MARKER_COMMENT}${SHAPE_DATA_FIXTURE}`;
+    const root = markedProject(markedBody);
+    const before = runReview(root, { processAudits: false, joinEngine: false });
+    expect(before.findings.filter((f) => f.code === "review.regex-over-structure")).toHaveLength(1);
+    expect(before.shapeDataExemptions).toContain(CORPUS_REL);
+    const beforeReport = formatReviewResult(before);
+
+    writeFileSync(path.join(root, CORPUS_REL), SHAPE_DATA_FIXTURE);
+    const removed = runReview(root, { processAudits: false, joinEngine: false });
+    expect(removed.findings.filter((f) => f.code === "review.regex-over-structure")).toHaveLength(2);
+    expect(removed.shapeDataExemptions).toHaveLength(0);
+    expect(removed.summary.shapeDataExemptions).toBe(0);
+
+    writeFileSync(path.join(root, CORPUS_REL), markedBody);
+    const restored = runReview(root, { processAudits: false, joinEngine: false });
+    expect(formatReviewResult(restored)).toBe(beforeReport);
+    expect(restored.shapeDataExemptions).toEqual(before.shapeDataExemptions);
+  });
+});
+
+/**
  * A39.1 / corr 92 — four fixtures that differ only in form, not meaning.
  * (b) and (c) are the same program; only binding the transform result used to silence.
  * (d) firing pins that two-step raw scans are still caught (not form-matching the other way).
