@@ -1,0 +1,131 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-REVIEW-PAIR-FIXTURES-1-429BFA80</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Diagrams>
+    <SequenceDiagram>
+sequenceDiagram
+    participant T as Replacement pair cases
+    participant F as Synthetic fixture builder
+    participant V as Shipped artifact validators
+    participant C as Existing review CLI
+    participant A as Existing pair audit
+    T-&gt;&gt;F: Create temporary current project and archived pair
+    F-&gt;&gt;V: Validate selected spec, plan, ledger
+    V--&gt;&gt;T: Exact inputs present; zero issues
+    T-&gt;&gt;C: Review temporary project and synthetic change
+    C-&gt;&gt;A: Compare recorded source digests
+    A--&gt;&gt;T: Changed = quiet; equal = one warning
+    T-&gt;&gt;F: Restore fixture bytes
+    T-&gt;&gt;C: Repeat review
+    C--&gt;&gt;T: Original report reproduced
+    </SequenceDiagram>
+    <ClassDiagram>
+classDiagram
+    class RegressionCases
+    class SyntheticPairFixture {
+        sourceBytes
+        failDigest
+        passDigest
+        buildTemporaryProject()
+        validateSelectedArtifacts()
+    }
+    class TemporaryProject {
+        graphAndVerification
+        currentSpecAndPlan
+        foldedRunLedger
+    }
+    class ReviewCLI
+    class AttemptPairAudit
+    RegressionCases --&gt; SyntheticPairFixture : constructs
+    SyntheticPairFixture --&gt; TemporaryProject : writes
+    RegressionCases --&gt; ReviewCLI : drives
+    TemporaryProject --&gt; ReviewCLI : supplies inputs
+    ReviewCLI --&gt; AttemptPairAudit : existing implementation
+    </ClassDiagram>
+  </Diagrams>
+  <Rationale>
+    Four dedicated attempt-pair regression tests read the repository's real archive as
+    their input: they name concrete publisher bundles, enumerate the current archive
+    population, embed a frozen authoring-time membership list, and drive the real CLI
+    against one publisher bundle's recorded ledger. The tests are current-behavior
+    regressions and do not need the archive as a corpus. Anchoring them there makes
+    their input depend on publisher bundle names, a denominator that only shrinks, and
+    archived artifact formats.
+
+    The isolated slice is: replace those four inputs with explicitly constructed
+    synthetic current fixtures, directly validate the selected synthetic spec, plan,
+    and run-ledger, keep a meaningful silent case with a real recorded fail/pass pair
+    and changed source digests, and preserve the positive real-CLI warning on equal
+    non-artifact source digests together with the adjacent warning/error exit controls.
+    All four original input obligations are replaced and their behavioral criteria and
+    counterweights retained; the number and organization of replacement `it` blocks
+    are not prescribed. The future implementation writes exactly
+    `src/review/core.test.ts`, owned by `M-REVIEW` and verified by `V-M-REVIEW`.
+
+    The behavioral counterweights carried by the replaced obligations are preserved.
+    The denominator-shrink counterweight (the old frozen-membership assertion) becomes
+    explicit fixture presence plus a nonzero audited pair count. The
+    detector-suppression counterweight (the old positive warning) becomes a real-CLI
+    warning over a synthetic bundle with equal digests. The silent case asserts both
+    the live and the retired code are absent, so retired-code absence is not lost when
+    the corpus enumeration is removed. The no-archive-input rule is scoped to the
+    replacement coverage for these four inputs; the other process-audit tests this
+    slice leaves in place still select repository archived bundles and are unchanged.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Variant 1 (chosen): isolate only the four dedicated pair-regression inputs. One
+      implementation file, one audit contract, existing fixture helpers suffice, and
+      the positive warning remains. This does not complete the separate
+      process-audit/status/context/calibration input boundaries, which remain separate
+      prerequisite slices.
+    </Alternative>
+    <Alternative>
+      Variant 2 (rejected): convert all selected repository-root review callers in
+      `src/review/core.test.ts`. It removes more publisher-input dependencies in one
+      delivery, but it spans other process-audit contracts, needs more fixture setup,
+      and combines independently verifiable audit behaviors with this small input
+      contract, increasing correction risk.
+    </Alternative>
+    <Alternative>
+      Keep reading the archive but assert membership more loosely. Rejected: a
+      denominator that only shrinks cannot answer whether the audit actually looked,
+      and any read of the real archive keeps the input coupled to publisher bundle
+      names and historical formats.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      The remaining publisher readers (other process-audit tests,
+      status/context/calibration inputs, global consumer archive policy) are separate
+      prerequisite slices of publisher-input isolation. This bundle is one dependency
+      slice, not a claim that the whole program is finished.
+    </Decision>
+    <Decision>
+      Whether any future archive-compatibility exemption or global consumer policy is
+      needed is deferred. This slice must not add one.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      A synthetic archived bundle records a fail event and a pass event whose
+      non-artifact source digests differ. The shipped validators report zero issues for
+      the selected spec, plan, and run-ledger. Reviewing the bundle yields zero live and
+      zero retired attempt-pair findings, and the audit reports it ran over one pair.
+    </Scenario>
+    <Scenario>
+      A synthetic archived bundle records a fail event and a pass event whose
+      non-artifact source digests are equal. Driving the real CLI exits 0 and the JSON
+      names exactly one `review.attempt-pair-identical-tree` warning at the declared
+      anchor, under the synthetic archive path, with a 16-hex finding ID, over one
+      audited pair.
+    </Scenario>
+    <Scenario>
+      A warning-only synthetic project exits 0 and names the live warning; a synthetic
+      project carrying a current error exits 1. The replacement coverage for the four
+      dedicated pair-regression inputs reads no repository `.ngrace/changes/archive/`
+      contents as input; the other process-audit tests this slice leaves in place are
+      unchanged.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
