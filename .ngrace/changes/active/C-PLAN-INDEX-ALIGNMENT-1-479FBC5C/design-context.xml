@@ -1,0 +1,55 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-PLAN-INDEX-ALIGNMENT-1-479FBC5C</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>The plan index at docs/plans/README.md:57-63 still carries the 2026-10-01 historical archive-compatibility directions. The live queue at docs/plans/active/RM-GOVERNED-PATH/grace-implementation-queue.md:154-156 withdrew that campaign on 2026-10-03 and states the earlier directions are history, and the current-only policy in CLAUDE.md replaces the campaign with small governed removal of archive dependencies. The index summary is corrected to match the live policy. Recorded provenance anchors: old summary 3f68a1b3, current-only policy eea2d4e, withdrawal abb1715. This context is explanatory only; spec.xml is the source of truth and every binding requirement is repeated there.</Rationale>
+  <Alternatives>
+    <Alternative>Leave the index text unchanged and rely on the queue's withdrawal note alone. Rejected: the plan index is the roadmap-level summary a reader sees first, so it would keep directing immediate work the current policy no longer wants.</Alternative>
+    <Alternative>Rewrite the whole backlog introduction. Rejected: this is a bounded two-line correction; the surrounding index bytes stay identical.</Alternative>
+    <Alternative>Change the queue's historical sections too. Rejected: the queue's labelled history is preserved as written and is not product scope.</Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>The later plan owns DurableScope/None and an ObservedWriteScope entry for docs/plans/README.md, plus baseline and target assertions and the task Satisfies mapping. The spec keeps only the VerificationIntent/ExpectedCommand and the close-bound commands.</Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>SPEC-stage flow (context only):
+sequenceDiagram
+    participant E as External executor
+    participant G as GRACE CLI
+    participant A as Authority
+    participant M as Maintainer
+    E->>G: Draft SPEC
+    E->>A: SPEC and explanatory design context
+    A->>M: Present SPEC for ratification
+    M->>A: Ratify written SPEC
+    A->>G: Review, approve, checkpoint SPEC
+    A->>E: Dispatch PLAN work
+    E->>A: Return draft PLAN
+    A->>M: Audit and present PLAN for ratification
+    M->>A: Ratify written PLAN
+    A->>G: Review, approve, checkpoint PLAN
+    A->>A: Make the authorized two-line index change
+    A->>G: Run final verification
+    A->>M: Request separate apply/close authorization
+    M->>A: Authorize apply and close
+    A->>G: Apply, archive, and verify close</Scenario>
+    <Scenario>Structure (context only):
+classDiagram
+    class PlanIndex {
+      docs/plans/README.md
+      two_line_summary
+    }
+    class LiveQueue {
+      withdrawn_2026_10_03
+      current_only_policy
+      labelled_history
+    }
+    class ChangeBundle {
+      draft_spec
+      draft_plan
+      explanatory_design_context
+      observed_file_PlanIndex
+    }
+    ChangeBundle --> PlanIndex : permits two-line replacement
+    PlanIndex --> LiveQueue : summarizes existing policy</Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
