@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-PLAN-INDEX-ALIGNMENT-1-479FBC5C>
     <Summary>Correct the plan index summary of the historical archive-compatibility campaign so it matches that campaign's 2026-10-03 withdrawal and the current-only CLI policy: replace the obsolete "immediate empirical derivation / prompt governed repair" directions in docs/plans/README.md with the queue's current direction to remove archive dependencies through small governed bundles.</Summary>
     <Goals>

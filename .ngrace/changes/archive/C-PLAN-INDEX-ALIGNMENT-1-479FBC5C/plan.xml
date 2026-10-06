@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-PLAN-INDEX-ALIGNMENT-1-479FBC5C>
     <IntentSummary>Apply the approved two-line correction to docs/plans/README.md so its plan-index summary of the historical archive-compatibility campaign matches the campaign's 2026-10-03 withdrawal and the current-only CLI policy, while every other byte of the index stays identical to frozen-base commit 4d7304f262e6eb4cabb961910042990ab68e5776.</IntentSummary>
     <BaselineAssertions>
