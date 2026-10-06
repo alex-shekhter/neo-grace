@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-REVIEW-PAIR-FIXTURES-1-429BFA80>
     <IntentSummary>
       Replace the four dedicated attempt-pair regression inputs at

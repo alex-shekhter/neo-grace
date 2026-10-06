@@ -1,4 +1,4 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
+<NgraceChangeSpec graceVersion="1.0" status="applied">
   <C-REVIEW-PAIR-FIXTURES-1-429BFA80>
     <Summary>
       Isolate the inputs of the four dedicated attempt-pair regression tests currently
