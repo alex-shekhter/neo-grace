@@ -1,0 +1,158 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-GENERIC-REVIEW-SCOPE-1-A7E352BF>
+    <IntentSummary>
+      Remove the publisher-specific `docs/plans/` exemption from the ledger-backed WriteEvidence
+      scope audit so consumer documentation is ordinary declared scope: a comparable path raises
+      `review.write-evidence-outside-scope` unless covered by the plan's exact `File` or a relevant
+      `Glob`, while the separate working-tree audit, the CLI lifecycle and exact canonical
+      candidate-lock exclusions with their near misses, same-ID `.ngrace/` archive-identity
+      expansion, undeclared non-lifecycle `.ngrace/` refusal, deduplication/union, finding
+      code/severity, report fields, and absence statuses are preserved. One cohesive task authors
+      discriminating synthetic tests first, observes the genuine docs-exemption failure, removes
+      `isDocsPlansPath` and its single bypass call, corrects the catalog explanation, and proves the
+      preserved boundaries on synthetic projects and the real source CLI.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>isDocsPlansPath</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/review/core.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Make docs/plans WriteEvidence paths ordinary declared scope in the ledger audit</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-UNDECLARED-DOCS-PATH-RAISES />
+          <AC-DECLARED-DOCS-PASSES />
+          <AC-PRESERVED-BOUNDARIES />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first, before the runtime change: add a discriminating synthetic fixture in
+            `src/review/core.test.ts` that drives the real
+            `auditWriteEvidenceOutsideScope` (and, where useful, `runReview`) with a
+            `docs/plans/active/&lt;X&gt;/decisions.md` WriteEvidence content path outside the plan's
+            `ObservedWriteScope`, beside an undeclared `src/secret.ts` control. On the current tree
+            the docs path is silently exempted while the ordinary path raises; capture that genuine
+            red with command output. Record truthful attempt provenance during EXECUTE as the
+            fail&#8594;pass pair; do not manufacture a retrospective red or run the old publisher
+            archive as the acceptance population.
+          </Criterion>
+          <Criterion>
+            In `src/review/core.ts`, remove the `isDocsPlansPath` predicate definition and its
+            single bypass call in `auditWriteEvidenceOutsideScope`, so a `docs/plans/` path is
+            judged by the ordinary coverage path (exact declared `File`, relevant declared `Glob`,
+            and same-ID `.ngrace/` archive-identity expansion). Update the associated comments that
+            name the removed F27.1 authority-roadmap hole. Do not modify
+            `auditScopeOutsideWriteScope`, `isCliLifecyclePath`,
+            `isCanonicalEngineCandidateLockPath`, `expandScopePathsForArchiveIdentity`,
+            `observedWriteScopeContains`, the `WriteEvidenceScopeAuditReport` fields, or the
+            ledger/loose event loading; do not add a suppression list, override flag, configuration
+            key, or exported predicate that reinstates the privilege.
+          </Criterion>
+          <Criterion>
+            In `src/review/catalog.ts`, correct the `review.write-evidence-outside-scope`
+            explanation so it no longer claims authority ownership of `docs/plans/`. Keep the code
+            bound to `WRITE_EVIDENCE_SCOPE_FINDING_CODE` at severity `error`; state that the
+            preserved path-class exclusions are the CLI lifecycle class (`run.xml`,
+            `run-ledger.xml`, `run/**` under a canonical `C-*` bundle) and the exact canonical
+            engine candidate lock, and that undeclared non-lifecycle `.ngrace/` paths still raise.
+          </Criterion>
+          <Criterion>
+            Undeclared and declared behavior, proved by synthetic fixtures not the archive: (a) an
+            undeclared `docs/plans/active/&lt;X&gt;/decisions.md` and `review.md` each produce
+            exactly one finding whose code is `WRITE_EVIDENCE_SCOPE_FINDING_CODE`, whose severity is
+            `error`, and whose `file` is that path; (b) an undeclared `src/secret.ts` raises
+            identically; (c) the same path repeated across WriteEvidence appearances and present on
+            only one of several ledger/loose attempt events still yields exactly one finding
+            (deduplication plus union across attempts); (d) with the recorded WriteEvidence path
+            fixed, an exact declared `File` and a relevant declared `Glob` each yield zero
+            `review.write-evidence-outside-scope` findings, and coverage is not widened to swallow a
+            sibling undeclared path; (e) missing or empty comparable WriteEvidence yields
+            `writeEvidenceScopeAudit.status === "unable-to-determine"` with a non-empty reason,
+            never a clean `ran`, while at least one comparable path yields `ran` (findingCount may
+            be 0). The finding shape and the `writeEvidenceScopeAudit` fields (`status`, `reason`,
+            `changeId`, `pathCount`, `findingCount`) are unchanged.
+          </Criterion>
+          <Criterion>
+            Preserved boundaries, proved by synthetic projects that replace (rather than flip or
+            re-pin) the direct `C-ESCALATION-HONESTY`/`docs/plans` coupling and the whole-archive
+            WriteEvidence multiset ratchet: (a) the separate working-tree
+            `auditScopeOutsideWriteScope` still reports changed `docs/plans/` paths under
+            `review.scope-outside-write-scope`; (b) `run.xml`, `run-ledger.xml`, and `run/**` under
+            a canonical `C-*` bundle are filtered, and the exact canonical candidate lock
+            `.ngrace/changes/active/.candidate-&lt;C-ID&gt;.lock` is filtered while every near miss
+            (archived location, extra nesting, another top-level directory, malformed id) raises;
+            (c) an undeclared approved `spec.xml`/`plan.xml` and any other undeclared non-lifecycle
+            `.ngrace/` content raise; (d) the same-ID
+            `.ngrace/changes/{active,archive}/&lt;id&gt;/...` identity expansion for the reviewed
+            change's own artifacts remains, an undeclared path naming another change's bundle
+            raises, and an exact declared foreign path passes. Existing byte-immutability,
+            lifecycle, candidate-lock, and unrelated controls are kept, not deleted to obtain green.
+          </Criterion>
+          <Criterion>
+            Real source CLI on clean committed disposable projects, each probe driven
+            mutate&#8594;observed&#8594;exact restoration with honest provenance: undeclared docs
+            evidence refuses with exactly `review.write-evidence-outside-scope`; with the recorded
+            evidence path fixed, an exact-`File` plan variant and a relevant-`Glob` plan variant
+            pass; a sibling or ordinary undeclared path still refuses; empty evidence reports
+            `unable-to-determine`. Also drive the CLI for undeclared non-lifecycle `.ngrace/` content, lifecycle/candidate-lock exceptions, and every specified near miss.
+            The narrow `bun test --timeout=0 src/review/core.test.ts` command is the task's resulting-tree instrument; the applied-archive CI is a later,
+            distinct state owned by the close-bound criteria.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/review/core.test.ts</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+    <Assumptions>
+      <Assumption>
+        The three close-bound criteria and their commands are preserved exactly from the approved
+        spec. Full CI-equivalent verification (`bun run validate:ci`) belongs to
+        `--assertions final --run-commands` and the `AC-CI-GREEN` whole-suite CloseEvidence
+        criterion; it is not a per-task command and is not run during PLAN.
+      </Assumption>
+      <Assumption>
+        The frozen comparison base for `AC-CLOSE-BOUNDED-WRITES` remains the spec's
+        `3d732c12d779195429d291dd132684ce26962728`, not the later approval checkpoint
+        `b1fc90050273b4fd8df3a1d7d1cd24a5775c161a`, so the bound implementation and own-bundle
+        lifecycle writes are measured from the approved baseline.
+      </Assumption>
+      <Assumption>
+        No fourth implementation path surfaced in authority derivation. If EXECUTE finds a genuinely
+        forced extra file, report its owner and causal requirement before widening scope rather than
+        silently expanding.
+      </Assumption>
+    </Assumptions>
+  </C-GENERIC-REVIEW-SCOPE-1-A7E352BF>
+</NgraceChangePlan>

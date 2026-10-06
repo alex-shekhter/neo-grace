@@ -112,7 +112,20 @@ describe("coordinator preflight", () => {
 describe("coordinator termination", () => {
   it("AC-COORDINATOR-TIMEOUT-KILLS: a finite poll larger than the deadline cannot extend it; each worker's timedOut, exit 7, absent output recorded", async () => {
     const { root, L } = fresh("coord-timeout-");
-    const { spawn, procs } = makeSpawnRecorder();
+    const recorder = makeSpawnRecorder();
+    const procs = recorder.procs;
+    const quickCommand = [process.execPath, "-e", "process.exit(7)"];
+    // Establish the finished fixture by real subprocess observation: start the quick worker and
+    // await its actual exit before the coordinator observes it, so the completed outcome does not
+    // depend on a fresh subprocess starting and finishing inside the 100ms deadline.
+    const quickProc = Bun.spawn({ cmd: quickCommand, stdout: "pipe", stderr: "pipe" });
+    await quickProc.exited;
+    procs.push(quickProc);
+    const spawn = ((o: Parameters<typeof Bun.spawn>[0]) => {
+      const cmd = (o as { cmd?: readonly string[] }).cmd;
+      if (Array.isArray(cmd) && cmd.length === 3 && cmd[0] === quickCommand[0] && cmd[2] === quickCommand[2]) return quickProc;
+      return recorder.spawn(o);
+    }) as typeof Bun.spawn;
     try {
       const t0 = Date.now();
       const r = await runCoordinator({ ...L, workers: [

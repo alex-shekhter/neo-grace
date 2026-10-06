@@ -7,6 +7,11 @@
 //   MAP_MODE: EXPORTS
 // END_MODULE_CONTRACT
 //
+// @ngrace-review-shape-data — this module builds temp projects and injects intentional
+// defective code. The structural predicates it contains are string literals written into
+// generated files, not runtime guards over source, so it opts out of the regex-over-structure
+// self-scan via the sanctioned file-level marker.
+//
 // START_MODULE_MAP
 //   ExpectedFinding
 //   FindingSurface

@@ -335,6 +335,21 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
     derivedFrom: "C-APPROVAL-FINGERPRINT",
     family: "process-audit",
   },
+  "review.historical-path-absent": {
+    code: "review.historical-path-absent",
+    title: "Historical Existence Claim Is Not A Current Obligation",
+    explanation:
+      "An archived plan's MustExist target is missing on today's filesystem. Archives are historical "
+      + "metadata: archive-time presence is unevaluated, so this is an informational historical notice, "
+      + "not a current review.confidently-wrong error. Active plans keep the error.",
+    remediation: [
+      "No action is required for archived history; the record is reported, not asserted false.",
+      "Do not treat this finding as a lint change.* code and do not raise it from lint.",
+    ],
+    severity: "info",
+    derivedFrom: "C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B / F16",
+    family: "process-audit",
+  },
   [WRITE_EVIDENCE_SCOPE_FINDING_CODE]: {
     code: WRITE_EVIDENCE_SCOPE_FINDING_CODE,
     title: "WriteEvidence Path Outside ObservedWriteScope",
@@ -342,8 +357,11 @@ export const REVIEW_CATALOG: Record<string, ReviewIssueGuide> = {
       "A path recorded in durable WriteEvidence (tool-generated git digests on cursor attempts) is "
       + "not covered by the plan's ObservedWriteScope. Distinct from review.scope-outside-write-scope, "
       + "which reads the working tree (porcelain/base/explicit) and is blind on a clean close tree. "
-      + "Lifecycle run artifacts and docs/plans/ authority paths are excluded by path class (F11 / F27.1). "
-      + "Non-lifecycle .ngrace/ paths (e.g. undeclared edits to approved spec.xml) raise.",
+      + "Consumer documentation is ordinary declared scope: a docs/plans/ path raises unless an exact "
+      + "ObservedWriteScope File or a relevant Glob covers it. The only path-class exclusions are the "
+      + "CLI lifecycle artifacts (run.xml, run-ledger.xml, run/** under a canonical C-* bundle) and the "
+      + "exact canonical engine candidate lock. Non-lifecycle .ngrace/ paths (e.g. undeclared edits to "
+      + "approved spec.xml) raise.",
     remediation: [
       "Add the path to ObservedWriteScope at plan time (including what the deliverable forces — "
         + "skill-footprint pin, rule fixtures), or revert the out-of-scope write.",

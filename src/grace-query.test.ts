@@ -1,11 +1,12 @@
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 
 import { ARTIFACT_DIR } from "./artifact/paths";
 import { findModules, findVerifications, loadGraceArtifactIndex, resolveGovernedFile, resolveModule, resolveVerification } from "./query/core";
 import { GraceCommandError } from "./query/errors";
+import * as xmlModule from "./artifact/xml";
 import { buildModuleHealth } from "./query/health";
 import {
   formatModuleFindTable,
@@ -149,6 +150,30 @@ function createQueryProject() {
   writeNgraceArtifacts(root);
   writeGovernedFiles(root);
   return root;
+}
+
+function writeQueryOpacityProject(root: string) {
+  writeProjectSkeleton(root);
+  writeProjectFile(
+    root,
+    `${ARTIFACT_DIR}/graph/index.xml`,
+    `<NgraceGraphIndex graceVersion="1.0"><GraphDocuments><GD-MAIN><Path>graph/main.xml</Path><Owns><M-QUERY /></Owns></GD-MAIN></GraphDocuments></NgraceGraphIndex>`,
+  );
+  writeProjectFile(
+    root,
+    `${ARTIFACT_DIR}/graph/main.xml`,
+    `<NgraceGraphDocument graceVersion="1.0"><GD-MAIN><M-QUERY><Summary>Query module.</Summary><Path>src/query</Path></M-QUERY></GD-MAIN></NgraceGraphDocument>`,
+  );
+  writeProjectFile(
+    root,
+    `${ARTIFACT_DIR}/verification/index.xml`,
+    `<NgraceVerificationIndex graceVersion="1.0"><VerificationDocuments><VD-MAIN><Path>verification/main.xml</Path><Owns><V-M-QUERY /></Owns></VD-MAIN></VerificationDocuments></NgraceVerificationIndex>`,
+  );
+  writeProjectFile(
+    root,
+    `${ARTIFACT_DIR}/verification/main.xml`,
+    `<NgraceVerificationDocument graceVersion="1.0"><VD-MAIN><V-M-QUERY><Command>bun test src/query.test.ts</Command><Scenario>Query works.</Scenario><Marker>[Query][run][BLOCK_RUN]</Marker></V-M-QUERY></VD-MAIN></NgraceVerificationDocument>`,
+  );
 }
 
 function governedLinker(links: string): string {
@@ -506,6 +531,81 @@ const marker$Other = "[ProviderConfigPersistence][getProviderConfig][other]";`,
       code: "invalid-project",
       issues: expect.arrayContaining(["assertion.invalid-shape", "scope.invalid-path"]),
     }));
+  });
+
+  it("module query is unchanged by opaque archive content: zero archive reads", () => {
+    const root = createProject();
+    writeQueryOpacityProject(root);
+    const repoRoot = path.resolve(import.meta.dir, "..");
+    const runFind = () =>
+      Bun.spawnSync({
+        cmd: [process.execPath, "./src/grace.ts", "module", "find", "M-QUERY", "--path", root, "--format", "json"],
+        cwd: repoRoot,
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+
+    const cleanIndex = loadGraceArtifactIndex(root);
+    const cleanFind = runFind();
+    expect(cleanFind.exitCode).toBe(0);
+    const cleanStdout = Buffer.from(cleanFind.stdout ?? "").toString("utf8");
+
+    const archive = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-OPAQUE");
+    mkdirSync(archive, { recursive: true });
+    const specFile = path.join(archive, "spec.xml");
+    const planFile = path.join(archive, "plan.xml");
+    const designFile = path.join(archive, "design-context.xml");
+    const historicalFile = path.join(archive, "custom-old-companion.xml");
+    const cleanSpec = `<NgraceChangeSpec graceVersion="1.0" status="applied"><C-OPAQUE><Summary>Opaque.</Summary><Goals><Goal>Opaque.</Goal></Goals><Constraints><Constraint>Opaque.</Constraint></Constraints><NonGoals><NonGoal>Opaque.</NonGoal></NonGoals><AcceptanceCriteria><Criterion>Opaque.</Criterion></AcceptanceCriteria><AffectedAreas><M-QUERY /></AffectedAreas><VerificationIntent><ExpectedCommand>bun test</ExpectedCommand></VerificationIntent></C-OPAQUE></NgraceChangeSpec>`;
+    const cleanPlan = `<NgraceChangePlan graceVersion="1.0" status="applied"><C-OPAQUE><IntentSummary>Opaque.</IntentSummary><BaselineAssertions><MustExist><Value>M-QUERY</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-QUERY</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-QUERY /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/query.ts</File></ObservedWriteScope><ImplementationPlan></ImplementationPlan></C-OPAQUE></NgraceChangePlan>`;
+    const cleanDesign = `<NgraceChangeDesignContext graceVersion="1.0"><Change>C-OPAQUE</Change><Rationale>Opaque.</Rationale></NgraceChangeDesignContext>`;
+    writeFileSync(specFile, cleanSpec);
+    writeFileSync(planFile, cleanPlan);
+    writeFileSync(designFile, cleanDesign);
+    expect(loadGraceArtifactIndex(root)).toEqual(cleanIndex);
+
+    // Read boundary with try/finally restore.
+    let readPaths: string[] = [];
+    const spy = spyOn(xmlModule, "readGraceXmlArtifact");
+    try {
+      loadGraceArtifactIndex(root);
+      readPaths = spy.mock.calls.map((call) => String(call[0]));
+    } finally {
+      spy.mockRestore();
+    }
+    expect(readPaths.some((file) => file.startsWith(archive + path.sep))).toBe(false);
+    expect(readPaths.some((file) => file.endsWith(path.join("context", "requirements.xml")))).toBe(true);
+
+    // The five approved independent archive cases plus the unknown historical member; each observed,
+    // then exactly restored with identical clean recovery before the next.
+    const cases: Array<{ label: string; file: string; text: string; clean: string | null }> = [
+      { label: "malformed spec", file: specFile, text: "<NgraceChangeSpec><broken>", clean: cleanSpec },
+      { label: "malformed plan", file: planFile, text: "<NgraceChangePlan><broken>", clean: cleanPlan },
+      { label: "differing spec graceVersion", file: specFile, text: cleanSpec.replace('graceVersion="1.0"', 'graceVersion="9.9.9"'), clean: cleanSpec },
+      {
+        label: "missing required plan section",
+        file: planFile,
+        text: `<NgraceChangePlan graceVersion="1.0" status="applied"><C-OPAQUE><IntentSummary>Missing.</IntentSummary></C-OPAQUE></NgraceChangePlan>`,
+        clean: cleanPlan,
+      },
+      { label: "invalid design companion", file: designFile, text: "<NgraceChangeDesignContext><broken>", clean: cleanDesign },
+      { label: "unknown historical member", file: historicalFile, text: "<NgraceOldThing><Legacy /></NgraceOldThing>", clean: null },
+    ];
+    for (const entry of cases) {
+      writeFileSync(entry.file, entry.text);
+      expect(loadGraceArtifactIndex(root), entry.label).toEqual(cleanIndex);
+      const run = runFind();
+      expect(run.exitCode, entry.label).toBe(0);
+      expect(Buffer.from(run.stdout ?? "").toString("utf8"), entry.label).toBe(cleanStdout);
+      if (entry.clean === null) {
+        rmSync(entry.file, { force: true });
+      } else {
+        writeFileSync(entry.file, entry.clean);
+      }
+      expect(loadGraceArtifactIndex(root), `${entry.label} restored`).toEqual(cleanIndex);
+      const restoredFind = runFind(); expect(restoredFind.exitCode, `${entry.label} restored`).toBe(0);
+      expect(Buffer.from(restoredFind.stdout ?? "").toString("utf8"), `${entry.label} restored`).toBe(cleanStdout);
+    }
   });
 
   it("returns one structured JSON error and one concise text error without stack traces", () => {

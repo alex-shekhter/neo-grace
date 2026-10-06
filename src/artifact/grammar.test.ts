@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 
 import {
   closeEvidenceCommandIsDiscriminating,
@@ -22,6 +22,7 @@ import { ARTIFACT_DIR } from "./paths";
 import { resolveNgracePaths } from "./project";
 import { writeChangeBundleFixture, writeLegacyGrace3Project, writeMinimalNgraceProject, writeSegmentedNgraceProject } from "./test-fixtures";
 import { parseGraceXmlArtifact } from "./xml";
+import * as xmlModule from "./xml";
 import { ANCHOR_PATTERNS, nextBundleLineage, parseBundleId } from "./types";
 import {
   buildRunCursorXml,
@@ -478,14 +479,127 @@ describe("neo-grace Artifact Grammar", () => {
     );
     expect(codes(selfReplacement)).toContain("change.superseded-self-replacement");
 
+    // Re-homed from an archived C-OLD to an active C-OLD: the automatic archive path no longer
+    // reads archived replacement content, so the missing-replacement control lives on the active
+    // path. A `superseded` spec in active/ is also an invalid active status, and both are asserted.
     const root = createProject();
     writeMinimalNgraceProject(root);
     writeProjectFile(
       root,
-      `${ARTIFACT_DIR}/changes/archive/C-OLD/spec.xml`,
+      `${ARTIFACT_DIR}/changes/active/C-OLD/spec.xml`,
       validSpec("C-OLD", "<Replacement>C-MISSING</Replacement>").replace('status="approved"', 'status="superseded"'),
     );
-    expect(codes(validateNgraceProject(root))).toContain("change.superseded-replacement-not-found");
+    const resultCodes = codes(validateNgraceProject(root));
+    expect(resultCodes).toContain("change.superseded-replacement-not-found");
+    expect(resultCodes).toContain("change.invalid-active-status");
+  });
+
+  it("current grammar treats archive content as opaque: zero archive reads, identity-only checks", () => {
+    const root = createProject();
+    writeMinimalNgraceProject(root);
+    const archiveDir = path.join(root, ARTIFACT_DIR, "changes", "archive");
+    const bundleDir = path.join(archiveDir, "C-OPAQUE");
+    mkdirSync(bundleDir, { recursive: true });
+
+    const cleanSpec = validSpec("C-OPAQUE");
+    const cleanPlan = validPlan(task("T-001"), "", "C-OPAQUE");
+    const cleanDesign = `<NgraceChangeDesignContext graceVersion="1.0"><Change>C-OPAQUE</Change><Rationale>Opaque history.</Rationale></NgraceChangeDesignContext>`;
+    const specFile = path.join(bundleDir, "spec.xml");
+    const planFile = path.join(bundleDir, "plan.xml");
+    const designFile = path.join(bundleDir, "design-context.xml");
+    const historicalFile = path.join(bundleDir, "custom-old-companion.xml");
+    const cleanIssues = () => validateNgraceProject(root).issues;
+
+    writeFileSync(specFile, cleanSpec);
+    writeFileSync(planFile, cleanPlan);
+    writeFileSync(designFile, cleanDesign);
+    expect(cleanIssues()).toEqual([]);
+
+    // Read boundary: no archived path is ever opened, and current artifacts still are. The spy is
+    // restored in finally so a throwing real API still restores it.
+    let readPaths: string[] = [];
+    const spy = spyOn(xmlModule, "readGraceXmlArtifact");
+    try {
+      validateNgraceProject(root);
+      readPaths = spy.mock.calls.map((call) => String(call[0]));
+    } finally {
+      spy.mockRestore();
+    }
+    expect(readPaths.some((file) => file.startsWith(archiveDir + path.sep))).toBe(false);
+    expect(readPaths.some((file) => file.endsWith(path.join("context", "requirements.xml")))).toBe(true);
+
+    // Isolated archive corruptions: mutate one input, observe ZERO issues, restore exact bytes, and
+    // observe the same clean result before the next case.
+    const cases: Array<{ label: string; file: string; text: string; clean: string }> = [
+      { label: "malformed spec XML", file: specFile, text: "<NgraceChangeSpec><broken>", clean: cleanSpec },
+      { label: "malformed plan XML", file: planFile, text: "<NgraceChangePlan><broken>", clean: cleanPlan },
+      { label: "differing spec graceVersion", file: specFile, text: cleanSpec.replace('graceVersion="1.0"', 'graceVersion="9.9.9"'), clean: cleanSpec },
+      {
+        label: "missing required plan section",
+        file: planFile,
+        text: `<NgraceChangePlan graceVersion="1.0" status="applied"><C-OPAQUE><IntentSummary>Missing.</IntentSummary></C-OPAQUE></NgraceChangePlan>`,
+        clean: cleanPlan,
+      },
+      { label: "invalid design companion", file: designFile, text: "<NgraceChangeDesignContext><broken>", clean: cleanDesign },
+    ];
+    for (const entry of cases) {
+      writeFileSync(entry.file, entry.text);
+      expect(cleanIssues(), entry.label).toEqual([]);
+      writeFileSync(entry.file, entry.clean);
+      expect(cleanIssues(), `${entry.label} restored`).toEqual([]);
+    }
+
+    // An unknown historical member is opaque too: today's artifact registry must not police its name.
+    writeFileSync(historicalFile, "<NgraceOldThing><Legacy /></NgraceOldThing>");
+    expect(cleanIssues(), "unknown historical member").toEqual([]);
+    rmSync(historicalFile, { force: true });
+    expect(cleanIssues(), "unknown historical member restored").toEqual([]);
+
+    // Directory-name identity still refuses, without opening any archived XML.
+    mkdirSync(path.join(archiveDir, "opaque-not-a-change"), { recursive: true });
+    expect(codes(validateNgraceProject(root))).toContain("change.invalid-bundle-id");
+    rmSync(path.join(archiveDir, "opaque-not-a-change"), { recursive: true, force: true });
+    writeFileSync(path.join(archiveDir, "loose.xml"), "<x />");
+    expect(codes(validateNgraceProject(root))).toContain("change.unexpected-file");
+    rmSync(path.join(archiveDir, "loose.xml"), { force: true });
+    rmSync(archiveDir, { recursive: true, force: true });
+    expect(codes(validateNgraceProject(root))).toContain("project.missing-change-directory");
+    mkdirSync(archiveDir, { recursive: true });
+    expect(cleanIssues()).toEqual([]);
+
+    // Active controls: identity-matched C-ACTIVE fixtures, one input at a time, specific refusal,
+    // exact restore, clean recovery before the next.
+    const activeDir = path.join(root, ARTIFACT_DIR, "changes", "active", "C-ACTIVE");
+    const activeSpec = validSpec("C-ACTIVE");
+    const activeSpecFile = path.join(activeDir, "spec.xml");
+    const activePlanFile = path.join(activeDir, "plan.xml");
+    mkdirSync(activeDir, { recursive: true });
+    writeFileSync(activeSpecFile, activeSpec);
+    expect(cleanIssues()).toEqual([]);
+
+    writeFileSync(activeSpecFile, "<NgraceChangeSpec><broken>");
+    expect(codes(validateNgraceProject(root))).toContain("xml.parse");
+    writeFileSync(activeSpecFile, activeSpec);
+    expect(cleanIssues()).toEqual([]);
+
+    writeFileSync(activeSpecFile, activeSpec.replace('graceVersion="1.0"', 'graceVersion="9.9.9"'));
+    expect(codes(validateNgraceProject(root))).toContain("artifact.unsupported-grace-version");
+    writeFileSync(activeSpecFile, activeSpec);
+    expect(cleanIssues()).toEqual([]);
+
+    writeFileSync(activePlanFile, `<NgraceChangePlan graceVersion="1.0" status="approved"><C-ACTIVE><IntentSummary>Missing sections.</IntentSummary></C-ACTIVE></NgraceChangePlan>`);
+    expect(codes(validateNgraceProject(root))).toContain("change.plan-missing-section");
+    rmSync(activePlanFile, { force: true });
+    expect(cleanIssues()).toEqual([]);
+
+    rmSync(activeDir, { recursive: true, force: true });
+    const covSpec = validSpec("C-COV");
+    const covPlan = `<NgraceChangePlan graceVersion="1.0" status="approved"><C-COV><IntentSummary>Different scope.</IntentSummary><BaselineAssertions><MustExist><Value>M-OTHER</Value></MustExist></BaselineAssertions><TargetAssertions><MustVerify><Module>M-OTHER</Module></MustVerify></TargetAssertions><DurableScope><GraphAnchors><M-OTHER /></GraphAnchors></DurableScope><ObservedWriteScope><File>src/other.ts</File></ObservedWriteScope><ImplementationPlan>${task("T-001")}</ImplementationPlan></C-COV></NgraceChangePlan>`;
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-COV/spec.xml`, covSpec);
+    writeProjectFile(root, `${ARTIFACT_DIR}/changes/active/C-COV/plan.xml`, covPlan);
+    expect(codes(validateNgraceProject(root))).toContain("change.scope-does-not-cover-spec");
+    rmSync(path.join(root, ARTIFACT_DIR, "changes", "active", "C-COV"), { recursive: true, force: true });
+    expect(cleanIssues()).toEqual([]);
   });
 
   it("validates NgraceChangeDesignContext inside change bundles", () => {

@@ -2,6 +2,8 @@
 
 This repository is the GRACE marketplace package, not an end-user application.
 
+**Active-development policy:** We are developing the neo-grace CLI and its corresponding skills, so format changes and errors in archived artifacts are expected. CLI determinism serves current project state, active changes and implementation, and the bundle being closed. Older archives are passive historical evidence for LLM interpretation; the CLI must not parse or validate their contents, re-execute their assertions or commands, or use them to determine current operational results. Do not spend resources maintaining historical-schema compatibility or validating the historical corpus. Preserve archived bytes; directory identity and byte-preservation checks may remain. Current-close validation checks the selected record's XML schema and values; current implementation still requires behavioral tests and empirical CLI verification. Remove existing historical dependencies through governed changes; this policy states the target rather than an already-shipped result.
+
 GRACE means Graph-RAG Anchored Code Engineering: a contract-first AI engineering methodology built around semantic markup, XML planning artifacts, knowledge-graph navigation, and verification/log-driven execution.
 
 ## What This Repo Contains
@@ -62,6 +64,11 @@ This repo is mainly about methodology content, skill instructions, and marketpla
 
 ## Important Working Rules
 
+- Use neo-grace skills and the `ngrace` CLI lifecycle for all development, including validation; validation is part of neo-grace, not an optional external check.
+- Use Luna delegates for fact collection and `ngrace` CLI execution, including validation. The implementation authority verifies evidence and makes design and acceptance decisions; larger implementation goes to the external executor, COLD unless the maintainer specifies WARM, with refreshed canonical neo-grace skills and CLI use required.
+- Use small, cohesive bundles. Each spec, plan, and execute stage has its own maximum of 3 substantive executor delivery/authority-review turns; initial and incomplete deliveries count. Status pings, dispatch, and human ratification do not. Temperature, restart, new hash, and mere ID rename never reset the counter. If a stage cannot finish within 3 turns, take no fourth corrective turn: obtain explicit maintainer supersede approval, have the authority and Luna use the sanctioned CLI, split the work into genuinely smaller bundles, and repeat spec → plan → execute with fresh ratification and separate counters; preserve predecessor costs.
+- Superseding approved governance belongs to the authority and Luna, only after explicit maintainer supersede approval; the sanctioned CLI supersede precedes successor spec authoring and fresh stage ratification.
+- After each delivery or audit, continue to the next concrete action or executor brief; stop at required maintainer ratification only after making the next artifact reviewable. Repair confirmed defects in current CLI behavior ASAP through governed stages; do not pursue retrospective archive compatibility.
 - Treat `skills/ngrace/*` as the main source of truth unless a task is explicitly about packaged output.
 - Keep `plugins/ngrace/skills/ngrace/*` synchronized with the canonical `skills/ngrace/*` copies when published skills change.
 - Keep versions synchronized across `README.md`, `openpackage.yml`, `.claude-plugin/marketplace.json`, and `plugins/ngrace/.claude-plugin/plugin.json`.
@@ -222,8 +229,8 @@ appears twice can be wrong twice, and fixing the copy you happened to look at le
 A spec that forces `src/lint/catalog.ts` while omitting `M-LINT-CATALOG` cannot be satisfied by any
 plan: without the anchor the plan raises `change.graph-anchors-miss-write-scope` as an **error**;
 with it, `change.plan-scope-exceeds-spec` as a **warning** — and a `CloseEvidence` criterion running
-`--fail-on warnings` fails on either. Coverage validation runs on archives too and exempts only
-`superseded`, never `applied`, so the contradiction survives the close. This is [F136](docs/plans/active/RM-GOVERNED-PATH/decisions.md);
+`--fail-on warnings` fails on either. At the time of F136, coverage validation also ran on archives and exempted only
+`superseded`, never `applied`, so the contradiction survived the close. This historical example does not authorize ongoing archive validation. This is [F136](docs/plans/active/RM-GOVERNED-PATH/decisions.md);
 the authority had already written the `LINKS:` check into the plan brief and never ran it against the
 spec it had approved.
 

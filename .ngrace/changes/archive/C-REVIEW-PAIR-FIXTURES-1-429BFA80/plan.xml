@@ -1,0 +1,139 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-REVIEW-PAIR-FIXTURES-1-429BFA80>
+    <IntentSummary>
+      Replace the four dedicated attempt-pair regression inputs at
+      `src/review/core.test.ts:2175-2268` — the two named-archive check, the frozen
+      historical-close check, the complete-current-archive retired-code check, and the
+      publisher-bundle T-005 real-CLI warning — with directly validated synthetic
+      current fixtures built in the same file. Preserve every original input obligation
+      and counterweight: present selected spec/plan/ledger paths, direct shipped
+      validation with zero issues, a schema-valid closed ledger with a recorded
+      fail/pass pair, changed-digest silence for both the live and retired codes over a
+      nonzero audited pair count, and the equal-digest real-CLI warning at its declared
+      task/event anchor, archive path, `warning` severity, and 16-hex finding ID, with
+      the adjacent warning/error exit controls unchanged. Remove the now-unused frozen
+      ID lists; retain the retired-code constant's other uses. One file, one task;
+      `M-REVIEW` / `V-M-REVIEW`.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>src/review/core.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-REVIEW</Value>
+      </MustExist>
+      <MustVerify>
+        <Module>M-REVIEW</Module>
+      </MustVerify>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>src/review/core.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-REVIEW</Value>
+      </MustExist>
+      <MustVerify>
+        <Module>M-REVIEW</Module>
+      </MustVerify>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>AUTHORING_ARCHIVE_C_IDS</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.test.ts</File>
+        <Text>HISTORICAL_CLOSE_C_IDS</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Isolate the four attempt-pair regression inputs to synthetic current fixtures</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            All four original input obligations are replaced inside
+            `src/review/core.test.ts` by coverage that drives only explicitly
+            constructed temporary synthetic fixtures. The replacement coverage contains
+            no publisher bundle name literal (`C-TOKEN-INTEGRITY`, `C-CURSOR-INTEGRITY`,
+            `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`) and reads no repository
+            `.ngrace/changes/archive/` population. The number and organization of
+            replacement `it` blocks are free; the four behavioral obligations and their
+            counterweights are binding. The unrelated process-audit tests this slice
+            leaves in place are unchanged.
+          </Criterion>
+          <Criterion>
+            Each selected synthetic bundle supplies a spec, a plan, and a run-ledger at
+            asserted-present paths before any count. The spec and plan are parsed and
+            passed to `validateChangeArtifact(artifact, "archive", root)` and the ledger
+            to `validateRunLedgerArtifact`; each yields zero issues. Project-wide
+            validation is not used as a substitute for this direct selected-artifact
+            validation. The ledger is schema-valid and closed: it carries a recorded
+            fail event and a recorded pass event for the declared task, each with
+            explicit non-artifact source `WriteEvidence` content digests. The existing
+            `writeLedgerEvents` helper (`src/review/core.test.ts:2546-2553`) is not
+            reused unchanged because its allocation covers events 1-99 and carries no
+            terminal event; new or extended local construction within this sole file
+            produces the schema-valid allocation coverage and closing events.
+          </Criterion>
+          <Criterion>
+            The changed-digest silent case uses a synthetic archived bundle whose
+            non-artifact source content digests differ across the recorded fail/pass
+            pair. Reviewing it yields zero findings with code
+            `review.attempt-pair-identical-tree` and zero findings with code
+            `review.attempt-pair-unsubstantiated`, and the attempt-pair audit reports it
+            ran over at least one fail/pass pair (nonzero pair count), so the silence is
+            measured over present fixtures and never over an empty or vanished
+            population.
+          </Criterion>
+          <Criterion>
+            The positive real-CLI case uses a synthetic archived bundle whose recorded
+            fail and pass events carry equal non-artifact source content digests.
+            Driving the shipped CLI (`bun run ./src/grace.ts review --path &lt;tempRoot&gt;
+            --change &lt;fixture-id&gt; --format json`) exits 0 and the parsed JSON
+            contains exactly one finding with code `review.attempt-pair-identical-tree`,
+            `severity` equal to `warning`, `anchorOrHunkKey` equal to the declared
+            `attempt-pair:&lt;task&gt;:&lt;failEventId&gt;-&gt;&lt;passEventId&gt;`, a
+            `file` under the synthetic bundle's
+            `.ngrace/changes/archive/&lt;fixture-id&gt;/` path (`run` or
+            `run-ledger.xml`), and a `findingId` matching `^[a-f0-9]{16}$`; the report
+            declares the pair was audited (nonzero pair count). The adjacent
+            warning-only synthetic project exits 0 naming the live warning, and the
+            synthetic project carrying a current error exits 1.
+          </Criterion>
+          <Criterion>
+            The frozen ID lists `AUTHORING_ARCHIVE_C_IDS` and `HISTORICAL_CLOSE_C_IDS`
+            are removed from `src/review/core.test.ts` once their remaining uses permit
+            it (their only declaration and uses belong to the replaced historical-close
+            input). The retired-code constant `RETIRED_ATTEMPT_PAIR_CODE` is retained for
+            its catalog presence/absence and prose-agreement uses. No runtime source,
+            mock, audit-disabling override, publisher-specific configuration, or
+            consumer exemption is added, and no path outside
+            `src/review/core.test.ts` is written.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/review/core.test.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SYNTHETIC-FIXTURE-INPUTS />
+          <AC-SYNTHETIC-SILENT-CHANGED-DIGEST />
+          <AC-POSITIVE-WARNING-REAL-CLI />
+        </Satisfies>
+      </T-001>
+    </ImplementationPlan>
+  </C-REVIEW-PAIR-FIXTURES-1-429BFA80>
+</NgraceChangePlan>

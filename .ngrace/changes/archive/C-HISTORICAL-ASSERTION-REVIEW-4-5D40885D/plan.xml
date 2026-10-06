@@ -1,0 +1,196 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D>
+    <IntentSummary>Execute the approved C4 review+fixture slice in three serial tasks: T-001 lands the historical review notices, archived alias matrix and active counterweight, preserved audit identities, T-005/CLI exit controls, and the exact catalog/localization relation across four M-REVIEW/M-LOCALIZE files; T-002 lands the real completed-child observation in the cursor and coordinator fixtures across two M-CURSOR/M-TEST-SUPPORT files; T-003 runs the self-contained controlled-delay discrimination instrument (original red, repaired green, byte-exact restoration and replay, frozen-runtime digest verification at source and in all four probe spaces) and genuinely Satisfies AC-REPAIR-DISCRIMINATION. The two fixture runtimes stay byte-frozen; no future B/C/E/F slice is touched.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-LOCALIZE</Value></MustExist>
+      <MustExist><Value>M-CURSOR</Value></MustExist>
+      <MustExist><Value>M-TEST-SUPPORT</Value></MustExist>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.test.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/coordinator.test.ts</Value></MustExist>
+      <MustExist><Value>src/grace-cursor.ts</Value></MustExist>
+      <MustExist><Value>src/test-support/coordinator.ts</Value></MustExist>
+      <MustExist><Value>.ngrace/scratch/staged-findings.md</Value></MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustContain><File>src/review/core.ts</File><Text>review.historical-path-absent</Text></MustContain>
+      <MustMatchPattern><File>src/grace-cursor.test.ts</File><Pattern>await child\.exited;\s+const diagnostic = await reclaimFixtureDiagnostic\(child, path\.join\(root, "never"\), markerPaths\);</Pattern></MustMatchPattern>
+      <MustMatchPattern><File>src/test-support/coordinator.test.ts</File><Pattern>const quickProc = Bun\.spawn\(\{ cmd: quickCommand, stdout: "pipe", stderr: "pipe" \}\);\s+await quickProc\.exited;</Pattern></MustMatchPattern>
+      <MustMatchPattern><File>src/test-support/coordinator.test.ts</File><Pattern>if \(Array\.isArray\(cmd\) &amp;&amp; cmd\.length === 3 &amp;&amp; cmd\[0\] === quickCommand\[0\] &amp;&amp; cmd\[2\] === quickCommand\[2\]\) return quickProc;</Pattern></MustMatchPattern>
+      <MustPassCommand><Command>bun run validate:ci</Command></MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-CURSOR />
+        <M-LOCALIZE />
+        <M-REVIEW />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-CURSOR />
+        <V-M-LOCALIZE />
+        <V-M-REVIEW />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/verification/localize.test.ts</File>
+      <File>src/grace-cursor.test.ts</File>
+      <File>src/test-support/coordinator.test.ts</File>
+      <File>.ngrace/changes/active/C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D/run.xml</File>
+      <File>.ngrace/changes/active/C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D/run-ledger.xml</File>
+      <Glob>.ngrace/changes/active/C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D/run/**</Glob>
+      <Glob>.ngrace/changes/archive/C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D/**</Glob>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Historical review notices, archived alias matrix, preserved identities, and catalog relation</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In src/review/core.ts, an archived plan's missing MustExist yields review.historical-path-absent at severity info (never review.confidently-wrong), retaining same-ID archive alias silence for both codes and reporting missing-both and foreign-ID cases as notices naming the target with archive-time/unevaluated text; active plans keep review.confidently-wrong / must-exist-missing and the active counterweight stays an error.</Criterion>
+          <Criterion>In src/review/catalog.ts, review.historical-path-absent is registered severity info / family process-audit; patternReviewCodes() is exactly the five baseline family-A codes; the admissible localization set stays exactly the three D8 codes; and excludedReviewCodesForLocalization() is exactly the set difference over the whole populations.</Criterion>
+          <Criterion>In src/review/core.test.ts and src/verification/localize.test.ts, the F16 describe group exercises the whole archived alias/CLI matrix, the preservation selector compares exact finding IDs (including the approved-fingerprint-mismatch control) against independently captured baseline receipts, and the catalog selectors assert exact membership and the whole-population relation.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "current obligations stay strict"</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "counterweight: active plan MustExist of a genuinely missing path still fires"</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "C-REPORT-HONESTY T-003 MustExist archive identity \(F16\)"</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "historical integrity audits preserved"</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "T-005 warning remains observable"</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "warning-only review exits zero, errors exit one"</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "historical-path notice catalog contract"</Command>
+          <Command>bun test --timeout=0 src/verification/localize.test.ts -t "exactly three admissible codes, named by D8"</Command>
+          <Command>bun test --timeout=0 src/verification/localize.test.ts -t "every REVIEW_CATALOG code is either admissible or excluded"</Command>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts -t "errors per live finding whose PaidBy names an archived directory"</Command>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts -t "errors per live registry row whose name equals an archived directory"</Command>
+        </Verification>
+      </T-001>
+      <T-002>
+        <Title>Real completed-child observation in cursor and coordinator fixtures</Title>
+        <DependsOn>T-001</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>In src/grace-cursor.test.ts the already-exited reclaim diagnostic awaits the real child's exit (await child.exited;) immediately before reclaimFixtureDiagnostic(child, path.join(root, "never"), markerPaths), preserving the exited-state, numeric exit 7, null signal, b-error/b-replaced markers, stderr-tail and exit-code-7 message assertions and the running-child kill/bounded-reap path.</Criterion>
+          <Criterion>In src/test-support/coordinator.test.ts the mixed-outcome control starts the real quick child with Bun.spawn({ cmd: quickCommand, stdout: "pipe", stderr: "pipe" }) and awaits await quickProc.exited; before the run, and the spawn-seam conditional returns that exact quickProc for the quick command while preserving timeoutMs:100, pollMs:800, the sub-700ms bound, SIGKILL/absent-output on the surviving worker, and exit 7 on the quick worker.</Criterion>
+          <Criterion>Both runtime counterparts src/grace-cursor.ts and src/test-support/coordinator.ts stay byte-identical to their pinned digests.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "AC-CANDIDATE-RECLAIM-EXCLUSIVE timeout diagnostic: already-exited child reports its numeric code"</Command>
+          <Command>bun test --timeout=0 src/test-support/coordinator.test.ts -t "a finite poll larger than the deadline cannot extend it"</Command>
+        </Verification>
+      </T-002>
+      <T-003>
+        <Title>Controlled-delay discrimination instrument on independent probe copies</Title>
+        <DependsOn>T-001 T-002</DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>The embedded self-contained instrument proves, on independent physical probe spaces with private valid Git, sealed read-only dependencies, curated inputs and a bounded delay injected only into the selected synthetic child, that the original cursor and coordinator methods are red with their specific timing assertions and the repaired methods are green with exactly one matched test and no failure; restores all four fixture files byte-exactly (SHA-compared); replays every restored fixture under the same admissible classification rules (repaired passes; original passes or shows the named known race, with no volatile exit or outcome equality requirement); and verifies both frozen runtime digests at source and in each of the four spaces before the probes and again after all phases, refusing zero matches, unrelated failures, signals/timeouts, parse/import crashes, missing injection, skipped/corrupt restoration, and source or copied-runtime drift before its success marker.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command><![CDATA[bun -e 'const fs=require("node:fs"),os=require("node:os"),path=require("node:path"),cp=require("node:child_process"),crypto=require("node:crypto");
+const ROOT=process.cwd(),BASE="2a2639b936176a26b16f4338ef3c18a90158ee40";
+const SETUP=fs.mkdtempSync(path.join(os.tmpdir(),"c4-repair-setup-"));
+const PROD=fs.realpathSync(path.join(ROOT,"node_modules"));
+const cursorRel="src/grace-cursor.test.ts",coordRel="src/test-support/coordinator.test.ts";
+const CURSOR_SHA="5584d926ef4f96b2727dca1066f263f42e54e30511babcce5eb60bac18daa2b9",COORD_SHA="7ed2073382bd190a83c0364b8b1b78c7e7ff554db48c7d71d7151bcefe5d267a";
+const cursorSel="AC-CANDIDATE-RECLAIM-EXCLUSIVE timeout diagnostic: already-exited child reports its numeric code";
+const coordSel="a finite poll larger than the deadline cannot extend it";
+function run(a,c){const r=cp.spawnSync(a[0],a.slice(1),{cwd:c,encoding:"utf8",timeout:300000});return{status:r.status,stdout:r.stdout||"",stderr:r.stderr||""};}
+function sh(cmd,c){const r=run(["bash","-lc",cmd],c);if(r.status!==0){throw new Error("shell failed: "+cmd+" :: "+r.stderr);}return r;}
+function sha(t){return crypto.createHash("sha256").update(t).digest("hex");}
+function read(p){return fs.readFileSync(p,"utf8");}
+function one(s){const p=s.match(/ ([0-9]+) pass/),f=s.match(/ ([0-9]+) fail/);return{pass:p?Number(p[1]):0,fail:f?Number(f[1]):0};}
+function ok(c,m){if(!c){throw new Error("INSTRUMENT FAILED: "+m);}}
+function classify(kind,r){const m=one(r.stderr);const matched=m.pass+m.fail;if(matched!==1){throw new Error("INSTRUMENT FAILED: "+kind+" matched "+matched+" tests, expected exactly one");}if(kind.indexOf("repaired")>=0){ok(r.status===0&&m.pass===1&&m.fail===0,kind+" repaired must be numeric 0 with 1 pass / 0 fail");return{kind:kind,outcome:"pass",pass:m.pass,fail:m.fail};}const cursorTiming=r.stderr.indexOf("Expected: \"exited\"")>=0&&r.stderr.indexOf("Received: \"running\"")>=0;const coordTiming=r.stderr.indexOf("AC-COORDINATOR-TIMEOUT-KILLS")>=0&&r.stderr.indexOf("Expected: false")>=0&&r.stderr.indexOf("Received: true")>=0&&/[0-9]+ \|[^\n]*w\.id === "quick"\)\?\.timedOut\)\.toBe\(false\);\n[ \t]*\^\nerror:/.test(r.stderr);if(r.status===0&&m.pass===1&&m.fail===0){return{kind:kind,outcome:"pass",pass:m.pass,fail:m.fail};}const specific=kind.indexOf("cursor")>=0?cursorTiming:coordTiming;if(r.status===1&&m.pass===0&&m.fail===1&&specific){return{kind:kind,outcome:"timing-failure",pass:m.pass,fail:m.fail};}throw new Error("INSTRUMENT FAILED: "+kind+" original is neither a pass nor the verified timing failure (status "+r.status+")");}
+function runtimeHashes(d){return{cursor:sha(read(path.join(d,"src","grace-cursor.ts"))),coord:sha(read(path.join(d,"src","test-support","coordinator.ts")))};}
+function sealLayer(layer){layer=fs.realpathSync(layer);let removed=0,kept=0;const stack=[layer];while(stack.length){const d=stack.pop();for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isSymbolicLink()){let abs;try{abs=fs.realpathSync(p);}catch{fs.unlinkSync(p);removed++;continue;}if(abs===layer||abs.indexOf(layer+path.sep)===0){kept++;}else{fs.unlinkSync(p);removed++;}}else if(e.isDirectory()){stack.push(p);}}}return{removed:removed,kept:kept};}
+function bodyRegion(text,sel,fn){const k=text.indexOf(sel);if(k<0){throw new Error("selector not found: "+sel);}const i=text.lastIndexOf("it(\"",k);if(i<0){throw new Error("enclosing it( not found: "+sel);}const j=text.indexOf("\n  it(",k);const end=j<0?text.length:j;return text.slice(0,i)+fn(text.slice(i,end))+text.slice(end);}
+function injectCursor(region){const o=region.split("process.exit(7);").join("setTimeout(()=>process.exit(7),400);");if(o===region){throw new Error("cursor injection missed");}return o;}
+function injectCoord(region){const o=region.split("\"process.exit(7)\"").join("\"setTimeout(()=>process.exit(7),400)\"");if(o===region){throw new Error("coordinator injection missed");}return o;}
+const spaces=["cursor-original","cursor-repaired","coordinator-original","coordinator-repaired"];
+let summary;
+try{
+  const deps=path.join(SETUP,"deps","node_modules");
+  fs.mkdirSync(path.dirname(deps),{recursive:true});
+  sh("rsync -a \""+PROD+"/\" \""+deps+"/\"",ROOT);
+  const sealed=sealLayer(deps);
+  const reseal=sealLayer(deps);
+  ok(reseal.removed===0,"dependency layer must retain no escaping link");
+  sh("chmod -R a-w \""+deps+"\"",ROOT);
+  const orig={cursor:sh("git show "+BASE+":"+cursorRel,ROOT).stdout,coord:sh("git show "+BASE+":"+coordRel,ROOT).stdout};
+  const repair={cursor:read(path.join(ROOT,cursorRel)),coord:read(path.join(ROOT,coordRel))};
+  for(const s of spaces){
+    const d=path.join(SETUP,s);fs.mkdirSync(d,{recursive:true});
+    sh("rsync -a \""+ROOT+"/src/\" \""+d+"/src/\"",ROOT);
+    sh("rsync -a \""+ROOT+"/.git/\" \""+d+"/.git/\"",ROOT);
+    fs.copyFileSync(path.join(ROOT,"package.json"),path.join(d,"package.json"));
+    fs.copyFileSync(path.join(ROOT,"tsconfig.json"),path.join(d,"tsconfig.json"));
+    fs.copyFileSync(path.join(ROOT,"bun.lock"),path.join(d,"bun.lock"));
+    fs.mkdirSync(path.join(d,".ngrace","scratch"),{recursive:true});
+    fs.copyFileSync(path.join(ROOT,".ngrace","scratch","staged-findings.md"),path.join(d,".ngrace","scratch","staged-findings.md"));
+    fs.symlinkSync(deps,path.join(d,"node_modules"),"dir");
+  }
+  ok(runtimeHashes(ROOT).cursor===CURSOR_SHA&&runtimeHashes(ROOT).coord===COORD_SHA,"source runtime frozen digests");
+  for(const s of spaces){const h=runtimeHashes(path.join(SETUP,s));ok(h.cursor===CURSOR_SHA&&h.coord===COORD_SHA,"runtime frozen digest in "+s);}
+  const space=(s)=>path.join(SETUP,s);
+  const writeCursor=(s,t)=>fs.writeFileSync(path.join(space(s),cursorRel),t);
+  const writeCoord=(s,t)=>fs.writeFileSync(path.join(space(s),coordRel),t);
+  const test=(s,rel,sel)=>run(["bun","test","--timeout=0",rel,"-t",sel],space(s));
+  writeCursor("cursor-original",orig.cursor); writeCursor("cursor-repaired",repair.cursor);
+  writeCoord("coordinator-original",orig.coord); writeCoord("coordinator-repaired",repair.coord);
+  const norm={
+    "cursor-original":test("cursor-original",cursorRel,cursorSel),
+    "cursor-repaired":test("cursor-repaired",cursorRel,cursorSel),
+    "coordinator-original":test("coordinator-original",coordRel,coordSel),
+    "coordinator-repaired":test("coordinator-repaired",coordRel,coordSel)
+  };
+  classify("cursor-original",norm["cursor-original"]);classify("cursor-repaired",norm["cursor-repaired"]);classify("coordinator-original",norm["coordinator-original"]);classify("coordinator-repaired",norm["coordinator-repaired"]);
+  writeCursor("cursor-original",bodyRegion(orig.cursor,cursorSel,injectCursor));
+  writeCursor("cursor-repaired",bodyRegion(repair.cursor,cursorSel,injectCursor));
+  writeCoord("coordinator-original",bodyRegion(orig.coord,coordSel,injectCoord));
+  writeCoord("coordinator-repaired",bodyRegion(repair.coord,coordSel,injectCoord));
+  const co=test("cursor-original",cursorRel,cursorSel),cr=test("cursor-repaired",cursorRel,cursorSel);
+  const qo=test("coordinator-original",coordRel,coordSel),qr=test("coordinator-repaired",coordRel,coordSel);
+  const a=one(co.stderr),b=one(cr.stderr),c=one(qo.stderr),d=one(qr.stderr);
+  ok(co.status===1&&a.pass===0&&a.fail===1,"cursor original: numeric test-failure exit with one failing matched test");
+  ok(co.stderr.includes(cursorSel)&&co.stderr.includes("Expected: \"exited\"")&&co.stderr.includes("Received: \"running\""),"cursor original: specific exited/running assertion");
+  ok(cr.status===0&&b.pass===1&&b.fail===0,"cursor repaired: green with one matched test");
+  ok(qo.status===1&&c.pass===0&&c.fail===1,"coordinator original: numeric test-failure exit with one failing matched test");
+  ok(qo.stderr.includes("AC-COORDINATOR-TIMEOUT-KILLS")&&qo.stderr.includes("Expected: false")&&qo.stderr.includes("Received: true")&&/[0-9]+ \|[^\n]*w\.id === "quick"\)\?\.timedOut\)\.toBe\(false\);\n[ \t]*\^\nerror:/.test(qo.stderr),"coordinator original: specific quick-worker timedOut assertion");
+  ok(qr.status===0&&d.pass===1&&d.fail===0,"coordinator repaired: green with one matched test");
+  writeCursor("cursor-original",orig.cursor); writeCursor("cursor-repaired",repair.cursor);
+  writeCoord("coordinator-original",orig.coord); writeCoord("coordinator-repaired",repair.coord);
+  const restored={cursor_original:sha(read(path.join(space("cursor-original"),cursorRel)))===sha(orig.cursor),cursor_repaired:sha(read(path.join(space("cursor-repaired"),cursorRel)))===sha(repair.cursor),coordinator_original:sha(read(path.join(space("coordinator-original"),coordRel)))===sha(orig.coord),coordinator_repaired:sha(read(path.join(space("coordinator-repaired"),coordRel)))===sha(repair.coord)};
+  ok(restored.cursor_original&&restored.cursor_repaired&&restored.coordinator_original&&restored.coordinator_repaired,"restoration digest guard");
+  for(const s of spaces){const h=runtimeHashes(path.join(SETUP,s));ok(h.cursor===CURSOR_SHA&&h.coord===COORD_SHA,"runtime frozen digest after run in "+s);}
+  const replay={
+    "cursor-repaired":test("cursor-repaired",cursorRel,cursorSel),
+    "coordinator-repaired":test("coordinator-repaired",coordRel,coordSel),
+    "cursor-original":test("cursor-original",cursorRel,cursorSel),
+    "coordinator-original":test("coordinator-original",coordRel,coordSel)
+  };
+  const replayClass={};
+  for(const k of Object.keys(replay)){replayClass[k]=classify(k,replay[k]);}
+  summary={cursor_original_delayed:co.status,cursor_repaired_delayed:cr.status,coordinator_original_delayed:qo.status,coordinator_repaired_delayed:qr.status,cursor_original_normal:norm["cursor-original"].status,cursor_repaired_normal:norm["cursor-repaired"].status,coordinator_original_normal:norm["coordinator-original"].status,coordinator_repaired_normal:norm["coordinator-repaired"].status,cursor_original_replay:replay["cursor-original"].status,coordinator_original_replay:replay["coordinator-original"].status,restored:restored,normalClass:{"cursor-original":classify("cursor-original",norm["cursor-original"]).outcome,"cursor-repaired":classify("cursor-repaired",norm["cursor-repaired"]).outcome,"coordinator-original":classify("coordinator-original",norm["coordinator-original"]).outcome,"coordinator-repaired":classify("coordinator-repaired",norm["coordinator-repaired"]).outcome},replayClass:{"cursor-original":replayClass["cursor-original"].outcome,"cursor-repaired":replayClass["cursor-repaired"].outcome,"coordinator-original":replayClass["coordinator-original"].outcome,"coordinator-repaired":replayClass["coordinator-repaired"].outcome},sealed:sealed};
+  for(const s of spaces){const h=runtimeHashes(path.join(SETUP,s));ok(h.cursor===CURSOR_SHA&&h.coord===COORD_SHA,"runtime frozen digest after all probe phases in "+s);}
+  const sourceAfter=runtimeHashes(ROOT);ok(sourceAfter.cursor===CURSOR_SHA&&sourceAfter.coord===COORD_SHA,"source runtime frozen digest after all probe phases");
+  console.log("C4-REPAIR-DISCRIMINATION OK "+JSON.stringify(summary));
+}finally{
+  cp.spawnSync("chmod",["-R","u+w",SETUP]);
+  fs.rmSync(SETUP,{recursive:true,force:true});
+}
+'
+]]></Command>
+        </Verification>
+        <Satisfies>
+          <AC-REPAIR-DISCRIMINATION />
+        </Satisfies>
+      </T-003>
+    </ImplementationPlan>
+  </C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D>
+</NgraceChangePlan>

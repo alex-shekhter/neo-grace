@@ -1,0 +1,389 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-REVIEW-PAIR-FIXTURES-1-429BFA80>
+    <Summary>
+      Isolate the inputs of the four dedicated attempt-pair regression tests currently
+      at `src/review/core.test.ts:2175-2268` from the publisher-history archive corpus.
+      Replace their reads of named archived bundles, the frozen historical-close
+      membership list, and the complete current archive with explicitly constructed
+      synthetic current fixtures. Directly parse and validate each selected synthetic
+      spec, plan, and run-ledger. Keep a meaningful silent case with a real recorded
+      fail/pass pair and changed source digests; keep the positive real-CLI warning on
+      equal non-artifact source digests, with its declared anchor, archive fixture path,
+      warning severity, and 16-hex finding ID; keep the adjacent warning/error exit
+      controls. The implementation write set is exactly `src/review/core.test.ts`,
+      owned by `M-REVIEW` and verified by `V-M-REVIEW`.
+    </Summary>
+    <Problem>
+      Four dedicated attempt-pair regression tests read the repository's published
+      archive as their input: they name concrete publisher bundles, enumerate the
+      `.ngrace/changes/archive/C-*` population, embed a frozen authoring-time
+      membership list, and drive the real CLI against one publisher bundle's recorded
+      ledger. The measured inputs:
+
+      - `src/review/core.test.ts:2175` — `live archive pairs that raised under the old
+        rule are silent under both codes` runs `runReview` over the repository root for
+        the named bundles `C-TOKEN-INTEGRITY` and `C-CURSOR-INTEGRITY`.
+      - `src/review/core.test.ts:2198` — `historical close corpus: zero live and retired
+        findings on the frozen 27` embeds `HISTORICAL_CLOSE_C_IDS` (built from
+        `AUTHORING_ARCHIVE_C_IDS`, `src/review/core.test.ts:1981-2010`) and asserts
+        those 27 directory names are present in the live archive before asserting zero
+        live and retired findings over them.
+      - `src/review/core.test.ts:2228` — `complete archive retired code: zero retired
+        findings over every current C-*` enumerates every real
+        `.ngrace/changes/archive/C-*` directory and asserts zero retired-code findings.
+      - `src/review/core.test.ts:2250` — `T-005 warning remains observable through the
+        real CLI` spawns the CLI against the publisher archived bundle
+        `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6` and reads its recorded ledger.
+
+      **Why this is a defect slice, not a nicety.** Those inputs make the regressions
+      depend on publisher bundle names, on the historical population and its
+      denominator, and on archived artifact formats. A bundle renamed, removed, or
+      reshaped by unrelated publisher work silently changes or removes the input the
+      test stands on; a denominator that only shrinks cannot answer the
+      "did the audit actually look?" question the membership assertion existed to
+      answer. The tests are current-behavior regressions and should not be anchored to
+      the archive as a corpus.
+
+      **Obligations being replaced (passive rationale, not current validation).**
+      `C-ARCHIVE-CORPUS-BASELINE-2-D5F2E1C3/spec.xml` carries
+      `AC-HISTORICAL-MEMBERSHIP`, `AC-HISTORICAL-ZERO`,
+      `AC-CURRENT-ARCHIVE-RETIRED-ZERO`, `AC-DETECTOR-PRESERVED`, and
+      `AC-T005-OBSERVABLE`. `C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B/spec.xml`
+      carries `AC-T005-GUARD`, `AC-PRESERVED-AUDITS`, and the selected-close
+      obligations around them. `C-SUBSTANTIATION-HONESTY/spec.xml` carries
+      `AC-ARCHIVE-CORPUS-ZERO` and its `AC-T005-OBSERVABLE`. Those obligations are
+      historical evidence for what the regressions were protecting; this bundle does
+      not validate their archives, does not re-execute their commands, and does not
+      treat their bytes as current input.
+
+      **Counterweights preserved.** The denominator-shrink counterweight is answered
+      by explicit fixture presence and nonzero audited pair counts over the synthetic
+      inputs: the audit must report it ran over at least one fail/pass pair, so a pass
+      cannot come from an empty population. The detector-suppression counterweight is
+      answered by the positive real-CLI warning: equal non-artifact source digests on
+      a synthetic archived bundle must still raise the live finding through the CLI,
+      so a silent detector cannot pass as a clean corpus.
+
+      **Scope discipline.** This is one dependency slice of publisher-input isolation,
+      not a claim that the whole program is finished. Runtime implementation, other
+      process-audit tests, status/context/calibration inputs, global consumer archive
+      policy, XML-comment exceptions, and portable teaching remain outside this slice.
+      `README.md` and `examples/` do not change because this slice changes internal
+      test inputs only.
+    </Problem>
+    <Goals>
+      <Goal>
+        Replace every publisher-history input of the four tests with explicitly
+        constructed synthetic current fixtures. The replacement tests contain no
+        publisher bundle name literal (`C-TOKEN-INTEGRITY`, `C-CURSOR-INTEGRITY`,
+        `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`), no read of the repository's real
+        `.ngrace/changes/archive/` population, and no dependence on a frozen
+        authoring-time membership list.
+      </Goal>
+      <Goal>
+        Build each synthetic archived bundle from local fixture helpers: a valid
+        `spec.xml`, a valid `plan.xml`, and a `run-ledger.xml` carrying a recorded
+        fail event and pass event with explicit `WriteEvidence` content digests.
+        Directly parse and validate each selected synthetic spec, plan, and run-ledger
+        with the shipped validators (`validateChangeArtifact(..., "archive", root)` for
+        the spec and the plan; `validateRunLedgerArtifact` for the ledger) and require
+        zero issues before asserting behavior on it. Project-wide validation is
+        insufficient here because it skips archived members and never reports on the
+        selected three artifacts.
+      </Goal>
+      <Goal>
+        Keep a meaningful silent case: a synthetic archived bundle with a real recorded
+        fail/pass pair whose source digests differ across the pair, yielding zero live
+        `review.attempt-pair-identical-tree` findings and zero retired
+        `review.attempt-pair-unsubstantiated` findings. This replaces the two
+        named-archive check, the frozen historical-close check, and the
+        complete-current-archive retired-code check, and it asserts the audit audited
+        at least one pair (nonzero pair count) so the silence is measured, not empty.
+      </Goal>
+      <Goal>
+        Preserve the positive real-CLI warning formerly demonstrated by the T-005 test:
+        drive the shipped CLI (`bun run ./src/grace.ts review --path &lt;tempRoot&gt;
+        --change &lt;fixture-id&gt; --format json`) against a synthetic archived bundle
+        whose fail and pass events carry equal non-artifact source digests. The JSON
+        report must contain exactly one live `review.attempt-pair-identical-tree`
+        finding, at `warning` severity, anchored at the declared
+        `attempt-pair:&lt;task&gt;:&lt;failEventId&gt;-&gt;&lt;passEventId&gt;`, with a
+        `file` under the synthetic bundle's archive path, and a 16-hex `findingId`;
+        the report must declare the pair was audited (nonzero pair count).
+      </Goal>
+      <Goal>
+        Preserve the adjacent warning/error exit controls: a controlled real-CLI
+        warning-only project exits 0 and names the live warning; a controlled real-CLI
+        project carrying a current error exits 1. Those tests already use synthetic
+        temporary fixtures and remain in place.
+      </Goal>
+      <Goal>
+        Remove the now-unused frozen ID lists (`AUTHORING_ARCHIVE_C_IDS`,
+        `HISTORICAL_CLOSE_C_IDS`) if their remaining uses permit removal. The retired
+        code constant `RETIRED_ATTEMPT_PAIR_CODE` still has catalog presence/absence
+        uses and stays.
+      </Goal>
+      <Goal>
+        Keep the write bounded: the only non-bundle path changed from the frozen base
+        is `src/review/core.test.ts`, including any local fixture helpers the
+        replacement tests need. Do not widen the file set and do not add a consumer
+        exemption, publisher-specific configuration, mock, or audit-disabling override.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier **T1 (module change)** — one package, one module, one test file.
+        Single-package AffectedAreas (`M-REVIEW`); verification `V-M-REVIEW`.
+      </Constraint>
+      <Constraint>
+        Owner is `M-REVIEW` (`src/review/core.ts`; its `LINKS: M-REVIEW` header and
+        `.ngrace/graph/main.xml` name the module). Verification is `V-M-REVIEW`
+        (`.ngrace/verification/main.xml`, command `bun test src/review`). The test file
+        `src/review/core.test.ts` has no `LINKS:` header; ownership is confirmed through
+        the counterpart header and the two index documents. `M-REVIEW` is named
+        consistently here and in `AffectedAreas`; `V-M-REVIEW` is named here and in
+        `VerificationIntent`.
+      </Constraint>
+      <Constraint>
+        The implementation write set is exactly `src/review/core.test.ts`. The bundle
+        files `spec.xml`, `design-context.xml`, `plan.xml`, and the bundle's own
+        active/archive lifecycle directories are ceremony-owned and excluded from the
+        bounded-write criterion. No production source, catalog, fixture module, skill,
+        metadata, `README.md`, or `examples/` path changes.
+      </Constraint>
+      <Constraint>
+        Do not edit, validate as a corpus, or re-execute historical archive commands.
+        The archived bundles named in the replaced obligations are read only as
+        historical evidence for what the regressions protected. The replacement
+        coverage for the four dedicated pair-regression inputs reads no repository
+        `.ngrace/changes/archive/` contents as input. That restriction is scoped to
+        those four inputs: the other process-audit tests this slice leaves in place
+        (which still select repository archived bundles) are unchanged and are not
+        converted, weakened, or disabled.
+      </Constraint>
+      <Constraint>
+        The synthetic fixtures must be self-contained: `writeMinimalNgraceProject` (or
+        an equivalent minimal project), `writeChangeBundleFixture`, and the local
+        attempt-event renderers already present in the test file. The replacement tests
+        may add local fixture helpers in `src/review/core.test.ts`; they must not add a
+        mock, a publisher-specific configuration branch, or any override that disables
+        or suppresses the audit.
+      </Constraint>
+      <Constraint>
+        Frozen base: `0a56eb57be2e61349e66a2a3172c886886c6e8e6` (branch
+        `feat/archive-compatibility`). The bounded-write criterion is measured against
+        this full-hash base. Mint seed `2026-10-05T19:49:56Z`, branch
+        `feat/archive-compatibility`; the CLI minted
+        `C-REVIEW-PAIR-FIXTURES-1-429BFA80` and never hand-typed its suffix.
+      </Constraint>
+      <Constraint>
+        This authoring pass is **spec only**: `status="draft"`, no `plan.xml`, no
+        implementation, no production approval, verdict, cursor epoch, commit, apply,
+        archive, supersede, or push. The external executor stops at draft. Stage budget
+        is at most three substantive deliveries/reviews each for SPEC, PLAN, and
+        EXECUTE; temperature, restart, hashes, or renamed IDs do not reset counters.
+      </Constraint>
+      <Constraint>
+        Evidence doctrine: exercise the real CLI against a throwaway synthetic project
+        (the positive warning case), assert exact literals for the finding code, anchor,
+        severity, archive path prefix, and 16-hex ID, and assert the audit ran over a
+        nonzero pair count. Prefer parsing the emitted report over grepping prose. Use
+        bounded-write, strict post-archive lint, and a whole-CI gate as named in
+        `AcceptanceCriteria`.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        Runtime or implementation changes: no edit to `src/review/core.ts`,
+        `src/review/catalog.ts`, the artifact grammar, or any production source. This
+        slice changes test inputs only.
+      </NonGoal>
+      <NonGoal>
+        Other process-audit tests, status/context/calibration input boundaries, and the
+        remaining publisher readers. Those are separate prerequisite slices of
+        publisher-input isolation, not this bundle.
+      </NonGoal>
+      <NonGoal>
+        Global consumer archive policy, an archive-compatibility exemption, a
+        publisher-specific configuration branch, an XML-comment exception, or portable
+        teaching. Do not add any audit-disabling override or consumer exemption.
+      </NonGoal>
+      <NonGoal>
+        `README.md` and `examples/` remain unchanged: this slice changes internal test
+        inputs only. Owner: unchanged; no user-visible surface.
+      </NonGoal>
+      <NonGoal>
+        Revalidating, re-executing, or repairing any archived bundle's bytes. Archived
+        bytes are preserved and are not current input.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-SYNTHETIC-FIXTURE-INPUTS>
+        All four original input obligations — the two named-archive check, the frozen
+        historical-close check, the complete-current-archive retired-code check, and
+        the positive real-CLI warning — are replaced by coverage that drives only
+        explicitly constructed temporary synthetic fixtures. That coverage contains no
+        publisher bundle name literal (`C-TOKEN-INTEGRITY`, `C-CURSOR-INTEGRITY`,
+        `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`), reads no repository
+        `.ngrace/changes/archive/` population, and uses neither
+        `AUTHORING_ARCHIVE_C_IDS` nor `HISTORICAL_CLOSE_C_IDS` (which are removed if no
+        remaining use requires them). The number and organization of replacement `it`
+        blocks are not prescribed; the four behavioral obligations and their
+        counterweights are. Each selected synthetic bundle is validated directly and
+        exactly: the spec and plan through
+        `validateChangeArtifact(artifact, "archive", root)` and the ledger through
+        `validateRunLedgerArtifact`, each yielding zero issues, with the three artifact
+        paths asserted present before any count. A project-wide validation call is not
+        sufficient and does not satisfy this criterion.
+      </AC-SYNTHETIC-FIXTURE-INPUTS>
+      <AC-SYNTHETIC-SILENT-CHANGED-DIGEST>
+        A synthetic archived bundle carries a real recorded fail/pass pair whose
+        non-artifact source content digests differ across the pair. Reviewing it yields
+        zero findings with code `review.attempt-pair-identical-tree` and zero findings
+        with code `review.attempt-pair-unsubstantiated`, and the attempt-pair audit
+        reports it ran over at least one fail/pass pair (nonzero pair count). This case
+        replaces the named-archive check, the frozen historical-close check, and the
+        complete-current-archive retired-code check; the silent result must be measured
+        over present fixtures, never over an empty or vanished population.
+      </AC-SYNTHETIC-SILENT-CHANGED-DIGEST>
+      <AC-POSITIVE-WARNING-REAL-CLI>
+        A synthetic archived bundle carries a real recorded fail/pass pair whose
+        non-artifact source content digests are equal. Driving the shipped CLI
+        (`bun run ./src/grace.ts review --path &lt;tempRoot&gt; --change &lt;fixture-id&gt;
+        --format json`) exits 0 and the parsed JSON contains exactly one finding with
+        code `review.attempt-pair-identical-tree`, `severity` equal to `warning`,
+        `anchorOrHunkKey` equal to the declared
+        `attempt-pair:&lt;task&gt;:&lt;failEventId&gt;-&gt;&lt;passEventId&gt;`, a `file`
+        under the synthetic bundle's `.ngrace/changes/archive/&lt;fixture-id&gt;/` path
+        (`run` or `run-ledger.xml`), and a `findingId` matching `^[a-f0-9]{16}$`. The
+        report declares the pair was audited (nonzero pair count). The adjacent
+        warning/error exit controls are preserved: a warning-only synthetic project
+        exits 0 naming the live warning, and a synthetic project carrying a current
+        error exits 1.
+      </AC-POSITIVE-WARNING-REAL-CLI>
+      <AC-BOUNDED-WRITE>
+        Against frozen base `0a56eb57be2e61349e66a2a3172c886886c6e8e6`, the only path
+        outside this bundle's own active and archive lifecycle directories that differs
+        from the base — in the working tree, in the index, or as a nonignored untracked
+        file — is `src/review/core.test.ts`. Every other path — production source,
+        catalog, artifact fixtures, skills, metadata, `README.md`, and `examples/` — is
+        identical to that base in all three surfaces, not merely in the tracked working
+        tree. The check has three conjuncts: `git diff --exit-code` proves working-tree
+        equality, `git diff --cached --exit-code` proves index equality (catching an
+        index-hidden staged change whose worktree bytes were restored), and an
+        emptiness test over `git ls-files --others --exclude-standard` proves no
+        nonignored untracked path exists (which `git diff` does not report). All three
+        use the same exclusions. The bundle's own arrival under
+        `.ngrace/changes/active/C-REVIEW-PAIR-FIXTURES-1-429BFA80` and
+        `.ngrace/changes/archive/C-REVIEW-PAIR-FIXTURES-1-429BFA80` is excluded because
+        the close itself renames the bundle directory into the archive after the base
+        commit, so without the exclusion the criterion is red by construction.
+        <CloseEvidence>
+          <Command>git diff --exit-code 0a56eb57be2e61349e66a2a3172c886886c6e8e6 -- . ':(exclude)src/review/core.test.ts' ':(exclude).ngrace/changes/active/C-REVIEW-PAIR-FIXTURES-1-429BFA80' ':(exclude).ngrace/changes/archive/C-REVIEW-PAIR-FIXTURES-1-429BFA80' &amp;&amp; git diff --cached --exit-code 0a56eb57be2e61349e66a2a3172c886886c6e8e6 -- . ':(exclude)src/review/core.test.ts' ':(exclude).ngrace/changes/active/C-REVIEW-PAIR-FIXTURES-1-429BFA80' ':(exclude).ngrace/changes/archive/C-REVIEW-PAIR-FIXTURES-1-429BFA80' &amp;&amp; ngrace_review_pair_fixtures_untracked=$(git ls-files --others --exclude-standard -- . ':(exclude)src/review/core.test.ts' ':(exclude).ngrace/changes/active/C-REVIEW-PAIR-FIXTURES-1-429BFA80' ':(exclude).ngrace/changes/archive/C-REVIEW-PAIR-FIXTURES-1-429BFA80') &amp;&amp; test -z "$ngrace_review_pair_fixtures_untracked"</Command>
+        </CloseEvidence>
+      </AC-BOUNDED-WRITE>
+      <AC-CLOSE-LINT>
+        In the applied-archive state, `bun run ngrace lint --path . --fail-on warnings`
+        exits 0 with 0 errors and 0 warnings across the checked artifacts. This is
+        measured after the close's own archive move has run, against the state the
+        ceremony produces, never the pre-close tree.
+        <CloseEvidence>
+          <Command>bun run ngrace lint --path . --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+      <AC-WHOLE-CI>
+        In the applied-archive state, the CI-equivalent verification
+        `bun run validate:ci` exits 0. This is the whole-CI gate: it is close-time
+        only and is where the full CI-equivalent verification runs.
+        <CloseEvidence>
+          <Command>bun run validate:ci</Command>
+        </CloseEvidence>
+      </AC-WHOLE-CI>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 src/review/core.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path . --fail-on warnings</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Verification `V-M-REVIEW` (`bun test src/review`): the replacement coverage for
+        the four dedicated pair-regression inputs builds synthetic archived bundles,
+        directly validates the selected spec, plan, and run-ledger with zero issues,
+        asserts the changed-digest pair is silent for both the live and retired codes
+        over a nonzero audited pair count, and drives the real CLI to observe exactly
+        one live `review.attempt-pair-identical-tree` warning at the declared anchor
+        under the synthetic archive path with a 16-hex finding ID. The adjacent
+        warning-only exit-0 and error exit-1 controls remain green. That replacement
+        coverage reads no repository `.ngrace/changes/archive/` corpus; the other
+        process-audit tests this slice leaves in place are unchanged. `bun run ngrace
+        lint --path . --fail-on warnings` is 0/0 at close; `bun run validate:ci` is
+        green at close; the bounded-write check against
+        `0a56eb57be2e61349e66a2a3172c886886c6e8e6` requires working-tree and index
+        equality and no nonignored untracked path outside `src/review/core.test.ts` and
+        the bundle's own lifecycle paths.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Assumptions>
+      <Assumption>
+        **Mint lineage.** `ngrace spec new REVIEW-PAIR-FIXTURES --path . --timestamp
+        2026-10-05T19:49:56Z --branch feat/archive-compatibility` minted
+        `C-REVIEW-PAIR-FIXTURES-1-429BFA80` with
+        `mint-search: 0 active, 0 archive prior bundle(s) share slug REVIEW-PAIR-FIXTURES`.
+        That line is carried verbatim; no clock was read silently and no suffix was
+        hand-typed.
+      </Assumption>
+      <Assumption>
+        **Measured current state at authoring.** Branch `feat/archive-compatibility`,
+        clean HEAD `0a56eb57be2e61349e66a2a3172c886886c6e8e6`, no active bundle before
+        the mint. Current lint direct exit 0, 0 errors, 0 warnings. Whole-suite and CI
+        are **not run** at SPEC; the final whole-CI run is the `AC-WHOLE-CI` close
+        command.
+      </Assumption>
+      <Assumption>
+        **Private measured probe (authority-supplied, not re-executed as a corpus).**
+        The private real-CLI probe over a throwaway synthetic project produced quiet
+        changed-digest pairs, one identical-tree warning on equal digests, all direct
+        exits 0, one audited pair, zero retired findings, and byte-identical baseline
+        restoration. The original probe script is not an implementation copy-source.
+        The corrected selected-artifact schema proof directly validated the synthetic
+        spec, plan, and run-ledger (three artifacts, zero issues); the earlier
+        project-wide schema claim was wrong and is superseded by the corrected proof.
+      </Assumption>
+      <Assumption>
+        **Fixture helpers already available.** `writeMinimalNgraceProject` and
+        `writeChangeBundleFixture` live in `src/artifact/test-fixtures.ts`;
+        `renderAttemptEvent` and the folded-ledger renderer (`writeLedgerEvents`) are
+        local helpers in `src/review/core.test.ts`. The plan may reuse or extend the
+        local helpers; the write set stays `src/review/core.test.ts`.
+      </Assumption>
+      <Assumption>
+        **`writeLedgerEvents` is not reusable unchanged.** The existing helper at
+        `src/review/core.test.ts:2546-2553` writes an allocation covering events 1-99
+        and carries no terminal event, so a ledger built with it does not satisfy the
+        direct zero-issue validation this bundle requires. The replacement coverage
+        must use new or extended local construction that produces schema-valid
+        allocation coverage and any closing events the ledger validator requires. The
+        choice of local helper organization belongs to PLAN; the zero-issue
+        selected-artifact validation is required either way.
+      </Assumption>
+      <Assumption>
+        **Expected frozen ID list removal.** `AUTHORING_ARCHIVE_C_IDS` is used only by
+        `HISTORICAL_CLOSE_C_IDS` (`src/review/core.test.ts:1981-2010`), and
+        `HISTORICAL_CLOSE_C_IDS` is used only by the frozen historical-close test
+        (`src/review/core.test.ts:2205,2210`). Replacing that test removes both lists so
+        their remaining uses permit removal. `RETIRED_ATTEMPT_PAIR_CODE` is used by the
+        catalog presence/absence tests (`src/review/core.test.ts:2447,2451,2461`) and
+        the prose-agreement test (`src/review/core.test.ts:2651,2667`) and stays.
+      </Assumption>
+      <Assumption>
+        **Expected path shape.** The synthetic bundle's finding `file` resolves to
+        `.ngrace/changes/archive/&lt;fixture-id&gt;/run-ledger.xml` when no `run/`
+        directory is present; the criterion accepts `run` or `run-ledger.xml` so the
+        fixture may supply either. The anchor is computed from the fixture's declared
+        task and event ids, not from any publisher value.
+      </Assumption>
+    </Assumptions>
+  </C-REVIEW-PAIR-FIXTURES-1-429BFA80>
+</NgraceChangeSpec>

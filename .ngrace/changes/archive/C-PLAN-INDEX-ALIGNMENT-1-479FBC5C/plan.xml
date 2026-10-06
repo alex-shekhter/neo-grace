@@ -1,0 +1,47 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-PLAN-INDEX-ALIGNMENT-1-479FBC5C>
+    <IntentSummary>Apply the approved two-line correction to docs/plans/README.md so its plan-index summary of the historical archive-compatibility campaign matches the campaign's 2026-10-03 withdrawal and the current-only CLI policy, while every other byte of the index stays identical to frozen-base commit 4d7304f262e6eb4cabb961910042990ab68e5776.</IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>docs/plans/README.md</Value>
+      </MustExist>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>docs/plans/README.md</Value>
+      </MustExist>
+      <MustContain>
+        <File>docs/plans/README.md</File>
+        <Text>the 2026-10-03 withdrawal of historical archive compatibility.</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>docs/plans/README.md</File>
+        <Text>The 2026-10-01 compatibility entry calls for immediate</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>python3 -c 'from pathlib import Path; import subprocess; p=Path("docs/plans/README.md"); base="4d7304f262e6eb4cabb961910042990ab68e5776"; old="historical archive compatibility. The 2026-10-01 compatibility entry calls for immediate\nempirical derivation and prompt governed repair of confirmed defects. The queue is a"; new="the 2026-10-03 withdrawal of historical archive compatibility. The queue instead directs\nremoval of archive dependencies through small governed bundles. It is a"; r=subprocess.run(["git","show",base+":"+str(p)],capture_output=True); assert r.returncode==0, "git show failed"; assert r.stdout.count(old.encode())==1, "old two-line wording must occur exactly once in baseline"; expected=r.stdout.replace(old.encode(),new.encode(),1); assert p.read_bytes()==expected, "current file is not the exact baseline-derived replacement"; print("exact two-line README correction verified")'</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <None />
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>docs/plans/README.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Correct the two obsolete index lines in docs/plans/README.md</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>docs/plans/README.md contains "the 2026-10-03 withdrawal of historical archive compatibility.", no longer contains "The 2026-10-01 compatibility entry calls for immediate", and its bytes equal the frozen-base bytes of commit 4d7304f262e6eb4cabb961910042990ab68e5776 with the exact two-line replacement applied.</Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>python3 -c 'from pathlib import Path; import subprocess; p=Path("docs/plans/README.md"); base="4d7304f262e6eb4cabb961910042990ab68e5776"; old="historical archive compatibility. The 2026-10-01 compatibility entry calls for immediate\nempirical derivation and prompt governed repair of confirmed defects. The queue is a"; new="the 2026-10-03 withdrawal of historical archive compatibility. The queue instead directs\nremoval of archive dependencies through small governed bundles. It is a"; r=subprocess.run(["git","show",base+":"+str(p)],capture_output=True); assert r.returncode==0, "git show failed"; assert r.stdout.count(old.encode())==1, "old two-line wording must occur exactly once in baseline"; expected=r.stdout.replace(old.encode(),new.encode(),1); assert p.read_bytes()==expected, "current file is not the exact baseline-derived replacement"; print("exact two-line README correction verified")'</Command>
+        </Verification>
+        <Satisfies>
+          <AC-SUMMARY-SURGICAL />
+        </Satisfies>
+      </T-001>
+    </ImplementationPlan>
+  </C-PLAN-INDEX-ALIGNMENT-1-479FBC5C>
+</NgraceChangePlan>

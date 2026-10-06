@@ -1,0 +1,545 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D>
+    <Summary>
+      Draw the boundary by purpose and dependency, not by file version. Archives are historical
+      metadata that may predate current requirements; an unchanged version number cannot establish
+      that today's requirements applied at the historical checkpoint. This is the **review +
+      fixture slice** of the C3 successor: a six-file population across four modules (`M-REVIEW`,
+      `M-LOCALIZE`, `M-CURSOR`, `M-TEST-SUPPORT`). It carries the historical-review boundary and the
+      two inherited-fixture repairs, and it repairs the localization owner that C3 forced but omitted
+      from its module lists. Three `review.confidently-wrong` errors for an archived plan's
+      `test-metrics.json` claim sit in the **current production baseline**; this slice turns them into
+      informational historical notices. Unrelated archived change bundles stop being current-validation
+      inputs for the review surface: an archived plan's literal existence claim is a historical audit at
+      severity `info` (default project-wide review omits it; `--severity info` surfaces the concrete
+      archive-time/unevaluated message), the same-ID archive alias stays silent for both the historical
+      and the current code, and no historical finding is silently erased. The historical integrity audits
+      stay honest — the F286 attempt-pair audit and the same-ID relocation / foreign-ID detection remain
+      available as information, separated from current-work gate compliance — and current obligations
+      stay strict. The two inherited-fixture repairs are established by real subprocess observation
+      rather than incidental timing: the cursor diagnostic awaits the real child's exit before sampling
+      the already-exited branch, and the coordinator's mixed-outcome control supplies an actually exited
+      quick child through the existing `CoordinatorIo.spawn` seam, both runtime counterparts staying
+      byte-unchanged. The slice declares a plan-time controlled-delay original-red → repaired-green →
+      byte-exact restoration/replay proof, keeps the discriminating T-005 public CLI guard and the
+      warning-only/error exit behavior, preserves the review catalog/localization relation, and adds
+      fresh archive-immutability, write-population, post-archive lint, and CI guards. It explicitly
+      decides `README.md` and `examples/` as untouched here, owned by a later dedicated skill/docs
+      bundle. Production C3 was **superseded before production execution**; its private faithful
+      rehearsal (including fixture failures and a post-close prototype) is evidence, not shipped
+      behavior. The archive/current boundary, applied-scope/view, selected-close gate, and skill/docs
+      slices are separate successors and are not specified here.
+    </Summary>
+    <Goals>
+      <Goal>
+        Current obligations stay strict and unchanged: root context, graph, verification, and active
+        change bundles keep their current errors and severities. For the **review** surface, an active
+        plan's present-absence `MustExist` still raises `review.confidently-wrong` /
+        `must-exist-missing` through `runReview` / the real `ngrace review`. The corr-171 same-ID alias
+        presence, missing-both detection, and foreign-ID detection remain bound review behaviors: for
+        archived plans they are the historical notices bound in `AC-REVIEW-ARCHIVED-AUDIT`, and for
+        active plans the active counterweight remains an error. The malformed-artifact grammar
+        obligation is owned by the later archive/current slice (bundle B), not by this review leaf.
+      </Goal>
+      <Goal>
+        Archived literal existence claims are historical audits: an archived plan's missing
+        `MustExist` yields the inherited historical finding code at severity `info` — never
+        `review.confidently-wrong` — with the same-ID archive alias present silent, and with the
+        missing-both-alias and foreign-id cases reported as notices that name the target and state
+        current absence while leaving archive-time presence unevaluated. Default project-wide review
+        exits 0 and filters the notices out of its default finding set; `--severity info` surfaces
+        them.
+      </Goal>
+      <Goal>
+        The historical integrity checks remain available and honest: the F286 attempt-pair audit still
+        reddens an `applied` archived bundle at `warning` and still exempts an abandoned
+        `superseded`/`rejected`/`cancelled` bundle; the unemitted verification `Marker` check still
+        fires with its real `^marker:` anchor; the scope, `WriteEvidence`-scope, verdict/approval, and
+        CloseEvidence checks keep their codes, severities, and **exact finding IDs** on identical
+        inputs, compared against independently captured baseline receipts. The behavior is bound, not
+        catalog membership alone. Retirement still consumes archive directory names without a new
+        decoder.
+      </Goal>
+      <Goal>
+        The cursor diagnostic establishes the completed-child precondition by real observation:
+        before the already-exited branch is sampled it awaits the real child's exit, never inferring
+        completion from a marker or an incidental wait, and asserts the exited state, numeric exit 7,
+        and captured stderr, with the separate running-child kill/bounded-reap path unchanged.
+      </Goal>
+      <Goal>
+        The coordinator mixed-outcome control starts and awaits a real quick child at the fixture
+        boundary and returns that real completed subprocess through the existing `CoordinatorIo.spawn`
+        seam, keeping supervision/output/start-count checks: the completed quick worker reports
+        `exitCode` 7 with `timedOut` false, the surviving worker reports its timeout with `SIGKILL`
+        and absent output, the larger finite poll and the deadline are preserved, and the result is
+        not a hand-built process. Both runtime counterparts stay byte-unchanged.
+      </Goal>
+      <Goal>
+        A dedicated ordinary acceptance criterion binds the controlled-delay discrimination on
+        independent physical probe copies — original method red, repaired method green, byte-exact
+        restoration and replay — with no fabricated `CloseEvidence` command; its future plan task
+        genuinely `Satisfies` it and runs a self-contained instrument. The instrument verifies both
+        spec-pinned runtime digests at source and in each of the four probe spaces before and after.
+      </Goal>
+      <Goal>
+        The T-005 public CLI guard observes the genuine historical warning independently of unrelated
+        error counts, and a controlled warning-only project exits 0 while a current-error project
+        exits 1, with the detector and `process.exitCode` rule unchanged.
+      </Goal>
+      <Goal>
+        The review catalog/localization relation is preserved: the historical-path code is
+        `info` / `process-audit`, the five family-A pattern codes are exactly the baseline membership,
+        the three-code admissible localization set is exactly the baseline membership, and the
+        exclusion population is exactly the catalog population minus the admissible codes, measured
+        over the whole populations.
+      </Goal>
+      <Goal>
+        Fresh archive-immutability, write-population, post-archive lint, and CI criteria bind the six
+        forced paths and this bundle's own lifecycle against the new checkpoint, with falsifiable
+        commands whose clean and planted-violation directions are driven privately before close. Each
+        later bundle re-derives its own guards against its own checkpoint.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module change): a single-package slice across four modules with a six-file
+        write population. The tier changes section depth only, never whether gates run;
+        `--assertions final` remains the release gate.
+      </Constraint>
+      <Constraint>
+        **Forced set (6).** `src/review/core.ts`, `src/review/catalog.ts`, and
+        `src/review/core.test.ts` (`M-REVIEW`); `src/verification/localize.test.ts` (`M-LOCALIZE`,
+        whose counterpart `src/verification/localize.ts:1-7` declares the owner and whose graph and
+        verification entries are `.ngrace/graph/main.xml:72-76` and
+        `.ngrace/verification/main.xml:73-77`); `src/grace-cursor.test.ts` (`M-CURSOR`, counterpart
+        `src/grace-cursor.ts:6`); and `src/test-support/coordinator.test.ts` (`M-TEST-SUPPORT`,
+        counterpart `src/test-support/coordinator.ts:6`). `.test.ts` paths are not module-ownable
+        write paths, so no synthetic `LINKS:` header or new graph anchor is added for them; the
+        test counterparts establish ownership. No further write is authorized; any additional forced
+        path is reported for ratification before it is added.
+      </Constraint>
+      <Constraint>
+        **Frozen runtimes.** `src/grace-cursor.ts` (SHA-256
+        `5584d926ef4f96b2727dca1066f263f42e54e30511babcce5eb60bac18daa2b9`) and
+        `src/test-support/coordinator.ts` (SHA-256
+        `7ed2073382bd190a83c0364b8b1b78c7e7ff554db48c7d71d7151bcefe5d267a`) are **not** in the
+        write population and stay byte-identical.
+      </Constraint>
+      <Constraint>
+        **Historical-review contract.** Archived literal existence claims are historical audits with
+        the inherited historical finding code at `info`; default project-wide review omits them and
+        `--severity info` surfaces the concrete archive-time/unevaluated message; the same-ID archive
+        alias is silent for both the historical and the current code; active plans keep the current
+        error. The F286 attempt-pair audit (applied-reddens, abandoned exemption), the unemitted
+        `Marker` check with its real `^marker:` anchor, and the scope / `WriteEvidence`-scope /
+        verdict-approval / CloseEvidence checks keep their codes, severities, and **exact finding IDs**
+        on identical inputs against independently captured baseline receipts. Retirement still
+        consumes archive directory names without a new decoder; no payment, flush, or retirement write
+        is added.
+      </Constraint>
+      <Constraint>
+        **Catalog/localization relation.** `REVIEW_CATALOG["review.historical-path-absent"]` is
+        `severity: "info"` / `family: "process-audit"`; `patternReviewCodes()` is exactly the five
+        baseline family-A pattern codes and does not include the historical-path code; the admissible
+        localization code set is exactly the three D8 codes; and
+        `excludedReviewCodesForLocalization()` is exactly the set difference `allReviewCodes()` minus
+        the admissible localization codes, measured over the whole populations rather than a projected
+        figure. Measured lengths remain enforced by the selected tests as supplementary regression
+        checks; exact baseline membership and the whole-population set difference are the contract.
+        No lint catalog code is added.
+      </Constraint>
+      <Constraint>
+        **Discrimination instrument.** The ordinary criterion `AC-REPAIR-DISCRIMINATION` carries no
+        `CloseEvidence`; its future plan task `Satisfies` it and runs a self-contained instrument that
+        uses independent physical mutable probe spaces with private valid Git, curated inputs, and
+        sealed private read-only dependencies (no escaping or dangling links); injects a controlled
+        delay into only the selected synthetic child; requires exactly one matched test per
+        invocation; accepts only the specific timing assertion as the original red and a
+        one-pass/no-fail result as the repaired green; restores and SHA-compares all four fixture
+        files before replay; and verifies both spec-pinned runtime digests at source and in each of
+        the four probe spaces before and after. Missing matches, unrelated crashes, signals, timeouts,
+        parse/import failures, and corrupt or skipped restoration refuse before the success marker.
+        Original normal/replay may pass or show the specific known race; volatile exit equality is not
+        pinned and no minimum removed-link count is required.
+      </Constraint>
+      <Constraint>
+        **Guard baseline.** The archive-immutability, write-population, and examples byte guards
+        measure against `2a2639b936176a26b16f4338ef3c18a90158ee40`, the checkpoint that archived C3
+        and minted this bundle. Every archive present at that checkpoint, including C3, is frozen;
+        only this bundle's own archive arrival is excluded, because the close itself renames the
+        bundle into the archive after the base commit. This bundle's own active and archive
+        directories are excluded from the write-population guard, and its own lifecycle scope
+        (`run.xml`, `run-ledger.xml`, and the `run/**` loose-event glob) is rehomed to it. These
+        guards are fresh to this bundle; each later bundle re-derives its own.
+      </Constraint>
+      <Constraint>
+        **Deferred to successors.** The archive/current boundary (grammar/query/index/status/context,
+        including the malformed-active grammar leaf of the current-obligations criterion) is bundle B
+        (8 paths); the applied-scope/view reader is bundle C (5 paths); the selected-close gate is
+        bundle E (2 paths); the canonical/packaged skill text and documentation footprint is bundle F
+        (4 paths). Production gate hardening is **not** shipped: current production
+        `src/gates/ledger.ts:546-581` still selects the first `CloseEvidence` child and has permissive
+        early returns. Their obligations are not constraints of this spec. The full 22-criterion
+        inherited-obligation map and the bundles' initial orderings live in the explanatory design
+        context.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        No `README.md` or `examples/` writes in this slice: both are byte-identical to the guard base,
+        and documentation of the new `ngrace review` historical notice — which **is** user-visible,
+        not silently non-user-visible — is owned by the later dedicated skill/docs bundle (F). Owner:
+        bundle F.
+      </NonGoal>
+      <NonGoal>
+        No archive/current grammar boundary, query/status/context, applied-scope/view, or
+        selected-close gate change. Owner: bundles B, C, and E named in the design context.
+      </NonGoal>
+      <NonGoal>
+        No canonical/packaged skill text, skill-byte footprint pin, or README footprint change. Owner:
+        bundle F.
+      </NonGoal>
+      <NonGoal>
+        No package metadata, graph, or verification index change; the four owner/V anchors already
+        exist and no new anchor is minted. Owner: unchanged; no graph or verification write.
+      </NonGoal>
+      <NonGoal>
+        No record payment, flush, or retirement, and no migration tooling. Owner: unchanged; the
+        record is not touched by this slice.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-CURRENT-OBLIGATIONS-STRICT>
+        The review surface keeps its current obligations strict. An active plan's present-absence
+        `MustExist` still raises `review.confidently-wrong` / `must-exist-missing` through `runReview`
+        / the real `ngrace review`, and the active counterweight stays an error; the corr-171
+        same-ID alias presence, missing-both and foreign-ID detection remain bound review behaviors
+        (their archived-plan controls are bound here through the same verified group, and the group is
+        also bound in `AC-REVIEW-ARCHIVED-AUDIT`). The malformed-active
+        grammar obligation is owned by the later archive/current slice (bundle B) and is not asserted
+        here. A test selectable by `-t "current obligations stay strict"` drives the active
+        present-absence half; the active counterweight is carried by
+        `-t "counterweight: active plan MustExist of a genuinely missing path still fires"`; the
+        corr-171 same-ID alias, missing-both and foreign-ID controls are carried by
+        `-t "C-REPORT-HONESTY T-003 MustExist archive identity \(F16\)"`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "current obligations stay strict"</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "counterweight: active plan MustExist of a genuinely missing path still fires"</Command>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "C-REPORT-HONESTY T-003 MustExist archive identity \(F16\)"</Command>
+        </CloseEvidence>
+      </AC-CURRENT-OBLIGATIONS-STRICT>
+      <AC-REVIEW-ARCHIVED-AUDIT>
+        An archived plan's missing `MustExist` yields `review.historical-path-absent` at severity
+        `info` — never `review.confidently-wrong` — while the detector retains every control: the
+        same-ID archive alias is silent for both the historical and the current code, and the
+        missing-both-alias and foreign-id cases are reported as historical notices that name the
+        target and state current absence while leaving archive-time presence unevaluated (the message
+        contains `archive-time` and `unevaluated`). Default project-wide `ngrace review` exits 0 and
+        filters the notices out of its default finding set; `--severity info` surfaces them with the
+        concrete target. Active plans keep `review.confidently-wrong` / `must-exist-missing`. The
+        complete verified matrix — same-ID alias silence, missing-both, foreign-ID, the archived
+        audit, the real-CLI default-versus-info behavior, and the active counterweight — is carried
+        by the whole test group selectable by
+        `-t "C-REPORT-HONESTY T-003 MustExist archive identity \(F16\)"`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "C-REPORT-HONESTY T-003 MustExist archive identity \(F16\)"</Command>
+        </CloseEvidence>
+      </AC-REVIEW-ARCHIVED-AUDIT>
+      <AC-PRESERVED-AUDITS>
+        The F286 attempt-pair audit still reddens an `applied` archived bundle at `warning` and still
+        exempts an abandoned `superseded`/`rejected`/`cancelled` bundle; the unemitted verification
+        `Marker` check still fires with its real `^marker:` anchor; the scope, `WriteEvidence`-scope,
+        verdict/approval, and close-evidence audits keep their codes, severities, and **exact finding
+        IDs** on identical inputs, compared against independently captured baseline receipts rather
+        than a 16-hex shape or a value recomputed by the same implementation. Retirement still
+        consumes archive directory names without a new decoder; no payment, flush, or retirement write
+        is added. No historical finding is silently erased. A test selectable by
+        `-t "historical integrity audits preserved"` carries the review half (exact identities plus an
+        input-bound negative control); the retirement half is carried by the existing validator tests
+        selectable by `-t "errors per live finding whose PaidBy names an archived directory"` and
+        `-t "errors per live registry row whose name equals an archived directory"`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "historical integrity audits preserved"</Command>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts -t "errors per live finding whose PaidBy names an archived directory"</Command>
+          <Command>bun test --timeout=0 scripts/validate-record-retirement.test.ts -t "errors per live registry row whose name equals an archived directory"</Command>
+        </CloseEvidence>
+      </AC-PRESERVED-AUDITS>
+      <AC-CURSOR-COMPLETED-CHILD>
+        The cursor reclaim-diagnostic fixture establishes the completed-child precondition by real
+        observation: before the already-exited diagnostic branch is sampled the fixture awaits the
+        real child's exit (`await child.exited`), never inferring completion from a marker or an
+        incidental wait, and it adds no arbitrary longer sleep. The exited-branch assertions are
+        preserved — `state` `exited`, numeric `exitCode` 7, `signal` null, the `b-error` marker
+        present and `b-replaced` absent, the stderr tail containing `diag-child-exited`, and a message
+        naming `exit code 7` — and the separate running-child kill/bounded-reap path is unchanged. The
+        runtime counterpart `src/grace-cursor.ts` is byte-unchanged. A test selectable by
+        `-t "AC-CANDIDATE-RECLAIM-EXCLUSIVE timeout diagnostic: already-exited child reports its numeric code"` carries this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/grace-cursor.test.ts -t "AC-CANDIDATE-RECLAIM-EXCLUSIVE timeout diagnostic: already-exited child reports its numeric code"</Command>
+        </CloseEvidence>
+      </AC-CURSOR-COMPLETED-CHILD>
+      <AC-COORDINATOR-MIXED-OUTCOMES>
+        The coordinator mixed-outcome control starts and awaits a real quick child at the fixture
+        boundary and returns that real completed subprocess through the existing `CoordinatorIo.spawn`
+        seam, driving the public `runCoordinator` over it; the coordinator still registers,
+        supervises, and snapshots that worker, and the run retains `timeoutMs:100`, `pollMs:800`, and
+        an elapsed time below 700 ms. The completed quick worker reports `exitCode` 7 and `timedOut`
+        false; the surviving worker reports `timedOut` true and `signalCode` `SIGKILL` with its
+        declared output absent; the separate `workers/quick` and `workers/forever` log/output spaces
+        are preserved; the result is not a hand-built process result and the deadline is not relaxed
+        to hide startup timing. The runtime counterpart `src/test-support/coordinator.ts` is
+        byte-unchanged. A test selectable by
+        `-t "a finite poll larger than the deadline cannot extend it"` carries this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/test-support/coordinator.test.ts -t "a finite poll larger than the deadline cannot extend it"</Command>
+        </CloseEvidence>
+      </AC-COORDINATOR-MIXED-OUTCOMES>
+      <AC-REPAIR-DISCRIMINATION>
+        On independent physical mutable probe copies (private valid Git, curated inputs, sealed
+        private read-only dependencies with no escaping or dangling links, no hardlinks or shared
+        writable scratch or `.git`), both repairs are proven discriminating: under a controlled child
+        delay that exceeds the old incidental timing assumption, injected into only the selected
+        synthetic child, the **original** fixture method is red with the specific timing assertion and
+        the **repaired** method is green with one matched test and no failure; and byte-exact
+        restoration of the four fixture files (SHA-compared) followed by replay reproduces the normal
+        base behavior. Each delayed, normal, and replay invocation requires exactly one matched test.
+        Both spec-pinned runtime digests are verified at source and in each of the four physical probe
+        spaces before and after the run. Original normal/replay may pass or show the specific known
+        race; volatile exit equality is not pinned and no minimum removed-link count is required.
+        Missing matches, unrelated crashes, signals, timeouts, parse/import failures, and corrupt or
+        skipped restoration refuse before the success marker. The delay exists only in the synthetic
+        probe and is absent from the candidate; no retrospective fail event is written and no closed
+        private ledger is rewritten. This criterion carries no `CloseEvidence`; its future plan task
+        `Satisfies` it and runs the self-contained instrument. A `Satisfies` tag and the normal
+        fixture selectors alone do not establish it.
+      </AC-REPAIR-DISCRIMINATION>
+      <AC-T005-GUARD>
+        The test selectable by `-t "T-005 warning remains observable"` drives the real CLI for
+        `C-DECLARATION-GUARD-RETIRE-1-C69B6AB6`, requires parseable review JSON, and requires exactly
+        one `review.attempt-pair-identical-tree` finding whose `file` is the bundle's resolved anchor
+        file (`…/run` or `…/run-ledger.xml`), whose `anchorOrHunkKey` is
+        `attempt-pair:T-005:14-&gt;15`, whose `severity` is `warning`, and whose `findingId` matches
+        `^[a-f0-9]{16}$`. It does not assert the process exit status, does not accept an unrelated
+        bundle by prefix, and does not depend on unrelated error counts. A test selectable by
+        `-t "T-005 warning remains observable"` carries this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "T-005 warning remains observable"</Command>
+        </CloseEvidence>
+      </AC-T005-GUARD>
+      <AC-CLI-EXIT>
+        A controlled real-CLI warning-only project exits 0 and its JSON names the
+        `review.attempt-pair-identical-tree` warning; a controlled real-CLI project carrying a current
+        `review.confidently-wrong` error exits 1. `ngrace review` still sets `process.exitCode = 1`
+        only when `summary.errors &gt; 0` (`src/review/command.ts:118-120`) and the detector is
+        unchanged. A test selectable by `-t "warning-only review exits zero, errors exit one"` carries
+        this assertion.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "warning-only review exits zero, errors exit one"</Command>
+        </CloseEvidence>
+      </AC-CLI-EXIT>
+      <AC-CATALOG-CONTRACT>
+        `REVIEW_CATALOG["review.historical-path-absent"]` exists with `severity: "info"` and
+        `family: "process-audit"`; `patternReviewCodes()` is exactly the five baseline family-A
+        pattern codes (`review.confidently-wrong`, `review.regex-over-structure`,
+        `review.self-referential-comparison`, `review.unthreaded-construct`,
+        `review.zero-or-more-swallow`) and does not include the historical-path code; the admissible
+        localization code set is exactly the three D8 codes (`review.scope-outside-write-scope`,
+        `review.test-assertion-weakened`, `review.compat-new-error`); and
+        `excludedReviewCodesForLocalization()` is exactly the set difference `allReviewCodes()` minus
+        the admissible localization codes, measured over the whole populations. Measured lengths
+        remain enforced by the selected tests as supplementary regression checks; they do not
+        substitute for exact membership and the set-difference relation. No lint catalog code is
+        added. The review
+        half is carried by `-t "historical-path notice catalog contract"`, the exact admissible-set
+        half by `-t "exactly three admissible codes, named by D8"`, and the exhaustive
+        every-code-admissible-or-excluded half by
+        `-t "every REVIEW_CATALOG code is either admissible or excluded"`.
+        <CloseEvidence>
+          <Command>bun test --timeout=0 src/review/core.test.ts -t "historical-path notice catalog contract"</Command>
+          <Command>bun test --timeout=0 src/verification/localize.test.ts -t "exactly three admissible codes, named by D8"</Command>
+          <Command>bun test --timeout=0 src/verification/localize.test.ts -t "every REVIEW_CATALOG code is either admissible or excluded"</Command>
+        </CloseEvidence>
+      </AC-CATALOG-CONTRACT>
+      <AC-ARCHIVE-IMMUTABLE>
+        Every pre-existing bundle under `.ngrace/changes/archive/` is byte-identical to base
+        `2a2639b936176a26b16f4338ef3c18a90158ee40`, the checkpoint that archived
+        `C-HISTORICAL-ASSERTION-REVIEW-3-6B5B3896` and minted this bundle. Every archive present at
+        that checkpoint, including C3, is frozen with every other prior archive and needs no separate
+        exclusion. Only this bundle's own archive arrival
+        (`C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D`) is excluded, because the close itself renames the
+        bundle into the archive after the base commit.
+        <CloseEvidence>
+          <Command>git diff --exit-code 2a2639b936176a26b16f4338ef3c18a90158ee40 -- .ngrace/changes/archive ':(exclude).ngrace/changes/archive/C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D'</Command>
+        </CloseEvidence>
+      </AC-ARCHIVE-IMMUTABLE>
+      <AC-WRITE-POPULATION>
+        Against base `2a2639b936176a26b16f4338ef3c18a90158ee40`, every tracked path in the checkout is
+        byte-identical except the six permitted implementation files (`src/review/core.ts`,
+        `src/review/catalog.ts`, `src/review/core.test.ts`, `src/verification/localize.test.ts`,
+        `src/grace-cursor.test.ts`, `src/test-support/coordinator.test.ts`), and this bundle's own
+        active and archive directories; and no nonignored untracked path exists outside those
+        exclusions. The permitted implementation population is exactly six paths. This bundle's own
+        lifecycle scope (`run.xml`, `run-ledger.xml`, and the `run/**` loose-event glob) is separate
+        from that population and is rehomed to it; `spec.xml`, `plan.xml`, and `design-context.xml`
+        are not added to the implementation `ObservedWriteScope` because review skips them by
+        identity. Ignored paths are outside this inventory. Both a tracked violation and a
+        nonignored untracked violation refuse. The command is a compound `git diff --exit-code` and
+        `test -z` over `git ls-files --others`; neither stage is read through a pipeline whose tail
+        supplies the exit code.
+        <CloseEvidence>
+          <Command>git diff --exit-code 2a2639b936176a26b16f4338ef3c18a90158ee40 -- . ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/verification/localize.test.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)src/test-support/coordinator.test.ts' ':(exclude).ngrace/changes/active/C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D' ':(exclude).ngrace/changes/archive/C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D' &amp;&amp; ngrace_unexpected_paths=$(git ls-files --others --exclude-standard -- . ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/verification/localize.test.ts' ':(exclude)src/grace-cursor.test.ts' ':(exclude)src/test-support/coordinator.test.ts' ':(exclude).ngrace/changes/active/C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D' ':(exclude).ngrace/changes/archive/C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D') &amp;&amp; test -z "$ngrace_unexpected_paths"</Command>
+        </CloseEvidence>
+      </AC-WRITE-POPULATION>
+      <AC-DOCS-AND-EXAMPLES>
+        `examples/` and `README.md` are byte-identical to base
+        `2a2639b936176a26b16f4338ef3c18a90158ee40`; this slice writes neither. The `examples/` half
+        is a byte freeze and does not by itself claim the example's CLI behavior passes; separately,
+        `bun run validate:examples` (which lints `examples/polyglot` and drives the walkthrough's
+        review/scope assertions) passes, so the example behavior is proven by its own instrument.
+        The new `ngrace review` historical notice is user-visible and is documented by the later
+        dedicated skill/docs bundle (F), not here.
+        <CloseEvidence>
+          <Command>git diff --exit-code 2a2639b936176a26b16f4338ef3c18a90158ee40 -- examples/ README.md</Command>
+        </CloseEvidence>
+      </AC-DOCS-AND-EXAMPLES>
+      <AC-CLOSE-LINT>
+        In the applied-archive state the bundle lints clean at warning severity:
+        `bun run ./src/grace.ts lint --path . --change C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D
+        --assertions none --fail-on warnings` exits 0 with 0 errors and 0 warnings.
+        <CloseEvidence>
+          <Command>bun run ./src/grace.ts lint --path . --change C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D --assertions none --fail-on warnings</Command>
+        </CloseEvidence>
+      </AC-CLOSE-LINT>
+      <AC-CI-GREEN>
+        In the applied-archive state, including this bundle's own archive arrival, the full
+        CI-equivalent `bun run validate:ci` exits 0. This is the criterion genuinely about the whole
+        CI suite: `test:metrics` runs one full `bun test --timeout=0` suite and the remaining steps run
+        `typecheck`, whole-project lint at error severity, and the marketplace, examples, determinism,
+        packed, schema-reference, skeleton-template, teaching-surface, citation-anchor,
+        record-retirement, and record-preservation validators.
+        <CloseEvidence>
+          <Command>bun run validate:ci</Command>
+        </CloseEvidence>
+      </AC-CI-GREEN>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-CURSOR />
+      <M-LOCALIZE />
+      <M-REVIEW />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedEvidence>
+        Multi-phase verification. (1) Focused per-criterion `CloseEvidence` commands evaluated by the
+        close in the applied-archive state: `src/review/core.test.ts` for the review
+        current-obligations leaf and its active counterweight, the complete archived-audit describe
+        group, the preserved integrity audits with exact identities, the T-005 guard, the CLI exit
+        pair, and the catalog contract; `src/verification/localize.test.ts` for the exact
+        admissible-set pin and the exhaustive catalog/localization coverage;
+        `scripts/validate-record-retirement.test.ts` for the retirement/archive-name-consumption
+        clause; `src/grace-cursor.test.ts` for the completed-child precondition;
+        `src/test-support/coordinator.test.ts` for the mixed-outcome control; the
+        archive-immutability, write-population, and examples/README byte freezes; and the
+        `--fail-on warnings` lint of the archived bundle. (2) `bun run validate:examples` for the
+        polyglot CLI behavior, separate from the byte freeze. (3) The whole-CI instrument
+        `bun run validate:ci`, run at the plan's `TargetAssertions` `MustPassCommand` under
+        `--assertions final --run-commands` and again as the close-bound `AC-CI-GREEN`. (4) The
+        plan-time discrimination proof for `AC-REPAIR-DISCRIMINATION` on independent physical probe
+        copies: original method under a controlled child delay is red with the specific timing
+        assertion, the repaired method under the same delay is green with one matched test and no
+        failure, and byte-exact restoration and replay reproduce the normal base behavior; both
+        spec-pinned runtime digests are verified at source and in each space before and after.
+        Verification scope pairs each changed module with its verification anchor: `M-REVIEW` with
+        `V-M-REVIEW`, `M-LOCALIZE` with `V-M-LOCALIZE`, `M-CURSOR` with `V-M-CURSOR`, and
+        `M-TEST-SUPPORT` with `V-M-TEST-SUPPORT`. At this draft stage the whole-population figures are
+        dated measurements, not criteria, and the controlled-delay proof is a plan duty on independent
+        physical copies. No full suite is executed at this draft stage.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      This bundle is the **review + fixture slice** of the C3 successor, dispatched after production
+      C3 was **superseded before production execution or apply**. Its spec and draft plan were stamped
+      `superseded`; its design and ledger were archived byte-unchanged, with no production run. A
+      private faithful rehearsal of the 25-path candidate did reach a
+      post-close prototype, but that rehearsal is **private evidence, not shipped behavior**. The
+      authority superseded C3 with the sanctioned verbs and checkpointed the transition at
+      `2a2639b936176a26b16f4338ef3c18a90158ee40`; the original mint receipt recorded `mint-search: 1
+      active, 2 archive prior bundle(s) share slug HISTORICAL-ASSERTION-REVIEW`, carried verbatim here
+      and never remeasured after the supersede. The reason for the split is the verified budget and
+      report history: six plan returns without an accepted governed report, not a finding that the
+      source population was impossible to close. This slice covers the historical-review notices
+      and their preserved integrity checks, the two inherited-fixture repairs, the localization owner
+      C3 forced but omitted from its module lists, and fresh per-slice guards.
+
+      **The two measured problems.** The first is the current production baseline: three
+      `review.confidently-wrong` errors report archived plans' `MustExist` claims against a retired
+      `test-metrics.json` — two in `C-MINT-BASELINE-CONTROL-3-F04434E4` and one in
+      `C-TEST-TIME-BUDGET-4-F173437E` — and the review catalog/localization population had to change
+      with them. The second is the two inherited fixture races observed in the **private** rehearsal:
+      the cursor completed-child diagnostic failed with `state=running`, `exitCode=null`,
+      `signal=SIGKILL`, and the coordinator mixed-outcome control failed with the quick worker marked
+      `timedOut=true`, both fixtures inferring completion from incidental timing rather than awaiting a
+      real child. This six-file union addresses both categories before the first close; it is a
+      candidate, not C4 lifecycle acceptance.
+
+      **The localization owner C3 omitted.** C3 forced `src/verification/localize.test.ts` but left its
+      `M-LOCALIZE` owner out of the module lists. This slice repairs that omission: `M-LOCALIZE` /
+      `V-M-LOCALIZE` appear in every module enumeration, and the localization test is bound as a
+      forced path. The runtime `src/verification/localize.ts` is not written.
+
+      **The split.** The archive/current boundary (grammar/query/index/status/context, including the
+      malformed-active grammar leaf of the current-obligations criterion; 8 paths) is bundle B. The
+      applied-scope/view reader (5 paths) is bundle C. The selected-close gate (2 paths) is bundle E;
+      production gate hardening is **not** shipped — current production `src/gates/ledger.ts:546-581`
+      still selects the first `CloseEvidence` child and returns early on a missing wrapper, spec, or
+      root, and the private donor's strict applied-archive refusal and aggregation is unshipped
+      prototype work. The canonical/packaged skill and documentation footprint (4 paths) is bundle F.
+      Every inherited obligation keeps an explicit owner; the complete 22-criterion map lives in the
+      explanatory design context. The omnibus current-obligations criterion decomposes into its review
+      leaf (here) and its grammar leaf (bundle B). No payment is added.
+
+      **Boundary and guards.** The purpose/dependency boundary is unchanged: archives are historical
+      metadata; an archived literal existence claim is an informational audit; current obligations
+      stay strict. The guard baseline is the new checkpoint `2a2639b…`, which already contains C3's
+      archive arrival; every archive present there is frozen, and only C4's own arrival is excluded.
+      The write population is exactly the six paths above plus C4's own lifecycle. The
+      archive-immutability, write-population, lint, and CI guards are fresh to this bundle; each later
+      bundle re-derives its own against its own checkpoint and baseline.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        C4 provenance: minted by the sanctioned verbs on branch `feat/archive-compatibility`, wrapper
+        `C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D`, `graceVersion="1.0"`, minted skeleton SHA-256
+        `d1f8e90d5f23a22152428fbbe94debc3cf1a1e4a6031e380364a2f6e9b5018f1`. The transition checkpoint
+        is `2a2639b936176a26b16f4338ef3c18a90158ee40`, which contains C3's archive arrival. The mint
+        receipt `mint-search: 1 active, 2 archive prior bundle(s) share slug
+        HISTORICAL-ASSERTION-REVIEW` is carried verbatim. These are lineage facts, not criteria.
+      </Assumption>
+      <Assumption>
+        Production C3 was superseded, not closed: its bundle is archived `superseded` and was never
+        applied. Its predecessor artifacts are frozen and unmodified: C3 archived spec
+        `c01f919480cfff336d49d29def1b0896b17073f39f99f1a369daec071c4ab093`, plan
+        `47684dab3c842863bf238acd3dde85eb1e0be7aa264157dbeeba2d866a10a456`, design
+        `fb186cf3889aed4973eced321db449e384095bcab0bb357d9ff8ae985e1e43a6`, ledger
+        `8b678494c40d9d0c1a9aec8801cb1e490df83e48fad2fdf45842e15a63637462`. The C3 spec was
+        normalized to its original bytes by reversing only status and the verb-inserted Replacement
+        before the bounded C4 narrowing; the normalized lineage diff is reported with the C4 draft.
+      </Assumption>
+      <Assumption>
+        Dated predecessor evidence, preserved as history and not a C4 measurement: the complete
+        25-path **private** candidate independently passed all 26 task commands and a real post-archive
+        CI rehearsal (2502 pass / 9 skip / 0 fail, 2511 tests across 69 files). That is evidence about
+        C3's private rehearsal population, not shipped behavior and not about this six-path slice; C4
+        final and post-close CI remain for later governed stages. The private source donors are byte
+        sources only; no donor Git history or tracked dependency alias is imported.
+      </Assumption>
+      <Assumption>
+        The inherited-obligation map and the remaining split (archive/current 8 paths, applied-scope/
+        view 5, selected-close gate 2, canonical/packaged skill and documentation 4) live in the
+        explanatory design context and in the authority's split facts. The later bundles' ids are not
+        minted; only their explanatory ordering is recorded. No source write occurs in this dispatch.
+      </Assumption>
+    </Assumptions>
+  </C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D>
+</NgraceChangeSpec>
