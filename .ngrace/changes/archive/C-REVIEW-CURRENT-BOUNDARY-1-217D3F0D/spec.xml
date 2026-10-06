@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D><Replacement>C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713</Replacement>
     <Summary>
       Second small slice of the current-only CLI policy recorded in `AGENTS.md` and confirmed by the
       withdrawn compatibility campaign in
