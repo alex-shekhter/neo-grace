@@ -57,8 +57,8 @@ sequencing; nothing here is blocked by anything else on this page.
 The [GRACE implementation findings queue](./active/RM-GOVERNED-PATH/grace-implementation-queue.md)
 records the merged-tree check of block markers, source annotations, logging,
 PILOT evidence, the unscheduled first-class diagram teaching/validation question, and
-historical archive compatibility. The 2026-10-01 compatibility entry calls for immediate
-empirical derivation and prompt governed repair of confirmed defects. The queue is a
+the 2026-10-03 withdrawal of historical archive compatibility. The queue instead directs
+removal of archive dependencies through small governed bundles. It is a
 non-normative supplement to the existing D29 charters and PILOT review; it ratifies no
 new implementation mechanism or bundle identity.
 
