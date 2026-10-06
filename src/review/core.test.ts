@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { GraceCommandError } from "../query/errors";
 import { collectProjectStatus } from "../grace-status";
 
-import { validateRunLedgerArtifact } from "../artifact/grammar";
+import { validateChangeArtifact, validateRunLedgerArtifact } from "../artifact/grammar";
 import { writeChangeBundleFixture, writeMinimalNgraceProject } from "../artifact/test-fixtures";
 import { ARTIFACT_DIR } from "../artifact/paths";
 import { parseGraceXmlArtifact } from "../artifact/xml";
@@ -1974,40 +1974,97 @@ function evidenceMap(entries: Array<[string, string]>): Record<string, string> {
 /** Retired code — must never appear in catalog or live findings after the rename. */
 const RETIRED_ATTEMPT_PAIR_CODE = "review.attempt-pair-unsubstantiated";
 
-/**
- * Authoring-time archive C-* set (plan D0 / HEAD 098783b). Frozen so a silent
- * vanish from the corpus is caught; total count is not pinned to 26.
- */
-const AUTHORING_ARCHIVE_C_IDS = [
-  "C-ABSENCE-VALUE",
-  "C-ADOPTION-SURFACE",
-  "C-ATTEMPT-LOG",
-  "C-CALIBRATION",
-  "C-CALIBRATION-COMMAND-EVIDENCE",
-  "C-CALIBRATION-CONTEXT",
-  "C-CALIBRATION-PROVENANCE",
-  "C-CURSOR-INTEGRITY",
-  "C-ESCALATION-HONESTY",
-  "C-EXECUTION-CONTRACT",
-  "C-FAILURE-LOCALIZATION",
-  "C-FLAG-HONESTY",
-  "C-GATE-RECORD-ABSENCE",
-  "C-GATE-SURFACE",
-  "C-GRAPH-COVERAGE",
-  "C-LEDGER-READ-ABSENCE",
-  "C-LEGIBLE-FAILURE",
-  "C-OBSERVABLE-CHECKS",
-  "C-PLAN-QUALITY",
-  "C-RECOVER-FOLDABLE",
-  "C-REPORT-HONESTY",
-  "C-REVIEW-LANGUAGE-SCOPE",
-  "C-REVIEW-SURFACE",
-  "C-RUN-LEDGER",
-  "C-SELECTION",
-  "C-TOKEN-INTEGRITY",
-] as const;
+/** SHA-256 of controlled synthetic source bytes, used as a WriteEvidence digest. */
+function syntheticSourceDigest(content: string): string {
+  return createHash("sha256").update(content, "utf8").digest("hex");
+}
 
-const HISTORICAL_CLOSE_C_IDS = [...AUTHORING_ARCHIVE_C_IDS, "C-SUBSTANTIATION-HONESTY"] as const;
+/**
+ * Distinct validated-fixture builder for the synthetic pair-regression controls.
+ * Writes a schema-valid archived bundle: an applied spec, an applied plan, and a
+ * closed run-ledger carrying one recorded fail/pass attempt pair with explicit
+ * non-artifact source digests. The allocation is contiguous and a terminal event
+ * closes the range, so the ledger validates with zero issues. Distinct from the
+ * incomplete `writeLedgerEvents` helper (whose other consumers are unchanged).
+ */
+function writeValidatedSyntheticPairBundle(
+  root: string,
+  options: {
+    changeId: string;
+    failDigest: string;
+    passDigest: string;
+    task?: string;
+    failEventId?: number;
+    passEventId?: number;
+  },
+): {
+  changeId: string;
+  bundleDir: string;
+  specPath: string;
+  planPath: string;
+  ledgerPath: string;
+  task: string;
+  failEventId: number;
+  passEventId: number;
+} {
+  const task = options.task ?? "T-001";
+  const failEventId = options.failEventId ?? 2;
+  const passEventId = options.passEventId ?? 3;
+  const terminalEventId = passEventId + 1;
+  writeFileSync(path.join(root, "src/example.ts"), `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`);
+  writeChangeBundleFixture(root, {
+    changeId: options.changeId,
+    location: "archive",
+    specStatus: "applied",
+    planStatus: "applied",
+  });
+  const bundleDir = path.join(root, ARTIFACT_DIR, "changes", "archive", options.changeId);
+  writeFileSync(path.join(bundleDir, "plan.xml"), readFileSync(path.join(bundleDir, "plan.xml"), "utf8").replaceAll("T-001", task));
+  const ledgerPath = path.join(bundleDir, "run-ledger.xml");
+  const events = [
+    `<Event id="${failEventId}" task="${task}" kind="attempt" outcome="fail">`
+      + `<WriteEvidence available="true"><File digest="${options.failDigest}">src/example.ts</File></WriteEvidence></Event>`,
+    `<Event id="${passEventId}" task="${task}" kind="attempt" outcome="pass">`
+      + `<WriteEvidence available="true"><File digest="${options.passDigest}">src/example.ts</File></WriteEvidence></Event>`,
+    `<Event id="${terminalEventId}" task="${task}" kind="terminal" />`,
+  ].join("");
+  writeFileSync(
+    ledgerPath,
+    `<NgraceRunLedger graceVersion="1.0"><${options.changeId}><Epoch-1>`
+      + `<Allocation worker="w0" from="${failEventId}" to="${terminalEventId}" />`
+      + `${events}</Epoch-1></${options.changeId}></NgraceRunLedger>`,
+  );
+  return {
+    changeId: options.changeId,
+    bundleDir,
+    specPath: path.join(bundleDir, "spec.xml"),
+    planPath: path.join(bundleDir, "plan.xml"),
+    ledgerPath,
+    task,
+    failEventId,
+    passEventId,
+  };
+}
+
+/**
+ * Assert the selected synthetic spec, plan, and run-ledger exist, then parse each
+ * and run its shipped validator directly, requiring zero issues. Project-wide
+ * validation skips archived members and is not a substitute for this proof.
+ */
+function expectSelectedSyntheticArtifactsValid(
+  fixture: { specPath: string; planPath: string; ledgerPath: string },
+  projectRoot: string,
+): void {
+  expect(existsSync(fixture.specPath)).toBe(true);
+  expect(existsSync(fixture.planPath)).toBe(true);
+  expect(existsSync(fixture.ledgerPath)).toBe(true);
+  const spec = parseGraceXmlArtifact(fixture.specPath, readFileSync(fixture.specPath, "utf8"));
+  const plan = parseGraceXmlArtifact(fixture.planPath, readFileSync(fixture.planPath, "utf8"));
+  const ledger = parseGraceXmlArtifact(fixture.ledgerPath, readFileSync(fixture.ledgerPath, "utf8"));
+  expect(validateChangeArtifact(spec, "archive", projectRoot).issues).toEqual([]);
+  expect(validateChangeArtifact(plan, "archive", projectRoot).issues).toEqual([]);
+  expect(validateRunLedgerArtifact(ledger).issues).toEqual([]);
+}
 
 describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
   it("identical-tree must raise: pure identical non-.ngrace digests", () => {
@@ -2172,99 +2229,70 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     expect(findings).toHaveLength(0);
   });
 
-  it("live archive pairs that raised under the old rule are silent under both codes", () => {
-    const repoRoot = path.resolve(import.meta.dir, "../..");
-    const token = runReview(repoRoot, {
-      changeId: "C-TOKEN-INTEGRITY",
+  it("synthetic pair replacement: changed source digests stay silent for both codes over a nonzero audited pair", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    const fixture = writeValidatedSyntheticPairBundle(root, {
+      changeId: "C-SYNTHETIC-PAIR-CHANGED",
+      failDigest: syntheticSourceDigest("export const marker = \"fail-tree\";\n"),
+      passDigest: syntheticSourceDigest("export const marker = \"pass-tree\";\n"),
+    });
+    expectSelectedSyntheticArtifactsValid(fixture, root);
+
+    const report = runReview(root, {
+      changeId: fixture.changeId,
       changedFiles: [],
       patterns: false,
       joinEngine: false,
     });
-    const tokenLive = token.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE);
-    const tokenRetired = token.findings.filter((f) => f.code === RETIRED_ATTEMPT_PAIR_CODE);
-    expect(tokenLive).toHaveLength(0);
-    expect(tokenRetired).toHaveLength(0);
-
-    const cursor = runReview(repoRoot, {
-      changeId: "C-CURSOR-INTEGRITY",
-      changedFiles: [],
-      patterns: false,
-      joinEngine: false,
-    });
-    expect(cursor.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE)).toHaveLength(0);
-    expect(cursor.findings.filter((f) => f.code === RETIRED_ATTEMPT_PAIR_CODE)).toHaveLength(0);
+    expect(report.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE)).toHaveLength(0);
+    expect(report.findings.filter((f) => f.code === RETIRED_ATTEMPT_PAIR_CODE)).toHaveLength(0);
+    expect(report.attemptPairAudit?.status).toBe("ran");
+    expect(report.attemptPairAudit?.pairCount ?? 0).toBeGreaterThan(0);
   });
 
-  it("historical close corpus: zero live and retired findings on the frozen 27", () => {
-    const repoRoot = path.resolve(import.meta.dir, "../..");
-    const archiveDir = path.join(repoRoot, ".ngrace/changes/archive");
-    const dirs = readdirSync(archiveDir).filter((name) => {
-      if (!name.startsWith("C-")) return false;
-      return statSync(path.join(archiveDir, name)).isDirectory();
+  it("synthetic pair replacement: equal source digests yield exactly one real-CLI warning at the declared anchor", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    // The marker detector reads runtime emission, not the block-marker comment.
+    writeFileSync(
+      path.join(root, "src/example.ts"),
+      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
+    );
+    const identicalBytes = "export const marker = \"identical-tree\";\n";
+    const fixture = writeValidatedSyntheticPairBundle(root, {
+      changeId: "C-SYNTHETIC-PAIR-EQUAL",
+      failDigest: syntheticSourceDigest(identicalBytes),
+      passDigest: syntheticSourceDigest(identicalBytes),
+      task: "T-007",
+      failEventId: 14,
+      passEventId: 15,
     });
-    for (const id of HISTORICAL_CLOSE_C_IDS) {
-      expect(dirs).toContain(id);
-    }
-    let totalLive = 0;
-    let totalRetired = 0;
-    for (const id of HISTORICAL_CLOSE_C_IDS) {
-      const report = runReview(repoRoot, {
-        changeId: id,
-        changedFiles: [],
-        patterns: false,
-        joinEngine: false,
-      });
-      const live = report.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE);
-      const retired = report.findings.filter((f) => f.code === RETIRED_ATTEMPT_PAIR_CODE);
-      expect(live).toHaveLength(0);
-      expect(retired).toHaveLength(0);
-      totalLive += live.length;
-      totalRetired += retired.length;
-    }
-    expect(totalLive).toBe(0);
-    expect(totalRetired).toBe(0);
-  });
+    expectSelectedSyntheticArtifactsValid(fixture, root);
 
-  it("complete archive retired code: zero retired findings over every current C-*", () => {
-    const repoRoot = path.resolve(import.meta.dir, "../..");
-    const archiveDir = path.join(repoRoot, ".ngrace/changes/archive");
-    const dirs = readdirSync(archiveDir).filter((name) => {
-      if (!name.startsWith("C-")) return false;
-      return statSync(path.join(archiveDir, name)).isDirectory();
-    });
-    let totalRetired = 0;
-    for (const id of dirs) {
-      const report = runReview(repoRoot, {
-        changeId: id,
-        changedFiles: [],
-        patterns: false,
-        joinEngine: false,
-      });
-      const retired = report.findings.filter((f) => f.code === RETIRED_ATTEMPT_PAIR_CODE);
-      expect(retired).toHaveLength(0);
-      totalRetired += retired.length;
-    }
-    expect(totalRetired).toBe(0);
-  });
-
-  it("T-005 warning remains observable through the real CLI", () => {
     const repoRoot = path.resolve(import.meta.dir, "../..");
     const result = spawnSync(
       "bun",
-      ["run", "./src/grace.ts", "review", "--path", ".", "--change", "C-DECLARATION-GUARD-RETIRE-1-C69B6AB6", "--format", "json"],
-      { cwd: repoRoot, encoding: "utf8" },
+      ["run", path.join(repoRoot, "src/grace.ts"), "review", "--path", root, "--change", fixture.changeId, "--format", "json"],
+      { cwd: root, encoding: "utf8" },
     );
-    // The finding is a warning: the guard reads the finding, never the process exit status, and
-    // never depends on unrelated error counts. C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B
-    const report = JSON.parse(result.stdout) as { findings: ReviewFinding[] };
+    expect(result.status, result.stderr).toBe(0);
+    const report = JSON.parse(result.stdout) as {
+      findings: ReviewFinding[];
+      attemptPairAudit?: { status?: string; pairCount?: number };
+    };
     const findings = report.findings.filter((f) => f.code === ATTEMPT_PAIR_FINDING_CODE);
     expect(findings).toHaveLength(1);
     const finding = findings[0]!;
-    expect(finding.anchorOrHunkKey).toBe("attempt-pair:T-005:14->15");
-    const bundleDir = ".ngrace/changes/archive/C-DECLARATION-GUARD-RETIRE-1-C69B6AB6";
+    expect(finding.anchorOrHunkKey).toBe(
+      `attempt-pair:${fixture.task}:${fixture.failEventId}->${fixture.passEventId}`,
+    );
+    const bundleDir = `.ngrace/changes/archive/${fixture.changeId}`;
     expect(finding.file === `${bundleDir}/run` || finding.file === `${bundleDir}/run-ledger.xml`).toBe(true);
     expect(finding.severity).toBe("warning");
     expect(finding.findingId).toMatch(/^[a-f0-9]{16}$/);
+    expect(report.attemptPairAudit?.status).toBe("ran");
+    expect(report.attemptPairAudit?.pairCount ?? 0).toBeGreaterThan(0);
   });
 
   it("warning-only review exits zero, errors exit one", () => {
