@@ -1,0 +1,247 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-PLANNING-PHASE-TEACHING-1-CBE5DFAD>
+    <IntentSummary>
+      A single-task plan for approved `C-PLANNING-PHASE-TEACHING-1-CBE5DFAD`. `T-001` repairs the two
+      defective rule-19 passages in `skills/ngrace/ngrace-plan/SKILL.md` and its packaged mirror, corrects
+      the teaching checker's stale-cause needle and adds a private, recursive, whitespace-normalized phase
+      guard integrated through the existing `runTeachingSurfaceCheck` entrypoint in
+      `scripts/check-teaching-surface.ts` and `scripts/check-teaching-surface.test.ts`, re-measures and
+      transcribes the strict canonical `SKILL.md` footprint pins and the `README.md` cell, and proves
+      canonical/mirror parity — exactly the six approved product paths and no seventh file. The full
+      CI-equivalent verification (`bun run validate:ci`, `bun run validate:cli`, `bun run release:check`)
+      is bound in `TargetAssertions` and runs only at EXECUTE under the single selected outer
+      `--assertions final --run-commands`; `T-001`'s own `Verification` is the narrow teaching/footprint
+      pair plus mirror parity. Preservation is the approved spec's exact Guard A and Guard B close
+      instruments against frozen base `3d0bc291fd7b341aacbcdeb6d5176eb9f0d818df`: every base-tracked path
+      outside the six product files and this bundle's own active/archive lifecycle directories, and every
+      pre-existing archive byte and file/directory/root, is preserved, admitting only the exact sanctioned
+      own archive arrival. `ngrace plan new` mints no BaseCommit field: the Guard base is frozen and
+      distinct from the Git HEAD that a permitting `gate approve` records.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-SKILLS</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-TEST-SUPPORT</Value>
+      </MustExist>
+      <MustExist>
+        <Value>skills/ngrace/ngrace-plan/SKILL.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/check-teaching-surface.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/check-teaching-surface.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/test-support/token-accounting.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/test-support/token-accounting.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>README.md</Value>
+      </MustExist>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>narrowest instrument</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>close-time only</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>close-time only</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>skills/ngrace/ngrace-plan/SKILL.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/check-teaching-surface.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/check-teaching-surface.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/test-support/token-accounting.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>README.md</Value>
+      </MustExist>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>is not run at PLAN</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>is not run at PLAN</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>necessary ignored/untracked inputs</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>necessary ignored/untracked inputs</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>and the full CI in a faithful post-close copy at plan time</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>and the full CI in a faithful post-close copy at plan time</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>because without it `review.confidently-wrong` fires on archived plans</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>because without it `review.confidently-wrong` fires on archived plans</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>checkStalePlanPhaseClaims</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+        <Command>bun run validate:cli</Command>
+        <Command>bun run release:check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Align PLAN rule 19 with rule 20, add discriminating phase guards, and refresh the measured footprint</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            Passage A (full CI at PLAN) is replaced in `skills/ngrace/ngrace-plan/SKILL.md` and
+            `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md`. The exact removed bytes are
+            "Also drive the spec's `CloseEvidence` commands and the full CI in a faithful post-close copy
+            at plan time, not only against the pre-close tree;". The exact replacement bytes are
+            "Also drive the spec's narrow `CloseEvidence` commands on a faithful post-close copy at plan
+            time, not only against the pre-close tree; the full CI-equivalent verification is EXECUTE
+            close-time evidence and is not run at PLAN; independent full CI-equivalent verification on a faithfully applied and archived copy is also EXECUTE acceptance work, using direct CI commands separately from the active selected outer final gate;". Rule 20 and every other rule-19 obligation are
+            left unchanged, and no other planner rule is reworded.
+          </Criterion>
+          <Criterion>
+            Passage B (obsolete archived-scratch causality) is replaced in both trees. The exact removed
+            bytes are "The faithful post-close copy carries `.ngrace/scratch` read-only, because without
+            it `review.confidently-wrong` fires on archived plans whose `BaselineAssertions` `MustExist`
+            the buffer path and a planner reads defects the production tree does not show.". The exact
+            replacement bytes are "A faithful post-close copy carries the actual declared inputs and
+            dependencies the selected evidence reads, the applicable VCS state, and the necessary
+            ignored/untracked inputs; a copy missing a declared input measures a state the selected
+            commands cannot evaluate.". No archive reader, schema dispatch, or repository-specific record
+            pipeline is introduced.
+          </Criterion>
+          <Criterion>
+            In `scripts/check-teaching-surface.ts` and the mirrored `TAUGHT_RULES` table in
+            `scripts/check-teaching-surface.test.ts`, the stale-cause needle
+            `{ skill: "ngrace-plan", section: "must_do", token: "review.confidently-wrong" }` becomes
+            `{ skill: "ngrace-plan", section: "must_do", token: "necessary ignored/untracked inputs" }`,
+            and a positive phase needle `{ skill: "ngrace-plan", section: "must_do", token: "is not run
+            at PLAN" }` is added. Both positive tokens are required at the `ngrace-plan` `must_do` home,
+            never merely elsewhere in the file; both are absent from the pre-repair `ngrace-plan`
+            `SKILL.md`, so each removal is discriminating. The test's red-direction needle lists gain
+            both new needles.
+          </Criterion>
+          <Criterion>
+            `scripts/check-teaching-surface.ts` gains a PRIVATE `checkStalePlanPhaseClaims(root)` — not
+            exported, no new helper file, no new runtime export, no spec amendment. Its private inventory
+            recursively collects every `SKILL.md` under both `skills/ngrace` and
+            `plugins/ngrace/skills/ngrace`, including nested files; it must not reuse or claim the existing
+            shallow `skillFilesUnder` enumerator, whose behavior for its other callers stays unchanged. It
+            whitespace-normalizes both the file body and each forbidden fragment (collapsing runs of
+            whitespace to one space) before literal matching, so a wrapped exact fragment cannot evade it;
+            it claims no natural-language paraphrase detection. It returns non-zero through the existing
+            `refuseDiagnostic` convention, naming the root-relative file and the matched fragment, when
+            either stale passage is present: "and the full CI in a faithful post-close copy at plan time"
+            or "because without it `review.confidently-wrong` fires on archived plans". It is wired into the
+            existing `runTeachingSurfaceCheck(root)` entrypoint ahead of the shipped checks, and its
+            integration is tested by calling `runTeachingSurfaceCheck`, not by exporting it. It is a new
+            guard, not the existing `checkStaleReviewClaims` (which still guards its separate
+            `decisions.md` claim). The test file gains clean controls plus a planted-violation case for
+            each forbidden fragment, its whitespace-wrapped form, and a nested `SKILL.md`, in each tree,
+            with benign no-CI and quoted exact-fragment controls, and a real-repository green test. The
+            `checkStalePlanPhaseClaims` token in `TargetAssertions` is structural evidence only: it proves
+            the guard's name is present, never that the guard runs or discriminates.
+          </Criterion>
+          <Criterion>
+            The canonical skill-text footprint is re-measured with the unchanged, read-only instrument
+            `src/test-support/token-accounting.ts`, and the measured final `skillTextLines().total` and
+            `.totalBytes` are transcribed into the strict numeric pins in
+            `src/test-support/token-accounting.test.ts` and the `README.md` measurement cell until all
+            three agree. No pin is deleted or loosened, no figure is projected, and the D15 line/byte
+            semantics are not redefined. The explanatory ledger comment in the test gains the bundle's
+            measured line/byte movement.
+          </Criterion>
+          <Criterion>
+            Behavioral red-before-repair and green-after, in this order. First capture the OLD product
+            before any EXECUTE product repair: on the unrepaired tree the existing checker admits the stale
+            teaching (observed exit 0), and a native target query refuses the old phase/copy content, with
+            its content findings (missing positive tokens and present forbidden fragments) as the
+            behavioral discriminator. A helper-name-only, compile, import, or missing-symbol failure is not
+            red evidence. Installing the new guard and then refusing before the skill text is recast is a
+            separate intermediate check, not the original-code red. Then replace both passages, re-measure
+            and transcribe the footprint pins and README cell, and obtain final green. Independent of the
+            executor-authored tests, drive the real checker (`bun run validate:teaching-surface`) on
+            complete disposable copies: plant each forbidden fragment and its wrapped form in each tree,
+            plant a nested `SKILL.md`, and remove each positive phase token; observe refusal and
+            restoration. Canonical/mirror parity is re-checked after both copies move.
+          </Criterion>
+          <Criterion>
+            `skills/ngrace/ngrace-plan/SKILL.md` and
+            `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md` are byte-identical. Relative to
+            preservation base `3d0bc291fd7b341aacbcdeb6d5176eb9f0d818df`, every base-tracked path outside
+            the exact six product files and this bundle's exact own active/archive lifecycle directories
+            is byte-identical, no deleted or newly tracked path exists outside that allowed set, and every
+            pre-existing byte and file/directory/root inventory under `.ngrace/changes/archive/` and
+            `docs/plans/archive/` is preserved, admitting only the exact sanctioned own
+            `.ngrace/changes/archive/C-PLANNING-PHASE-TEACHING-1-CBE5DFAD` arrival. These are the approved
+            spec's exact Guard A and Guard B CloseEvidence commands, reused unchanged at the same base. No
+            seventh product file, new runtime export, or graph/verification edit is introduced. This
+            single task covers all six product paths.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/check-teaching-surface.test.ts src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-PLAN-PHASE-CONTRACT />
+          <AC-FAITHFUL-COPY-RECAST />
+        </Satisfies>
+      </T-001>
+    </ImplementationPlan>
+  </C-PLANNING-PHASE-TEACHING-1-CBE5DFAD>
+</NgraceChangePlan>
