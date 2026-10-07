@@ -1,0 +1,156 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    This bundle is the second small slice of the current-only CLI policy and the gates/query portion of
+    the superseded `C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D` design. The normative source of truth is
+    `spec.xml`; nothing here adds a requirement, and every binding obligation is repeated in the spec's
+    acceptance criteria and scope.
+
+    Two audit findings shape the selected-close design. First, the existing evaluator's
+    `isAppliedArchiveBundle` early return means a missing or invalid spec, or a present non-applied
+    status, never reaches validation; the validator must classify the selected directory phase before it
+    reads parsed status. Second, the selected-close verdict consumer never calls the exported validator,
+    so invalid explicit evidence is silently skipped or only its first block runs while the verdict still
+    records `pass`. A direct empty `CloseEvidence` and a whitespace-only direct `Command` are already
+    error-severity `change.close-evidence-incomplete` findings of `validateChangeArtifact` and are answered
+    by calling it. A legacy `&lt;Criterion&gt;` carrying `CloseEvidence`, a `CloseEvidence` nested below its
+    `AC-*`, and a duplicate complete direct `CloseEvidence` block are not detected by the exported
+    validator and require a narrow local evidence-consumption guard in the already-scoped
+    `src/gates/ledger.ts` and its companion test.
+
+    The applied Verdict's direct children are its `Finding` and `Ack` nodes plus one `AC-*` evaluation node
+    per close-bound criterion; each evaluation node carries `Exit` and `Result` children
+    (`src/gates/ledger.ts:572-580`, assembled at `:533`). The originating anchor is
+    `C-CRITERION-CLOSE-EVIDENCE`'s `AC-EVALUATED-AT-CLOSE` (`spec.xml:478-497`, task `T-003` at
+    `plan.xml:382-405`); `C-BOUND-VERDICT`'s `spec.xml:1688-1697` is a confirming Assumption that those
+    children remain beside `Finding` and `Ack`, not the originating criterion.
+
+    The query repair is small and symmetric: `collectChangeView` currently decides archive phase from an
+    absolute-path `changes/archive` substring, so a project root or bundle path that contains those
+    directory names misclassifies an active bundle. Deriving the phase from the resolved project's bundle
+    path removes the substring dependence without a new export.
+
+    The reviewed conceptual diagrams below are explanatory. They are not instructions to introduce new
+    classes. Every binding behaviour is repeated in the spec's acceptance criteria. These project-local
+    Commands use the configured POSIX shell and Bun, with no Windows-runner guarantee or CLI runner change.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Expand the shared grammar in `src/artifact/grammar.ts` so `validateChangeArtifact` itself rejects a
+      legacy `CloseEvidence`, a duplicate direct `CloseEvidence`, and nested `CloseEvidence`. Rejected: it
+      grows the agreed four-file slice into a shared-grammar change and its tests, changes the exported
+      contract for every consumer, and risks tightening consumers beyond the selected close. The local
+      guard keeps the change inside `src/gates/ledger.ts` and `src/gates/core.test.ts`.
+    </Alternative>
+    <Alternative>
+      Add a gate-verdict warning channel so the selected validator can report advisory warnings. Rejected:
+      it requires a new output contract and likely forces the gate command surface into scope beyond the
+      four paths, and the warning families are deliberately advisory and non-refusing.
+    </Alternative>
+    <Alternative>
+      Use `validateNgraceProject` or enumerate archives to validate the selected record through the
+      whole-project surface. Rejected: the whole-project validator walks active and archive directories and
+      is deliberately opaque on archives; it would re-introduce archive discovery and validate unrelated
+      bundles rather than only the selected record.
+    </Alternative>
+    <Alternative>
+      Make every warning-severity issue refuse the selected close. Rejected: those choices are deliberately
+      non-refusing, and rejecting them is unrelated to preventing malformed or silently skipped selected
+      evidence.
+    </Alternative>
+    <Alternative>
+      Rely on the tracked `git diff` alone for archive preservation and bounded writes. Rejected: probing
+      showed a byte edited under `--assume-unchanged` or `--skip-worktree` escapes the tracked diff, and an
+      untracked file escapes it too; the retained instruments read base blob bytes and filesystem bytes
+      directly and inventory every actual archive file by exact path.
+    </Alternative>
+    <Alternative>
+      Fix only the query classifier and defer the selected-close strictness, or vice versa. Rejected: both
+      defects share one boundary and are small, the policy forbids carrying a known defect forward, and the
+      maintainer authorized this second slice for exactly these two modules.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      Whether the selected-close refusals throw distinct reason tokens or one shared invalid-selected-record
+      reason is plan/implementation detail; the binding requirement is that the write is refused before
+      commands run and the ledger bytes are unchanged or absent.
+    </Decision>
+    <Decision>
+      The exact post-change population of acceptance criteria, close-bound criteria, `CloseEvidence` blocks,
+      and `Command` identities is measured through the shipped parser after implementation; no figure is
+      projected here.
+    </Decision>
+    <Decision>
+      The query repair and the gates repair do not share a new helper. If a shared phase utility were
+      extracted it would create a new export outside the four paths and force a fifth file; the spec keeps
+      the phase decision local to each already-scoped file.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Reviewed sequence diagram (stored verbatim; explanatory only).
+
+      sequenceDiagram
+    participant CLI
+    participant Bundle as Selected bundle
+    participant Validator as Existing validators
+    participant Guard as Evidence binding guard
+    participant Shell
+    participant Ledger
+    CLI-&gt;&gt;Bundle: Resolve project-relative phase
+    Bundle-&gt;&gt;Bundle: Snapshot directory, spec, plan, ledger
+    alt Selected archive
+        Bundle-&gt;&gt;Validator: Validate applied spec/plan and coverage
+        Validator-&gt;&gt;Guard: Check direct evidence bindings
+        Guard--&gt;&gt;Bundle: Accept or refuse before commands
+        alt Validation refuses
+            Bundle--&gt;&gt;CLI: Refuse without commands or append
+        else Validation accepts
+            Bundle-&gt;&gt;Shell: Evaluate all bound criteria
+            Bundle-&gt;&gt;Ledger: Recheck snapshot before writing
+            Ledger--&gt;&gt;CLI: Verdict or refusal
+        end
+    else Active
+        Bundle-&gt;&gt;Bundle: Preserve evidence inertness
+        Bundle-&gt;&gt;Ledger: Recheck snapshot before writing
+        Ledger--&gt;&gt;CLI: Verdict or refusal
+    end
+    </Scenario>
+    <Scenario>
+      Reviewed class diagram (stored verbatim; explanatory only).
+
+      classDiagram
+    VerdictWriter --&gt; SelectedBundle
+    SelectedBundle --&gt; ProjectRelativePhase
+    SelectedBundle --&gt; DecisionSnapshot
+    VerdictWriter --&gt; SelectedArtifactValidators
+    SelectedArtifactValidators --&gt; EvidenceBindingGuard
+    VerdictWriter --&gt; CloseEvidenceEvaluator
+    CloseEvidenceEvaluator --&gt; ShellRunner
+    VerdictWriter --&gt; LedgerWriter
+    ChangeView --&gt; ProjectRelativePhase
+    </Scenario>
+    <Scenario>
+      Selected-close refusal scenario. A bundle is created, approved, and applied through the real CLI, then
+      its selected `spec.xml` or `plan.xml` is mutated one input at a time: missing spec, malformed spec XML,
+      wrong root tag, wrapper id not equal to the directory or `--change`, missing required section, empty
+      criterion, explicit incomplete `CloseEvidence`, a legacy `&lt;Criterion&gt;` carrying an explicit
+      `CloseEvidence`, two direct `CloseEvidence` blocks on one `AC-*`, nested `CloseEvidence`, a present
+      non-applied status, missing plan, malformed plan, and plan id mismatch. Each mutation makes
+      `ngrace gate verdict --outcome pass` refuse and leaves `run-ledger.xml` byte-identical (or absent), and
+      exact restoration restores the passing result. A Command that mutates the selected plan bytes during
+      evaluation is refused by the plan-byte snapshot guard. The failing-command control still refuses with an
+      unchanged ledger, and a legitimate `outcome=fail` still records the failed-command evaluations.
+    </Scenario>
+    <Scenario>
+      Preservation-guard scenario on a disposable copy at base. Guard A (archive): clean baseline exits 0; the
+      own active and archive arrival exits 0; a tracked byte mutation, the same byte mutation under
+      `--assume-unchanged`, the same under `--skip-worktree`, and an extra untracked file under an existing
+      bundle each exit 1 and restore to 0. Guard B (bounded writes): clean and the four declared product
+      writes exit 0; an outside-scope tracked write and that write under `--assume-unchanged` each exit 1 and
+      restore to 0. Both guards compare bytes and identities only; no archive content is parsed or executed.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
