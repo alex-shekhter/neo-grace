@@ -1,5 +1,5 @@
-<NgraceChangeSpec graceVersion="1.0" status="approved">
-  <C-PLANNING-PHASE-TEACHING-1-CBE5DFAD>
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-PLANNING-PHASE-TEACHING-1-CBE5DFAD><Replacement>C-PLANNING-PHASE-TEACHING-2-10CC89CA</Replacement>
     <Summary>
       One outcome: align the planning-phase contract in `ngrace-plan` rule 19 with rule 20, so PLAN
       drives narrow verification-command feasibility and relevant structural assertion probes on

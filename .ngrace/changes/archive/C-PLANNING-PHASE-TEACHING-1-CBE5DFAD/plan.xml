@@ -1,5 +1,5 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
-  <C-PLANNING-PHASE-TEACHING-1-CBE5DFAD>
+<NgraceChangePlan graceVersion="1.0" status="superseded">
+  <C-PLANNING-PHASE-TEACHING-1-CBE5DFAD><Replacement>C-PLANNING-PHASE-TEACHING-2-10CC89CA</Replacement>
     <IntentSummary>
       A single-task plan for approved `C-PLANNING-PHASE-TEACHING-1-CBE5DFAD`. `T-001` repairs the two
       defective rule-19 passages in `skills/ngrace/ngrace-plan/SKILL.md` and its packaged mirror, corrects
