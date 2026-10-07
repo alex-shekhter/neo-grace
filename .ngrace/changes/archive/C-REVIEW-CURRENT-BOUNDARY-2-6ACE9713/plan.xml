@@ -1,4 +1,4 @@
-<NgraceChangePlan graceVersion="1.0" status="approved">
+<NgraceChangePlan graceVersion="1.0" status="applied">
   <C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713>
     <IntentSummary>
       T2 plan for the approved review-only slice of the current-only boundary. One cohesive task

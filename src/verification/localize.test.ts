@@ -426,17 +426,14 @@ describe("review admissibility — closed by name (A42.4 / A41.5)", () => {
 
   it("every REVIEW_CATALOG code is either admissible or excluded (exhaustive)", () => {
     const catalog = allReviewCodes();
-    // C-CRITERION-CLOSE-EVIDENCE adds review.close-evidence-unevaluated (excluded from localization by omission).
-    // C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B adds review.historical-path-absent (20 → 21).
-    // Measured supplementary receipts at authoring time; the binding invariant below is the
-    // whole-population exclusive-or per code, not either literal length.
-    expect(catalog.length).toBe(21);
+    // The binding invariant is the whole-population exclusive-or per code, measured through
+    // the real exported catalog/localization functions; no literal length is pinned.
+    expect(catalog).not.toContain("review.historical-path-absent");
     for (const code of catalog) {
       const admitted = isAdmissibleLocalizationReviewCode(code);
       const excluded = excludedReviewCodesForLocalization().includes(code);
       expect(admitted !== excluded).toBe(true);
     }
-    expect(excludedReviewCodesForLocalization()).toHaveLength(18);
   });
 
   it("filter keeps only the three; never invents a divergence index", () => {
