@@ -1,0 +1,406 @@
+<NgraceChangeSpec graceVersion="1.0" status="approved">
+  <C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713>
+    <Summary>
+      First of three smaller successor slices replacing the superseded
+      `.ngrace/changes/archive/C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D` bundle. This slice is
+      **review-only**. Following the current-only CLI policy in `AGENTS.md` and the withdrawn
+      compatibility campaign in `docs/plans/active/RM-GOVERNED-PATH/grace-implementation-queue.md:154-156`,
+      it (1) makes the global `MustExist` review discover active `plan.xml` files before reading any
+      plan content, so `runPatternDetectors`, unscoped `runReview`, and selected-active `runReview`
+      read no unrelated archive XML, and removes the `review.historical-path-absent` finding and its
+      catalog guide; (2) replaces the scoped review's archive-dependent amendment measurement with the
+      existing `amendmentCountAudit` not-run absence — a non-empty current-only policy reason and a
+      matching absence record, with no numeric re-ratification/depth keys, no fabricated zero, and no
+      `ran` status — and stops invoking `readAmendmentInstrument` from `runReview`; and (3) fixes the
+      two selected-review location predicates in `src/review/core.ts` that test an absolute-path
+      substring for the archive marker, to use the actual project-relative bundle phase, while
+      preserving genuine selected applied and abandoned-archive audit semantics. It preserves the
+      existing D8 admissible code set and family-A pattern set and asserts whole-population
+      catalog/localization exclusive-or coverage, retiring the literal total/excluded-length pins and
+      their stale explanatory comments. Exactly four paths change across two modules (`M-REVIEW`:
+      `src/review/core.ts`, `src/review/catalog.ts`, `src/review/core.test.ts`; `M-LOCALIZE`:
+      `src/verification/localize.test.ts`). It overturns `C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D`'s
+      choice to keep unrelated-archive detection as informational review notices under the later
+      current-only policy, and it deliberately overturns only `C-AMENDMENT-COUNT`'s `AC-REVIEW-AUDIT`
+      scoped-review projection (`spec.xml:607-620`); that decision's distinction between status text
+      and review-audit surfaces and its honesty bar remain. It does not claim all CLI consumers are
+      archive-free: the separate `ngrace status` surface was already assigned to a dependent policy
+      slice by `C-CURRENT-VALIDATION-BOUNDARY`. It declares no `Pays` and makes no governed
+      record-system write; the sanctioned close still performs this bundle's ordinary lifecycle writes.
+      `README.md` is unchanged by this slice (its measured footprint row belongs to the third slice);
+      `examples/` is unchanged.
+    </Summary>
+    <Goals>
+      <Goal>
+        In `src/review/core.ts`, discover active `plan.xml` files before reading any plan content in the
+        global `MustExist` scan, so no unrelated archived plan is opened by `runPatternDetectors`, unscoped
+        `runReview`, or selected-active `runReview`, and remove the `review.historical-path-absent`
+        producer and its archive branch. Preserve active `BaselineAssertions` and `TargetAssertions`
+        absent-path errors, including undeclared/unexempt target claims, the declared-future target
+        exemption, and the current identity helpers. The intentionally selected archive record stays
+        readable by its own selected consumer.
+      </Goal>
+      <Goal>
+        In `src/review/core.ts`, report the scoped-review amendment measurement as
+        `amendmentCountAudit` `status="not-run"` with a non-empty current-only policy reason and a
+        matching absence record, without numeric re-ratification/depth keys, without a fabricated zero,
+        without `ran`, and without invoking `readAmendmentInstrument` from `runReview`. Unscoped review
+        keeps its existing `not-run` reason naming the missing `--change`.
+      </Goal>
+      <Goal>
+        In `src/review/core.ts`, replace the two selected-review location predicates that test an
+        absolute-path substring for the archive marker with a check of the actual project-relative
+        bundle phase, preserving genuine selected applied and abandoned-archive audit semantics and the
+        other current detectors and process audits, except the deliberate scoped amendment-audit
+        absence in `AC-AMENDMENT-AUDIT-ABSENCE`.
+      </Goal>
+      <Goal>
+        In `src/review/catalog.ts`, remove the `review.historical-path-absent` guide; in
+        `src/review/core.test.ts` and `src/verification/localize.test.ts`, retire the obsolete literal
+        total/excluded-length pins and their stale explanatory comments and titles, while preserving
+        the D8 admissible code set, the family-A pattern set, and the whole-population
+        catalog/localization exclusive-or relation.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting: a boundary policy change spanning M-REVIEW and the inherited
+        M-LOCALIZE test owner).
+      </Constraint>
+      <Constraint>
+        The permitted implementation files are exactly four: `src/review/core.ts`,
+        `src/review/catalog.ts`, `src/review/core.test.ts` (M-REVIEW), and
+        `src/verification/localize.test.ts` (M-LOCALIZE). Every tracked path outside that set and
+        outside this bundle's own active/archive lifecycle paths is byte-identical to preservation base
+        `61a9e42e3d06a63f1a863cb01e019f499c862a60`. The predecessor arrival is already in that base; the
+        byte-invariance instrument excludes only this new bundle's exact own lifecycle paths. A file the
+        deliverable forces stays in scope; any additional forced file is added by an explicit spec
+        revision, never by silent scope growth.
+      </Constraint>
+      <Constraint>
+        Module ownership. Both affected modules are enumerated in `AffectedAreas` and every prose module
+        list in this spec: `M-REVIEW` (`src/review/core.ts`, `src/review/catalog.ts`, and the test file
+        `src/review/core.test.ts`) and `M-LOCALIZE` (test file `src/verification/localize.test.ts`,
+        inheriting its tested module through `src/verification/localize.ts`). A module list that appears
+        more than once names both in every occurrence.
+      </Constraint>
+      <Constraint>
+        No new helper implementation file or export, grammar, gates, query, skill, footprint, or README
+        implementation enters this bundle; a private expression or function inside the already-scoped
+        `src/review/core.ts` remains a plan choice.
+        The next authorized slice owns `src/gates/ledger.ts` and `src/gates/core.test.ts` plus the query
+        change/change tests; the third owns the canonical and mirrored planning teaching, the footprint
+        test, and the README row. Those are minted separately after prior closes/checkpoints. This bundle
+        does not mint, design, or modify them.
+      </Constraint>
+      <Constraint>
+        One close instrument. The review/localization behavior is proved by the single narrow
+        CloseEvidence Command `bun test --timeout=0 src/review/core.test.ts src/verification/localize.test.ts`,
+        attached to one criterion and not duplicated under another. Ordinary criteria are mapped later
+        through plan `Satisfies`; close-bound criteria are not.
+      </Constraint>
+      <Constraint>
+        The archive-preservation and bounded-writes instruments are the authority-repaired inline
+        instruments frozen in the superseded predecessor's command texts, reparameterized only:
+        `BASE=c58e93f2e6f6a91b8bf5528edd3b29724652390c` becomes
+        `61a9e42e3d06a63f1a863cb01e019f499c862a60`, the own id becomes
+        `C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713`, and the bounded-writes `ALLOWED` set is reduced to the
+        four paths above (active and archive own directories remain excluded). Their staged/index-flag
+        resistance, filesystem byte/mode/type checks, exact inventories, skip-own-before-traversal,
+        fail-closed subprocess and missing-base handling, and ordinary own lifecycle effects are
+        preserved. No new helper file and no fresh instrument redesign is introduced. These Commands are
+        project-local POSIX/Bun instruments run through the configured shell (`src/artifact/assertions.ts:719-725`);
+        no adopter-wide Windows promise is made and no CLI runner is changed.
+      </Constraint>
+      <Constraint>
+        Overturned decisions, stated plainly. First, `C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D`
+        (`spec.xml:3-31`, `plan.xml:57-59`) kept unrelated-archive detection as informational
+        `review.historical-path-absent` notices; this bundle removes that behavior under the later
+        current-only policy and answers the counterweight with active-plan refusal, not weaker current
+        checks. Second, `C-AMENDMENT-COUNT`'s `AC-REVIEW-AUDIT` (`spec.xml:607-620`) required a scoped
+        `--change` review to report `status ran, re-ratifications=0 supersede-depth=0`; this bundle
+        overturns only that scoped-review projection, because the measurement reads archived
+        predecessor bytes and contradicts the review read boundary. The unscoped `not-run` behavior,
+        the decision's distinction between surfaces, and its honesty bar are preserved. No ledger API or
+        duplicate counting algorithm is introduced.
+      </Constraint>
+      <Constraint>
+        Record-write and payment disposition. This bundle declares no `Pays`, so it makes no governed
+        record-system write: no finding, decision, index, registry row, retired sibling, live root, or
+        payer-map fixture is written by this bundle. The sanctioned close still performs this bundle's
+        ordinary lifecycle writes: `ngrace gate verdict` persists the selected Verdict and its
+        `CloseEvidence` children in `run-ledger.xml`; `ngrace apply` writes `applied` status onto the
+        selected spec and plan, records `gate=applied` permitting Decisions and fingerprints in
+        `run-ledger.xml`, and then renames the bundle directory;
+        the cursor, attempt, and fold commands own the bundle's `run.xml`, `run/**`, and ledger epoch
+        state. The CLI's temporary coordination effects are exactly
+        `.ngrace/changes/active/.candidate-C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713.lock` and the own-bundle
+        `.run-write.lock`, created and removed by the CLI; they are not persistent scope exemptions.
+      </Constraint>
+      <Constraint>
+        `README.md` is unchanged by this slice; its measured footprint row is owned by the third slice.
+        `examples/` is unchanged with no new example surface. Prototype/command feasibility checks are
+        distinct from the final execute/close CI; full CI-equivalent verification is close-time only,
+        under `--assertions final --run-commands`, and is not run at SPEC or PLAN.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` is unchanged by this slice; its measured footprint row and any directly necessary
+        explanation are owned by the third authorized slice. Owner: the third slice.
+      </NonGoal>
+      <NonGoal>
+        `examples/` is unchanged with no new example surface. Owner: unchanged; no user-visible example
+        surface.
+      </NonGoal>
+      <NonGoal>
+        No selected-close validator, gates, query, grammar, new helper file or export, or
+        lifecycle-implementation change.
+        Owner: the second authorized slice (gates ledger/core test and query change/change test), and the
+        reused exported grammar APIs; no change is forced here.
+      </NonGoal>
+      <NonGoal>
+        No change to the `ngrace status` surface or any other archive-dependent CLI consumer. Owner: a
+        dependent policy slice already assigned by `C-CURRENT-VALIDATION-BOUNDARY`; this bundle neither
+        claims nor performs that work.
+      </NonGoal>
+      <NonGoal>
+        No published-skill, marketplace, packaging, version, or `openpackage.yml` change; the canonical
+        and mirrored planning teaching belong to the third slice. Owner: the third slice.
+      </NonGoal>
+      <NonGoal>
+        No new ledger API, no duplicate amendment-counting algorithm, and no additional bundle identity
+        or governed record write. Owner: unchanged.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-ACTIVE-ONLY-DISCOVERY>
+        In `src/review/core.ts`, the global `MustExist` scan discovers active `plan.xml` files before
+        reading any plan content and opens no unrelated archived plan; no
+        `review.historical-path-absent` finding is produced. Proved at the read boundary by a
+        `bun:test` call-through spy over the real exported `readGraceXmlArtifact` that records each
+        call's `file` and calls through to the original, over a fresh unique synthetic project whose
+        predecessor cache is cold and which carries at least one active plan and at least one archived
+        plan, plus a neutral and a misleading parent `changes/archive` root: driving the real
+        `runPatternDetectors`, unscoped `runReview`, and selected-active `runReview` records zero calls
+        whose path is under `.ngrace/changes/archive/` and a non-empty set of active-plan calls as the
+        positive control; the spy and any mutated synthetic inputs are restored after each case. Active
+        `BaselineAssertions` and `TargetAssertions` absent-path refusal is preserved: an absent active
+        baseline target and an absent undeclared active target each still emit
+        `review.confidently-wrong` / `must-exist-missing` at error, a declared-future target exempted by
+        `ObservedWriteScope` stays quiet, and creating the baseline and declaring the target removes the
+        two errors with exact restoration restoring them. The intentionally selected archive record
+        remains readable by its own selected consumer.
+        <CloseEvidence><Command>bun test --timeout=0 src/review/core.test.ts src/verification/localize.test.ts</Command></CloseEvidence>
+      </AC-ACTIVE-ONLY-DISCOVERY>
+      <AC-AMENDMENT-AUDIT-ABSENCE>
+        In `src/review/core.ts`, scoped `runReview` reports `amendmentCountAudit` with
+        `status="not-run"`, a non-empty reason naming the current-only policy that archive-dependent
+        amendment measurement is not a current review input, and a matching non-empty absence record;
+        the report carries no `reRatificationCount` and no `supersedeChainDepth` key, no fabricated zero,
+        and no `ran` status. `readAmendmentInstrument` is not invoked from `runReview`. Unscoped review
+        keeps its existing `status="not-run"` reason naming the missing `--change`. No ledger API and no
+        duplicate counting algorithm is added.
+      </AC-AMENDMENT-AUDIT-ABSENCE>
+      <AC-SELECTED-PHASE-PREDICATES>
+        In `src/review/core.ts`, the two selected-review location predicates formerly at
+        `core.ts:1488-1494` (`isAbandonedArchiveBundle`) and `core.ts:1899-1913`
+        (`auditCloseEvidenceUnevaluated`) determine archive phase from the actual project-relative
+        bundle path rather than from an absolute-path substring containing a `changes/archive` marker.
+        A genuine selected applied archive bundle and a genuine selected abandoned-archive bundle keep
+        their audit semantics; the other current detectors and process audits are unchanged except the
+        deliberate scoped amendment-audit absence in `AC-AMENDMENT-AUDIT-ABSENCE`, and deliberate
+        current-selected record reads remain permitted while unrelated archive discovery does not. No
+        archive-schema compatibility is reopened.
+      </AC-SELECTED-PHASE-PREDICATES>
+      <AC-CATALOG-POPULATION>
+        In `src/review/catalog.ts` the `review.historical-path-absent` guide is removed from
+        `REVIEW_CATALOG`, `allReviewCodes()`, and the explain surface. In `src/review/core.test.ts` and
+        `src/verification/localize.test.ts` the obsolete literal total/excluded-length pins and their
+        stale explanatory comments and titles are retired (including `core.test.ts:2478,3116,3122,4887`
+        and `localize.test.ts:433,439`). The D8 admissible code set stays exactly the three named codes,
+        the family-A pattern set stays exactly the five named codes, and whole-population
+        catalog/localization exclusive-or coverage still holds — every catalog code is exactly one of
+        admissible or excluded — asserted over the whole population through the real exported
+        catalog/localization functions (including `allReviewCodes()`) and never as a projected literal
+        count.
+      </AC-CATALOG-POPULATION>
+      <AC-ARCHIVE-PRESERVATION>
+        Every pre-existing path under `.ngrace/changes/archive/` is byte-identical to preservation base
+        `61a9e42e3d06a63f1a863cb01e019f499c862a60`, and the set of pre-existing archive bundle root
+        directories is unchanged. The instrument reads the base commit's tracked blob bytes and
+        compares them to the actual filesystem content bytes of every protected path (regular files and
+        symlinks), rejecting an unsupported read type, so a byte edited under `--assume-unchanged` or
+        `--skip-worktree` still fails; it does not independently enforce the base Git type/mode. It
+        inventories
+        every actual archive file, including untracked and ignored additions, by exact path, and
+        compares archive root names by exact membership, not by a C-ID substring or line filter. It
+        skips exactly this bundle's own archive directory before traversal and excludes it by exact
+        path, with the reason that the close's own rename reddens the criterion it wrote. It compares
+        bytes and identities only, never parses or executes archive contents, does not fabricate a
+        baseline for empty nested `run/` directories, and deletes none. It fails closed on a missing
+        base or a failed Git or read subprocess. The predecessor arrival is already in the base and no
+        predecessor-arrival exclusion is present.
+        <CloseEvidence><Command>git diff --exit-code 61a9e42e3d06a63f1a863cb01e019f499c862a60 -- .ngrace/changes/archive ':(exclude).ngrace/changes/archive/C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713' &amp;&amp; bun -e 'const {spawnSync}=require("node:child_process");
+const fs=require("node:fs");
+const path=require("node:path");
+const crypto=require("node:crypto");
+const BASE="61a9e42e3d06a63f1a863cb01e019f499c862a60";
+const OWN="C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713";
+const ARCH=".ngrace/changes/archive";
+function fail(msg){console.error("GUARD-A FAIL: "+msg);process.exit(1);}
+function dep(cmd,args){const r=spawnSync(cmd,args,{encoding:"buffer"});if(r.error){fail("dependency error "+cmd+": "+r.error.message);}if(r.status!==0){fail("dependency exit "+r.status+" "+cmd+" "+args.join(" ")+" :: "+r.stderr.toString().trim());}return r.stdout;}
+function contentOf(p){const st=fs.lstatSync(p);if(st.isSymbolicLink())return Buffer.from(fs.readlinkSync(p));if(!st.isFile())throw new Error("unsupported file type "+p);return fs.readFileSync(p);}
+function blobSha(buf){return crypto.createHash("sha1").update(Buffer.concat([Buffer.from("blob "+buf.length+"\0"),buf])).digest("hex");}
+const raw=dep("git",["ls-tree","-r","-z",BASE,"--",ARCH]).toString("utf8");
+const base=new Map();
+const baseRoots=new Set();
+for(const rec of raw.split("\0")){if(rec.length===0)continue;const tab=rec.indexOf("\t");const meta=rec.slice(0,tab);const p=rec.slice(tab+1);base.set(p,meta.split(" ")[2]);const seg=p.slice(ARCH.length+1).split("/")[0];if(seg)baseRoots.add(seg);}
+function isOwn(rel){return rel===OWN||rel.startsWith(OWN+"/");}
+const bad=[];
+for(const [p,sha] of base){if(!fs.existsSync(p)){bad.push("missing "+p);continue;}let b;try{b=contentOf(p);}catch(e){bad.push("unreadable "+p);continue;}if(blobSha(b)!==sha)bad.push("byte "+p);}
+const actual=[];
+function walk(d){for(const n of fs.readdirSync(d)){const p=path.join(d,n);if(p===ARCH+"/"+OWN)continue;const st=fs.lstatSync(p);if(st.isDirectory())walk(p);else actual.push(p);}}
+walk(ARCH);
+for(const p of actual){const rel=p.slice(ARCH.length+1);if(isOwn(rel))continue;if(!base.has(p))bad.push("extra "+p);}
+const actualRoots=new Set();
+for(const n of fs.readdirSync(ARCH)){if(isOwn(n))continue;actualRoots.add(n);}
+for(const r of baseRoots)if(!actualRoots.has(r))bad.push("root-missing "+r);
+for(const r of actualRoots)if(!baseRoots.has(r))bad.push("root-extra "+r);
+if(bad.length){fail(bad.slice(0,30).join("; "));}
+console.log("GUARD-A OK base="+base.size+" actual="+actual.length+" roots="+actualRoots.size);'</Command></CloseEvidence>
+      </AC-ARCHIVE-PRESERVATION>
+      <AC-BOUNDED-WRITES>
+        Relative to preservation base `61a9e42e3d06a63f1a863cb01e019f499c862a60`, the only tracked
+        changes are the four permitted implementation paths and this bundle's own active and archive
+        lifecycle paths. The instrument compares every tracked path's base blob bytes and base Git
+        type/mode against its filesystem content and filesystem type/mode, independently of
+        `--assume-unchanged` or `--skip-worktree`, checks both staged and unstaged changes including
+        archive paths, and fails on any changed, deleted,
+        or newly tracked path outside the exact four and the own active/archive directories. It adds no
+        general helper and no additional implementation path, and fails closed on a missing base or a
+        failed Git or read subprocess.
+        <CloseEvidence><Command>git diff --exit-code 61a9e42e3d06a63f1a863cb01e019f499c862a60 -- . ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/verification/localize.test.ts' ':(exclude).ngrace/changes/active/C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713' ':(exclude).ngrace/changes/archive/C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713' &amp;&amp; git diff --cached --exit-code 61a9e42e3d06a63f1a863cb01e019f499c862a60 -- . ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/verification/localize.test.ts' ':(exclude).ngrace/changes/active/C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713' ':(exclude).ngrace/changes/archive/C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713' &amp;&amp; bun -e 'const {spawnSync}=require("node:child_process");
+const fs=require("node:fs");
+const crypto=require("node:crypto");
+const BASE="61a9e42e3d06a63f1a863cb01e019f499c862a60";
+const OWN="C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713";
+const ALLOWED=new Set(["src/review/core.ts","src/review/catalog.ts","src/review/core.test.ts","src/verification/localize.test.ts"]);
+function fail(msg){console.error("GUARD-B FAIL: "+msg);process.exit(1);}
+function dep(cmd,args){const r=spawnSync(cmd,args,{encoding:"buffer"});if(r.error){fail("dependency error "+cmd+": "+r.error.message);}if(r.status!==0){fail("dependency exit "+r.status+" "+cmd+" "+args.join(" ")+" :: "+r.stderr.toString().trim());}return r.stdout;}
+function contentOf(p){const st=fs.lstatSync(p);if(st.isSymbolicLink())return Buffer.from(fs.readlinkSync(p));return fs.readFileSync(p);}
+function blobSha(buf){return crypto.createHash("sha1").update(Buffer.concat([Buffer.from("blob "+buf.length+"\0"),buf])).digest("hex");}
+function isOwn(p){const a=".ngrace/changes/active/"+OWN;const b=".ngrace/changes/archive/"+OWN;return p===a||p.startsWith(a+"/")||p===b||p.startsWith(b+"/");}
+function allowed(p){return ALLOWED.has(p)||isOwn(p);}
+const baseRaw=dep("git",["ls-tree","-r","-z",BASE]).toString("utf8");
+const base=new Map();
+for(const rec of baseRaw.split("\0")){if(rec.length===0)continue;const tab=rec.indexOf("\t");const meta=rec.slice(0,tab).split(" ");base.set(rec.slice(tab+1),{mode:meta[0],sha:meta[2]});}
+const cur=dep("git",["ls-files","-z"]).toString("utf8").split("\0").filter(s=>s.length>0);
+const curSet=new Set(cur);
+const bad=[];
+for(const [p,entry] of base){if(allowed(p))continue;if(!curSet.has(p)){bad.push("deleted "+p);continue;}let b;try{const st=fs.lstatSync(p);const mode=st.isSymbolicLink()?"120000":st.isFile()?((st.mode&amp;0o100)?"100755":"100644"):"invalid";if(mode!==entry.mode){bad.push("mode/type "+p);continue;}b=contentOf(p);}catch(e){bad.push("unreadable "+p);continue;}if(blobSha(b)!==entry.sha)bad.push("byte "+p);}
+for(const p of cur){if(allowed(p))continue;if(!base.has(p))bad.push("extra-tracked "+p);}
+if(bad.length){fail(bad.slice(0,30).join("; "));}
+console.log("GUARD-B OK tracked="+curSet.size);'</Command></CloseEvidence>
+      </AC-BOUNDED-WRITES>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+      <M-LOCALIZE />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 src/review/core.test.ts src/verification/localize.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path . --assertions current</ExpectedCommand>
+      <ExpectedCommand>bun run validate:cli</ExpectedCommand>
+      <ExpectedEvidence>
+        The two module verification anchors are covered: `V-M-REVIEW` / `M-REVIEW`
+        (`src/review/core.ts`, `src/review/catalog.ts`, `src/review/core.test.ts`) and `V-M-LOCALIZE` /
+        `M-LOCALIZE` (`src/verification/localize.test.ts`). The single narrow close instrument is
+        `bun test --timeout=0 src/review/core.test.ts src/verification/localize.test.ts`; the
+        archive-preservation and bounded-writes instruments are driven in both directions on disposable
+        post-close-shaped copies with restoration. The `bun run ngrace lint --path . --assertions current`
+        line is draft/pre-write evidence only; at execute, selected target and final lint run externally
+        and this current-mode root lint is not restated in `TargetAssertions`. Later validation at
+        execute must include `bun run validate:cli`, the required marketplace check only if a published
+        skill changes (it does not in this slice), real consumer CLI probes on complete synthetic
+        adopting projects (happy and refusal directions, exact restoration, no unrelated
+        archived-content I/O in the global scan, and byte-preservation checks), and the final CI at the
+        declared execute/close boundary. This spec's own draft lint and selected read-only review are
+        not target or final evidence.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      The current-only policy in `AGENTS.md` and the withdrawn compatibility campaign in
+      `docs/plans/active/RM-GOVERNED-PATH/grace-implementation-queue.md:154-156` withdraws historical
+      archive compatibility: older archive contents are passive LLM evidence, not current operational
+      inputs. The superseded predecessor `C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D` was split into three
+      smaller slices; this bundle is the review-only first slice. Four defects remain in the current
+      product and two archived decisions must be answered.
+
+      First, `src/review/core.ts:508-567` globally discovers `changes/**/plan.xml`, parses archived
+      contents, and emits `review.historical-path-absent` from archived `MustExist` values;
+      `runReview` invokes that global detector before the selected audits (`:1561-1590`). Measured
+      2026-10-06 by the authority's call-through read spies on a fresh synthetic project
+      (`/private/tmp/neo-grace-review-current-boundary-20261006/read-stack.json`): the MustExist scan
+      reads an archived plan twice through `readGraceXmlArtifact` at `core.ts:512` and
+      `extractObservedWriteScopeFromPlan` at `:519`, and both a neutral and a misleading parent
+      `changes/archive` root still read it; unscoped `runReview` and selected-active `runReview` read
+      it too. Discover active plans before reading any plan content in the global `MustExist` scan;
+      remove the obsolete archive-notice
+      producer and guide; preserve active `MustExist` refusal, including Baseline and
+      undeclared/unexempt Target claims, the declared-future target exemption, and the current identity
+      helpers.
+
+      Second, scoped review still measures archived amendment counts. With `--change`, `runReview`
+      calls `readAmendmentInstrument` (`core.ts:1811`) and reports `amendmentCountAudit` `status="ran"`
+      with numeric `reRatificationCount` and `supersedeChainDepth` (`:1804-1812`), reading archived
+      predecessor bytes through the shared predecessor map. That is archive-dependent and contradicts
+      the review read boundary. Replace it with the existing `amendmentCountAudit` not-run absence: a
+      non-empty current-only policy reason and a matching absence record, no numeric keys, no fabricated
+      zero, no `ran`, and no `readAmendmentInstrument` call from `runReview`. This overturns only
+      `C-AMENDMENT-COUNT`'s `AC-REVIEW-AUDIT` scoped-review projection (`spec.xml:607-620`); its
+      unscoped `not-run` behavior, surface distinction, and honesty bar remain, and no ledger API or
+      duplicate counting algorithm is introduced.
+
+      Third, two selected-review location predicates test an absolute-path substring for a
+      `changes/archive` marker: `isAbandonedArchiveBundle` (`core.ts:1488-1494`) and
+      `auditCloseEvidenceUnevaluated` (`core.ts:1899-1913`). A project root whose directory names
+      happen to contain `changes/archive`, or a bundle path assembled differently, can be
+      misclassified. Determine archive phase from the actual project-relative bundle path instead,
+      preserving genuine selected applied and abandoned-archive audit semantics.
+
+      Fourth, the `review.historical-path-absent` guide in `src/review/catalog.ts:338-354` and the
+      literal catalog-length pins and stale comments in `src/review/core.test.ts:2478,3116,3122,4887`
+      and `src/verification/localize.test.ts:433,439` encode the retired behavior and a projected count.
+      Remove the guide and retire the pins while preserving the D8 admissible set, the family-A set, and
+      the whole-population catalog/localization exclusive-or relation.
+
+      Counterweights answered, not ignored. `C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D`
+      (`spec.xml:3-31`, `plan.xml:57-59`) deliberately kept F16 relocation/foreign-ID detection as
+      informational notices; this change explicitly overturns that unrelated-archive detection choice
+      under the later current-only policy, answering it with active-plan refusal. `C-AMENDMENT-COUNT`
+      (`spec.xml:607-620`) is overturned only in its scoped-review projection; its distinction and
+      honesty remain. The separate `ngrace status` archive-dependent surface is not touched and was
+      already assigned to a dependent policy slice by `C-CURRENT-VALIDATION-BOUNDARY`.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        The two location predicates can be repaired inside `src/review/core.ts` by deriving archive
+        phase from `path.relative(root, bundlePath)` and prefix-matching the canonical
+        `.ngrace/changes/archive/` segment, without a new helper export and without changing
+        `resolveChangeBundle` or `src/grace-cursor.ts`.
+      </Assumption>
+      <Assumption>
+        Removing the `readAmendmentInstrument` call leaves no other consumer of that export inside
+        `src/review/core.ts`; if the import becomes unused it is removed within the same file. No ledger
+        API changes.
+      </Assumption>
+      <Assumption>
+        The shipped XML parser counts artifact structure (the parser-derived census). The runtime
+        catalog/localization populations and relations are measured through the real exported
+        catalog/localization functions, including `allReviewCodes()`, after implementation; no
+        post-change total is projected here.
+      </Assumption>
+    </Assumptions>
+  </C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713>
+</NgraceChangeSpec>

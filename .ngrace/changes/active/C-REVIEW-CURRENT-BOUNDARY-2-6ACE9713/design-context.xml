@@ -1,0 +1,131 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    This is the review-only first slice of the three smaller bundles that replace the superseded
+    `C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D`. It completes the review consumer that the first
+    current-only slice (`C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85`) left to a dependent bundle, and it
+    removes the last archive-dependent review measurement. The normative source of truth is
+    `spec.xml`; nothing here adds a requirement.
+
+    Three findings shape the design. First, the global `MustExist` scan enumerates
+    `changes/**/plan.xml` and parses archived plans before the selected audits run; the authority's
+    call-through read spies show the archive plan read twice through the scan. The global `MustExist`
+    scan must list active plans before reading any plan content, so the removed archive branch takes its
+    `review.historical-path-absent` guide with it. Second, scoped review measures amendment counts by
+    reading archived predecessor bytes through `readAmendmentInstrument`; the honest replacement is the
+    existing `amendmentCountAudit` not-run absence, which reports the current-only policy reason and a
+    matching absence record without inventing numbers. Third, two location predicates test an
+    absolute-path substring for a `changes/archive` marker; they must use the project-relative bundle
+    phase. The catalog and its test pins are retired together because the guide and the literal lengths
+    encode the removed behavior.
+
+    The archive-preservation and bounded-writes instruments are the authority-repaired inline
+    instruments frozen in the predecessor, reparameterized to the new base and own id and reduced to
+    the four permitted paths. They are self-contained POSIX/Bun instruments run through the configured
+    shell (`src/artifact/assertions.ts:719-725`); no helper file or fresh design is introduced, and no
+    adopter-wide Windows guarantee is made.
+
+    The reviewed conceptual diagrams below are explanatory. They are explanatory roles of existing
+    functions, not required new classes. Every binding behaviour is repeated in the spec's acceptance
+    criteria.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Keep the archived-plan informational notices and the scoped amendment counts. Rejected: both read
+      unrelated or predecessor archive bytes into current review output, which the current-only policy
+      withdraws; the answer is active-plan refusal and honest audit absence, not weaker current checks.
+    </Alternative>
+    <Alternative>
+      Replace the scoped amendment audit by removing the `amendmentCountAudit` field entirely or by
+      fabricating a zero. Rejected: the field's absence states are part of its honesty contract; a
+      fabricated zero claims a measurement that was never made, and removing the field loses the
+      unscoped `not-run` line. The existing `not-run` status with a reason and absence record is the
+      honest shape.
+    </Alternative>
+    <Alternative>
+      Introduce a new location helper file or export, or reuse `resolveChangeBundle` to classify
+      archive phase. Rejected as unnecessary: a private expression or function inside the already-scoped
+      `src/review/core.ts` fixes both predicates without a new helper file or export and without a
+      change to `src/grace-cursor.ts`.
+    </Alternative>
+    <Alternative>
+      Add a second close instrument for the archive or bounded-writes behavior, or attach the
+      review/localization test command to two criteria. Rejected: the evaluator is per criterion and does
+      not deduplicate, so duplicating the command would rerun the whole test pair; one narrow instrument
+      per subject is enough.
+    </Alternative>
+    <Alternative>
+      Widen this bundle to also carry the gates strict-selected-close work, the planning teaching, the
+      footprint pin, or the README row. Rejected: the predecessor was split precisely because it grew
+      across too many surfaces; the second and third slices own that work and are minted separately.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      The shipped XML parser counts artifact structure; runtime catalog/localization populations and
+      relations are measured through the real exported catalog/localization functions, including
+      `allReviewCodes()`. No post-change total is projected here.
+    </Decision>
+    <Decision>
+      Whether the scoped amendment-audit absence reason text is one sentence or a short paragraph, and
+      whether the two location predicates share a tiny local expression, is plan/implementation detail;
+      the binding requirements are the not-run absence shape and the project-relative phase.
+    </Decision>
+    <Decision>
+      The separate `ngrace status` archive-dependent surface is left to its dependent policy slice; this
+      bundle neither touches nor claims it.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Reviewed sequence diagram (stored verbatim; explanatory only).
+
+      sequenceDiagram
+          participant CLI
+          participant Review
+          participant Discovery as Active plan discovery
+          participant Audit as Amendment audit
+          CLI-&gt;&gt;Review: Review adopting project
+          Review-&gt;&gt;Discovery: Discover active plans before parsing
+          Discovery--&gt;&gt;Review: Active plans only
+          Review-&gt;&gt;Review: Preserve current checks and selected phase
+          Review-&gt;&gt;Audit: Report archive-dependent measurement not-run
+          Audit--&gt;&gt;Review: Reason, no numeric claims
+          Review--&gt;&gt;CLI: Current findings and honest absence
+    </Scenario>
+    <Scenario>
+      Reviewed class diagram (stored verbatim; explanatory only).
+
+      classDiagram
+          ReviewEngine --&gt; ActivePlanDiscovery
+          ReviewEngine --&gt; MustExistChecks
+          ReviewEngine --&gt; SelectedAudits
+          SelectedAudits --&gt; BundleLocation : project-relative
+          ReviewEngine --&gt; AmendmentAuditAbsence
+          ReviewEngine --&gt; ReviewCatalog
+    </Scenario>
+    <Scenario>
+      Read-boundary scenario on a fresh unique synthetic project with a cold predecessor cache, carrying
+      one active plan and one archived plan plus a neutral and a misleading parent `changes/archive`
+      root. A call-through spy over the real exported reader records zero archive-plan reads for
+      `runPatternDetectors`, unscoped `runReview`, and selected-active `runReview`, and at least one
+      active-plan read as the positive control. The active absent baseline target and the absent
+      undeclared target each still emit `review.confidently-wrong`; declaring the target and creating the
+      baseline removes them, and exact restoration restores them. The spy and inputs are restored.
+    </Scenario>
+    <Scenario>
+      Preservation-guard scenario on a disposable post-close-shaped copy at base `61a9e42...`. Guard A
+      (archive): clean baseline exits 0; a tracked byte mutation, the same under `--assume-unchanged` and
+      `--skip-worktree` (while `git diff --quiet` exits 0), an untracked file, an ignored `.DS_Store`, and
+      a file whose name contains the full C-ID each exit 1 and restore to 0; the exact own arrival and an
+      empty nested `run/` directory stay 0. Guard B (bounded writes): clean and the four allowed edits
+      plus own arrival exit 0; an outside-scope tracked edit, that edit under both index flags, an
+      outside-scope tracked addition, and a persistent tracked candidate-lock path each exit 1 and
+      restore to 0. A real `ngrace gate verdict` on the copy records pass clean, refuses with an
+      unchanged ledger when an old archive byte is edited under `--assume-unchanged`, and passes again
+      after exact restoration. Comparisons are bytes and identities only; no archive content is parsed
+      or executed.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>
