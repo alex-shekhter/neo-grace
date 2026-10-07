@@ -3311,3 +3311,383 @@ describe("cooperating writer population", () => {
     expect(() => applyChangeBundle(root, publishedId)).toThrow(/Apply permit missing/);
   });
 });
+
+// C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001 mechanism 1: selected-archive strict validation.
+describe("C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001 selected-archive strict validation", () => {
+  function selectedArchive(
+    changeId: string,
+    specStatus = "applied",
+    planStatus: string | undefined = "applied",
+  ): { root: string; bundle: string; specPath: string; planPath: string; ledgerPath: string } {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId, location: "archive", specStatus, planStatus });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", changeId);
+    return {
+      root,
+      bundle,
+      specPath: path.join(bundle, "spec.xml"),
+      planPath: path.join(bundle, "plan.xml"),
+      ledgerPath: path.join(bundle, "run-ledger.xml"),
+    };
+  }
+  function driveFail(root: string, changeId: string) {
+    return runGateCli(["verdict", "--change", changeId, "--outcome", "fail", "--path", root], root);
+  }
+  function ledgerOrNull(p: string): string | null {
+    return existsSync(p) ? readFileSync(p, "utf8") : null;
+  }
+
+  it("refuses a non-applied selected archive spec before any command and writes no ledger", () => {
+    const { root, specPath, ledgerPath } = selectedArchive("C-SEL-STATUS", "approved");
+    writeCloseEvidenceSpec(specPath, `touch "${path.join(root, "MARKER-STATUS")}"`);
+    const before = ledgerOrNull(ledgerPath);
+    const result = driveFail(root, "C-SEL-STATUS");
+    expect(result.status).not.toBe(0);
+    expect(existsSync(path.join(root, "MARKER-STATUS"))).toBe(false);
+    expect(ledgerOrNull(ledgerPath)).toBe(before);
+  });
+
+  it("refuses a selected archive whose direct wrapper identity is wrong before any command", () => {
+    const { root, specPath, ledgerPath } = selectedArchive("C-SEL-WRAP");
+    writeFileSync(specPath, readFileSync(specPath, "utf8").replaceAll("C-SEL-WRAP", "C-OTHER-WRAP"));
+    writeCloseEvidenceSpec(specPath, `touch "${path.join(root, "MARKER-WRAP")}"`);
+    const before = ledgerOrNull(ledgerPath);
+    const result = driveFail(root, "C-SEL-WRAP");
+    expect(result.status).not.toBe(0);
+    expect(existsSync(path.join(root, "MARKER-WRAP"))).toBe(false);
+    expect(ledgerOrNull(ledgerPath)).toBe(before);
+  });
+
+  it("refuses a selected archive with a missing plan before any command", () => {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId: "C-SEL-NOPLAN", location: "archive", specStatus: "applied" });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", "C-SEL-NOPLAN");
+    const specPath = path.join(bundle, "spec.xml");
+    writeCloseEvidenceSpec(specPath, `touch "${path.join(root, "MARKER-NOPLAN")}"`);
+    const ledgerPath = path.join(bundle, "run-ledger.xml");
+    const before = ledgerOrNull(ledgerPath);
+    const result = driveFail(root, "C-SEL-NOPLAN");
+    expect(result.status).not.toBe(0);
+    expect(existsSync(path.join(root, "MARKER-NOPLAN"))).toBe(false);
+    expect(ledgerOrNull(ledgerPath)).toBe(before);
+  });
+
+  it("control: a valid applied archive with consumable evidence records the fail verdict", () => {
+    const { root, specPath, ledgerPath } = selectedArchive("C-SEL-CLEAN");
+    writeCloseEvidenceSpec(specPath, "true");
+    const result = driveFail(root, "C-SEL-CLEAN");
+    expect(result.status).toBe(0);
+    expect(ledgerOrNull(ledgerPath)).toContain('outcome="fail"');
+  });
+});
+
+// C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001 mechanism 2: local evidence-consumption guard.
+describe("C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001 evidence-consumption guard", () => {
+  function selectedArchive(changeId: string): { root: string; specPath: string; ledgerPath: string } {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId, location: "archive", specStatus: "applied", planStatus: "applied" });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", changeId);
+    return { root, specPath: path.join(bundle, "spec.xml"), ledgerPath: path.join(bundle, "run-ledger.xml") };
+  }
+  const DEFAULT_CRITERIA =
+    "<AcceptanceCriteria><Criterion>The fixture remains valid.</Criterion></AcceptanceCriteria>";
+  function replaceCriteria(specPath: string, criteriaXml: string): void {
+    writeFileSync(specPath, readFileSync(specPath, "utf8").replace(DEFAULT_CRITERIA, criteriaXml));
+  }
+  function driveFail(root: string, changeId: string) {
+    return runGateCli(["verdict", "--change", changeId, "--outcome", "fail", "--path", root], root);
+  }
+  function markerFor(root: string, name: string): string {
+    return path.join(root, name);
+  }
+  function ledgerOrNull(p: string): string | null {
+    return existsSync(p) ? readFileSync(p, "utf8") : null;
+  }
+
+  it("refuses a legacy Criterion carrying CloseEvidence before any command", () => {
+    const { root, specPath, ledgerPath } = selectedArchive("C-EV-LEGACY");
+    const marker = markerFor(root, "MARKER-EV-LEGACY");
+    replaceCriteria(
+      specPath,
+      `<AcceptanceCriteria><Criterion>Legacy.<CloseEvidence><Command>touch "${marker}"</Command></CloseEvidence></Criterion></AcceptanceCriteria>`,
+    );
+    const before = ledgerOrNull(ledgerPath);
+    const result = driveFail(root, "C-EV-LEGACY");
+    expect(result.status).not.toBe(0);
+    expect(existsSync(marker)).toBe(false);
+    expect(ledgerOrNull(ledgerPath)).toBe(before);
+  });
+
+  it("refuses CloseEvidence nested below its AC-* before any command", () => {
+    const { root, specPath, ledgerPath } = selectedArchive("C-EV-NESTED");
+    const marker = markerFor(root, "MARKER-EV-NESTED");
+    replaceCriteria(
+      specPath,
+      `<AcceptanceCriteria><AC-NEST>Text.<Detail><CloseEvidence><Command>touch "${marker}"</Command></CloseEvidence></Detail></AC-NEST></AcceptanceCriteria>`,
+    );
+    const before = ledgerOrNull(ledgerPath);
+    const result = driveFail(root, "C-EV-NESTED");
+    expect(result.status).not.toBe(0);
+    expect(existsSync(marker)).toBe(false);
+    expect(ledgerOrNull(ledgerPath)).toBe(before);
+  });
+
+  it("refuses a duplicate complete direct CloseEvidence block before any command", () => {
+    const { root, specPath, ledgerPath } = selectedArchive("C-EV-DUP");
+    const marker = markerFor(root, "MARKER-EV-DUP");
+    replaceCriteria(
+      specPath,
+      `<AcceptanceCriteria><AC-DUP>Text.<CloseEvidence><Command>touch "${marker}"</Command></CloseEvidence><CloseEvidence><Command>true</Command></CloseEvidence></AC-DUP></AcceptanceCriteria>`,
+    );
+    const before = ledgerOrNull(ledgerPath);
+    const result = driveFail(root, "C-EV-DUP");
+    expect(result.status).not.toBe(0);
+    expect(existsSync(marker)).toBe(false);
+    expect(ledgerOrNull(ledgerPath)).toBe(before);
+  });
+
+  it("control: a legitimate no-evidence criterion on a valid applied archive records the verdict", () => {
+    const { root, ledgerPath } = selectedArchive("C-EV-NONE");
+    const result = driveFail(root, "C-EV-NONE");
+    expect(result.status).toBe(0);
+    expect(ledgerOrNull(ledgerPath)).toContain('outcome="fail"');
+  });
+});
+
+// C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001 mechanism 3: lossless decision snapshot.
+describe("C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001 lossless snapshot", () => {
+  function selectedArchive(changeId: string): { root: string; bundle: string; specPath: string; planPath: string; ledgerPath: string } {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId, location: "archive", specStatus: "applied", planStatus: "applied" });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", changeId);
+    return {
+      root,
+      bundle,
+      specPath: path.join(bundle, "spec.xml"),
+      planPath: path.join(bundle, "plan.xml"),
+      ledgerPath: path.join(bundle, "run-ledger.xml"),
+    };
+  }
+  function driveFail(root: string, changeId: string) {
+    return runGateCli(["verdict", "--change", changeId, "--outcome", "fail", "--path", root], root);
+  }
+  function ledgerOrNull(p: string): string | null {
+    return existsSync(p) ? readFileSync(p, "utf8") : null;
+  }
+
+  it("refuses raw spec-byte drift whose decoded text is equal (U+FFFD -> 0x80)", () => {
+    const { root, specPath, ledgerPath } = selectedArchive("C-SNAP-RAW");
+    writeFileSync(specPath, readFileSync(specPath, "utf8").replace("Fixture problem.", "Fixture problem. \u{FFFD}"));
+    writeCloseEvidenceSpec(specPath, `perl -0777 -i -pe 's/\\xef\\xbf\\xbd/\\x80/g' '${specPath}'`);
+    const before = readFileSync(specPath);
+    const ledgerBefore = ledgerOrNull(ledgerPath);
+    const result = driveFail(root, "C-SNAP-RAW");
+    expect(result.status).not.toBe(0);
+    expect(ledgerOrNull(ledgerPath)).toBe(ledgerBefore);
+    const after = readFileSync(specPath);
+    expect(after.equals(before)).toBe(false);
+    expect(after.toString("utf8")).toBe(before.toString("utf8"));
+  });
+
+  it("refuses a command-induced change to the selected plan bytes", () => {
+    const { root, planPath, ledgerPath } = selectedArchive("C-SNAP-PLAN");
+    writeCloseEvidenceSpec(path.join(ledgerPath, "..", "spec.xml"), `printf ' ' >> '${planPath}'`);
+    const ledgerBefore = ledgerOrNull(ledgerPath);
+    const result = driveFail(root, "C-SNAP-PLAN");
+    expect(result.status).not.toBe(0);
+    expect(ledgerOrNull(ledgerPath)).toBe(ledgerBefore);
+  });
+
+  it("control: a non-mutating command records the verdict", () => {
+    const { root, specPath, ledgerPath } = selectedArchive("C-SNAP-CLEAN");
+    writeCloseEvidenceSpec(specPath, "true");
+    const result = driveFail(root, "C-SNAP-CLEAN");
+    expect(result.status).toBe(0);
+    expect(ledgerOrNull(ledgerPath)).toContain('outcome="fail"');
+  });
+});
+
+// C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001: universal evidence binding (unbound declarations).
+describe("C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001 universal evidence binding", () => {
+  function selectedArchive(changeId: string): { root: string; specPath: string; ledgerPath: string } {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId, location: "archive", specStatus: "applied", planStatus: "applied" });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", changeId);
+    return { root, specPath: path.join(bundle, "spec.xml"), ledgerPath: path.join(bundle, "run-ledger.xml") };
+  }
+  const DEFAULT_CRITERIA =
+    "<AcceptanceCriteria><Criterion>The fixture remains valid.</Criterion></AcceptanceCriteria>";
+  function replaceCriteria(specPath: string, criteriaXml: string): void {
+    writeFileSync(specPath, readFileSync(specPath, "utf8").replace(DEFAULT_CRITERIA, criteriaXml));
+  }
+  function driveFail(root: string, changeId: string) {
+    return runGateCli(["verdict", "--change", changeId, "--outcome", "fail", "--path", root], root);
+  }
+  function ledgerOrNull(p: string): string | null {
+    return existsSync(p) ? readFileSync(p, "utf8") : null;
+  }
+
+  it("refuses an orphan direct CloseEvidence under AcceptanceCriteria before any command", () => {
+    const { root, specPath, ledgerPath } = selectedArchive("C-UB-ORPHAN");
+    const marker = path.join(root, "MARKER-UB-ORPHAN");
+    replaceCriteria(
+      specPath,
+      `<AcceptanceCriteria><Criterion>Legacy text.</Criterion><CloseEvidence><Command>touch "${marker}"</Command></CloseEvidence></AcceptanceCriteria>`,
+    );
+    const before = ledgerOrNull(ledgerPath);
+    const result = driveFail(root, "C-UB-ORPHAN");
+    expect(result.status).not.toBe(0);
+    expect(existsSync(marker)).toBe(false);
+    expect(ledgerOrNull(ledgerPath)).toBe(before);
+  });
+
+  it("refuses a CloseEvidence under a non-AC descendant of AcceptanceCriteria before any command", () => {
+    const { root, specPath, ledgerPath } = selectedArchive("C-UB-NESTEDOWNER");
+    const marker = path.join(root, "MARKER-UB-NESTEDOWNER");
+    replaceCriteria(
+      specPath,
+      `<AcceptanceCriteria><Detail><CloseEvidence><Command>touch "${marker}"</Command></CloseEvidence></Detail></AcceptanceCriteria>`,
+    );
+    const before = ledgerOrNull(ledgerPath);
+    const result = driveFail(root, "C-UB-NESTEDOWNER");
+    expect(result.status).not.toBe(0);
+    expect(existsSync(marker)).toBe(false);
+    expect(ledgerOrNull(ledgerPath)).toBe(before);
+  });
+
+  it("control: a bound AC-* with one direct complete CloseEvidence records the verdict", () => {
+    const { root, specPath, ledgerPath } = selectedArchive("C-UB-BOUND");
+    replaceCriteria(
+      specPath,
+      `<AcceptanceCriteria><AC-BOUND>Text.<CloseEvidence><Command>true</Command></CloseEvidence></AC-BOUND></AcceptanceCriteria>`,
+    );
+    const result = driveFail(root, "C-UB-BOUND");
+    expect(result.status).toBe(0);
+    expect(ledgerOrNull(ledgerPath)).toContain('outcome="fail"');
+  });
+});
+
+// C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001: approved verification-matrix completion.
+describe("C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001 verification matrix", () => {
+  function archiveBundle(changeId: string, specStatus = "applied", planStatus: string | undefined = "applied") {
+    const root = tempProject();
+    writeChangeBundleFixture(root, { changeId, location: "archive", specStatus, planStatus });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "archive", changeId);
+    return {
+      root,
+      bundle,
+      specPath: path.join(bundle, "spec.xml"),
+      planPath: path.join(bundle, "plan.xml"),
+      ledgerPath: path.join(bundle, "run-ledger.xml"),
+    };
+  }
+  function driveFail(root: string, changeId: string) {
+    return runGateCli(["verdict", "--change", changeId, "--outcome", "fail", "--path", root], root);
+  }
+  function ledgerOrNull(p: string): string | null {
+    return existsSync(p) ? readFileSync(p, "utf8") : null;
+  }
+  function refuse(changeId: string, mutate: (p: { specPath: string; planPath: string }) => void): void {
+    const { root, specPath, planPath, ledgerPath } = archiveBundle(changeId);
+    const marker = path.join(root, `MARKER-${changeId}`);
+    writeCloseEvidenceSpec(specPath, `touch "${marker}"`);
+    mutate({ specPath, planPath });
+    const before = ledgerOrNull(ledgerPath);
+    const result = driveFail(root, changeId);
+    expect(result.status, `${changeId} must refuse`).not.toBe(0);
+    expect(existsSync(marker), `${changeId} must not run a command`).toBe(false);
+    expect(ledgerOrNull(ledgerPath), `${changeId} must preserve the ledger`).toBe(before);
+  }
+
+  it("refuses a non-applied selected plan", () => {
+    const { root, bundle } = archiveBundle("C-MX-PLANSTATUS", "applied", "approved");
+    const specPath = path.join(bundle, "spec.xml");
+    const marker = path.join(root, "MARKER-C-MX-PLANSTATUS");
+    writeCloseEvidenceSpec(specPath, `touch "${marker}"`);
+    const result = driveFail(root, "C-MX-PLANSTATUS");
+    expect(result.status).not.toBe(0);
+    expect(existsSync(marker)).toBe(false);
+  });
+
+  it("refuses a wrong plan root", () => {
+    refuse("C-MX-PLANROOT", ({ planPath }) => {
+      writeFileSync(planPath, readFileSync(planPath, "utf8").replaceAll("NgraceChangePlan", "NgraceWrongPlan"));
+    });
+  });
+
+  it("refuses a plan wrapper identity mismatch", () => {
+    refuse("C-MX-PLANWRAP", ({ planPath }) => {
+      writeFileSync(planPath, readFileSync(planPath, "utf8").replaceAll("C-MX-PLANWRAP", "C-MX-OTHER"));
+    });
+  });
+
+  it("refuses a plan that does not cover the spec affected anchor", () => {
+    refuse("C-MX-COVERAGE", ({ planPath }) => {
+      writeFileSync(
+        planPath,
+        readFileSync(planPath, "utf8").replace("<GraphAnchors><M-EXAMPLE /></GraphAnchors>", "<GraphAnchors><M-UNRELATED /></GraphAnchors>"),
+      );
+    });
+  });
+
+  it("refuses an empty required spec section", () => {
+    refuse("C-MX-EMPTY", ({ specPath }) => {
+      writeFileSync(specPath, readFileSync(specPath, "utf8").replace("<Summary>Fixture change.</Summary>", "<Summary></Summary>"));
+    });
+  });
+
+  it("refuses an unparseable selected spec", () => {
+    refuse("C-MX-UNPARSE", ({ specPath }) => {
+      writeFileSync(specPath, "<NgraceChangeSpec graceVersion=\"1.0\" status=\"applied\"><C-MX-UNPARSE>");
+    });
+  });
+
+  it("records multi-criterion evaluations: first failure short-circuits within a criterion, later criteria continue", () => {
+    const { root, specPath, ledgerPath } = archiveBundle("C-MX-SEQ");
+    const marker = path.join(root, "MARKER-C-MX-SEQ-SKIP");
+    writeFileSync(
+      specPath,
+      readFileSync(specPath, "utf8").replace(
+        "<AcceptanceCriteria><Criterion>The fixture remains valid.</Criterion></AcceptanceCriteria>",
+        `<AcceptanceCriteria>`
+          + `<AC-A>First.<CloseEvidence><Command>false</Command><Command>touch "${marker}"</Command></CloseEvidence></AC-A>`
+          + `<AC-B>Second.<CloseEvidence><Command>true</Command></CloseEvidence></AC-B>`
+          + `</AcceptanceCriteria>`,
+      ),
+    );
+    const result = driveFail(root, "C-MX-SEQ");
+    expect(result.status).toBe(0);
+    const xml = readFileSync(ledgerPath, "utf8");
+    expect(xml).toMatch(/<AC-A>\s*<Exit>1<\/Exit>\s*<Result>fail<\/Result>\s*<\/AC-A>/);
+    expect(xml).toMatch(/<AC-B>\s*<Exit>0<\/Exit>\s*<Result>pass<\/Result>\s*<\/AC-B>/);
+    expect(existsSync(marker)).toBe(false);
+  });
+
+  it("refuses outcome pass when a selected command fails, leaving the ledger unchanged", () => {
+    const { root, specPath, ledgerPath } = archiveBundle("C-MX-PASSREFUSE");
+    writeCloseEvidenceSpec(specPath, "false");
+    const before = ledgerOrNull(ledgerPath);
+    const result = runGateCli(
+      ["verdict", "--change", "C-MX-PASSREFUSE", "--outcome", "pass", "--path", root, ...ackFindingCliArgs(root, "C-MX-PASSREFUSE")],
+      root,
+    );
+    expect(result.status).not.toBe(0);
+    expect(ledgerOrNull(ledgerPath)).toBe(before);
+  });
+
+  it("keeps a deliberately lint-invalid active-applied bundle inert under a misleading changes/archive parent", () => {
+    const outer = mkdtempSync(path.join(os.tmpdir(), "ngrace-matrix-mislead-"));
+    tempRoots.push(outer);
+    const root = path.join(outer, "changes", "archive", "proj");
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    writeChangeBundleFixture(root, { changeId: "C-MX-ACTIVE", location: "active", specStatus: "applied", planStatus: "applied" });
+    const bundle = path.join(root, ARTIFACT_DIR, "changes", "active", "C-MX-ACTIVE");
+    const marker = path.join(root, "MARKER-C-MX-ACTIVE");
+    writeCloseEvidenceSpec(path.join(bundle, "spec.xml"), `touch "${marker}"`);
+    const result = driveFail(root, "C-MX-ACTIVE");
+    expect(result.status).toBe(0);
+    expect(existsSync(marker)).toBe(false);
+    expect(readFileSync(path.join(bundle, "run-ledger.xml"), "utf8")).toContain('outcome="fail"');
+  });
+});

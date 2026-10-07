@@ -81,8 +81,14 @@ export type ChangeView = {
   } | null;
 };
 
-function isArchivePath(bundlePath: string): boolean {
-  return bundlePath.includes(`${path.sep}changes${path.sep}archive${path.sep}`);
+/**
+ * Archive phase is derived from the resolved project's bundle path, never an absolute-path
+ * substring in a parent directory (AC-QUERY-PHASE).
+ */
+function isArchivePath(projectRoot: string, bundlePath: string): boolean {
+  const paths = resolveNgracePaths(projectRoot);
+  const relative = path.relative(paths.changesArchiveDir, bundlePath);
+  return relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative);
 }
 
 /** Maps one plan's durable scope to the carried/`<None />` label the view prints. */
@@ -143,7 +149,7 @@ export function collectChangeView(projectRoot: string, changeId: string): Change
   if (!bundlePath) {
     throw new GraceCommandError("not-found", `No change bundle found for \`${changeId}\`.`);
   }
-  const location: "active" | "archive" = isArchivePath(bundlePath) ? "archive" : "active";
+  const location: "active" | "archive" = isArchivePath(projectRoot, bundlePath) ? "archive" : "active";
 
   const specPath = path.join(bundlePath, "spec.xml");
   const spec = existsSync(specPath) ? readGraceXmlArtifact(specPath) : null;

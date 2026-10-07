@@ -67,8 +67,9 @@ import { closeSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync
 import path from "node:path";
 
 import { spawnShellCommand } from "../artifact/assertions";
-import { collectCloseEvidenceEvaluations, isCloseBoundCriterion, validateRunLedgerArtifact } from "../artifact/grammar";
+import { collectCloseEvidenceEvaluations, isCloseBoundCriterion, validateChangeArtifact, validateRunLedgerArtifact, validateSpecPlanCoverage } from "../artifact/grammar";
 import { ARTIFACT_DIR } from "../artifact/paths";
+import { resolveNgracePaths } from "../artifact/project";
 import { ANCHOR_PATTERNS, ARTIFACT_TAG_PREFIX, nextBundleLineage, NGRACE_ARTIFACT_VERSION, parseBundleId } from "../artifact/types";
 import { cloneXmlNode, parseGraceXmlArtifact, readGraceXmlArtifact, walkNodes, type GraceXmlNode } from "../artifact/xml";
 import { serializeGraceXmlDocument } from "../artifact/xml-serialize";
@@ -439,16 +440,20 @@ export function recordReviewVerdict(
     assertCandidatePublished(bundlePath, changeId);
     const ledgerPath = path.join(bundlePath, "run-ledger.xml");
     const specPath = path.join(bundlePath, "spec.xml");
+    const planPath = path.join(bundlePath, "plan.xml");
     const identity = statSync(bundlePath);
     return {
       bundlePath,
       dev: identity.dev,
       ino: identity.ino,
-      specBytes: existsSync(specPath) ? readFileSync(specPath, "utf8") : null,
-      ledgerBytes: existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : null,
+      specBytes: existsSync(specPath) ? readFileSync(specPath) : null,
+      planBytes: existsSync(planPath) ? readFileSync(planPath) : null,
+      ledgerBytes: existsSync(ledgerPath) ? readFileSync(ledgerPath) : null,
     };
   });
-  const closeChildren = evaluateCloseEvidenceChildren(projectRoot, snapshot.bundlePath);
+  const selectedPhase = classifySelectedPhase(projectRoot, snapshot.bundlePath);
+  validateSelectedArchiveClose(projectRoot, changeId, snapshot.bundlePath, selectedPhase);
+  const closeChildren = evaluateCloseEvidenceChildren(projectRoot, snapshot.bundlePath, selectedPhase);
   if (
     verdict.outcome === "pass"
     && closeChildren.some((child) =>
@@ -464,8 +469,10 @@ export function recordReviewVerdict(
   assertCandidatePublished(bundlePath, changeId);
   const ledgerPath = path.join(bundlePath, "run-ledger.xml");
   const specPath = path.join(bundlePath, "spec.xml");
-  const currentBytes = existsSync(ledgerPath) ? readFileSync(ledgerPath, "utf8") : null;
-  const currentSpecBytes = existsSync(specPath) ? readFileSync(specPath, "utf8") : null;
+  const planPath = path.join(bundlePath, "plan.xml");
+  const currentBytes = existsSync(ledgerPath) ? readFileSync(ledgerPath) : null;
+  const currentSpecBytes = existsSync(specPath) ? readFileSync(specPath) : null;
+  const currentPlanBytes = existsSync(planPath) ? readFileSync(planPath) : null;
   let currentIdentity: { dev: number; ino: number } | undefined;
   try {
     const stat = statSync(bundlePath);
@@ -474,18 +481,20 @@ export function recordReviewVerdict(
     currentIdentity = undefined;
   }
   // Three-phase: refuse a verdict written against a stale location, directory
-  // identity, spec bytes, or ledger bytes (AC-REVIEW-VERDICT-THREE-PHASE).
+  // identity, spec/plan raw bytes, or ledger raw bytes (AC-REVIEW-VERDICT-THREE-PHASE,
+  // extended by AC-EVALUATION-SNAPSHOT to a lossless byte comparison).
   if (
     bundlePath !== snapshot.bundlePath
-    || currentBytes !== snapshot.ledgerBytes
-    || currentSpecBytes !== snapshot.specBytes
+    || !bytesEqual(currentBytes, snapshot.ledgerBytes)
+    || !bytesEqual(currentSpecBytes, snapshot.specBytes)
+    || !bytesEqual(currentPlanBytes, snapshot.planBytes)
     || currentIdentity === undefined
     || currentIdentity.dev !== snapshot.dev
     || currentIdentity.ino !== snapshot.ino
   ) {
     throw new GraceCommandError(
       "invalid-project",
-      "bundle location, identity, spec.xml, or run-ledger.xml changed during verdict evaluation; refusing to record a verdict against a stale snapshot.",
+      "bundle location, identity, spec.xml, plan.xml, or run-ledger.xml bytes changed during verdict evaluation; refusing to record a verdict against a stale snapshot.",
     );
   }
   const root = loadOrCreateLedgerRoot(bundlePath, changeId);
@@ -538,16 +547,160 @@ export function recordReviewVerdict(
   });
 }
 
-function isAppliedArchiveBundle(bundlePath: string, specStatus: string | undefined): boolean {
-  const archiveMarker = `${path.sep}changes${path.sep}archive${path.sep}`;
-  return bundlePath.includes(archiveMarker) && specStatus === "applied";
+function bytesEqual(a: Buffer | null, b: Buffer | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.length === b.length && a.equals(b);
 }
 
-function evaluateCloseEvidenceChildren(projectRoot: string, bundlePath: string): GraceXmlNode[] {
+function classifySelectedPhase(projectRoot: string, bundlePath: string): "active" | "archive" {
+  const paths = resolveNgracePaths(projectRoot);
+  const relative = path.relative(paths.changesArchiveDir, bundlePath);
+  if (relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)) {
+    return "archive";
+  }
+  return "active";
+}
+
+/**
+ * Strict selected-close validation (AC-PHASE-BEFORE-STATUS). Phase is classified from the
+ * resolved project's bundle path before parsed status can cause an early return; an invalid
+ * selected archive record refuses before any evidence command runs and before any verdict append.
+ */
+function validateSelectedArchiveClose(
+  projectRoot: string,
+  changeId: string,
+  bundlePath: string,
+  phase: "active" | "archive",
+): void {
+  if (phase !== "archive") return;
+  const specPath = path.join(bundlePath, "spec.xml");
+  const planPath = path.join(bundlePath, "plan.xml");
+  if (!existsSync(specPath) || !existsSync(planPath)) {
+    throw new GraceCommandError(
+      "invalid-project",
+      "Selected archive bundle must contain both spec.xml and plan.xml before a verdict; refusing.",
+      { issues: ["change.selected-close-incomplete"] },
+    );
+  }
+  const spec = readGraceXmlArtifact(specPath);
+  const plan = readGraceXmlArtifact(planPath);
+  if (!spec.root || !plan.root) {
+    throw new GraceCommandError(
+      "invalid-project",
+      "Selected archive spec.xml and plan.xml must both parse before a verdict; refusing.",
+      { issues: ["change.selected-close-unparseable"] },
+    );
+  }
+  if (spec.root.tag !== `${ARTIFACT_TAG_PREFIX}ChangeSpec` || plan.root.tag !== `${ARTIFACT_TAG_PREFIX}ChangePlan`) {
+    throw new GraceCommandError(
+      "invalid-project",
+      "Selected archive spec.xml and plan.xml must use the registered change roots; refusing.",
+      { issues: ["change.selected-close-root"] },
+    );
+  }
+  if (spec.root.attributes.status !== "applied" || plan.root.attributes.status !== "applied") {
+    throw new GraceCommandError(
+      "invalid-project",
+      "Selected archive spec.xml and plan.xml must both be status applied before a verdict; refusing.",
+      { issues: ["change.selected-close-status"] },
+    );
+  }
+  const specWrappers = spec.root.children.filter((child) => ANCHOR_PATTERNS.change.test(child.tag));
+  const planWrappers = plan.root.children.filter((child) => ANCHOR_PATTERNS.change.test(child.tag));
+  if (
+    specWrappers.length !== 1 || specWrappers[0]!.tag !== changeId
+    || planWrappers.length !== 1 || planWrappers[0]!.tag !== changeId
+  ) {
+    throw new GraceCommandError(
+      "invalid-project",
+      "Selected archive spec.xml and plan.xml must each carry exactly one direct wrapper equal to the selected change id; refusing.",
+      { issues: ["change.selected-close-wrapper"] },
+    );
+  }
+  const errors = [
+    ...validateChangeArtifact(spec, "archive", projectRoot).issues,
+    ...validateChangeArtifact(plan, "archive", projectRoot).issues,
+    ...validateSpecPlanCoverage(spec, plan, specPath, planPath),
+  ].filter((issue) => issue.severity === "error");
+  if (errors.length > 0) {
+    throw new GraceCommandError(
+      "invalid-project",
+      `Selected archive record failed validation: ${errors.map((issue) => issue.code).join(", ")}`,
+      { issues: errors.map((issue) => issue.code) },
+    );
+  }
+  assertSelectedCloseEvidenceConsumable(specWrappers[0]!);
+}
+
+/**
+ * Narrow local consumption guard (AC-EVIDENCE-CONSUMABILITY). The exported validator already
+ * refuses a direct empty `CloseEvidence`, a whitespace-only direct `Command` and a nested-only
+ * `Command`; this guard refuses the forms it does not detect: a legacy `Criterion` carrying
+ * evidence, evidence nested below its `AC-*`, and a duplicate complete direct `CloseEvidence` block.
+ */
+function assertSelectedCloseEvidenceConsumable(wrapper: GraceXmlNode): void {
+  for (const section of wrapper.children.filter((child) => child.tag === "AcceptanceCriteria")) {
+    const sectionNodes = [...walkNodes(section)];
+    const acNodes = sectionNodes.filter(
+      (node) => node !== section && ANCHOR_PATTERNS.acceptanceCriterion.test(node.tag),
+    );
+    const owners = new Map<GraceXmlNode, GraceXmlNode>();
+    for (const node of sectionNodes) {
+      for (const child of node.children) owners.set(child, node);
+    }
+    // A legacy Criterion must not carry an explicit CloseEvidence anywhere beneath it.
+    for (const node of sectionNodes) {
+      if (node === section || node.tag !== "Criterion") continue;
+      if ([...walkNodes(node)].some((descendant) => descendant !== node && descendant.tag === "CloseEvidence")) {
+        throw new GraceCommandError(
+          "invalid-arguments",
+          "A legacy Criterion must not carry an explicit CloseEvidence; refusing before evaluation.",
+          { issues: ["change.close-evidence-unconsumable-legacy"] },
+        );
+      }
+    }
+    // Every other declaration must be exactly one direct block on its bound AC-*.
+    for (const node of sectionNodes) {
+      if (node === section || node.tag !== "CloseEvidence") continue;
+      const owner = owners.get(node);
+      if (owner && ANCHOR_PATTERNS.acceptanceCriterion.test(owner.tag)) continue;
+      const nestedUnderAc = acNodes.some((ac) => [...walkNodes(ac)].includes(node));
+      if (nestedUnderAc) {
+        throw new GraceCommandError(
+          "invalid-arguments",
+          "CloseEvidence nested below its AC-* is refused before evaluation.",
+          { issues: ["change.close-evidence-unconsumable-nested"] },
+        );
+      }
+      throw new GraceCommandError(
+        "invalid-arguments",
+        "CloseEvidence under selected AcceptanceCriteria must be a direct child of its bound AC-*; an unbound declaration is refused before evaluation.",
+        { issues: ["change.close-evidence-unbound"] },
+      );
+    }
+    for (const ac of acNodes) {
+      const directEvidence = ac.children.filter((child) => child.tag === "CloseEvidence");
+      if (directEvidence.length > 1) {
+        throw new GraceCommandError(
+          "invalid-arguments",
+          `Acceptance criterion ${ac.tag} carries more than one direct CloseEvidence block; refusing before evaluation.`,
+          { issues: ["change.close-evidence-unconsumable-duplicate"] },
+        );
+      }
+    }
+  }
+}
+
+function evaluateCloseEvidenceChildren(
+  projectRoot: string,
+  bundlePath: string,
+  phase: "active" | "archive",
+): GraceXmlNode[] {
+  if (phase !== "archive") return [];
   const specPath = path.join(bundlePath, "spec.xml");
   if (!existsSync(specPath)) return [];
   const spec = readGraceXmlArtifact(specPath);
-  if (!isAppliedArchiveBundle(bundlePath, spec.root?.attributes.status)) {
+  if (spec.root?.attributes.status !== "applied") {
     return [];
   }
   const wrapper = spec.root?.children.find((child) => ANCHOR_PATTERNS.change.test(child.tag));
