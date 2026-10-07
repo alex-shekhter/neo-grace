@@ -1,0 +1,248 @@
+<NgraceChangePlan graceVersion="1.0" status="approved">
+  <C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713>
+    <IntentSummary>
+      T2 plan for the approved review-only slice of the current-only boundary. One cohesive task
+      makes the mechanized review surface active-only: the global `MustExist` scan discovers active
+      plans before reading any plan content and drops the `review.historical-path-absent` notice and
+      guide; scoped review stops calling `readAmendmentInstrument` and reports the existing
+      `amendmentCountAudit` not-run absence with a current-only policy reason and matching absence;
+      and the two selected-review location predicates classify archive phase by the project-relative
+      bundle path. The product scope is exactly `src/review/core.ts`, `src/review/catalog.ts`,
+      `src/review/core.test.ts` (M-REVIEW) and `src/verification/localize.test.ts` (M-LOCALIZE); both
+      modules and their `V-M-*` anchors are covered. The three ordinary criteria
+      (`AC-AMENDMENT-AUDIT-ABSENCE`, `AC-SELECTED-PHASE-PREDICATES`, `AC-CATALOG-POPULATION`) are
+      mapped through `Satisfies`; `AC-ACTIVE-ONLY-DISCOVERY`, `AC-ARCHIVE-PRESERVATION` and
+      `AC-BOUNDED-WRITES` are close-bound and are implementation obligations of the task, never
+      `Satisfies` targets, and their CloseEvidence commands are not duplicated here. The
+      preservation base stays `61a9e42e3d06a63f1a863cb01e019f499c862a60`. No helper file or export,
+      no grammar/gates/query/status/skill/footprint/README change, and no record conversion is
+      planned. The sanctioned close performs its ordinary own-bundle lifecycle writes: `ngrace gate
+      verdict` persists the Verdict and its `CloseEvidence` children in the bundle's
+      `run-ledger.xml`; `ngrace apply` writes `applied` status onto the bundle's `spec.xml` and
+      `plan.xml`, writes the applied Decisions and fingerprints into `run-ledger.xml`, and then
+      renames the bundle directory; the cursor, attempt, and fold commands own the bundle's
+      `run.xml`, `run/**`, and ledger epoch state. These are the CLI's own-bundle effects and are
+      excluded by the scope audit's own-bundle identity and CLI-lifecycle rules, so they are
+      deliberately not re-listed in `ObservedWriteScope`. Local final evidence is the Linux
+      workflow's `bun run validate:ci` plus the required `bun run validate:cli` plus
+      `bun run release:check`; the Windows compatibility job and the Dart-adapter job in
+      `.github/workflows/validate.yml` are not executed locally and are not claimed. The full
+      CI-equivalent verification is close-time only, at the `TargetAssertions` `MustPassCommand`
+      under `--assertions final --run-commands`, and is exempt from PLAN command driving; the root
+      current-mode lint is pre-write only. The
+      approved SPEC overrides `ngrace-plan` rule 19's conflicting full-CI-at-PLAN teaching; that
+      teaching repair belongs to the third authorized slice.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.test.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.ts</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-LOCALIZE</Value></MustExist>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-LOCALIZE</Module></MustVerify>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>review.confidently-wrong</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>expandScopePathsForArchiveIdentity</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/catalog.ts</File>
+        <Text>REVIEW_CATALOG</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/verification/localize.ts</File>
+        <Text>ADMISSIBLE_REVIEW_CODES</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/review/core.ts</Value></MustExist>
+      <MustExist><Value>src/review/catalog.ts</Value></MustExist>
+      <MustExist><Value>src/review/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.test.ts</Value></MustExist>
+      <MustExist><Value>src/verification/localize.ts</Value></MustExist>
+      <MustExist><Value>M-REVIEW</Value></MustExist>
+      <MustExist><Value>M-LOCALIZE</Value></MustExist>
+      <MustVerify><Module>M-REVIEW</Module></MustVerify>
+      <MustVerify><Module>M-LOCALIZE</Module></MustVerify>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>review.confidently-wrong</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/review/core.ts</File>
+        <Text>expandScopePathsForArchiveIdentity</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>review.historical-path-absent</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/catalog.ts</File>
+        <Text>review.historical-path-absent</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>src/review/core.ts</File>
+        <Text>readAmendmentInstrument</Text>
+      </MustNotContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:cli</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run release:check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-REVIEW />
+        <M-LOCALIZE />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-REVIEW />
+        <V-M-LOCALIZE />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/review/core.ts</File>
+      <File>src/review/catalog.ts</File>
+      <File>src/review/core.test.ts</File>
+      <File>src/verification/localize.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Make the mechanized review surface active-only and archive-honest</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-AMENDMENT-AUDIT-ABSENCE />
+          <AC-SELECTED-PHASE-PREDICATES />
+          <AC-CATALOG-POPULATION />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first evidence before the runtime change, captured on a disposable project copy and
+            recorded with the command output: (i) a review read-spy driven over a fresh unique
+            synthetic project with a cold predecessor cache records calls under
+            `.ngrace/changes/archive/` from the global `MustExist` scan; (ii) scoped review reports
+            `Amendment count: re-ratifications=0 supersede-depth=1` (status `ran`) for the selected
+            bundle; (iii) `allReviewCodes()` still contains `review.historical-path-absent` and the
+            literal length pins still hold. Capture each red before the corresponding repair.
+          </Criterion>
+          <Criterion>
+            In `src/review/core.ts`, the global `MustExist` scan (`detectConfidentlyWrong`, current
+            `core.ts:472-574`, plan loop from the `listFilesRecursive(root, changes)` call and the
+            archived branch at `core.ts:544-566`) discovers active `plan.xml` files before reading
+            any plan content and opens no unrelated archived plan; the
+            `review.historical-path-absent` producer and its archive branch are removed. Active
+            `BaselineAssertions` and `TargetAssertions` absent-path errors are preserved, including
+            undeclared/unexempt target claims, the declared-future target exemption, and the shared
+            identity helpers (`scopeIdentityFromPlanRel`, `expandScopePathsForArchiveIdentity`). A
+            deliberately selected archive record stays readable by its own selected consumer.
+          </Criterion>
+          <Criterion>
+            Read-boundary proof: a `bun:test` call-through spy over the real exported
+            `readGraceXmlArtifact` records each call's `file` and calls through to the original. Over
+            a fresh unique synthetic project with a cold predecessor cache, carrying at least one
+            active plan and at least one archived plan, plus a neutral and a misleading parent
+            `changes/archive` root, driving the real `runPatternDetectors`, unscoped `runReview`, and
+            selected-active `runReview` records zero calls whose path is under
+            `.ngrace/changes/archive/` and a non-empty set of active-plan calls as the positive
+            control; the spy and any mutated synthetic inputs are restored after each case.
+          </Criterion>
+          <Criterion>
+            Behaviour on the active refusal counterweight: an active plan with an absent baseline
+            target and an absent undeclared target each still emit `review.confidently-wrong` /
+            `must-exist-missing` at error; declaring the target under `ObservedWriteScope` and
+            creating the baseline removes the two errors; exact restoration restores the identical
+            findings.
+          </Criterion>
+          <Criterion>
+            In `src/review/core.ts`, `runReview` stops calling `readAmendmentInstrument` (current
+            call at `core.ts:1811`, import at `core.ts:82`; remove the import if it becomes unused)
+            and reports the existing `amendmentCountAudit` with `status="not-run"`, a non-empty
+            reason naming the current-only policy that archive-dependent amendment measurement is
+            not a current review input, and a matching non-empty absence record; the report carries
+            no `reRatificationCount` and no `supersedeChainDepth` key, no fabricated zero, and no
+            `ran`. Unscoped review keeps its existing `not-run` reason naming the missing `--change`.
+            No ledger API and no duplicate counting algorithm is added; the formatter's not-run branch
+            is reused.
+          </Criterion>
+          <Criterion>
+            In `src/review/core.ts`, the two selected-review location predicates
+            (`isAbandonedArchiveBundle`, current `core.ts:1488-1494`, and
+            `auditCloseEvidenceUnevaluated`, current `core.ts:1899-1918`) classify archive phase from
+            the actual project-relative bundle path rather than from an absolute-path substring
+            containing a `changes/archive` marker. A private expression or function inside this file
+            is allowed; no new helper file or export and no `src/grace-cursor.ts` change. Each
+            classifier carries its own discriminating test, separate from the global reader spy, and
+            those tests are driven at info severity (the API's info level), because
+            `review.attempt-pair-unpaired-pass` is hidden by the default warning threshold:
+            (i) an active rejected spec plus a pass-only attempt emits
+            `review.attempt-pair-unpaired-pass` in a neutral parent root but the pre-fix classifier
+            suppresses it when the same project sits under a misleading parent root whose path
+            contains `changes/archive`; (ii) an active applied spec and plan with unevaluated
+            `CloseEvidence` gains erroneous close-evidence findings only under the misleading parent
+            root. After repair the same active location behaves consistently across both roots,
+            comparing the intended phase codes rather than incidental historical notices. Genuine
+            archive-phase controls are retained under either parent: an applied record reports its
+            unevaluated close criteria under either parent, and an abandoned record excludes the
+            pass-only attempt under either parent. Exact bytes, events, and directories are restored
+            after each case. These deliberately invalid active statuses are refused by current lint;
+            the tests isolate the review-route phase handling and that limitation is disclosed.
+            Hand-placed synthetic archive controls are not actual apply/archive lifecycle evidence.
+            Fixture shape follows current source, schema, and API definitions, not historical
+            ledger-corpus searches.
+          </Criterion>
+          <Criterion>
+            In `src/review/catalog.ts`, the `review.historical-path-absent` guide (current
+            `catalog.ts:338-352`) is removed from `REVIEW_CATALOG`, `allReviewCodes()`, and the
+            explain surface. In `src/review/core.test.ts` and
+            `src/verification/localize.test.ts`, every corresponding case, literal length pin and
+            stale explanatory comment or title is retired or reframed — including the historical
+            tests around `core.test.ts:1507-1608,3970,4467-4480,4872-4893`, the length pins at
+            `core.test.ts:2478,3116,3122,4887` and `localize.test.ts:433,439`, and the scoped
+            amendment test at `core.test.ts:4359-4365` — while the D8 admissible set stays exactly
+            the three named codes, the family-A pattern set stays exactly the five named codes, and
+            the whole-population catalog/localization exclusive-or coverage holds, measured through
+            the real exported catalog/localization functions including `allReviewCodes()`, not a
+            projected count.
+          </Criterion>
+          <Criterion>
+            Scope and lifecycle: the change writes only the four product paths. The sanctioned close
+            performs the ordinary own-bundle lifecycle writes as described in `IntentSummary`:
+            `ngrace apply` writes `applied` status onto the bundle's `spec.xml` and `plan.xml`,
+            writes the applied Decisions and fingerprints into `run-ledger.xml`, and then renames the
+            bundle directory; cursor, attempt, and fold own `run.xml`, `run/**`, and ledger epoch
+            state. These are the CLI's own-bundle effects, excluded by the scope audit's own-bundle
+            identity and CLI-lifecycle rules, and are not re-listed in `ObservedWriteScope` or as
+            persistent lock exceptions. No new helper file or export, and
+            no grammar, gates, query, status, skill, footprint, README, or examples change.
+          </Criterion>
+          <Criterion>
+            Verification feasibility: the unchanged narrow task Verification command
+            (`bun test --timeout=0 src/review/core.test.ts src/verification/localize.test.ts`) carries
+            its prior identity evidence. Newly introduced narrow commands and every structural
+            `BaselineAssertions` / `TargetAssertions` assertion are driven on a disposable
+            approved-shaped copy: baseline must be green, and target pre-implementation reds are
+            recorded honestly. Final CI and execute-stage CLI validation (`bun run validate:ci`,
+            `bun run validate:cli`, `bun run release:check`) are exempt from PLAN command driving;
+            validate:ci and validate:cli run only at EXECUTE final; release:check permits isolated PLAN feasibility,
+            with its required gate run at EXECUTE final under `--assertions final --run-commands`. No unevaluated command is claimed to have passed. The root current-mode lint is not run
+            after writes and is never a task or target command. No full suite or full CI runs at
+            PLAN.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/review/core.test.ts src/verification/localize.test.ts</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713>
+</NgraceChangePlan>
