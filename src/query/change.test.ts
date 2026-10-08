@@ -277,3 +277,47 @@ describe("C-INSPECTION-SURFACE-1-2628AA2B T-002 ngrace change", () => {
     expect(source).toContain("derivedStatesForChange");
   });
 });
+
+// C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001 mechanism 4: query phase from the resolved project.
+describe("C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001 query phase discriminator", () => {
+  it("keeps an active approved bundle active and scoped under a neutral and a misleading changes/archive parent", () => {
+    const neutral = tempProject();
+    writeBundle(neutral);
+    const neutralView = collectChangeView(neutral, CHANGE_ID);
+    expect(neutralView.location).toBe("active");
+    expect(neutralView.observedWriteScope?.files).toContain("src/example.ts");
+
+    const outer = mkdtempSync(path.join(os.tmpdir(), "ngrace-change-mislead-"));
+    tempRoots.push(outer);
+    const root = path.join(outer, "changes", "archive", "proj");
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    writeBundle(root);
+    const view = collectChangeView(root, CHANGE_ID);
+    expect(view.location).toBe("active");
+    expect(view.observedWriteScope?.files).toContain("src/example.ts");
+  });
+
+  it("keeps a genuine applied archive archived and scoped under a neutral parent", () => {
+    const root = tempProject();
+    writeBundle(root, { location: "archive" });
+    const view = collectChangeView(root, CHANGE_ID);
+    expect(view.location).toBe("archive");
+    expect(view.observedWriteScope?.files).toContain("src/example.ts");
+  });
+});
+
+// C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001 query counterweight: genuine archive under a misleading parent.
+describe("C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED T-001 query archive counterweight", () => {
+  it("keeps a genuine applied archive archived and scoped under a misleading changes/archive parent", () => {
+    const outer = mkdtempSync(path.join(os.tmpdir(), "ngrace-change-mislead-archive-"));
+    tempRoots.push(outer);
+    const root = path.join(outer, "changes", "archive", "proj");
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    writeBundle(root, { location: "archive" });
+    const view = collectChangeView(root, CHANGE_ID);
+    expect(view.location).toBe("archive");
+    expect(view.observedWriteScope?.files).toContain("src/example.ts");
+  });
+});

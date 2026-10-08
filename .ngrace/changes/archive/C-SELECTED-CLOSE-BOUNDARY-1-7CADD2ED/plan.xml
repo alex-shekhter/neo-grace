@@ -1,0 +1,266 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED>
+    <IntentSummary>
+      T1 plan for the approved selected-close boundary and query location slice. One cohesive
+      sequential task covers the accepted behavior. The product scope is exactly `src/gates/ledger.ts`
+      and `src/gates/core.test.ts` (`M-GATES`) plus `src/query/change.ts` and `src/query/change.test.ts`
+      (`M-QUERY`); both modules and their `V-M-*` anchors are covered, and the three ordinary criteria
+      (`AC-EVIDENCE-CONSUMABILITY`, `AC-EVALUATION-SNAPSHOT`, `AC-QUERY-PHASE`) are mapped through
+      `Satisfies`. `AC-PHASE-BEFORE-STATUS`, `AC-ARCHIVE-PRESERVATION` and `AC-BOUNDED-WRITES` are
+      close-bound and are implementation obligations of the task, never `Satisfies` targets, and their
+      CloseEvidence commands are not duplicated here. The preservation base stays
+      `156c67c74a10b50478a9752189e47c00544847d2`; the approval checkpoint
+      `12e2e4ffade6105d99efa2dc19398c5ea660d221` is not that base and never replaces it.
+
+      The plan implements the approved `AC-EVALUATION-SNAPSHOT` byte guarantee literally. A measured,
+      authority-reproduced current defect: `src/gates/ledger.ts:447-448,467-468` reads spec and ledger as
+      UTF-8 strings, so different byte sequences can decode equally; on a fresh complete adopting project a
+      valid UTF-8 U+FFFD marker (`EF BF BD`) was changed by the real CloseEvidence command to raw `80`, the
+      spec bytes and length changed, the decoded strings stayed equal, and the real pass verdict wrongly
+      appended a ledger. The task must snapshot and recheck spec, plan and ledger as raw buffers (or an
+      equivalent lossless byte comparison) with explicit present-versus-absent handling, decoding for XML
+      validation being a separate operation, while keeping directory identity and location checks and
+      command-side-effect preservation.
+
+      No new helper implementation file or export, no shared grammar change or grammar test, no
+      warning-output API, no status/review/catalog change, no graph or verification write, no record or
+      `Pays`, and no README, examples, metadata or stash change. Private expressions or functions inside the
+      already-scoped files are a plan choice.
+
+      The sanctioned close performs its ordinary own-bundle lifecycle writes: `ngrace gate verdict`
+      persists the Verdict and its `CloseEvidence` children in the bundle's `run-ledger.xml`; `ngrace apply`
+      writes `applied` status onto the bundle's `spec.xml` and `plan.xml`, writes the applied Decisions and
+      fingerprints into `run-ledger.xml`, and then renames the bundle directory; the cursor, attempt and
+      fold commands own the bundle's `run.xml`, `run/**` and ledger epoch state; the candidate and
+      run-write locks are temporary coordination created and removed by the CLI. These are the CLI's
+      own-bundle effects, excluded by the scope audit's own-bundle identity and CLI-lifecycle rules, so they
+      are deliberately not re-listed in `ObservedWriteScope` or as persistent lock exceptions. Rule 6's
+      project-specific flush and retirement teaching is inapplicable here: this bundle declares no `Pays`,
+      no record conversion and no retirement move.
+
+      All local fixture, CLI and lint evidence is POSIX/Bun; no hosted Windows or Dart job is claimed.
+      `TargetAssertions` declares exactly the three close-time leaves `bun run validate:ci`,
+      `bun run validate:cli` and `bun run release:check`; full CI-equivalent verification is close-time only
+      under one outermost `--assertions final --run-commands`, and none of these leaves is driven at PLAN.
+      The approved SPEC overrides `ngrace-plan` rule 19's conflicting full-CI-at-PLAN teaching; that teaching
+      repair belongs to the third authorized slice.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/change.ts</Value></MustExist>
+      <MustExist><Value>src/query/change.test.ts</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function recordReviewVerdict</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/change.ts</File>
+        <Text>export function collectChangeView</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist><Value>src/gates/ledger.ts</Value></MustExist>
+      <MustExist><Value>src/gates/core.test.ts</Value></MustExist>
+      <MustExist><Value>src/query/change.ts</Value></MustExist>
+      <MustExist><Value>src/query/change.test.ts</Value></MustExist>
+      <MustExist><Value>M-GATES</Value></MustExist>
+      <MustExist><Value>M-QUERY</Value></MustExist>
+      <MustVerify><Module>M-GATES</Module></MustVerify>
+      <MustVerify><Module>M-QUERY</Module></MustVerify>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>validateChangeArtifact</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>validateSpecPlanCoverage</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/gates/ledger.ts</File>
+        <Text>export function recordReviewVerdict</Text>
+      </MustContain>
+      <MustContain>
+        <File>src/query/change.ts</File>
+        <Text>export function collectChangeView</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run validate:cli</Command>
+      </MustPassCommand>
+      <MustPassCommand>
+        <Command>bun run release:check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-GATES />
+        <M-QUERY />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-GATES />
+        <V-M-QUERY />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>src/gates/ledger.ts</File>
+      <File>src/gates/core.test.ts</File>
+      <File>src/query/change.ts</File>
+      <File>src/query/change.test.ts</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Bind the selected-close boundary strictly and repair the query phase classifier</Title>
+        <DependsOn></DependsOn>
+        <Satisfies>
+          <AC-EVIDENCE-CONSUMABILITY />
+          <AC-EVALUATION-SNAPSHOT />
+          <AC-QUERY-PHASE />
+        </Satisfies>
+        <AcceptanceCriteria>
+          <Criterion>
+            Red-first evidence, captured on a disposable project copy before the corresponding runtime
+            repair and recorded with actual command output and exact restoration, for each separable
+            mechanism: (i) the selected-close consumer accepts a selected archive record with a
+            missing/unparseable spec, wrong root, non-applied status, missing plan, or malformed/duplicate
+            wrapper and appends a ledger; (ii) explicit legacy-`&lt;Criterion&gt;`, nested, or duplicate
+            complete direct `CloseEvidence` is skipped or only partially run while a `pass` is recorded;
+            (iii) a valid UTF-8 U+FFFD marker (`EF BF BD`) in the selected spec is replaced by raw `80`
+            during a `CloseEvidence` command, the decoded strings stay equal, and a real pass verdict still
+            appends; (iv) `collectChangeView` reports `archive` for an active approved bundle under a
+            misleading `changes/archive` parent while a neutral parent reports `active`. Each red is
+            captured before its repair; no later guard is prelanded and no retrospective red is
+            manufactured. A guard cluster that is one indivisible mechanism is driven as a single atomic
+            red/green pair only when its guards necessarily green together; otherwise fail and pass cycles
+            are interleaved and the grouping is disclosed.
+          </Criterion>
+          <Criterion>
+            Phase before status. In `src/gates/ledger.ts` (`M-GATES`), the selected-close path classifies
+            the explicitly resolved selected bundle relative to this project's `.ngrace/changes/active/`
+            and `.ngrace/changes/archive/` directories before any parsed status can cause an early return.
+            For a selected archive bundle it requires both selected files to exist and parse, the exact
+            registered roots `NgraceChangeSpec` and `NgraceChangePlan`, `status="applied"` on both, and
+            exactly one direct C-* wrapper in each equal to the selected directory/argument identity; it
+            then runs the exported `validateChangeArtifact` on each with the archive location and
+            `projectRoot`, plus `validateSpecPlanCoverage` on this pair. An invalid selected record refuses
+            before any evidence command runs and before any verdict append; required/meaningful sections, AC
+            values, task shapes and selected coverage cannot be bypassed. The strict consumer reads only this
+            selected record: no unrelated bundle enumeration, whole-project validation, historical
+            compatibility reader or schema-version dispatch. Normal active and pre-archive routes retain
+            `CloseEvidence` inertness and are not subjected to archive-only applied requirements. The
+            deliberately lint-invalid active-applied phase control (an active bundle carrying
+            `status="applied"`) is used only to isolate phase routing under neutral and misleading parents
+            and is never presented as a valid record; hand-placed synthetic archive controls are not actual
+            apply/archive lifecycle evidence.
+          </Criterion>
+          <Criterion>
+            Consumable evidence, not silent absence. In `src/gates/ledger.ts` (`M-GATES`), every explicit
+            `CloseEvidence` declaration in the selected `AcceptanceCriteria` is inspected before evaluation
+            and must be exactly one direct `CloseEvidence` on its bound `AC-*`, with at least one non-empty
+            direct `Command`. Calling the exported `validateChangeArtifact` already refuses a direct empty
+            `CloseEvidence`, a whitespace-only direct `Command`, and a `CloseEvidence` containing only a
+            nested `Command`, each as one error-severity `change.close-evidence-incomplete`
+            (`src/artifact/grammar.ts:1899-1907,2203-2205`); the narrow local guard refuses a declaration
+            under a legacy `&lt;Criterion&gt;`, a `CloseEvidence` nested below its `AC-*`, and a duplicate
+            complete direct `CloseEvidence` block, none of which the exported validator detects. Any
+            error-severity issue from the selected spec validation, the selected plan
+            validation, the selected spec-to-plan coverage, or the local evidence-consumption guard refuses
+            the close before any evidence command runs and before any verdict append. Ordinary `AC-*`
+            criteria without evidence and meaningful legacy/free-text criteria without evidence remain
+            legitimate zero-command closes; invalid explicit evidence is never treated as a zero-command
+            close. Warning-severity issues remain advisory: warning-only otherwise-valid artifacts stay
+            admissible, unmapped ordinary criteria, excess plan anchors and undiscriminating command shapes
+            stay advisory, and no warning channel is added to gate output. The current grammar is reused and
+            no whole-project validator or historical reader is invoked.
+          </Criterion>
+          <Criterion>
+            Preserved evaluation and byte-level snapshot. In `src/gates/ledger.ts` (`M-GATES`), all bound
+            criteria are evaluated; within one criterion evaluation stops at the first non-zero command and
+            continues with the remaining criteria. Each close-bound criterion's evaluation is recorded as a
+            direct `Verdict` child named by its `AC-*` tag, carrying an `Exit` child and a `Result` child,
+            alongside the Verdict's direct `Finding` and `Ack` children (`src/gates/ledger.ts:572-580`,
+            assembled at `:533`). A failed command refuses `outcome pass` without a verdict write; a
+            legitimate `outcome fail` may record the failed-command evaluations. The bound
+            finding/ACK/digest behavior, ledger pre/post-write validation and restoration, candidate lock
+            behavior, and the existing stale-location/directory/spec/ledger checks are preserved. The
+            decision-bearing snapshot and the final equality check compare spec, plan and ledger as raw
+            bytes (or an equivalent lossless byte comparison) with explicit present-versus-absent handling,
+            replacing the current UTF-8 string reads at `src/gates/ledger.ts:447-448,467-468`; decoding for
+            XML validation is a separate operation. A command-induced plan change, and a raw byte change
+            whose decoded text is equal, each refuse append exactly as a spec, ledger, location or identity
+            change does. Refusal preserves the ledger state at the append boundary, including legitimate
+            bytes changed by the probe itself; no rollback of command side effects is claimed. The snapshot
+            covers spec/plan/ledger/directory, not `.ngrace-lint.json`'s advisory command-shape
+            configuration. A regression drives a changed raw byte with equal decoded text, with
+            non-mutating and exact-restoration controls.
+          </Criterion>
+          <Criterion>
+            Query phase from the resolved project. In `src/query/change.ts` (`M-QUERY`),
+            `collectChangeView` derives the bundle location from the resolved project's bundle path, not
+            from an absolute-path substring in a parent directory; the current absolute-substring test at
+            `src/query/change.ts:84-86` is replaced. Independent controls: an active approved bundle retains
+            active scopes under a neutral and a misleading `changes/archive` parent; a genuine applied
+            archive retains archive scopes under both; retained scopes, criterion and verdict tallies,
+            absent/unparseable artifact distinctions and exact read-only tree equality are preserved. This
+            does not claim that the separate status-dependent surface is archive-free.
+          </Criterion>
+          <Criterion>
+            Verification feasibility, probe matrix and evidence honesty. The approved `ExpectedEvidence`
+            matrix is proved at Execute with new real-CLI probes on fresh complete synthetic adopting
+            projects that use fresh real owned fixture paths within `src/gates/core.test.ts` and
+            `src/query/change.test.ts`, existing `writeChangeBundleFixture` / minimal-project support, and
+            byte snapshots; no fixture or helper source edit is needed. Spec and plan are tested separately
+            for: missing, unparseable, wrong root, wrong or duplicate direct identity wrapper, missing or
+            non-applied status, malformed required sections or applicable AC/task values, and selected
+            spec-to-plan coverage errors. For each invalid selected archive input, refusal must occur before
+            any evidence command marker runs and must preserve the ledger bytes at the append boundary; each
+            fixture is restored and the admissible control is driven. All explicit-evidence invalid forms,
+            the warning-only control and the legitimate no-evidence control are driven; normal active
+            evidence inertness, the deliberately lint-invalid active-applied routing isolation under neutral
+            and misleading parents, and genuine applied archive controls are driven. Gates and query each
+            have their own route discriminator. A valid multi-criterion, multi-command fixture exercises
+            successful sequencing, first-non-zero short-circuit of later commands within one criterion while
+            a later criterion still executes, refusal of `outcome pass` without append, and a legitimate
+            `outcome fail` that records the evaluations as direct Verdict `AC-*` children carrying `Exit`
+            and `Result` beside the Verdict's `Finding` and `Ack` children. Command-induced spec, plan,
+            ledger, location and directory-identity changes, including present-versus-absent transitions,
+            each refuse append and preserve the ledger bytes at the append boundary, including bytes the
+            command itself changed; no command-side-effect rollback is claimed, and the ACK/digest,
+            pre/post-write validation and restoration, and lock counterweights are preserved. The lossless
+            raw-byte snapshot regression and its non-mutating and exact-restoration controls are retained:
+            spec, plan and ledger are compared as raw bytes with explicit presence states while XML decoding
+            stays a separate operation, and the measured current defect (valid `EF BF BD` becomes raw `80`
+            while both decode alike) must go red and then pass after repair. Where a probe spies on a read it
+            observes through a call-through that records the call and calls the original export, and every
+            zero-read assertion is paired with that route's own positive control; every probe is
+            failure-safe with temp roots and spied modules cleaned up and inputs exactly restored. Existing
+            tests may carry preserved counterweights when they are inspected and demonstrated, and new
+            defect reds are distinguished from controls that were already green; no red-first failure is
+            manufactured. The active applied classifier control is deliberately lint-invalid and isolated
+            to phase routing; synthetic hand-placed archive controls are reader controls, not actual
+            apply/archive evidence. Execute separately rehearses the sanctioned lifecycle on a faithful
+            disposable copy carrying the exact live artifacts and untracked events, fresh default finding
+            ACKs, terminal/fold, apply/archive, selected post-archive verdict/evidence, applied fingerprints
+            and byte preservation. The unchanged narrow command carries its authority baseline by identity.
+            Newly introduced narrow commands and the structural `BaselineAssertions` and `TargetAssertions`
+            are driven on a disposable approved-shaped copy: baseline green, intended target
+            pre-implementation reds recorded honestly, and command-not-evaluated distinguished from command
+            success. No unevaluated command is claimed to have passed. Final CI and CLI validation
+            (`bun run validate:ci`, `bun run validate:cli`, `bun run release:check`) is exempt from PLAN
+            driving and runs only at Execute final; the root current-mode lint is pre-write only and is
+            never a task or target command.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 src/gates/core.test.ts src/query/change.test.ts</Command>
+        </Verification>
+      </T-001>
+    </ImplementationPlan>
+  </C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED>
+</NgraceChangePlan>

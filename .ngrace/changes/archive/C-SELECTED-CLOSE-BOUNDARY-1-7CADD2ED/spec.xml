@@ -1,0 +1,415 @@
+<NgraceChangeSpec graceVersion="1.0" status="applied">
+  <C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED>
+    <Summary>
+      Second of three smaller serial successor slices replacing the superseded
+      `.ngrace/changes/archive/C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D` bundle. Following the
+      current-only CLI policy in `AGENTS.md`, C2 (`.ngrace/changes/archive/C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713`)
+      delivered the review-only slice; this slice binds the selected-close gate behavior and the query
+      change-view phase classifier, and the third slice owns the planning teaching, the footprint, and the
+      README row. It (1) classifies the explicitly selected bundle phase before parsed status can cause an
+      early return and strictly validates a selected archive spec/plan pair with the exported
+      `validateChangeArtifact` and `validateSpecPlanCoverage` plus a local evidence-consumption guard, so a
+      malformed or silently unconsumable selected record refuses before any evidence command or verdict
+      append; (2) preserves all bound criteria evaluation, records each criterion-named evaluation as a direct
+      Verdict child with `Exit` and `Result` children alongside the Verdict's `Finding` and `Ack` children, and
+      adds the selected `plan.xml` bytes to the decision-bearing snapshot and final equality check; and (3)
+      makes `collectChangeView` derive the bundle location from the resolved project's
+      bundle path instead of an absolute-path `changes/archive` substring, so an active approved bundle under
+      a misleading parent keeps active scopes while a genuine applied archive keeps archive scopes.
+      Exactly four paths change across two modules: `M-GATES` (`src/gates/ledger.ts`, the runtime owner, and
+      `src/gates/core.test.ts`, its headerless companion test) and `M-QUERY` (`src/query/change.ts`, the
+      runtime owner, and `src/query/change.test.ts`, its headerless companion test). It reuses the exported
+      grammar validators unchanged and adds no shared-grammar change, no new helper implementation file or
+      export, no warning-output API, and no status/review/catalog change. It declares no `Pays` and makes no
+      governed record-system write; the sanctioned close still performs this bundle's ordinary lifecycle
+      writes. `README.md` is unchanged by this slice (its measured footprint row belongs to the third slice);
+      `examples/` is unchanged.
+    </Summary>
+    <Goals>
+      <Goal>
+        In `src/gates/ledger.ts` (`M-GATES`), classify the explicitly resolved selected bundle relative to
+        this project's `.ngrace/changes/active/` and `.ngrace/changes/archive/` directories before parsed
+        status can cause an early return. For a selected archive, require both selected files to exist and
+        parse, the exact registered roots `NgraceChangeSpec` and `NgraceChangePlan`, `status="applied"` on
+        both, and exactly one direct C-* wrapper in each equal to the selected directory/argument identity;
+        run the exported `validateChangeArtifact` on each with the archive location and `projectRoot` and the
+        exported `validateSpecPlanCoverage` on this pair. An invalid selected record refuses before any
+        evidence command runs and before any verdict append.
+      </Goal>
+      <Goal>
+        In `src/gates/ledger.ts` (`M-GATES`), inspect every explicit `CloseEvidence` declaration in the
+        selected `AcceptanceCriteria` before evaluation and require exactly one direct `CloseEvidence` on its
+        bound `AC-*` with at least one non-empty direct `Command`; refuse an unconsumable declaration under a
+        legacy `&lt;Criterion&gt;`, nested below its `AC-*`, duplicated as a second direct block, empty,
+        whitespace-only, or nested-only, while preserving ordinary criteria and meaningful legacy criteria
+        that genuinely declare no evidence.
+      </Goal>
+      <Goal>
+        In `src/gates/ledger.ts` (`M-GATES`), preserve the evaluation and snapshot behavior: evaluate all
+        bound criteria, stop at the first non-zero command within a criterion and continue the remaining
+        criteria, record each criterion-named evaluation as a direct Verdict child with `Exit` and `Result`
+        children alongside the Verdict's `Finding` and `Ack` children, refuse `outcome pass` when a selected
+        command fails, keep the bound finding/ACK/digest behavior, ledger
+        pre/post-write validation and restoration, candidate lock behavior and stale-location/directory/
+        spec/ledger checks, and add the selected `plan.xml` bytes to the decision-bearing snapshot and final
+        equality check.
+      </Goal>
+      <Goal>
+        In `src/query/change.ts` (`M-QUERY`), derive the change view's bundle location from the resolved
+        project's bundle path rather than an absolute-path `changes/archive` substring, so active approved
+        bundles retain active scopes under neutral and misleading `changes/archive` parents and genuine
+        applied archives retain archive scopes under both, preserving existing query output, absent/
+        unparseable artifact distinctions, durable-scope states, criterion/verdict tallies, and read-only tree
+        bytes.
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T1 (module change within this package): a focused slice in two existing modules,
+        `M-GATES` and `M-QUERY`, as enumerated in `Summary`, `AffectedAreas`, and `VerificationIntent`.
+      </Constraint>
+      <Constraint>
+        The permitted implementation files are exactly four: `src/gates/ledger.ts` and
+        `src/gates/core.test.ts` (`M-GATES`), and `src/query/change.ts` and `src/query/change.test.ts`
+        (`M-QUERY`). Every tracked path outside that set and outside this bundle's own active/archive
+        lifecycle paths is byte-identical to preservation base
+        `156c67c74a10b50478a9752189e47c00544847d2`. A file the deliverable forces stays in scope; any additional forced file is added by an
+        explicit spec revision, never by silent scope growth. No new helper implementation file or export,
+        shared grammar change or grammar test, warning-output API, status/review/catalog change, skill or
+        template change, graph/verification write, record, README, examples, metadata, or stash enters this
+        bundle; a private expression or function inside the already-scoped files is a plan choice.
+      </Constraint>
+      <Constraint>
+        Module ownership. Both affected modules are enumerated in `AffectedAreas` and every prose module list
+        in this spec: `M-GATES` (`src/gates/ledger.ts`, the runtime owner, and the headerless companion test
+        `src/gates/core.test.ts`) and `M-QUERY` (`src/query/change.ts`, the runtime owner, and the headerless
+        companion test `src/query/change.test.ts`). The two runtime `LINKS:` headers name `M-GATES` and
+        `M-QUERY`; the companion tests are headerless and inherit those owners. A module list that appears more
+        than once names both in every occurrence.
+      </Constraint>
+      <Constraint>
+        One close instrument. The selected-close behavior is proved by the single narrow CloseEvidence Command
+        `bun test --timeout=0 src/gates/core.test.ts src/query/change.test.ts`, attached exactly once to
+        `AC-PHASE-BEFORE-STATUS` and not duplicated under another criterion. Ordinary criteria are mapped
+        later through plan `Satisfies`; close-bound criteria are not. The preserved-behavior and query
+        criteria do not repeat the test pair, and no test count is projected.
+      </Constraint>
+      <Constraint>
+        The archive-preservation and bounded-writes instruments are the authority-repaired inline instruments
+        frozen in the superseded predecessor's command texts, reparameterized only: `BASE` becomes
+        `156c67c74a10b50478a9752189e47c00544847d2`, the own id becomes `C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED`, and the bounded-writes `ALLOWED` set is reduced to the
+        four paths above. Their exact own-path exclusions, ignored/untracked archive inventory detection,
+        filesystem byte and base Git type/mode checks, staged-change protection, resistance to
+        `--assume-unchanged` and `--skip-worktree`, fail-closed subprocess and missing-base handling, and
+        ordinary own lifecycle effects are preserved. No new helper file and no fresh instrument redesign is
+        introduced. These Commands are project-local POSIX/Bun instruments run through the configured shell
+        (`src/artifact/assertions.ts`); no adopter-wide Windows promise is made and no CLI runner is changed.
+      </Constraint>
+      <Constraint>
+        Preserved counterweights, answered not ignored. `C-CRITERION-CLOSE-EVIDENCE` established applied-
+        archive evaluation, active/pre-archive `CloseEvidence` inertness, and lint/evaluation separation; the
+        strict consumer evaluates only the explicitly selected archive record and leaves active and
+        pre-archive routes inert. The originating anchor is `C-CRITERION-CLOSE-EVIDENCE`'s
+        `AC-EVALUATED-AT-CLOSE` (`spec.xml:478-497`, implemented by task `T-003` at `plan.xml:382-405`): one
+        AC-* child per close-bound criterion on the Verdict with `Exit`/`Result` children, refusal of a
+        failed-command `pass`, and active inertness. The current producer is `src/gates/ledger.ts:572-580`
+        and the append assembles `Finding`, `Ack`, and criterion children at `:533`. `C-BOUND-VERDICT`'s
+        `spec.xml:1688-1697` is a confirming Assumption that those children remain beside `Finding` and
+        `Ack`, not the originating criterion. `C-SUPERSEDE-MEMBERSHIP-2-C459A20C` established
+        `AC-REVIEW-VERDICT-THREE-PHASE`; the stale-location/directory/spec/ledger refusal is preserved and
+        extended to the selected plan bytes. No ledger API is changed and no duplicate counting algorithm is
+        introduced.
+      </Constraint>
+      <Constraint>
+        Record-write and payment disposition. This bundle declares no `Pays`, so it makes no governed
+        record-system write: no finding, decision, index, registry row, retired sibling, live root, or
+        payer-map fixture is written by this bundle. The sanctioned close still performs this bundle's ordinary
+        lifecycle writes: `ngrace gate verdict` persists the selected Verdict and its `CloseEvidence` children
+        in `run-ledger.xml`; `ngrace apply` writes `applied` status onto the selected spec and plan, records
+        `gate=applied` permitting Decisions and fingerprints in `run-ledger.xml`, and then renames the bundle
+        directory; the cursor, attempt, and fold commands own the bundle's `run.xml`, `run/**`, and ledger
+        epoch state. The CLI's temporary coordination effects are exactly the candidate lock under
+        `.ngrace/changes/active/` and the own-bundle `.run-write.lock`, created and removed by the CLI; they
+        are not persistent scope exemptions.
+      </Constraint>
+      <Constraint>
+        `README.md` is unchanged by this slice; its measured footprint row and any directly necessary
+        explanation are owned by the third authorized slice. `examples/` is unchanged with no new example
+        surface. Prototype/command feasibility checks are distinct from final execute/close CI; full
+        CI-equivalent verification is close-time only, under one outermost `--assertions final --run-commands`
+        with leaf `bun run validate:ci`, `bun run validate:cli`, and `bun run release:check` run once each, and
+        is not run at SPEC or PLAN. This SPEC explicitly overrides `ngrace-plan`'s conflicting
+        full-CI-at-PLAN teaching, which the third slice repairs.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `README.md` is unchanged by this slice; its measured footprint row and any directly necessary
+        explanation are owned by the third authorized slice. Owner: the third slice.
+      </NonGoal>
+      <NonGoal>
+        `examples/` is unchanged with no new example surface. Owner: unchanged; no user-visible example
+        surface.
+      </NonGoal>
+      <NonGoal>
+        No change to the `ngrace status` surface or any other archive-dependent CLI consumer. Owner: a
+        dependent policy slice already assigned by `C-CURRENT-VALIDATION-BOUNDARY`; this bundle neither
+        claims nor performs that work.
+      </NonGoal>
+      <NonGoal>
+        No published-skill, marketplace, packaging, version, or `openpackage.yml` change; the canonical and
+        mirrored planning teaching belong to the third slice. Owner: the third slice.
+      </NonGoal>
+      <NonGoal>
+        No shared-grammar change or grammar test, no warning-output API, no new helper implementation file or
+        export, and no additional bundle identity or governed record write. Owner: unchanged.
+      </NonGoal>
+      <NonGoal>
+        No archive-schema compatibility, historical reader, schema-version dispatch, or record conversion.
+        Owner: unchanged under the current-only policy.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-PHASE-BEFORE-STATUS>
+        In `src/gates/ledger.ts` (`M-GATES`), the selected-close path classifies the explicitly resolved
+        selected bundle relative to this project's `.ngrace/changes/active/` and `.ngrace/changes/archive/`
+        directories before any parsed status can cause an early return. For a selected archive bundle it
+        requires both selected files to exist and parse, the exact registered roots `NgraceChangeSpec` and
+        `NgraceChangePlan`, `status="applied"` on both, and exactly one direct C-* wrapper in each equal to the
+        selected directory/argument identity; it then runs the exported `validateChangeArtifact` on each with
+        the archive location and `projectRoot`, plus `validateSpecPlanCoverage` on this pair. The generic
+        validator accepts either artifact root and does not enforce the requested wrapper identity, so the
+        local exact checks remain necessary and required/meaningful sections, AC values, task shapes and
+        selected coverage cannot be bypassed. An invalid selected record refuses before any evidence command
+        runs and before any verdict append. The strict consumer reads only this selected record: no unrelated
+        bundle enumeration, whole-project validation, historical compatibility reader, or schema-version
+        dispatch. Active and pre-archive routes retain `CloseEvidence` inertness and are not subjected to
+        archive-only applied requirements.
+        <CloseEvidence><Command>bun test --timeout=0 src/gates/core.test.ts src/query/change.test.ts</Command></CloseEvidence>
+      </AC-PHASE-BEFORE-STATUS>
+      <AC-EVIDENCE-CONSUMABILITY>
+        In `src/gates/ledger.ts` (`M-GATES`), every explicit `CloseEvidence` declaration in the selected
+        `AcceptanceCriteria` is inspected before evaluation and must be exactly one direct `CloseEvidence` on
+        its bound `AC-*`, with at least one non-empty direct `Command`. A direct empty `CloseEvidence` and a
+        whitespace-only direct `Command` are already error-severity `change.close-evidence-incomplete`
+        findings of the exported `validateChangeArtifact` and are refused by calling it; a declaration under
+        a legacy `&lt;Criterion&gt;`, nested below its `AC-*`, or duplicated as a second direct block
+        is not detected by the exported validator and is refused by the
+        narrow local guard. Any error-severity issue from the selected spec validation, the selected plan
+        validation, the selected spec-to-plan coverage, or the local evidence-consumption guard refuses the
+        close before any evidence command runs and before any verdict append. Ordinary `AC-*` criteria
+        without evidence and meaningful legacy/free-text criteria without evidence remain legitimate
+        zero-command closes. The current grammar is reused; the extra guard stays local to
+        `src/gates/ledger.ts` and `src/gates/core.test.ts`. Warning-severity issues remain advisory:
+        warning-only otherwise-valid artifacts remain admissible, warning-level unmapped ordinary `AC-*`
+        criteria, excess plan anchors and undiscriminating command shapes stay advisory, and no warning
+        channel is added to gate output.
+      </AC-EVIDENCE-CONSUMABILITY>
+      <AC-EVALUATION-SNAPSHOT>
+        In `src/gates/ledger.ts` (`M-GATES`), all bound criteria are evaluated. Within one criterion
+        evaluation stops at the first non-zero command and continues with the remaining criteria. Each
+        close-bound criterion's evaluation is recorded as a direct `Verdict` child named by its `AC-*` tag,
+        carrying an `Exit` child and a `Result` child, alongside the Verdict's direct `Finding` and `Ack`
+        children (`src/gates/ledger.ts:572-580`, assembled at `:533`). A failed command refuses
+        `outcome pass` without a verdict write; a legitimate `outcome fail` may record the failed-command
+        evaluations. The bound finding/ACK/digest behavior, ledger pre/post-write validation and restoration,
+        candidate lock behavior, and the existing stale-location/directory/spec/ledger checks are preserved.
+        The decision-bearing snapshot and final equality check add the selected `plan.xml` bytes, covering the
+        plan used by validation and the guard, so a command-induced plan change refuses append exactly as a
+        spec, ledger, location, or identity change does. Refusal preserves the ledger state at the append
+        boundary, including legitimate bytes changed by the probe itself; no rollback of command side effects
+        is claimed. The snapshot covers spec/plan/ledger/directory, not `.ngrace-lint.json`'s advisory
+        command-shape configuration.
+      </AC-EVALUATION-SNAPSHOT>
+      <AC-QUERY-PHASE>
+        In `src/query/change.ts` (`M-QUERY`), `collectChangeView` derives the bundle location from the
+        resolved project's bundle path, not from an absolute-path substring in a parent directory. An active
+        approved bundle retains active scopes under a neutral and a misleading `changes/archive` parent; a
+        genuine applied archive retains archive scopes under both. Existing query output, absent/unparseable
+        artifact distinctions, durable-scope states, criterion/verdict tallies, and read-only tree bytes are
+        preserved. This repairs selected location classification; it does not claim that the separate
+        status-dependent surface is archive-free.
+      </AC-QUERY-PHASE>
+      <AC-ARCHIVE-PRESERVATION>
+        Every pre-existing path under `.ngrace/changes/archive/` is byte-identical to preservation base
+        `156c67c74a10b50478a9752189e47c00544847d2`, and the set of pre-existing archive bundle root directories is unchanged. The instrument
+        reads the base commit's tracked blob bytes and compares them to the actual filesystem content bytes of
+        every protected path (regular files and symlinks), rejecting an unsupported read type, so a byte edited
+        under `--assume-unchanged` or `--skip-worktree` still fails; it does not independently enforce the
+        base Git type/mode. It inventories every actual archive file, including untracked and ignored
+        additions, by exact path, and compares archive root names by exact membership, not by a C-ID
+        substring or line filter. It skips exactly this bundle's own archive directory before traversal and
+        excludes it by exact path, with the reason that the close's own rename reddens the criterion it
+        wrote. It compares bytes and identities only, never parses or executes archive contents, does not
+        fabricate a baseline for empty nested `run/` directories, and deletes none. It fails closed on a
+        missing base or a failed Git or read subprocess. This bundle is not a supersede successor, so no
+        predecessor-arrival exclusion is present; the predecessor arrivals already lie in the base.
+        <CloseEvidence><Command>git diff --exit-code 156c67c74a10b50478a9752189e47c00544847d2 -- .ngrace/changes/archive ':(exclude).ngrace/changes/archive/C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED' &amp;&amp; bun -e 'const {spawnSync}=require("node:child_process");
+const fs=require("node:fs");
+const path=require("node:path");
+const crypto=require("node:crypto");
+const BASE="156c67c74a10b50478a9752189e47c00544847d2";
+const OWN="C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED";
+const ARCH=".ngrace/changes/archive";
+function fail(msg){console.error("GUARD-A FAIL: "+msg);process.exit(1);}
+function dep(cmd,args){const r=spawnSync(cmd,args,{encoding:"buffer"});if(r.error){fail("dependency error "+cmd+": "+r.error.message);}if(r.status!==0){fail("dependency exit "+r.status+" "+cmd+" "+args.join(" ")+" :: "+r.stderr.toString().trim());}return r.stdout;}
+function contentOf(p){const st=fs.lstatSync(p);if(st.isSymbolicLink())return Buffer.from(fs.readlinkSync(p));if(!st.isFile())throw new Error("unsupported file type "+p);return fs.readFileSync(p);}
+function blobSha(buf){return crypto.createHash("sha1").update(Buffer.concat([Buffer.from("blob "+buf.length+"\0"),buf])).digest("hex");}
+const raw=dep("git",["ls-tree","-r","-z",BASE,"--",ARCH]).toString("utf8");
+const base=new Map();
+const baseRoots=new Set();
+for(const rec of raw.split("\0")){if(rec.length===0)continue;const tab=rec.indexOf("\t");const meta=rec.slice(0,tab);const p=rec.slice(tab+1);base.set(p,meta.split(" ")[2]);const seg=p.slice(ARCH.length+1).split("/")[0];if(seg)baseRoots.add(seg);}
+function isOwn(rel){return rel===OWN||rel.startsWith(OWN+"/");}
+const bad=[];
+for(const [p,sha] of base){if(!fs.existsSync(p)){bad.push("missing "+p);continue;}let b;try{b=contentOf(p);}catch(e){bad.push("unreadable "+p);continue;}if(blobSha(b)!==sha)bad.push("byte "+p);}
+const actual=[];
+function walk(d){for(const n of fs.readdirSync(d)){const p=path.join(d,n);if(p===ARCH+"/"+OWN)continue;const st=fs.lstatSync(p);if(st.isDirectory())walk(p);else actual.push(p);}}
+walk(ARCH);
+for(const p of actual){const rel=p.slice(ARCH.length+1);if(isOwn(rel))continue;if(!base.has(p))bad.push("extra "+p);}
+const actualRoots=new Set();
+for(const n of fs.readdirSync(ARCH)){if(isOwn(n))continue;actualRoots.add(n);}
+for(const r of baseRoots)if(!actualRoots.has(r))bad.push("root-missing "+r);
+for(const r of actualRoots)if(!baseRoots.has(r))bad.push("root-extra "+r);
+if(bad.length){fail(bad.slice(0,30).join("; "));}
+console.log("GUARD-A OK base="+base.size+" actual="+actual.length+" roots="+actualRoots.size);'</Command></CloseEvidence>
+      </AC-ARCHIVE-PRESERVATION>
+      <AC-BOUNDED-WRITES>
+        Relative to preservation base `156c67c74a10b50478a9752189e47c00544847d2`, the only tracked changes are the four permitted
+        implementation paths and this bundle's own active and archive lifecycle paths. The instrument compares
+        every tracked path's base blob bytes and base Git type/mode against its filesystem content and
+        filesystem type/mode, independently of `--assume-unchanged` or `--skip-worktree`, checks both staged
+        and unstaged changes including archive paths, and fails on any changed, deleted, or newly tracked path
+        outside the exact four and the own active/archive directories. It adds no general helper and no
+        additional implementation path, and fails closed on a missing base or a failed Git or read subprocess.
+        <CloseEvidence><Command>git diff --exit-code 156c67c74a10b50478a9752189e47c00544847d2 -- . ':(exclude)src/gates/ledger.ts' ':(exclude)src/gates/core.test.ts' ':(exclude)src/query/change.ts' ':(exclude)src/query/change.test.ts' ':(exclude).ngrace/changes/active/C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED' ':(exclude).ngrace/changes/archive/C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED' &amp;&amp; git diff --cached --exit-code 156c67c74a10b50478a9752189e47c00544847d2 -- . ':(exclude)src/gates/ledger.ts' ':(exclude)src/gates/core.test.ts' ':(exclude)src/query/change.ts' ':(exclude)src/query/change.test.ts' ':(exclude).ngrace/changes/active/C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED' ':(exclude).ngrace/changes/archive/C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED' &amp;&amp; bun -e 'const {spawnSync}=require("node:child_process");
+const fs=require("node:fs");
+const crypto=require("node:crypto");
+const BASE="156c67c74a10b50478a9752189e47c00544847d2";
+const OWN="C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED";
+const ALLOWED=new Set(["src/gates/ledger.ts","src/gates/core.test.ts","src/query/change.ts","src/query/change.test.ts"]);
+function fail(msg){console.error("GUARD-B FAIL: "+msg);process.exit(1);}
+function dep(cmd,args){const r=spawnSync(cmd,args,{encoding:"buffer"});if(r.error){fail("dependency error "+cmd+": "+r.error.message);}if(r.status!==0){fail("dependency exit "+r.status+" "+cmd+" "+args.join(" ")+" :: "+r.stderr.toString().trim());}return r.stdout;}
+function contentOf(p){const st=fs.lstatSync(p);if(st.isSymbolicLink())return Buffer.from(fs.readlinkSync(p));return fs.readFileSync(p);}
+function blobSha(buf){return crypto.createHash("sha1").update(Buffer.concat([Buffer.from("blob "+buf.length+"\0"),buf])).digest("hex");}
+function isOwn(p){const a=".ngrace/changes/active/"+OWN;const b=".ngrace/changes/archive/"+OWN;return p===a||p.startsWith(a+"/")||p===b||p.startsWith(b+"/");}
+function allowed(p){return ALLOWED.has(p)||isOwn(p);}
+const baseRaw=dep("git",["ls-tree","-r","-z",BASE]).toString("utf8");
+const base=new Map();
+for(const rec of baseRaw.split("\0")){if(rec.length===0)continue;const tab=rec.indexOf("\t");const meta=rec.slice(0,tab).split(" ");base.set(rec.slice(tab+1),{mode:meta[0],sha:meta[2]});}
+const cur=dep("git",["ls-files","-z"]).toString("utf8").split("\0").filter(s=>s.length>0);
+const curSet=new Set(cur);
+const bad=[];
+for(const [p,entry] of base){if(allowed(p))continue;if(!curSet.has(p)){bad.push("deleted "+p);continue;}let b;try{const st=fs.lstatSync(p);const mode=st.isSymbolicLink()?"120000":st.isFile()?((st.mode&amp;0o100)?"100755":"100644"):"invalid";if(mode!==entry.mode){bad.push("mode/type "+p);continue;}b=contentOf(p);}catch(e){bad.push("unreadable "+p);continue;}if(blobSha(b)!==entry.sha)bad.push("byte "+p);}
+for(const p of cur){if(allowed(p))continue;if(!base.has(p))bad.push("extra-tracked "+p);}
+if(bad.length){fail(bad.slice(0,30).join("; "));}
+console.log("GUARD-B OK tracked="+curSet.size);'</Command></CloseEvidence>
+      </AC-BOUNDED-WRITES>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-GATES />
+      <M-QUERY />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun test --timeout=0 src/gates/core.test.ts src/query/change.test.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path . --assertions current</ExpectedCommand>
+      <ExpectedCommand>bun run validate:cli</ExpectedCommand>
+      <ExpectedCommand>bun run validate:ci</ExpectedCommand>
+      <ExpectedCommand>bun run release:check</ExpectedCommand>
+      <ExpectedEvidence>
+        The two module verification anchors are covered: `V-M-GATES` / `M-GATES` (`src/gates/ledger.ts`,
+        `src/gates/core.test.ts`) and `V-M-QUERY` / `M-QUERY` (`src/query/change.ts`,
+        `src/query/change.test.ts`). The single narrow close instrument is
+        `bun test --timeout=0 src/gates/core.test.ts src/query/change.test.ts`; the archive-preservation and
+        bounded-writes instruments are driven in both directions on disposable post-close-shaped copies with
+        exact restoration. Execute must prove the behavior with new real-CLI probes on fresh complete
+        synthetic adopting projects that use fresh real owned fixture paths and byte snapshots, covering spec
+        and plan separately (missing/unparseable/wrong-root/wrong-or-duplicate-wrapper/missing-or-non-applied-
+        status/required-section or AC errors, selected coverage errors, all explicit unconsumable evidence
+        forms, warning-only and legitimate zero-command controls), valid multi-criterion/multi-command
+        sequencing, first-failure short-circuit plus later-criterion continuation, `outcome pass`/`fail`
+        handling, normal active inertness, misleading-parent active applied isolation, genuine applied archive
+        controls, and command-induced spec/plan/ledger/location/directory changes; classifier tests must
+        discriminate each gates/query route independently. Where a probe spies on a read, it observes through
+        a call-through that records the call and calls the original export, and every zero-read assertion is
+        paired with that route's own positive control. Every probe is failure-safe: temp roots and spied
+        modules are cleaned up and inputs are exactly restored. The active applied classifier control is
+        deliberately lint-invalid and isolated to phase routing, never presented as a valid record. Synthetic
+        hand-placed archive controls isolate readers and are not evidence of the apply/archive lifecycle;
+        Execute separately rehearses the sanctioned lifecycle on a faithful disposable copy carrying the
+        exact live artifacts and untracked events, fresh default finding ACKs, terminal/fold, apply/archive,
+        selected post-archive verdict/evidence, applied fingerprints and byte preservation. Local command
+        evidence is POSIX/Bun and makes no hosted Windows or Dart job claim. The
+        `bun run ngrace lint --path . --assertions current` line is draft/pre-write evidence only; at execute,
+        selected target and final lint run externally and this current-mode root lint is not restated in
+        `TargetAssertions`. Full CI-equivalent verification is close-time only, under one outermost
+        `--assertions final --run-commands` with `bun run validate:ci`, `bun run validate:cli`, and
+        `bun run release:check` run once each. This spec's own draft lint and selected read-only review are
+        not target or final evidence.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      The current-only CLI policy in `AGENTS.md` withdrew historical archive compatibility: older archive
+      contents are passive LLM evidence, not current operational inputs. The superseded predecessor
+      `C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D` was split into three smaller slices. C2
+      (`.ngrace/changes/archive/C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713`) delivered the review-only first slice; this
+      bundle is the second slice, gates and query, and the third slice owns the planning teaching, the
+      footprint, and the README row.
+
+      First, in `src/gates/ledger.ts`, `isAppliedArchiveBundle` (`:541-544`) decides archive phase from an
+      absolute-path `changes/archive` substring and returns false unless the parsed spec status is already
+      `"applied"`, so `evaluateCloseEvidenceChildren` (`:546-584`) returns an empty child list for a missing or
+      unparseable spec or a present non-applied status and never reaches validation. There is no strict
+      selected-close validation at all: `validateChangeArtifact` and `validateSpecPlanCoverage` are not called
+      from `ledger.ts`. An authority probe measured that a malformed/missing spec, wrong wrapper, missing plan
+      and empty `CloseEvidence` all passed the verdict consumer and wrote a ledger without invoking the
+      validator. Classify the selected directory phase before parsed status and validate the selected
+      archive spec/plan pair strictly.
+
+      Second, the selected-close verdict consumer never calls the exported validator, so invalid explicit
+      evidence is silently skipped or only its first block runs while the verdict still records `pass`. Two
+      classes are already detected by `validateChangeArtifact` when it is called: a direct empty
+      `CloseEvidence` and a whitespace-only direct `Command` each produce exactly one error-severity
+      `change.close-evidence-incomplete`. Three classes are genuinely uncovered by the exported validator:
+      a legacy `&lt;Criterion&gt;` carrying an explicit `CloseEvidence`, a `CloseEvidence` nested below its
+      `AC-*`, and a duplicate complete direct `CloseEvidence` block on one `AC-*` (the validator inspects
+      only direct `CloseEvidence` children). All five must refuse before commands or append; the first two
+      are answered by calling the exported validator, and the last three require the narrow local
+      evidence-consumption guard in the already-scoped `src/gates/ledger.ts` and its companion test. The
+      guard is not a grammar change and no exported validator is redefined.
+
+      Third, the evaluator and snapshot must keep their behavior. The originating anchor is
+      `C-CRITERION-CLOSE-EVIDENCE`'s `AC-EVALUATED-AT-CLOSE` (`spec.xml:478-497`, implemented by `T-003` at
+      `plan.xml:382-405`): one AC-* child per close-bound criterion on the Verdict, with `Exit`/`Result`
+      children, pass refusal on a failed command, and active inertness. The current producer is
+      `src/gates/ledger.ts:572-580`, and the append assembles `Finding`, `Ack`, and criterion children at
+      `:533`. `C-BOUND-VERDICT`'s `spec.xml:1688-1697` is a confirming Assumption that those children remain
+      beside `Finding` and `Ack`, not the originating criterion. `C-SUPERSEDE-MEMBERSHIP-2-C459A20C`
+      established `AC-REVIEW-VERDICT-THREE-PHASE`. All are preserved, and the decision-bearing snapshot gains
+      the selected `plan.xml` bytes so a command-induced plan change refuses append. Refusal preserves the
+      ledger state at the append boundary; command side effects are not claimed rolled back.
+
+      Fourth, in `src/query/change.ts`, `isArchivePath` (`:84-86`) tests an absolute-path `changes/archive`
+      substring. An authority probe measured that an active approved bundle under a misleading
+      `changes/archive` parent is wrongly reported archive while both genuine archive controls are correct;
+      the phase bug is one-way. Derive the location from the resolved project's bundle path.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        The two location decisions can be repaired inside their already-scoped files by deriving phase from
+        `path.relative(root, bundlePath)` against the canonical `.ngrace/changes/active/` and
+        `.ngrace/changes/archive/` directories, without a new helper export and without changing
+        `resolveChangeBundle` or `src/grace-cursor.ts`.
+      </Assumption>
+      <Assumption>
+        Reusing the exported `validateChangeArtifact` and `validateSpecPlanCoverage` needs no shared-grammar
+        change; if the selected archive path needs a wrapper-identity check the exported validators do not
+        perform, the check stays local to `src/gates/ledger.ts`.
+      </Assumption>
+      <Assumption>
+        The shipped XML parser counts artifact structure. The post-change population of acceptance criteria,
+        close-bound criteria, `CloseEvidence` blocks, and `Command` identities is measured through the
+        shipped parser after implementation; no post-change figure is projected here.
+      </Assumption>
+    </Assumptions>
+  </C-SELECTED-CLOSE-BOUNDARY-1-7CADD2ED>
+</NgraceChangeSpec>

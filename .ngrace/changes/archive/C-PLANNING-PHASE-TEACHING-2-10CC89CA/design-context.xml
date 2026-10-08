@@ -1,0 +1,216 @@
+<NgraceChangeDesignContext graceVersion="1.0">
+  <Change>C-PLANNING-PHASE-TEACHING-2-10CC89CA</Change>
+  <NormativeStatus>non-normative</NormativeStatus>
+  <Rationale>
+    This is the successor to C-PLANNING-PHASE-TEACHING-1-CBE5DFAD. The normative source of truth is
+    `spec.xml`; nothing here adds a requirement, and every binding obligation is repeated in the
+    spec's acceptance criteria and scope. This document is explanatory: it records the corrected
+    reasoning, the inheritance and provenance, and the reviewed diagrams.
+
+    Two defects were repaired in the inherited implementation. First, `ngrace-plan` rule 19 told the
+    planner to drive the full CI in a faithful post-close copy at plan time, while rule 20 reserves the
+    full CI-equivalent verification for close time under the outer `--assertions final --run-commands`
+    gate. The recast keeps what each rule was for: PLAN still proves that its narrow commands and
+    structural assertion probes can run on disposable, complete projects, in the state each task leaves
+    and in a close-shaped copy where the evidence depends on it; the full CI is not a PLAN instrument.
+    EXECUTE owns two distinct CI activities: the executor's single outer selected
+    `--assertions final --run-commands` gate on the active approved bundle, whose full CI-equivalent
+    leaves are `bun run validate:ci`, `bun run validate:cli`, and `bun run release:check`; and
+    authority/Luna's independent rehearsal of the sanctioned apply/archive on a faithful copy, followed
+    by those same three direct commands on the faithfully applied and archived copy. The independent
+    post-close run is not the active outer final gate: an applied copy is not reapproved and no active
+    status is fabricated.
+
+    Second, the same rule carried the stale statement that a faithful post-close copy must carry
+    `.ngrace/scratch` read-only or `review.confidently-wrong` fires on archived plan baselines. The
+    review read boundary moved: it discovers active `plan.xml` files and derives the bundle location
+    before opening any plan content (`src/review/core.ts:506-511`), so an unrelated archived plan is
+    opaque history and its `MustExist` buffer path is never evaluated. The claim is recast, not
+    mechanically deleted, because the underlying instruction is still useful: a faithful copy must
+    carry the inputs the selected evidence actually declares — the repository state, the applicable VCS
+    state, and the ignored/untracked inputs the run depends on. What goes away is the named
+    archive-baseline symptom and any temptation to add an archive reader or hard-code this repository's
+    record pipeline into the published skill.
+
+    The inherited checker is part of the deliverable. The private `checkStalePlanPhaseClaims` helper
+    (`scripts/check-teaching-surface.ts:649-666`) is wired into the existing public
+    `runTeachingSurfaceCheck`; it recurses through every regular `SKILL.md` under both trees, normalizes
+    whitespace, and refuses the two exact obsolete fragments even when quoted. Two positive needles —
+    "is not run at PLAN" and "necessary ignored/untracked inputs" — sit in the `ngrace-plan` must_do
+    home (`:456-457`). A `SKILL.md` edit moves the measured footprint; the strict numeric pins in
+    `src/test-support/token-accounting.test.ts` and the `README.md` cell equal the measured final
+    canonical totals (the relation is normative, the figure is not).
+
+    The predecessor could not close because its approved Guard A derived the archive directory
+    inventory from Git alone, and Git cannot track an empty directory. Independent current execution
+    refused seventeen existing archive `run/` directories. Approved governance is immutable, so the
+    maintainer approved a sanctioned supersede; the CLI folded the predecessor's loose events and
+    archived it without changing code or any earlier archive, adding the eighteenth empty `run/`
+    directory. The corrected contract freezes the Git preservation base at
+    `4d4c837cacc59ba59a44dcb7bf708a3404ab2e3c` and additionally seals the exact measured
+    filesystem-only inventory of eighteen empty `run/` directories. The six product files are inherited
+    working-tree changes; this successor does not re-author them, and the original executor chronology
+    for those edits is not asserted.
+
+    The reviewed conceptual diagrams below describe the corrected phase contract and the corrected
+    preservation instrument, not new implementation classes. The sequence diagram shows the retained
+    six-file inherited implementation adopted rather than re-authored, the frozen Git baseline plus the
+    eighteen sealed filesystem-only `run/` directories, the exact own-arrival exception, the carried
+    stage costs, the narrow SPEC/PLAN probes against separate EXECUTE CI activities, and the maintainer
+    ratification with authority-owned gates. The class diagram names the same structure. Every binding
+    behaviour is repeated in the spec's acceptance criteria.
+  </Rationale>
+  <Alternatives>
+    <Alternative>
+      Keep the full-CI-at-PLAN sentence and weaken rule 20 instead. Rejected: it would move the whole
+      CI-equivalent verification, and the single outer final gate that owns it, into planning; the
+      increment was introduced against the predecessor's close-time-only criterion, and the original
+      purpose is served by narrow feasibility work plus EXECUTE-final and independent post-close
+      evidence.
+    </Alternative>
+    <Alternative>
+      Delete the faithful-copy guidance wholesale when its scratch example became obsolete. Rejected:
+      the generic requirement is still load-bearing — a copy missing declared inputs, VCS state, or
+      ignored/untracked inputs produces evidence the selected commands cannot evaluate — so the
+      sentence is recast, not removed.
+    </Alternative>
+    <Alternative>
+      Add an archive reader or re-introduce archive-aware review teaching so the old scratch claim
+      becomes true again. Rejected: it reopens historical-schema compatibility the current-only policy
+      withdraws, and hard-codes this repository's record pipeline into a published skill.
+    </Alternative>
+    <Alternative>
+      Re-author the six product files under this successor instead of adopting the inherited
+      implementation. Rejected: a second implementation would duplicate already-delivered work and
+      invent a provenance the facts do not support; the successor's remaining work is the corrected
+      governance contract.
+    </Alternative>
+    <Alternative>
+      Keep the predecessor's Git-only directory inventory and exclude the empty `run/` directories.
+      Rejected: an exclusion drops the preservation guarantee for those directories, and the sanctioned
+      supersede exists precisely so the corrected contract can measure and seal them.
+    </Alternative>
+    <Alternative>
+      Project the post-edit footprint figures into the spec now. Rejected: a projected figure expires
+      the moment the edit lands (F272); the spec states the relation and the implementation transcribes
+      the measurement.
+    </Alternative>
+  </Alternatives>
+  <DeferredDecisions>
+    <Decision>
+      The exact recast sentences are plan/implementation detail already carried by the inherited files.
+      The binding requirements are that rule 19 states PLAN-does-not-run-CI and CI-is-EXECUTE-close-time
+      with a distinct independent post-close activity, that the generic faithful-copy requirement stays,
+      and that the private guard refuses the two exact obsolete fragments even quoted.
+    </Decision>
+    <Decision>
+      Whether the guard is expressed as a token addition and a private stale-claim walk is plan detail;
+      it stays inside the two already-scoped checker files and adds no runtime export or dependency.
+    </Decision>
+    <Decision>
+      The post-change `skillTextLines().total` and `.totalBytes` are measured through the shipped
+      instrument; the measured values are `875` and `89020`, and any later edit re-measures them.
+    </Decision>
+  </DeferredDecisions>
+  <Scenarios>
+    <Scenario>
+      Reviewed sequence diagram (stored verbatim; explanatory only).
+
+      sequenceDiagram
+    participant Planner
+    participant Prototype
+    participant Repo as Production repo
+    participant Guard as Preservation guards
+    participant Maintainer
+    participant Authority
+    participant Executor
+    participant CLI
+    Note over Planner,Prototype: Six inherited product files; no re-authoring
+    Planner-&gt;&gt;Prototype: Narrow commands and structural probes
+    Note over Planner,Prototype: No full CI during SPEC or PLAN
+    Planner-&gt;&gt;Maintainer: Draft plan
+    Maintainer-&gt;&gt;Authority: Ratify plan
+    Authority-&gt;&gt;CLI: Review, approve, fingerprint, checkpoint
+    Executor-&gt;&gt;Repo: Adopt the six inherited product files (one task)
+    Executor-&gt;&gt;CLI: Active outer selected --assertions final --run-commands
+    Note over Executor,CLI: Full CI-equivalent leaves: validate:ci, validate:cli, release:check
+    Executor-&gt;&gt;Authority: Delivery and evidence
+    Authority-&gt;&gt;Guard: Frozen Git base 4d4c837 plus 18 sealed empty run/ dirs
+    Authority-&gt;&gt;Guard: Own archive arrival is the only archive exception
+    Authority-&gt;&gt;Prototype: Independent probes and sanctioned close rehearsal
+    Authority-&gt;&gt;Prototype: Direct CI commands on faithfully applied and archived copy
+    Guard-&gt;&gt;Repo: Byte/type/mode and archive preservation verdict
+    Authority-&gt;&gt;Maintainer: Reviewable closure
+    Maintainer-&gt;&gt;Authority: Ratify closure
+    Authority-&gt;&gt;CLI: Production terminal/fold, verdicts, gates, apply/archive
+    Note over Planner,Maintainer: Costs carried forward; replacement id never resets them
+    </Scenario>
+    <Scenario>
+      Reviewed class diagram (stored verbatim; explanatory only).
+
+      classDiagram
+    PlanningContract --&gt; CanonicalSkill
+    CanonicalSkill --&gt; PackagedMirror : byte parity
+    TeachingChecks --&gt; PlanningContract : discriminating guards
+    PrivateStalePlanPhaseGuard --&gt; TeachingChecks : wired through runTeachingSurfaceCheck
+    InheritedImplementation --&gt; SixProductFiles : adopted, not re-authored
+    PreservationContract --&gt; FrozenGitBaseline : 4d4c837
+    PreservationContract --&gt; SealedEmptyRunDirectories : 18 measured run/ dirs
+    PreservationContract --&gt; OwnArchiveArrivalException
+    PriorProvenance --&gt; InheritedImplementation : predecessor superseded, costs carried forward
+    StageOwnership --&gt; MaintainerRatification
+    StageOwnership --&gt; AuthorityOwnership
+    FootprintMeasurement --&gt; NumericTestPins
+    FootprintMeasurement --&gt; ReadmeFootprint
+    </Scenario>
+    <Scenario>
+      Phase-contract guard scenario on disposable fixtures. A planted `ngrace-plan` SKILL.md that
+      instructs running the full CI at PLAN, or that restores the scratch-cause claim, reddens the
+      private stale-claim guard and names the file — even when the fragment is quoted or
+      whitespace-wrapped. A planted SKILL.md that drops the corrected phase sentence reddens the
+      positive `ngrace-plan` must_do needle and names the missing token. Both directions are driven,
+      and the real canonical and packaged trees pass.
+    </Scenario>
+    <Scenario>
+      Faithful-copy scenario. A planner assembles a disposable, complete close-shaped copy carrying the
+      selected record's declared inputs/dependencies, applicable VCS state, and necessary
+      ignored/untracked inputs; the narrow verification commands and relevant structural assertion
+      probes evaluate against that copy without running the full CI. The full CI-equivalent verification
+      belongs to EXECUTE and has two distinct activities: the executor's single outer selected
+      `--assertions final --run-commands` gate whose leaves are `bun run validate:ci`,
+      `bun run validate:cli`, and `bun run release:check`; and authority/Luna's independent run of those
+      same three commands on the faithfully applied and archived copy. The independent post-close run is
+      not the active outer final gate: it does not reapprove an applied copy or fabricate active status.
+    </Scenario>
+    <Scenario>
+      Preservation-instrument scenario (Guard B) on a complete disposable Git fixture. The base is the
+      frozen `4d4c837cacc59ba59a44dcb7bf708a3404ab2e3c`; the six product paths and the exact own
+      active/archive directories are the only allowances. Clean and the six-path/own-close controls
+      pass; an outside tracked ordinary or staged byte change, a staged addition, a deletion, a
+      type/mode change, and a masked (`--assume-unchanged` / `--skip-worktree`) byte change each fail;
+      each mutation is restored and raw restoration equality is checked. The guard reads exit codes
+      directly and fails closed on a missing base or a failed Git or filesystem read, and it never
+      parses archive XML, schema, or content.
+    </Scenario>
+    <Scenario>
+      Archive-preservation scenario (Guard A) on a complete disposable Git fixture. The guard checks
+      the Git byte/mode/file/root baseline and the fixed measured list of eighteen empty archive `run/`
+      directories: each must exist as a real non-symlink directory with captured mode `0755` and stay
+      empty. It rejects a missing, changed, or extra path, an ignored or untracked addition, and an
+      added or missing root, and it allows exactly the successor's own `.ngrace/changes/archive/C-PLANNING-PHASE-TEACHING-2-10CC89CA`
+      subtree, with the reason that the close's own lawful rename must not redden the criterion it
+      wrote. The predecessor's archive arrival is inside the base and needs no exclusion. The exact
+      sanctioned own-arrival control passes; each mutation is restored and raw restoration equality is
+      checked. The guard retains its `git diff` segment and fails closed on a missing base or a failed
+      Git or filesystem read.
+    </Scenario>
+    <Scenario>
+      Parity, footprint, and closure scenario. The canonical `skills/ngrace/ngrace-plan/SKILL.md` and
+      its packaged mirror are byte-identical; `skillTextLines()` measures the edited canonical tree, and
+      the strict test pins and the README measurement cell are equal to that measurement. At closure the
+      authority applies the approved plan and the selected bundle's own archive arrival is the only
+      sanctioned archive change; the executor's outer final gate and the authority's independent
+      post-close CI run are separate activities, and the maintainer ratifies the closure.
+    </Scenario>
+  </Scenarios>
+</NgraceChangeDesignContext>

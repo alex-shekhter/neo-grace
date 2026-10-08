@@ -1,0 +1,259 @@
+<NgraceChangePlan graceVersion="1.0" status="applied">
+  <C-PLANNING-PHASE-TEACHING-2-10CC89CA>
+    <IntentSummary>
+      A single-task plan for approved `C-PLANNING-PHASE-TEACHING-2-10CC89CA`. `T-001` adopts and
+      verifies the already-implemented planning-phase teaching correction rather than re-authoring it:
+      the six inherited product files carry the two exact rule-19 replacements, the private recursive
+      whitespace-normalized `checkStalePlanPhaseClaims` guard wired through the existing public
+      `runTeachingSurfaceCheck` entrypoint, the two positive `ngrace-plan` must_do tokens, the measured
+      footprint pins and the `README.md` measurement cell, and canonical/mirror byte parity. `T-001`
+      proves that surface with the narrow teaching/footprint pair plus mirror parity; its seven
+      acceptance criteria bind exactly the six approved product paths — the two `M-SKILLS` mirrors, the
+      two adopted/unlinked checker files, the `M-TEST-SUPPORT` footprint test, and `README.md` — and no
+      seventh file. The full CI-equivalent verification (`bun run validate:ci`, `bun run validate:cli`,
+      `bun run release:check`) is bound in one grouped `TargetAssertions` `MustPassCommand` and runs only
+      at EXECUTE under the single selected outer `--assertions final --run-commands`, with an independent
+      post-close run of those same three direct commands as separate EXECUTE acceptance work; `T-001`'s
+      own `Verification` is the narrow teaching/footprint pair plus mirror parity. Preservation is the
+      approved spec's exact Guard A and Guard B close instruments against frozen base
+      `4d4c837cacc59ba59a44dcb7bf708a3404ab2e3c`: every base-tracked path outside the six product files
+      and this bundle's own active/archive lifecycle directories, and every pre-existing archive byte,
+      file/directory/root, including the exact 18 real empty archive `run/` directories, is preserved,
+      admitting only the exact sanctioned own archive arrival. `ngrace plan new` mints no BaseCommit:
+      the guard base is frozen and distinct from the newer repository HEAD that a permitting
+      `ngrace gate approve` observes, and the ledger keeps the first stored permitting approval base.
+    </IntentSummary>
+    <BaselineAssertions>
+      <MustExist>
+        <Value>M-SKILLS</Value>
+      </MustExist>
+      <MustExist>
+        <Value>M-TEST-SUPPORT</Value>
+      </MustExist>
+      <MustExist>
+        <Value>skills/ngrace/ngrace-plan/SKILL.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/check-teaching-surface.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/check-teaching-surface.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/test-support/token-accounting.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/test-support/token-accounting.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>README.md</Value>
+      </MustExist>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>narrowest instrument</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>close-time only</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>close-time only</Text>
+      </MustContain>
+    </BaselineAssertions>
+    <TargetAssertions>
+      <MustExist>
+        <Value>skills/ngrace/ngrace-plan/SKILL.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/check-teaching-surface.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>scripts/check-teaching-surface.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>src/test-support/token-accounting.test.ts</Value>
+      </MustExist>
+      <MustExist>
+        <Value>README.md</Value>
+      </MustExist>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>is not run at PLAN</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>is not run at PLAN</Text>
+      </MustContain>
+      <MustContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>necessary ignored/untracked inputs</Text>
+      </MustContain>
+      <MustContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>necessary ignored/untracked inputs</Text>
+      </MustContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>and the full CI in a faithful post-close copy at plan time</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>and the full CI in a faithful post-close copy at plan time</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>because without it `review.confidently-wrong` fires on archived plans</Text>
+      </MustNotContain>
+      <MustNotContain>
+        <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+        <Text>because without it `review.confidently-wrong` fires on archived plans</Text>
+      </MustNotContain>
+      <MustContain>
+        <File>scripts/check-teaching-surface.ts</File>
+        <Text>checkStalePlanPhaseClaims</Text>
+      </MustContain>
+      <MustPassCommand>
+        <Command>bun run validate:ci</Command>
+        <Command>bun run validate:cli</Command>
+        <Command>bun run release:check</Command>
+      </MustPassCommand>
+    </TargetAssertions>
+    <DurableScope>
+      <GraphAnchors>
+        <M-SKILLS />
+        <M-TEST-SUPPORT />
+      </GraphAnchors>
+      <VerificationAnchors>
+        <V-M-SKILLS />
+        <V-M-TEST-SUPPORT />
+      </VerificationAnchors>
+    </DurableScope>
+    <ObservedWriteScope>
+      <File>skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md</File>
+      <File>scripts/check-teaching-surface.ts</File>
+      <File>scripts/check-teaching-surface.test.ts</File>
+      <File>src/test-support/token-accounting.test.ts</File>
+      <File>README.md</File>
+    </ObservedWriteScope>
+    <ImplementationPlan>
+      <T-001>
+        <Title>Adopt and verify the planning-phase teaching correction, its private discriminating guard, and the measured footprint</Title>
+        <DependsOn></DependsOn>
+        <AcceptanceCriteria>
+          <Criterion>
+            The two exact rule-19 replacements are adopted in both trees, not re-authored. In
+            `skills/ngrace/ngrace-plan/SKILL.md` and its packaged mirror
+            `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md`, Passage A's exact replacement bytes are
+            present: "Also drive the spec's narrow `CloseEvidence` commands on a faithful post-close
+            copy at plan time, not only against the pre-close tree; the full CI-equivalent verification
+            is EXECUTE close-time evidence and is not run at PLAN; independent full CI-equivalent
+            verification on a faithfully applied and archived copy is also EXECUTE acceptance work,
+            using direct CI commands separately from the active selected outer final gate;". Passage
+            B's exact replacement bytes are present: "A faithful post-close copy carries the actual
+            declared inputs and dependencies the selected evidence reads, the applicable VCS state, and
+            the necessary ignored/untracked inputs; a copy missing a declared input measures a state the
+            selected commands cannot evaluate.". The two obsolete passages ("and the full CI in a
+            faithful post-close copy at plan time" and "because without it
+            `review.confidently-wrong` fires on archived plans") are absent from both trees. The six
+            product files are inherited working-tree changes; this task adopts and verifies them and
+            authors no second implementation.
+          </Criterion>
+          <Criterion>
+            Rule 20 and every unrelated skill byte are preserved in both trees. Rule 20
+            (`:76`) retains its exact narrowest-instrument and close-time-only teaching, unchanged. The
+            only difference between either current `SKILL.md` and its bytes at preservation base
+            `4d4c837cacc59ba59a44dcb7bf708a3404ab2e3c` is the two recast rule-19 passages; every byte
+            of every other rule, including rule 20, is unchanged. Evidence is a base-vs-current unified
+            diff limited to the two files that shows exactly those two passages.
+          </Criterion>
+          <Criterion>
+            Both new positive needles are verified in the `ngrace-plan` `must_do` home, not merely
+            elsewhere in the file: "is not run at PLAN" and "necessary ignored/untracked inputs" are
+            present in &lt;must_do&gt; in both trees, and each is discriminating because it is absent from
+            the pre-repair base bytes. The shipped `checkTaughtRules` surface and a direct section
+            extraction both show the tokens; a planted removal reddens the guard.
+          </Criterion>
+          <Criterion>
+            The existing private guard is verified through the real public entrypoint.
+            `scripts/check-teaching-surface.ts` keeps `checkStalePlanPhaseClaims` private (not exported,
+            no new helper file or runtime export) and wired into the existing public
+            `runTeachingSurfaceCheck(root)` ahead of the shipped checks. Its inventory recurses through
+            every regular `SKILL.md` under both the canonical and packaged trees, including nested
+            files, and whitespace-normalizes both the body and each forbidden fragment before literal
+            matching. Through `runTeachingSurfaceCheck` on complete disposable copies, each of the two
+            exact forbidden fragments refuses in each tree in its literal exact, whitespace-wrapped,
+            nested, and quoted placements, naming the root-relative file and the matched fragment, while
+            benign no-CI text and a clean tree pass. The `checkStalePlanPhaseClaims` token in
+            `TargetAssertions` is structural presence evidence only, never invocation or behavioral
+            proof. The same controls are exercised independently on the real checker, and every
+            mutation is restored with full raw file/directory/type/mode/byte/path and Git
+            index/flags/status equality.
+          </Criterion>
+          <Criterion>
+            The canonical skill-text footprint, its strict pins, and the `README.md` cell agree. The
+            footprint is measured with the unchanged, read-only instrument
+            `src/test-support/token-accounting.ts`; the measured `skillTextLines().total` and
+            `.totalBytes` equal the strict numeric pins in
+            `src/test-support/token-accounting.test.ts` and the `README.md` measurement cell. The
+            current measured values are `875` lines and `89020` UTF-8 bytes; the plan binds
+            remeasurement and equality, never a projected future value. No pin is deleted or loosened
+            and the D15 line/byte semantics are not redefined.
+          </Criterion>
+          <Criterion>
+            Fresh behavioral evidence is produced with honest inheritance and provenance, and the
+            phase discipline holds. No production clean pre-write tree, production fail attempt, or
+            recovered original executor receipt is manufactured. Fresh old-source-before-overlay
+            discrimination runs in a current approved-shaped COPY: retain the current approved spec and
+            the new plan there, take the OLD six product bytes from frozen base
+            `4d4c837cacc59ba59a44dcb7bf708a3404ab2e3c`, observe the old checker admitting the stale
+            teaching (exit 0) while a native selected target structural query refuses the old
+            phase/copy content and reports its content findings as the discriminator, then overlay the
+            exact inherited current six product bytes and observe the current checker and target
+            structural behavior. This is fresh disposable evidence, never original executor chronology,
+            and no archived C1 assertion is executed. Native default policy is used, never an override
+            to manufacture green; a structural `assertion.command-not-evaluated` is reported as
+            structural-absence, not command-pass evidence. Native selected target probes are structural
+            and omit `--run-commands`. Any approved-shaped copy that records opted-in evidence commits
+            its current plan before opening the declared `T-001` epoch, and carries every declared input
+            and applicable `.git` state; when `node_modules` is a dependency symlink it carries the
+            canonical bare `.git/info/exclude` entry. No full suite or CI runs at PLAN.
+          </Criterion>
+          <Criterion>
+            Canonical/mirror parity and the exact preservation contract hold.
+            `skills/ngrace/ngrace-plan/SKILL.md` and
+            `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md` are byte-identical. Relative to
+            preservation base `4d4c837cacc59ba59a44dcb7bf708a3404ab2e3c`, every base-tracked path
+            outside the exact six product files and this bundle's exact own active/archive lifecycle
+            directories is byte/type/Git-mode identical, no deleted or newly tracked path exists
+            outside that allowed set, and every pre-existing archive byte and file/directory/root
+            inventory is preserved, including the exact measured eighteen real empty archive `run/`
+            directories at captured mode `0755` and emptiness, admitting only this bundle's exact
+            sanctioned own `.ngrace/changes/archive/C-PLANNING-PHASE-TEACHING-2-10CC89CA` arrival and
+            its post-archive evidence writes. The predecessor's archive arrival is inside the frozen
+            base and needs no exclusion. These are the approved spec's exact Guard A and Guard B
+            `CloseEvidence` commands, reused unchanged at the same base. No seventh product file, new
+            runtime export, added module owner, graph/verification edit, version, manifest, example, or
+            record-pipeline work is introduced; `src/test-support/token-accounting.ts` stays read-only.
+            This single task covers all six product paths.
+          </Criterion>
+        </AcceptanceCriteria>
+        <Verification>
+          <Command>bun test --timeout=0 scripts/check-teaching-surface.test.ts src/test-support/token-accounting.test.ts</Command>
+          <Command>bun run ./scripts/validate-marketplace.ts</Command>
+        </Verification>
+        <Satisfies>
+          <AC-PLAN-PHASE-CONTRACT />
+          <AC-FAITHFUL-COPY-RECAST />
+        </Satisfies>
+      </T-001>
+    </ImplementationPlan>
+  </C-PLANNING-PHASE-TEACHING-2-10CC89CA>
+</NgraceChangePlan>

@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
@@ -11,6 +11,7 @@ import { collectProjectStatus } from "../grace-status";
 import { validateChangeArtifact, validateRunLedgerArtifact } from "../artifact/grammar";
 import { writeChangeBundleFixture, writeMinimalNgraceProject } from "../artifact/test-fixtures";
 import { ARTIFACT_DIR } from "../artifact/paths";
+import * as xmlModule from "../artifact/xml";
 import { parseGraceXmlArtifact } from "../artifact/xml";
 import { byPattern, corpus } from "../test-support/defect-corpus";
 import {
@@ -1445,11 +1446,13 @@ describe("C-SCOPE-AUDIT-ATTRIBUTION-2", () => {
  * same expandScopePathsForArchiveIdentity as the scope audit, not a second rule.
  */
 describe("C-REPORT-HONESTY T-003 MustExist archive identity (F16)", () => {
+  const markerRun = `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`;
+
   function writeArchivedPlanWithMustExist(
     root: string,
     changeId: string,
     mustExistPath: string,
-    opts?: { alsoWriteSpecAtArchive?: boolean; alsoWriteSpecAtActive?: boolean },
+    opts?: { alsoWriteSpecAtArchive?: boolean },
   ) {
     const archiveDir = path.join(root, ".ngrace/changes/archive", changeId);
     mkdirSync(archiveDir, { recursive: true });
@@ -1470,156 +1473,46 @@ describe("C-REPORT-HONESTY T-003 MustExist archive identity (F16)", () => {
         `<NgraceChangeSpec graceVersion="1.0" status="applied"><${changeId}><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>a</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>echo 1</ExpectedCommand><ExpectedEvidence>e</ExpectedEvidence></VerificationIntent></${changeId}></NgraceChangeSpec>`,
       );
     }
-    if (opts?.alsoWriteSpecAtActive) {
-      const activeDir = path.join(root, ".ngrace/changes/active", changeId);
-      mkdirSync(activeDir, { recursive: true });
-      writeFileSync(
-        path.join(activeDir, "spec.xml"),
-        `<NgraceChangeSpec graceVersion="1.0" status="applied"><${changeId}><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>a</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>echo 1</ExpectedCommand><ExpectedEvidence>e</ExpectedEvidence></VerificationIntent></${changeId}></NgraceChangeSpec>`,
-      );
-    }
   }
 
-  it("archive plan MustExist active/<own-id>/spec.xml is silent when file lives under archive/<own-id>/", () => {
+  it("an archived plan is opaque: no MustExist finding and no historical notice at any severity", () => {
     const root = ensureTempRoot();
     writeMinimalNgraceProject(root);
-    // Emit default verification marker so marker half does not fire.
-    writeFileSync(
-      path.join(root, "src/example.ts"),
-      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
-    );
-    writeArchivedPlanWithMustExist(
-      root,
-      "C-ARCH-OWN",
-      ".ngrace/changes/active/C-ARCH-OWN/spec.xml",
-      { alsoWriteSpecAtArchive: true },
-    );
-    const findings = runPatternDetectors(root).filter(
-      (f) =>
-        f.code === "review.confidently-wrong"
-        && f.file.includes("C-ARCH-OWN")
-        && f.message.includes("MustExist"),
-    );
-    expect(findings).toHaveLength(0);
-    // The new historical-path notice is silent under the same-ID archive alias too.
-    const notices = runPatternDetectors(root).filter(
-      (f) =>
-        f.code === "review.historical-path-absent"
-        && f.file.includes("C-ARCH-OWN")
-        && f.message.includes("MustExist"),
-    );
-    expect(notices).toHaveLength(0);
+    writeFileSync(path.join(root, "src/example.ts"), markerRun);
+    writeArchivedPlanWithMustExist(root, "C-ARCH-OWN", ".ngrace/changes/active/C-ARCH-OWN/spec.xml", { alsoWriteSpecAtArchive: true });
+    const findings = runPatternDetectors(root);
+    expect(findings.filter((f) => f.file.includes("C-ARCH-OWN"))).toEqual([]);
+    expect(findings.some((f) => f.code === "review.historical-path-absent")).toBe(false);
+    const info = runReview(root, { patterns: true, processAudits: false, joinEngine: false, severity: "info" });
+    expect(info.findings.some((f) => f.code === "review.historical-path-absent")).toBe(false);
+    expect(info.findings.some((f) => f.code === "review.confidently-wrong" && f.file.includes("C-ARCH-OWN"))).toBe(false);
   });
 
-  it("counterweight: path absent under both active and archive aliases still fires", () => {
+  it("a foreign-id archived MustExist is opaque too", () => {
     const root = ensureTempRoot();
     writeMinimalNgraceProject(root);
-    writeFileSync(
-      path.join(root, "src/example.ts"),
-      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
-    );
-    writeArchivedPlanWithMustExist(
-      root,
-      "C-ARCH-MISS",
-      ".ngrace/changes/active/C-ARCH-MISS/spec.xml",
-      // neither archive nor active gets the file
-    );
-    const findings = runPatternDetectors(root).filter(
-      (f) =>
-        f.code === "review.historical-path-absent"
-        && f.message.includes(".ngrace/changes/active/C-ARCH-MISS/spec.xml"),
-    );
-    expect(findings.length).toBeGreaterThan(0);
-    expect(findings.every((f) => f.severity === "info")).toBe(true);
+    writeFileSync(path.join(root, "src/example.ts"), markerRun);
+    writeArchivedPlanWithMustExist(root, "C-ARCH-OWN2", ".ngrace/changes/active/C-FOREIGN/spec.xml", { alsoWriteSpecAtArchive: true });
+    const findings = runPatternDetectors(root);
+    expect(findings.some((f) => f.code === "review.historical-path-absent")).toBe(false);
+    expect(findings.some((f) => f.file.includes("C-ARCH-OWN2") || f.file.includes("C-FOREIGN"))).toBe(false);
   });
 
-  it("counterweight: MustExist of a different change id that is absent still fires", () => {
+  it("an archived existence claim is opaque history, never a current obligation", () => {
     const root = ensureTempRoot();
     writeMinimalNgraceProject(root);
-    writeFileSync(
-      path.join(root, "src/example.ts"),
-      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
-    );
-    // Own archive has its own spec, but MustExist names a foreign id's active path.
-    writeArchivedPlanWithMustExist(
-      root,
-      "C-ARCH-OWN2",
-      ".ngrace/changes/active/C-FOREIGN/spec.xml",
-      { alsoWriteSpecAtArchive: true },
-    );
-    // Even if foreign exists only under archive, same-id expansion must not clear C-FOREIGN.
-    mkdirSync(path.join(root, ".ngrace/changes/archive/C-FOREIGN"), { recursive: true });
-    writeFileSync(
-      path.join(root, ".ngrace/changes/archive/C-FOREIGN/spec.xml"),
-      `<NgraceChangeSpec graceVersion="1.0" status="applied"><C-FOREIGN><Summary>foreign</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>a</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>echo 1</ExpectedCommand><ExpectedEvidence>e</ExpectedEvidence></VerificationIntent></C-FOREIGN></NgraceChangeSpec>`,
-    );
-    const findings = runPatternDetectors(root).filter(
-      (f) =>
-        f.code === "review.historical-path-absent"
-        && f.message.includes(".ngrace/changes/active/C-FOREIGN/spec.xml"),
-    );
-    // Global active→archive would silence this because archive/C-FOREIGN/spec.xml exists.
-    // Id-scoped Correction 171 must still fire, now as a historical notice.
-    expect(findings.length).toBeGreaterThan(0);
-    expect(findings.every((f) => f.severity === "info")).toBe(true);
-  });
-
-  it("archived existence claim is a historical audit", () => {
-    const root = ensureTempRoot();
-    writeMinimalNgraceProject(root);
-    writeFileSync(
-      path.join(root, "src/example.ts"),
-      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
-    );
+    writeFileSync(path.join(root, "src/example.ts"), markerRun);
     writeArchivedPlanWithMustExist(root, "C-ARCH-AUDIT", "build/artifacts/archived-audit-absent.bin");
-    const notices = runPatternDetectors(root).filter((f) => f.code === "review.historical-path-absent");
-    expect(notices.length).toBeGreaterThan(0);
-    expect(notices.every((f) => f.severity === "info")).toBe(true);
-    const audit = notices.find((f) => f.message.includes("archived-audit-absent.bin"));
-    expect(audit).toBeDefined();
-    expect(audit!.message).toContain("archive-time");
-    expect(audit!.message).toContain("unevaluated");
-    expect(notices.some((f) => f.code === "review.confidently-wrong" && f.message.includes("C-ARCH-AUDIT"))).toBe(false);
-    // A project-wide review does not fail on these informational notices.
-    expect(runReview(root, { processAudits: false, joinEngine: false }).summary.errors).toBe(0);
-  });
-
-  it("historical notice surfaces only at --severity info on a project-wide review", () => {
-    const root = ensureTempRoot();
-    writeMinimalNgraceProject(root);
-    writeFileSync(
-      path.join(root, "src/example.ts"),
-      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
-    );
-    writeArchivedPlanWithMustExist(root, "C-ARCH-INFO", "build/artifacts/arch-info-absent.bin");
-    const repoRoot = path.resolve(import.meta.dir, "../..");
-    const cli = path.join(repoRoot, "src/grace.ts");
-    const run = (args: string[]) => spawnSync("bun", ["run", cli, ...args], { cwd: root, encoding: "utf8" });
-
-    const defaultRun = run(["review", "--path", root, "--format", "json"]);
-    expect(defaultRun.status, defaultRun.stderr).toBe(0);
-    const defaultReport = JSON.parse(defaultRun.stdout) as { findings: ReviewFinding[] };
-    expect(defaultReport.findings.some((f) => f.code === "review.historical-path-absent")).toBe(false);
-
-    const infoRun = run(["review", "--path", root, "--format", "json", "--severity", "info"]);
-    expect(infoRun.status, infoRun.stderr).toBe(0);
-    const infoReport = JSON.parse(infoRun.stdout) as { findings: ReviewFinding[] };
-    const notice = infoReport.findings.find(
-      (f) => f.code === "review.historical-path-absent" && f.message.includes("arch-info-absent.bin"),
-    );
-    expect(notice).toBeDefined();
-    expect(notice!.severity).toBe("info");
-    expect(notice!.message).toContain("archive-time");
-    expect(notice!.message).toContain("unevaluated");
+    const info = runReview(root, { patterns: true, processAudits: false, joinEngine: false, severity: "info" });
+    expect(info.summary.errors).toBe(0);
+    expect(info.findings.some((f) => f.code === "review.historical-path-absent")).toBe(false);
+    expect(info.findings.some((f) => f.message.includes("archived-audit-absent.bin"))).toBe(false);
   });
 
   it("counterweight: active plan MustExist of a genuinely missing path still fires", () => {
     const root = ensureTempRoot();
     writeMinimalNgraceProject(root);
-    writeFileSync(
-      path.join(root, "src/example.ts"),
-      `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`,
-    );
+    writeFileSync(path.join(root, "src/example.ts"), markerRun);
     const activeDir = path.join(root, ".ngrace/changes/active/C-ACTIVE-MISS");
     mkdirSync(activeDir, { recursive: true });
     writeFileSync(
@@ -1634,14 +1527,253 @@ describe("C-REPORT-HONESTY T-003 MustExist archive identity (F16)", () => {
 </C-ACTIVE-MISS></NgraceChangePlan>`,
     );
     const findings = runPatternDetectors(root).filter(
-      (f) =>
-        f.code === "review.confidently-wrong"
-        && f.message.includes("build/artifacts/genuinely-absent.bin"),
+      (f) => f.code === "review.confidently-wrong" && f.message.includes("build/artifacts/genuinely-absent.bin"),
     );
     expect(findings.length).toBeGreaterThan(0);
   });
 });
 
+describe("C-REVIEW-CURRENT-BOUNDARY-2 active-only MustExist discovery", () => {
+  const markerRun = `export function run() { console.info("[Example][run][BLOCK_RUN]"); return "ok"; }\n`;
+  const PARENTS = ["neutral", path.join("misleading", "changes", "archive")];
+
+  function planWithMustExist(changeId: string, status: string, mustExistPath: string): string {
+    return `<NgraceChangePlan graceVersion="1.0" status="${status}"><${changeId}>
+  <IntentSummary>read-boundary fixture</IntentSummary>
+  <BaselineAssertions><MustExist><Value>${mustExistPath}</Value></MustExist></BaselineAssertions>
+  <TargetAssertions><MustVerify><Module>M-EXAMPLE</Module></MustVerify></TargetAssertions>
+  <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>
+  <ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>
+  <ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+</${changeId}></NgraceChangePlan>`;
+  }
+
+  function specFor(changeId: string, status: string): string {
+    return `<NgraceChangeSpec graceVersion="1.0" status="${status}"><${changeId}><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>echo 1</ExpectedCommand><ExpectedEvidence>e</ExpectedEvidence></VerificationIntent></${changeId}></NgraceChangeSpec>`;
+  }
+
+  /** A complete current-shape project with a matching active spec/plan and an opaque archived plan. */
+  function writeBoundaryProject(root: string): void {
+    mkdirSync(root, { recursive: true });
+    writeMinimalNgraceProject(root);
+    writeFileSync(path.join(root, "src/example.ts"), markerRun);
+    mkdirSync(path.join(root, "build/artifacts"), { recursive: true });
+    writeFileSync(path.join(root, "build/artifacts/active-present.bin"), "x");
+    const activeDir = path.join(root, ".ngrace/changes/active/C-ACTIVE-READ");
+    mkdirSync(activeDir, { recursive: true });
+    writeFileSync(path.join(activeDir, "spec.xml"), specFor("C-ACTIVE-READ", "approved"));
+    writeFileSync(
+      path.join(activeDir, "plan.xml"),
+      planWithMustExist("C-ACTIVE-READ", "approved", "build/artifacts/active-present.bin"),
+    );
+    const archDir = path.join(root, ".ngrace/changes/archive/C-ARCH-READ");
+    mkdirSync(archDir, { recursive: true });
+    writeFileSync(
+      path.join(archDir, "plan.xml"),
+      planWithMustExist("C-ARCH-READ", "applied", "build/artifacts/arch-absent.bin"),
+    );
+  }
+
+  /** One fresh project and one call-through spy per route/parent; the route's own positive control. */
+  function assertRoute(route: string, parent: string, drive: (root: string) => void, expectActivePlan: boolean): void {
+    const base = track(mkdtempSync(path.join(os.tmpdir(), `ngrace-route-${route}-`)));
+    const root = path.join(base, parent, "adopter");
+    writeBoundaryProject(root);
+    let reads: string[] = [];
+    const spy = spyOn(xmlModule, "readGraceXmlArtifact");
+    try {
+      drive(root);
+      reads = spy.mock.calls.map((c) => String(c[0]));
+    } finally {
+      spy.mockRestore();
+    }
+    const archiveReads = reads.filter((p) => p.includes(path.join(ARTIFACT_DIR, "changes", "archive")));
+    expect(archiveReads, `route=${route} parent=${parent} archive-reads`).toEqual([]);
+    const activeRead = reads.some((p) => p.endsWith(path.join("active", "C-ACTIVE-READ", "plan.xml")));
+    if (expectActivePlan) expect(activeRead, `route=${route} parent=${parent} active-plan-read`).toBe(true);
+  }
+
+  it("runPatternDetectors reads no archived plan and reads the active plan, per parent", () => {
+    for (const parent of PARENTS) {
+      assertRoute("runPatternDetectors", parent, (root) => void runPatternDetectors(root), true);
+    }
+  });
+
+  it("unscoped runReview reads no archived plan and reads the active plan, per parent", () => {
+    for (const parent of PARENTS) {
+      assertRoute(
+        "runReview-unscoped",
+        parent,
+        (root) => void runReview(root, { patterns: true, processAudits: true, joinEngine: false, severity: "info" }),
+        true,
+      );
+    }
+  });
+
+  it("selected-active runReview reads no archived plan and reads the active plan, per parent", () => {
+    for (const parent of PARENTS) {
+      assertRoute(
+        "runReview-selected-active",
+        parent,
+        (root) =>
+          void runReview(root, {
+            changeId: "C-ACTIVE-READ",
+            changedFiles: [],
+            patterns: true,
+            processAudits: true,
+            joinEngine: false,
+            severity: "info",
+          }),
+        true,
+      );
+    }
+  });
+
+  it("counterweight: absent active baseline and unexempt target fire; declare/create clears; exact restore restores identical findings", () => {
+    const root = ensureTempRoot();
+    writeMinimalNgraceProject(root);
+    writeFileSync(path.join(root, "src/example.ts"), markerRun);
+    const activeDir = path.join(root, ".ngrace/changes/active/C-ACTIVE-COUNTER");
+    mkdirSync(activeDir, { recursive: true });
+    const plan = (extraScope: string) => `<NgraceChangePlan graceVersion="1.0" status="approved"><C-ACTIVE-COUNTER>
+  <IntentSummary>counterweight</IntentSummary>
+  <BaselineAssertions><MustExist><Value>build/artifacts/new-baseline.bin</Value></MustExist></BaselineAssertions>
+  <TargetAssertions><MustExist><Value>build/artifacts/new-target.bin</Value></MustExist></TargetAssertions>
+  <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>
+  <ObservedWriteScope><File>build/artifacts/new-baseline.bin</File>${extraScope}</ObservedWriteScope>
+  <ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+</C-ACTIVE-COUNTER></NgraceChangePlan>`;
+    const planPath = path.join(activeDir, "plan.xml");
+    // Capture the initial directory state before the probe; the minimal fixture creates no build tree.
+    const buildDir = path.join(root, "build");
+    const artifactsDir = path.join(root, "build", "artifacts");
+    const initialBuildState = { build: existsSync(buildDir), artifacts: existsSync(artifactsDir) };
+    expect(initialBuildState, "fixture starts without build/").toEqual({ build: false, artifacts: false });
+    const red = plan("");
+    writeFileSync(planPath, red);
+    const findingsFor = () =>
+      runPatternDetectors(root)
+        .filter((f) => f.code === "review.confidently-wrong" && f.file.includes("C-ACTIVE-COUNTER") && f.message.includes("MustExist"))
+        .map((f) => ({ id: f.findingId, sev: f.severity, msg: f.message, file: f.file }));
+    const original = findingsFor();
+    expect(original.map((f) => f.id), "absent baseline + unexempt target").toHaveLength(2);
+    expect(original.every((f) => f.sev === "error"), "errors").toBe(true);
+    expect(original.some((f) => f.msg.includes("new-baseline.bin")), "baseline fires").toBe(true);
+    expect(original.some((f) => f.msg.includes("new-target.bin")), "target fires").toBe(true);
+    // Declare the future target in ObservedWriteScope and create only the baseline; the target
+    // stays absent on disk.
+    writeFileSync(planPath, plan("<File>build/artifacts/new-target.bin</File>"));
+    mkdirSync(path.join(root, "build/artifacts"), { recursive: true });
+    writeFileSync(path.join(root, "build/artifacts/new-baseline.bin"), "x");
+    expect(existsSync(path.join(root, "build/artifacts/new-target.bin")), "future target absent").toBe(false);
+    expect(findingsFor(), "declared target + created baseline clear").toEqual([]);
+    // Exact restoration: remove only the directories and file this probe created, then verify the
+    // captured initial state is restored unchanged.
+    writeFileSync(planPath, red);
+    if (!initialBuildState.artifacts) rmSync(artifactsDir, { recursive: true, force: true });
+    else rmSync(path.join(artifactsDir, "new-baseline.bin"), { force: true });
+    if (!initialBuildState.build) rmSync(buildDir, { recursive: true, force: true });
+    expect(existsSync(buildDir), "build/ state restored").toBe(initialBuildState.build);
+    expect(existsSync(artifactsDir), "build/artifacts state restored").toBe(initialBuildState.artifacts);
+    expect(existsSync(path.join(root, "build/artifacts/new-baseline.bin")), "created file absent").toBe(false);
+    expect(readFileSync(planPath, "utf8"), "plan bytes restored").toBe(red);
+    expect(findingsFor(), "restored findings identical").toEqual(original);
+  });
+});
+
+/**
+ * Deliberately invalid active statuses (rejected/applied) are refused by current lint. These tests
+ * isolate the review-route phase classification only; the hand-placed archive controls below are
+ * synthetic and are NOT actual apply/archive lifecycle evidence.
+ */
+describe("C-REVIEW-CURRENT-BOUNDARY-2 selected-review phase predicates", () => {
+  const PARENTS = ["neutral", path.join("misleading", "changes", "archive")];
+
+  function specXml(id: string, status: string, withCloseEvidence: boolean): string {
+    const ac = withCloseEvidence
+      ? `<AcceptanceCriteria><AC-CLOSE-PHASE>c<CloseEvidence><Command>echo ok</Command></CloseEvidence></AC-CLOSE-PHASE></AcceptanceCriteria>`
+      : `<AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria>`;
+    return `<NgraceChangeSpec graceVersion="1.0" status="${status}"><${id}><Summary>s</Summary><Goals><Goal>g</Goal></Goals><Constraints><Constraint>c</Constraint></Constraints><NonGoals><NonGoal>n</NonGoal></NonGoals>${ac}<AffectedAreas><M-EXAMPLE /></AffectedAreas><VerificationIntent><ExpectedCommand>echo 1</ExpectedCommand><ExpectedEvidence>e</ExpectedEvidence></VerificationIntent></${id}></NgraceChangeSpec>`;
+  }
+
+  function planXml(id: string, status: string): string {
+    return `<NgraceChangePlan graceVersion="1.0" status="${status}"><${id}>
+  <IntentSummary>phase fixture plan</IntentSummary>
+  <BaselineAssertions><MustExist><Value>src/example.ts</Value></MustExist></BaselineAssertions>
+  <TargetAssertions><MustExist><Value>src/example.ts</Value></MustExist></TargetAssertions>
+  <DurableScope><GraphAnchors><M-EXAMPLE /></GraphAnchors></DurableScope>
+  <ObservedWriteScope><File>src/example.ts</File></ObservedWriteScope>
+  <ImplementationPlan><T-001><Title>T</Title><DependsOn></DependsOn><AcceptanceCriteria><Criterion>c</Criterion></AcceptanceCriteria><Verification><Command>echo 1</Command></Verification></T-001></ImplementationPlan>
+</${id}></NgraceChangePlan>`;
+  }
+
+  /** A matching current-shape spec+plan pair; status applies to both (active invalid statuses only). */
+  function writeBundleIn(root: string, location: "active" | "archive", id: string, status: string, withCloseEvidence: boolean): string {
+    const dir = path.join(root, ARTIFACT_DIR, "changes", location, id);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, "spec.xml"), specXml(id, status, withCloseEvidence));
+    writeFileSync(path.join(dir, "plan.xml"), planXml(id, status));
+    return dir;
+  }
+
+  function writePassOnlyAttempt(bundleDir: string, id: number): void {
+    const runDir = path.join(bundleDir, "run");
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(
+      path.join(runDir, `${id}-T-001-attempt.xml`),
+      renderAttemptEvent({ id, task: "T-001", outcome: "pass", digests: [["src/example.ts", "p"]] }),
+    );
+  }
+
+  it("the abandoned-phase classifier reports an active rejected pass-only attempt consistently in both parent roots", () => {
+    for (const parent of PARENTS) {
+      const base = track(mkdtempSync(path.join(os.tmpdir(), "ngrace-phase-abandoned-")));
+      const root = path.join(base, parent, "adopter");
+      mkdirSync(root, { recursive: true });
+      writeMinimalNgraceProject(root);
+      const dir = writeBundleIn(root, "active", "C-PHASE-PASSONLY", "rejected", false);
+      writePassOnlyAttempt(dir, 5);
+      const report = runReview(root, { changeId: "C-PHASE-PASSONLY", changedFiles: [], patterns: false, joinEngine: false, severity: "info" });
+      const unpaired = report.findings.filter((f) => f.code === "review.attempt-pair-unpaired-pass");
+      expect(unpaired.length, `parent=${parent}`).toBe(1);
+    }
+  });
+
+  it("the close-evidence-phase classifier suppresses an active applied close-evidence record in both parent roots", () => {
+    for (const parent of PARENTS) {
+      const base = track(mkdtempSync(path.join(os.tmpdir(), "ngrace-phase-applied-")));
+      const root = path.join(base, parent, "adopter");
+      mkdirSync(root, { recursive: true });
+      writeMinimalNgraceProject(root);
+      writeBundleIn(root, "active", "C-PHASE-APPLIED", "applied", true);
+      const report = runReview(root, { changeId: "C-PHASE-APPLIED", changedFiles: [], patterns: false, joinEngine: false, severity: "info" });
+      const ce = report.findings.filter((f) => f.code === "review.close-evidence-unevaluated");
+      expect(ce.length, `parent=${parent}`).toBe(0);
+    }
+  });
+
+  it("genuine archive controls: applied reports unevaluated close evidence and abandoned excludes the pass-only attempt, under both parents", () => {
+    for (const parent of PARENTS) {
+      const base = track(mkdtempSync(path.join(os.tmpdir(), "ngrace-phase-archive-")));
+      const root = path.join(base, parent, "adopter");
+      mkdirSync(root, { recursive: true });
+      writeMinimalNgraceProject(root);
+      writeBundleIn(root, "archive", "C-PHASE-ARCH-APPLIED", "applied", true);
+      const appliedReport = runReview(root, { changeId: "C-PHASE-ARCH-APPLIED", changedFiles: [], patterns: false, joinEngine: false, severity: "info" });
+      expect(
+        appliedReport.findings.filter((f) => f.code === "review.close-evidence-unevaluated").length,
+        `parent=${parent}`,
+      ).toBe(1);
+      const abandoned = writeBundleIn(root, "archive", "C-PHASE-ARCH-ABANDONED", "rejected", false);
+      writePassOnlyAttempt(abandoned, 7);
+      const abandonedReport = runReview(root, { changeId: "C-PHASE-ARCH-ABANDONED", changedFiles: [], patterns: false, joinEngine: false, severity: "info" });
+      expect(
+        abandonedReport.findings.filter((f) => f.code === "review.attempt-pair-unpaired-pass").length,
+        `parent=${parent}`,
+      ).toBe(0);
+    }
+  });
+});
 /**
  * C-REPORT-HONESTY T-004 / AC-SCOPE-LIFECYCLE-EXCLUSION + AC-LEDGER-INVALID-STILL-CATCHES (F11).
  * CLI lifecycle paths are tool-owned; scope audit must not cry wolf on them.
@@ -2473,9 +2605,8 @@ describe("attempt-pair identical-tree (C-SUBSTANTIATION-HONESTY)", () => {
     expect(guide!.remediation.some((r) => /gate verdict|--note|findingId/i.test(r))).toBe(true);
     expect(allReviewCodes()).toContain(ATTEMPT_PAIR_FINDING_CODE);
     expect(allReviewCodes()).not.toContain(RETIRED_ATTEMPT_PAIR_CODE);
-    // C-CRITERION-CLOSE-EVIDENCE adds review.close-evidence-unevaluated (15 → 16);
-    // C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B adds review.historical-path-absent (20 → 21).
-    expect(allReviewCodes()).toHaveLength(21);
+    // The retired historical notice is absent from the live catalog.
+    expect(allReviewCodes()).not.toContain("review.historical-path-absent");
     expect(guideFor(RETIRED_ATTEMPT_PAIR_CODE)).toBeUndefined();
     const catalogTest = readFileSync(
       path.join(import.meta.dir, "../lint/catalog.test.ts"),
@@ -3113,13 +3244,13 @@ describe("WriteEvidence scope audit (C-DECLARED-WRITES)", () => {
   // boundaries, union/dedup, and the absence status are proved by the synthetic fixtures above
   // and by the disposable-CLI probes; no live archive multiset is pinned.
 
-  it("REVIEW_CATALOG registers write-evidence code at error; length 16", () => {
+  it("REVIEW_CATALOG registers write-evidence code at error and retires the historical notice", () => {
     const guide = guideFor(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
     expect(guide).toBeDefined();
     expect(guide!.code).toBe(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
     expect(guide!.severity).toBe("error");
     expect(allReviewCodes()).toContain(WRITE_EVIDENCE_SCOPE_FINDING_CODE);
-    expect(allReviewCodes()).toHaveLength(21);
+    expect(allReviewCodes()).not.toContain("review.historical-path-absent");
     // Porcelain sibling still distinct.
     expect(guideFor("review.scope-outside-write-scope")!.severity).toBe("error");
   });
@@ -3961,13 +4092,13 @@ describe("C-FINDING-SEVERITIES T-001 vocabulary", () => {
     expect([...REVIEW_ISSUE_SEVERITIES]).toEqual(["error", "warning", "info"]);
   });
 
-  it("the two live REVIEW_CATALOG codes at severity info are the unpaired-pass and historical-path codes", () => {
+  it("the one live REVIEW_CATALOG code at severity info is the unpaired-pass code", () => {
     expect(
       Object.values(REVIEW_CATALOG)
         .filter((guide) => guide.severity === "info")
         .map((guide) => guide.code)
         .sort(),
-    ).toEqual(["review.attempt-pair-unpaired-pass", "review.historical-path-absent"]);
+    ).toEqual(["review.attempt-pair-unpaired-pass"]);
   });
 
   it("guideFor of the two warnings and the two live scope errors stay", () => {
@@ -4347,7 +4478,7 @@ describe("C-AMENDMENT-COUNT T-003 review audit", () => {
     expect(text).toContain("no --change supplied");
   });
 
-  it("scoped review with both counts 0 reports ran and prints the pair", () => {
+  it("scoped review reports the current-only amendment absence, never a numeric ran", () => {
     const root = ensureTempRoot();
     writeMinimalNgraceProject(root);
     writeScopedPlan(root, "C-QUIET", ["src/example.ts"]);
@@ -4357,12 +4488,14 @@ describe("C-AMENDMENT-COUNT T-003 review audit", () => {
       patterns: false,
       joinEngine: false,
     });
-    expect(report.amendmentCountAudit?.status).toBe("ran");
-    expect(report.amendmentCountAudit?.reRatificationCount).toBe(0);
-    expect(report.amendmentCountAudit?.supersedeChainDepth).toBe(0);
-    expect(formatReviewResult(report)).toContain(
-      "Amendment count: re-ratifications=0 supersede-depth=0 for C-QUIET",
-    );
+    expect(report.amendmentCountAudit?.status).toBe("not-run");
+    expect(report.amendmentCountAudit?.reason).toContain("current-only");
+    expect(report.amendmentCountAudit?.absence?.verdict).toBe("not-run");
+    expect(report.amendmentCountAudit?.reRatificationCount).toBeUndefined();
+    expect(report.amendmentCountAudit?.supersedeChainDepth).toBeUndefined();
+    const text = formatReviewResult(report);
+    expect(text).toContain("Amendment count: not-run");
+    expect(text).not.toContain("re-ratifications=");
   });
 });
 
@@ -4464,7 +4597,7 @@ describe("C-REVIEW-ARCHIVE-SCOPE location filter", () => {
     expect(findings).toHaveLength(1);
   });
 
-  it("FIRES historical-path-absent: applied archive MustExist of a missing path", () => {
+  it("an applied archive MustExist of a missing path is opaque: no notice and no error", () => {
     const root = ensureTempRoot();
     writeMinimalNgraceProject(root);
     emitBlockRun(root);
@@ -4476,12 +4609,9 @@ describe("C-REVIEW-ARCHIVE-SCOPE location filter", () => {
       mustExist: "build/artifacts/c-review-archive-scope-absent.bin",
     });
     const findings = runPatternDetectors(root).filter(
-      (f) =>
-        f.code === "review.historical-path-absent"
-        && f.message.includes("build/artifacts/c-review-archive-scope-absent.bin"),
+      (f) => f.message.includes("build/artifacts/c-review-archive-scope-absent.bin"),
     );
-    expect(findings).toHaveLength(1);
-    expect(findings[0]!.severity).toBe("info");
+    expect(findings).toHaveLength(0);
   });
 
   it("detectZeroOrMoreSwallow title regex source stays byte-identical", () => {
@@ -4868,10 +4998,8 @@ describe("C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B historical audit obligations"
     expect(differentPair[0]!.findingId).not.toBe("05ad5fcbc7c1731d");
   });
 
-  it("historical-path notice catalog contract", () => {
-    expect(REVIEW_CATALOG["review.historical-path-absent"]).toBeDefined();
-    expect(REVIEW_CATALOG["review.historical-path-absent"]!.severity).toBe("info");
-    expect(REVIEW_CATALOG["review.historical-path-absent"]!.family).toBe("process-audit");
+  it("historical-path notice is retired from the catalog; family-A stays exact", () => {
+    expect(REVIEW_CATALOG["review.historical-path-absent"]).toBeUndefined();
     expect(patternReviewCodes()).toHaveLength(5);
     expect(patternReviewCodes()).not.toContain("review.historical-path-absent");
     // Exact baseline family-A membership, not merely a count.
@@ -4882,14 +5010,14 @@ describe("C-HISTORICAL-ASSERTION-REVIEW-2-67E62A9B historical audit obligations"
       "review.unthreaded-construct",
       "review.zero-or-more-swallow",
     ]);
-    // Measured supplementary pin only; the binding relation is the whole-population set
-    // difference asserted in src/verification/localize.test.ts.
-    expect(allReviewCodes()).toHaveLength(21);
+    // The binding relation is the whole-population set difference asserted in
+    // src/verification/localize.test.ts; no literal catalog length is pinned here.
+    expect(allReviewCodes()).not.toContain("review.historical-path-absent");
     expect(
       Object.values(REVIEW_CATALOG)
         .filter((guide) => guide.severity === "info")
         .map((guide) => guide.code)
         .sort(),
-    ).toEqual(["review.attempt-pair-unpaired-pass", "review.historical-path-absent"]);
+    ).toEqual(["review.attempt-pair-unpaired-pass"]);
   });
 });

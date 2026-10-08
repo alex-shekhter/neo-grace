@@ -79,7 +79,7 @@ import {
   type LooseEvent,
   type WriteEvidenceSnapshot,
 } from "../grace-cursor";
-import { classifyApprovedArtifact, listGateDecisions, readAmendmentInstrument } from "../gates/ledger";
+import { classifyApprovedArtifact, listGateDecisions } from "../gates/ledger";
 import { CODE_EXTENSIONS } from "../language-registry";
 import {
   getModuleImplementationFiles,
@@ -503,10 +503,11 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
 
   // MustExist targets that do not exist on disk (corr 205-B).
   // Semantic anchors (ANCHOR_PATTERNS) are not disk paths — never check them as files.
-  // Corr 171 / F16: when the plan lives under archive/<id>/, active/<id>/… aliases
-  // archive/<id>/… for that id only — reuse expandScopePathsForArchiveIdentity (no second rule).
+  // C-REVIEW-CURRENT-BOUNDARY-2: only active plans are current obligations. The plan location is
+  // derived from the project-relative path before any plan content is opened, so unrelated archived
+  // plans are opaque history and are never read here.
   for (const planRel of listFilesRecursive(root, `${ARTIFACT_DIR}/changes`).filter((f) =>
-    f.endsWith("plan.xml"),
+    f.endsWith("plan.xml") && scopeIdentityFromPlanRel(f)?.planLocation === "active",
   )) {
     const abs = path.join(root, planRel);
     const artifact = readGraceXmlArtifact(abs);
@@ -541,30 +542,15 @@ function detectConfidentlyWrong(root: string): ReviewFinding[] {
         const candidates = expandScopePathsForArchiveIdentity([target], identity);
         const present = candidates.some((candidate) => existsSync(path.join(root, candidate)));
         if (!present) {
-          if (identity?.planLocation === "archive") {
-            // An archived plan's missing MustExist is historical metadata, not a current obligation:
-            // archive-time presence is unevaluated against today's filesystem. Detection (same-ID
-            // alias, missing-both, foreign-id) is retained as an informational notice.
-            findings.push(
-              makeFinding(
-                "review.historical-path-absent",
-                planRel,
-                `Historical MustExist claims ${target}; archive-time presence is unevaluated against the current filesystem.`,
-                "historical-path-absent",
-                `historical-path:${target}#${mustExistOrdinal++}`,
-              ),
-            );
-          } else {
-            findings.push(
-              makeFinding(
-                "review.confidently-wrong",
-                planRel,
-                `MustExist claims ${target} which is not present on disk.`,
-                "must-exist-missing",
-                `must-exist:${target}#${mustExistOrdinal++}`,
-              ),
-            );
-          }
+          findings.push(
+            makeFinding(
+              "review.confidently-wrong",
+              planRel,
+              `MustExist claims ${target} which is not present on disk.`,
+              "must-exist-missing",
+              `must-exist:${target}#${mustExistOrdinal++}`,
+            ),
+          );
         }
       }
     }
@@ -1481,13 +1467,20 @@ const ABANDONED_ARCHIVE_STATUSES = new Set(["superseded", "rejected", "cancelled
 /**
  * F286: an archived bundle whose spec status is terminal-but-not-`applied` is
  * abandoned governance, not delivered evidence, so the attempt-pair
- * corroboration standard does not apply to it — the same stance archived plans
- * take in `src/lint/core.ts` (syntax only, never semantic). An `applied`
+ * corroboration standard does not apply to it — the same stance current lint
+ * takes for older archives, which are opaque and never read. An `applied`
  * archived bundle is not exempt and its stream is fully audited.
  */
-function isAbandonedArchiveBundle(bundlePath: string): boolean {
-  const archiveMarker = `${path.sep}changes${path.sep}archive${path.sep}`;
-  if (!bundlePath.includes(archiveMarker)) return false;
+function isArchivePhaseBundle(projectRoot: string, bundlePath: string): boolean {
+  const rel = path.relative(path.resolve(projectRoot), path.resolve(bundlePath)).replaceAll("\\", "/");
+  const prefix = `${ARTIFACT_DIR}/changes/archive/`;
+  if (!rel.startsWith(prefix)) return false;
+  const rest = rel.slice(prefix.length);
+  return rest.length > 0 && !rest.includes("/");
+}
+
+function isAbandonedArchiveBundle(projectRoot: string, bundlePath: string): boolean {
+  if (!isArchivePhaseBundle(projectRoot, bundlePath)) return false;
   const specPath = path.join(bundlePath, "spec.xml");
   if (!existsSync(specPath)) return false;
   const status = readGraceXmlArtifact(specPath).root?.attributes.status;
@@ -1509,7 +1502,7 @@ function loadAttemptPairsFromBundle(
     return { pairs: [], unpaired: [] };
   }
   // F286: abandoned archived governance is not held to the corroboration standard.
-  if (isAbandonedArchiveBundle(bundlePath)) {
+  if (isAbandonedArchiveBundle(projectRoot, bundlePath)) {
     return { pairs: [], unpaired: [] };
   }
   const events: LooseEvent[] = [
@@ -1808,13 +1801,13 @@ export function runReview(projectRoot: string, options: ReviewOptions = {}): Rev
           absence: { verdict: "not-run", reason },
         };
       } else {
-        const instrument = readAmendmentInstrument(root, changeId);
+        const reason =
+          "the current-only policy retires archive-dependent amendment measurement as a current review input";
         amendmentCountAudit = {
-          status: "ran",
-          reason: `ran amendment counts for ${changeId}`,
+          status: "not-run",
+          reason,
           changeId,
-          reRatificationCount: instrument.reRatificationCount,
-          supersedeChainDepth: instrument.supersedeChainDepth,
+          absence: { verdict: "not-run", reason },
         };
       }
     }
@@ -1903,8 +1896,7 @@ function auditCloseEvidenceUnevaluated(root: string, changeId: string): ReviewFi
   } catch {
     return [];
   }
-  const archiveMarker = `${path.sep}changes${path.sep}archive${path.sep}`;
-  if (!bundlePath.includes(archiveMarker)) return [];
+  if (!isArchivePhaseBundle(root, bundlePath)) return [];
   const specPath = path.join(bundlePath, "spec.xml");
   if (!existsSync(specPath)) return [];
   const spec = readGraceXmlArtifact(specPath);

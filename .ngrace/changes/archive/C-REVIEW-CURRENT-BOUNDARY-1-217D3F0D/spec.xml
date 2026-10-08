@@ -1,0 +1,556 @@
+<NgraceChangeSpec graceVersion="1.0" status="superseded">
+  <C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D><Replacement>C-REVIEW-CURRENT-BOUNDARY-2-6ACE9713</Replacement>
+    <Summary>
+      Second small slice of the current-only CLI policy recorded in `AGENTS.md` and confirmed by the
+      withdrawn compatibility campaign in
+      `docs/plans/active/RM-GOVERNED-PATH/grace-implementation-queue.md:154-156`, begun by
+      `.ngrace/changes/archive/C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85` (which made grammar, lint,
+      and query automatic paths current-only and explicitly deferred the review, selected-close, and
+      teaching consumers to dependent slices). This bundle is the **review + selected-close +
+      teaching** slice. It (1) removes the archived-plan global `MustExist` scan and its
+      `review.historical-path-absent` notice from `src/review/core.ts`, so review discovers active
+      plans before any content read and opens no unrelated archived plan; (2) makes the selected
+      current-close validator in `src/gates/ledger.ts` strict — the explicitly selected bundle
+      resolved under `changes/archive/` is phase-classified before status is read, both selected
+      artifacts must root at the registered types with `status="applied"`, carry exactly one wrapper
+      equal to the selected identity, satisfy the required sections and the selected spec-to-plan
+      coverage, and consume their declared evidence through the current binding; the artifact-local
+      `validateChangeArtifact` and `validateSpecPlanCoverage` are reused and supplemented by a narrow
+      selected-close evidence-consumption guard inside the already-scoped ledger/test files; and (3)
+      corrects two inaccurate `ngrace-plan` teaching rows (rule 6's unqualified presentation of this
+      repository's flush/retirement/live-root commands as universal; rule 19's already-false claim
+      that absent archived scratch `MustExist` claims produce `review.confidently-wrong`). It moves
+      the whole-canonical skill footprint pin and the README measured row to the actual
+      measurement. Exactly ten paths change across four modules (`M-REVIEW`, `M-LOCALIZE`,
+      `M-GATES`, `M-TEST-SUPPORT`), the published `ngrace-plan` skill and its packaged mirror, the
+      footprint pin, and the README measured row. It overturns
+      `C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D`'s choice to keep unrelated-archive detection as
+      informational review notices under the later current-only policy, answering its counterweight
+      with active-plan refusal and strict selected current-close validation rather than weaker
+      current checks. It declares no `Pays` and makes no governed record-system write; the sanctioned
+      close still performs its ordinary lifecycle writes inside this bundle: `ngrace gate verdict`
+      persists the Verdict and its `CloseEvidence` children in `run-ledger.xml`; `ngrace apply`
+      writes `applied` status onto the selected spec and plan and Decisions/fingerprints into
+      `run-ledger.xml`, then renames the bundle directory; cursor, attempt, and fold own the bundle's
+      `run.xml`, `run/**`, and ledger epoch state. The CLI's temporary coordination locks are
+      `.ngrace/changes/active/.candidate-C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D.lock` and the
+      own-bundle `.run-write.lock`. All pre-existing archive bytes and
+      identities are preserved and proven beyond a tracked diff; `README.md` moves only its measured
+      footprint row and directly necessary explanation; `examples/` is unchanged.
+    </Summary>
+    <Goals>
+      <Goal>
+        In `src/review/core.ts`, discover active `plan.xml` files before any content read and open no
+        unrelated archived plan: the obsolete `review.historical-path-absent` producer and its
+        archive branch are removed. Active `MustExist` refusal is preserved, including
+        `BaselineAssertions` claims and undeclared/unexempt `TargetAssertions` claims; the other
+        current project detectors and the selected process audits are unchanged. The intentionally
+        selected archived current-close record remains readable by its own selected consumer.
+      </Goal>
+      <Goal>
+        In `src/review/catalog.ts`, remove the `review.historical-path-absent` guide so the code,
+        its explanation, and its remediation leave the catalog and the explain surface; the
+        catalog/localization relation stays exhaustive.
+      </Goal>
+      <Goal>
+        In `src/gates/ledger.ts`, make the selected current-close validation strict and complete.
+        Only the explicitly selected bundle resolved under `changes/archive/` is validated; the
+        directory phase is classified before parsed status is read; both selected artifacts must be
+        applied and registered, carry exactly one wrapper equal to the selected identity, satisfy the
+        required sections and selected coverage, and consume their declared `CloseEvidence` through
+        the current binding. Invalid selected records refuse before shell commands or verdict writes,
+        with ledger bytes unchanged. Complete selected evaluation semantics, per-criterion
+        `Result`/`Exit`, and the location/directory/spec/ledger guards are preserved, and the
+        decision-bearing snapshot adds the selected plan bytes.
+      </Goal>
+      <Goal>
+        Correct `skills/ngrace/ngrace-plan/SKILL.md` rule 6 and rule 19 to generic, accurate, adoptable
+        teaching in both canonical and packaged trees, retaining the universal scope requirement and
+        the verification/copy safeguards.
+      </Goal>
+      <Goal>
+        Move the whole-canonical `skillTextLines()` footprint pin in
+        `src/test-support/token-accounting.test.ts` and the `README.md` measured row to the actual
+        measurement (the pin equals the measurement; a literal value is set only after the
+        measurement, and no mirror-inclusive total is invented).
+      </Goal>
+    </Goals>
+    <Constraints>
+      <Constraint>
+        Ceremony tier T2 (cross-cutting: two runtime modules, two test surfaces, a published skill and
+        its mirror, and a docs row).
+      </Constraint>
+      <Constraint>
+        The permitted implementation files are exactly ten:
+        `src/review/core.ts`, `src/review/catalog.ts`, `src/review/core.test.ts` (M-REVIEW);
+        `src/verification/localize.test.ts` (M-LOCALIZE);
+        `src/gates/ledger.ts`, `src/gates/core.test.ts` (M-GATES);
+        `skills/ngrace/ngrace-plan/SKILL.md` and
+        `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md` (published skill and byte-identical
+        mirror); `src/test-support/token-accounting.test.ts` (M-TEST-SUPPORT); and `README.md`
+        (measured footprint row and only directly necessary explanation). Every tracked path outside
+        that set and outside this bundle's own active/archive lifecycle paths is byte-identical to base
+        `c58e93f2e6f6a91b8bf5528edd3b29724652390c`. This full-base tracked-path constraint is verified
+        by the bounded-writes instrument in `AC-BOUNDED-WRITES`. A file the deliverable forces stays
+        in scope; any additional forced file is added by an explicit spec revision, never by silent
+        scope growth. `examples/` is byte-identical to base.
+      </Constraint>
+      <Constraint>
+        Module ownership. All four affected modules are enumerated in `AffectedAreas` and every prose
+        module list in this spec: `M-REVIEW` (`src/review/core.ts`, `src/review/catalog.ts`, and the
+        test file `src/review/core.test.ts`), `M-LOCALIZE` (test file
+        `src/verification/localize.test.ts`, inheriting its tested module), `M-GATES`
+        (`src/gates/ledger.ts` and `src/gates/core.test.ts`), and `M-TEST-SUPPORT` (test file
+        `src/test-support/token-accounting.test.ts`, inheriting `M-TEST-SUPPORT` through
+        `src/test-support/token-accounting.ts`). A module list that appears more than once names all
+        four in every occurrence. Published skill/docs files are not module-ownable source files.
+      </Constraint>
+      <Constraint>
+        Phase before status. The strict validator applies only to a bundle the caller explicitly
+        selected and that is resolved under `.ngrace/changes/archive/`. It classifies the directory
+        phase before it reads parsed status: a missing or unparseable spec, or a present non-applied
+        status, must not escape through the existing `isAppliedArchiveBundle` early return. Both the
+        selected spec and the selected plan must be `status="applied"`, root at the registered types
+        (`NgraceChangeSpec`, `NgraceChangePlan`), and carry exactly one wrapper equal to the selected
+        directory/`--change` identity. Active and pre-archive verdicts keep `CloseEvidence` inertness
+        and are not subjected to archive-only applied requirements.
+      </Constraint>
+      <Constraint>
+        Reuse plus a narrow evidence guard. The strict validator calls the exported
+        `validateChangeArtifact` (selected spec and plan, `location="archive"`, with `projectRoot`)
+        and `validateSpecPlanCoverage` (selected spec to selected plan), and adds a narrow
+        selected-close guard implemented inside `src/gates/ledger.ts` and tested in
+        `src/gates/core.test.ts`. The guard requires every explicit `CloseEvidence` declaration in the
+        selected `AcceptanceCriteria` to have the current consumable binding: exactly one direct
+        `CloseEvidence` block on its bound `AC-*`, containing at least one non-empty direct
+        `Command`. An explicit declaration that is nonbinding or unconsumable — a `CloseEvidence`
+        under a legacy `&lt;Criterion&gt;` or nested below the bound `AC-*`, or more than one direct
+        `CloseEvidence` block on one `AC-*`, or a block with no complete direct command — is refused
+        before evaluation rather than treated as absent evidence. Ordinary `AC-*` criteria with no
+        `CloseEvidence`, and meaningful legacy/free-text criteria with no evidence, are preserved.
+        The grammar is not broadened, no historical schema is evaluated, no whole-project validator is
+        called, no unrelated bundle is enumerated, and no historical reader or schema-version dispatch
+        is introduced.
+      </Constraint>
+      <Constraint>
+        Refusal threshold. The strict validator refuses any error-severity issue from the selected
+        spec, selected plan, selected spec-to-plan coverage, or the evidence-consumption guard. The
+        existing warning families remain advisory and no new gate-verdict warning output is
+        introduced; a warning-only otherwise-valid shape stays admissible unless the binding guard
+        rejects explicit unconsumable evidence. An explicit empty or Command-less `CloseEvidence`
+        remains the authoring error `change.close-evidence-incomplete` and is distinct from a
+        criterion that genuinely carries no `CloseEvidence`, which is a legitimate zero-command
+        close.
+      </Constraint>
+      <Constraint>
+        Evaluation semantics and snapshot. All bound criteria are evaluated; within one criterion
+        execution stops on its first non-zero command and records that `Exit` and `Result`, then the
+        remaining criteria continue. Per-criterion `Result`/`Exit` records beside any `Finding`/`Ack`
+        children; a `pass` is refused when any selected command fails, and a legitimate
+        `outcome=fail` records the failed-command evaluations. The existing stale-location,
+        directory-identity, spec-byte, and ledger-byte guards are preserved, and the decision-bearing
+        snapshot adds the selected `plan.xml` bytes. The snapshot guarantee is limited to those
+        decision-bearing spec/plan/ledger/directory bytes; the `.ngrace-lint.json` read used only to
+        classify command shapes is not part of the decision snapshot, because a warning does not
+        decide the verdict.
+      </Constraint>
+      <Constraint>
+        Counterweight answer. This bundle overturns the unrelated-archive detection choice of
+        `C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D` (`spec.xml:3-31`, `plan.xml:57-59`): under the
+        current-only policy an unrelated archived plan is opaque history, not a review notice. The
+        answer is not weaker current checks — active-plan refusal stays an error and the selected
+        current-close validator becomes strict. Identity helpers still needed by current selected
+        scope/close consumers are preserved. Archive-time evaluation, active/pre-archive
+        `CloseEvidence` inertness, and lint/evaluation separation from
+        `C-CRITERION-CLOSE-EVIDENCE` (`spec.xml:102-108,163-173,186-192`) are preserved, and the
+        `Result`/`Exit`-beside-`Finding`/`Ack` and failed-command refusal from `C-BOUND-VERDICT`
+        (`spec.xml:1688-1697`) are preserved.
+      </Constraint>
+      <Constraint>
+        Archive preservation and its instrument. Every pre-existing path under
+        `.ngrace/changes/archive/` is byte-identical to base
+        `c58e93f2e6f6a91b8bf5528edd3b29724652390c`, and the set of pre-existing archive bundle root
+        directories is unchanged. The instrument is more than a tracked diff: it compares the base
+        root-directory identity population against the current one, detects unexpected tracked,
+        untracked, and ignored files under the archive, and excludes exactly this bundle's own lawful
+        arrival by its full directory path, with the reason that the close's own rename reddens the
+        criterion it wrote. Pre-existing tracked archive files and root bundle names are the
+        authoritative baseline populations. Git does not represent empty nested `run/` directories:
+        no baseline is fabricated for them and none is deleted. The comparison uses bytes and
+        identities only and never parses or executes archive contents. No supersede predecessor
+        exists, so no predecessor-arrival exclusion is needed.
+      </Constraint>
+      <Constraint>
+        Bounded writes and its instrument. Relative to base
+        `c58e93f2e6f6a91b8bf5528edd3b29724652390c`, the only tracked changes are the ten named
+        implementation paths and this bundle's own active/archive lifecycle paths; the bounded-writes
+        instrument in `AC-BOUNDED-WRITES` excludes exactly those and fails on any other tracked
+        change outside them. It does not add a general helper or another implementation path.
+      </Constraint>
+      <Constraint>
+        Record-write and payment disposition. This bundle declares no `Pays`, so it makes no governed
+        record-system write: no finding, decision, index, registry row, retired sibling, live root, or
+        payer-map fixture is written by this bundle. No payment is owed on the measured candidates:
+        F17/F51 are resolved findings already carrying standing footprint rules, and F123 is a watch
+        item, not a current debt. `C-HISTORICAL-ASSERTION-REVIEW-4`'s README/examples deferral was a
+        decision within that bundle, not a ban on this bundle's directly necessary footprint row.
+        Disclosed conflict: F177 and the live `C-ROADMAP-XML` charter (`registry.xml:68`) propose an
+        archived-artifact reader that conflicts with the later current-only policy; this bundle
+        neither authorizes that reader nor pays or converts that separate roadmap charter, and does
+        not widen into record conversion. The sanctioned close still performs its ordinary lifecycle
+        writes inside this bundle: `ngrace gate verdict` persists the selected Verdict and its
+        `CloseEvidence` children in `run-ledger.xml`; `ngrace apply` writes `applied` onto the
+        bundle's `spec.xml` and `plan.xml`, records applied Decisions and fingerprints in
+        `run-ledger.xml`, and then renames the bundle directory from `active/` to `archive/`; the
+        cursor, attempt, and fold commands own the bundle's `run.xml`, `run/**`, and ledger epoch
+        state. The CLI's temporary coordination effects are exactly
+        `.ngrace/changes/active/.candidate-C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D.lock` and the
+        own-bundle `.run-write.lock`, created and removed by the CLI; they are not persistent scope
+        exemptions and do not broaden to unrelated `.ngrace` paths. "No new bundle identity" means no
+        identity beyond this existing C-ID.
+      </Constraint>
+      <Constraint>
+        Read-spy scope. The zero-archive-read assertion is scoped to global discovery and to
+        selected-active review: driving `runPatternDetectors` and `runReview` without `--change` or
+        with a selected active change records zero reads under `.ngrace/changes/archive/`. It does not
+        prohibit the intentional read of the explicitly selected archived current-close record by its
+        own selected consumer.
+      </Constraint>
+      <Constraint>
+        `README.md` moves its measured footprint row and only directly necessary explanation.
+        `examples/` is unchanged with no new example surface. Prototype/command feasibility checks
+        are distinct from the final execute/close CI; full CI-equivalent verification is close-time
+        only, under `--assertions final --run-commands`, and is not run at SPEC or PLAN. `CloseEvidence`
+        commands are narrow discriminating instruments, and `bun run validate:ci` is reserved for a
+        criterion genuinely about the whole suite.
+        This bundle's project-local Commands require the configured POSIX shell (here `/bin/zsh -lc`) and Bun; they make no Windows-runner guarantee and change no CLI runner behavior.
+      </Constraint>
+    </Constraints>
+    <NonGoals>
+      <NonGoal>
+        `examples/` is unchanged with no new example surface. Owner: unchanged; no user-visible example
+        surface.
+      </NonGoal>
+      <NonGoal>
+        No change to grammar validation source or tests, no new schema-version dispatch, no historical
+        reader, and no whole-project validator sweep of archives. Owner: reused exported APIs in
+        `src/artifact/grammar.ts` plus the narrow selected-close guard in `src/gates/ledger.ts`; no
+        grammar change is forced.
+      </NonGoal>
+      <NonGoal>
+        No change to the approve, apply, or archive gate semantics, to status writing, or to the run
+        ledger/cursor beyond the selected current-close verdict validation and this bundle's own
+        lifecycle writes. Owner: no user-visible surface; the apply/close transaction is otherwise
+        unchanged.
+      </NonGoal>
+      <NonGoal>
+        No change to published skills other than `ngrace-plan` rules 6 and 19 and their direct
+        dependencies; no marketplace, packaging, version, or `openpackage.yml` change beyond the
+        packaged mirror staying byte-identical. Owner: no user-visible surface beyond the mirror.
+      </NonGoal>
+      <NonGoal>
+        No additional bundle identity, registry row, finding payment, or governed record write. Owner:
+        unchanged; the finding/decision/index/registry record and payer maps are not touched by this
+        bundle, and the F177/`C-ROADMAP-XML` archived-reader question is not converted here.
+      </NonGoal>
+    </NonGoals>
+    <AcceptanceCriteria>
+      <AC-ACTIVE-ONLY-DISCOVERY>
+        In `src/review/core.ts`, the global `MustExist` scan discovers active `plan.xml` files before
+        reading any plan content and opens no unrelated archived plan; no
+        `review.historical-path-absent` finding is produced. Proved at the read boundary by a
+        `bun:test` call-through spy over the real exported `readGraceXmlArtifact` that records each
+        call's `file` and calls through to the original: driving the real `runPatternDetectors`, and
+        `runReview` both without `--change` and with a selected active change, over a complete
+        synthetic project with at least one archived plan and at least one active plan records zero
+        calls whose path is under `.ngrace/changes/archive/` and a non-empty set of current-artifact
+        calls as the positive control, with no fake parser or fabricated result; the spy is restored
+        after each test and mutated synthetic inputs are restored. The assertion is scoped to global
+        discovery and selected-active review and does not prohibit the selected archived
+        current-close consumer from reading the selected record.
+      </AC-ACTIVE-ONLY-DISCOVERY>
+      <AC-CURRENT-COUNTERWEIGHTS>
+        Active-plan `MustExist` refusal is preserved and is the counterweight: an active plan's absent
+        `MustExist` still emits `review.confidently-wrong` / `must-exist-missing` at error for both
+        `BaselineAssertions` and `TargetAssertions`, including a `TargetAssertions` claim that is
+        undeclared or unexempt by `ObservedWriteScope`, and including a claim whose path is absent
+        under its own identity; the shared identity helper `expandScopePathsForArchiveIdentity` is
+        preserved for the current selected scope/close consumers that still use it; the other current
+        pattern detectors and the selected process audits are unchanged. In `src/review/catalog.ts`
+        the `review.historical-path-absent` entry is removed from `REVIEW_CATALOG`, `allReviewCodes()`,
+        and the explain guide, while the exhaustive catalog/localization relation still holds over
+        the whole code population — every catalog code is exactly one of admissible or excluded —
+        with `ADMISSIBLE_REVIEW_CODES` exactly the three D8 codes and `patternReviewCodes()` exactly
+        the five family-A codes; the relation is asserted over the whole population and not as a
+        pinned literal length.
+        <CloseEvidence><Command>bun test --timeout=0 src/review/core.test.ts src/verification/localize.test.ts</Command></CloseEvidence>
+      </AC-CURRENT-COUNTERWEIGHTS>
+      <AC-CLOSE-STRICT-SELECTED>
+        When an explicitly selected bundle resolves under `.ngrace/changes/archive/`, `ngrace gate
+        verdict` classifies the directory phase before reading parsed status and validates only that
+        selected record; a selected route that does not resolve to archive is not subjected to the
+        archive-only applied requirements. Before any shell command or verdict write it validates the
+        selected `spec.xml` and
+        `plan.xml` with the exported artifact-local validators plus the narrow selected-close
+        evidence-consumption guard. It requires both selected artifacts at `status="applied"` with
+        registered roots (`spec.xml` roots at `NgraceChangeSpec`, `plan.xml` at `NgraceChangePlan`),
+        exactly one `C-*` wrapper equal to the selected directory and `--change` identity, the
+        required sections, non-empty criteria, selected spec-to-plan coverage, and evidence binding:
+        exactly one direct `CloseEvidence` block on its bound `AC-*` with at least one non-empty
+        direct `Command`. Every listed invalidity refuses the write instead of recording `pass` and
+        leaves the ledger bytes unchanged: a missing or unparseable spec; a present non-applied spec
+        or plan status that does not escape the `isAppliedArchiveBundle` early return; a wrong root
+        tag; a wrapper whose id differs from the selected directory or `--change`; a missing required
+        section or an empty criterion; an explicit incomplete `CloseEvidence`; a nonbinding or
+        unconsumable evidence declaration (a `CloseEvidence` under a legacy `&lt;Criterion&gt;` or nested
+        below its bound `AC-*`, or more than one direct `CloseEvidence` block on one `AC-*`); and a
+        missing, malformed, or id-mismatched plan. Any error-severity issue from the selected spec,
+        selected plan, selected coverage, or the binding guard refuses; existing warning families
+        remain advisory and no new gate-verdict warning output is introduced.
+        <CloseEvidence><Command>bun test --timeout=0 src/gates/core.test.ts</Command></CloseEvidence>
+      </AC-CLOSE-STRICT-SELECTED>
+      <AC-CLOSE-PRESERVED-BEHAVIOR>
+        Selected current-close behaviour at the boundary is preserved. A valid selected applied-archive
+        bundle evaluates all bound `CloseEvidence` criteria; within one criterion execution stops on
+        its first non-zero command and records that `Exit` and `Result`, then the remaining criteria
+        continue, each recording a `Result`/`Exit` beside any `Finding` and `Ack` children. An active
+        or pre-archive bundle records no `CloseEvidence` children (inertness). A criterion that
+        genuinely carries no `CloseEvidence`, and a meaningful legacy/free-text criterion with no
+        evidence, are accepted as the legitimate zero-command close, while an explicit empty or
+        Command-less `CloseEvidence` remains an error and is not that case. A `pass` is refused when
+        any selected command exits non-zero and the ledger bytes are unchanged. A legitimate
+        `outcome=fail` records the failed-command evaluations. The stale-location, spec-byte,
+        ledger-byte, and directory-identity snapshot protections are preserved, extended so that the
+        newly consumed selected `plan.xml` bytes are part of the same decision-bearing
+        snapshot-consistency protection. The existing refusal test is repaired so that a missing
+        acknowledgement cannot mask the command-result guard, and guard-removal discrimination is
+        required during EXECUTE.
+      </AC-CLOSE-PRESERVED-BEHAVIOR>
+      <AC-TEACHING-PORTABLE-SCOPE>
+        In `skills/ngrace/ngrace-plan/SKILL.md` rule 6 and its packaged mirror, the universal
+        requirement that a plan scope the writes of every actor the spec assigns and the writes the
+        lawful close performs is retained and expressed in terms of each adopting project's actual
+        operations and targets, not this repository's specific flush, retirement, and live-root
+        commands presented as universal. No universal requirement is added or removed beyond making
+        the existing rule adoptable, and the requirement to list at plan time any path the approved
+        deliverable forces is preserved.
+      </AC-TEACHING-PORTABLE-SCOPE>
+      <AC-TEACHING-COPY-INPUTS>
+        In `skills/ngrace/ngrace-plan/SKILL.md` rule 19 and its packaged mirror, the claim that
+        absent archived scratch `MustExist` claims produce `review.confidently-wrong` is removed as
+        already false. Faithful copies are taught to carry the actual inputs consumed by current
+        planned verification and by selected current-close commands, with scratch and VCS metadata
+        presented as conditional on those consumers rather than as unconditional copy contents.
+        Plan-time prototype/command-driving is presented as feasibility rehearsal, distinct from the
+        close-time full CI-equivalent verification, so an adopter cannot read it as an early release
+        gate. Accurate active-plan refusal teaching and the other verification/copy safeguards (mutate
+        copies not the record, drive planned commands in the state each task leaves, read recorded
+        `Result`/`Exit` from the ledger) are retained.
+      </AC-TEACHING-COPY-INPUTS>
+      <AC-MIRROR-FOOTPRINT>
+        `skills/ngrace/ngrace-plan/SKILL.md` and
+        `plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md` are byte-identical, the canonical-only
+        `skillTextLines()` measurement (lines and UTF-8 bytes) is the value pinned in
+        `src/test-support/token-accounting.test.ts`, and the `README.md` measured row publishes that
+        same measurement. The pin equals the actual measurement taken from the shipped canonical
+        tree; a literal value is set only after that measurement, no projected value is written, and
+        no mirror-inclusive total is invented.
+        <CloseEvidence><Command>bun run ./scripts/validate-marketplace.ts</Command><Command>bun test --timeout=0 src/test-support/token-accounting.test.ts</Command></CloseEvidence>
+      </AC-MIRROR-FOOTPRINT>
+      <AC-ARCHIVE-PRESERVATION>
+        Every pre-existing path under `.ngrace/changes/archive/` is byte-identical to base
+        `c58e93f2e6f6a91b8bf5528edd3b29724652390c`, and the set of pre-existing archive bundle root
+        directories is unchanged. The instrument reads the base commit's tracked blob bytes and
+        compares them to the actual filesystem bytes of every protected path, so a byte edited under
+        `--assume-unchanged` or `--skip-worktree` still fails; it separately inventories every actual
+        file under the archive, including untracked and ignored additions, and compares archive root
+        names by exact membership, not by a C-ID substring or line filter. It excludes exactly this
+        bundle's own archive directory and its descendants, by exact path, with the reason that the
+        close's own rename reddens the criterion it wrote. It compares bytes and identities only,
+        never parses or executes archive contents, does not fabricate a baseline for empty nested
+        `run/` directories, and deletes none. It fails closed on a missing base or a failed Git or
+        read subprocess. No predecessor-arrival exclusion is present because this bundle supersedes
+        nothing.
+        <CloseEvidence><Command>git diff --exit-code c58e93f2e6f6a91b8bf5528edd3b29724652390c -- .ngrace/changes/archive ':(exclude).ngrace/changes/archive/C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D' &amp;&amp; bun -e 'const {spawnSync}=require("node:child_process");
+const fs=require("node:fs");
+const path=require("node:path");
+const crypto=require("node:crypto");
+const BASE="c58e93f2e6f6a91b8bf5528edd3b29724652390c";
+const OWN="C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D";
+const ARCH=".ngrace/changes/archive";
+function fail(msg){console.error("GUARD-A FAIL: "+msg);process.exit(1);}
+function dep(cmd,args){const r=spawnSync(cmd,args,{encoding:"buffer"});if(r.error){fail("dependency error "+cmd+": "+r.error.message);}if(r.status!==0){fail("dependency exit "+r.status+" "+cmd+" "+args.join(" ")+" :: "+r.stderr.toString().trim());}return r.stdout;}
+function contentOf(p){const st=fs.lstatSync(p);if(st.isSymbolicLink())return Buffer.from(fs.readlinkSync(p));if(!st.isFile())throw new Error("unsupported file type "+p);return fs.readFileSync(p);}
+function blobSha(buf){return crypto.createHash("sha1").update(Buffer.concat([Buffer.from("blob "+buf.length+"\0"),buf])).digest("hex");}
+const raw=dep("git",["ls-tree","-r","-z",BASE,"--",ARCH]).toString("utf8");
+const base=new Map();
+const baseRoots=new Set();
+for(const rec of raw.split("\0")){if(rec.length===0)continue;const tab=rec.indexOf("\t");const meta=rec.slice(0,tab);const p=rec.slice(tab+1);base.set(p,meta.split(" ")[2]);const seg=p.slice(ARCH.length+1).split("/")[0];if(seg)baseRoots.add(seg);}
+function isOwn(rel){return rel===OWN||rel.startsWith(OWN+"/");}
+const bad=[];
+for(const [p,sha] of base){if(!fs.existsSync(p)){bad.push("missing "+p);continue;}let b;try{b=contentOf(p);}catch(e){bad.push("unreadable "+p);continue;}if(blobSha(b)!==sha)bad.push("byte "+p);}
+const actual=[];
+function walk(d){for(const n of fs.readdirSync(d)){const p=path.join(d,n);if(p===ARCH+"/"+OWN)continue;const st=fs.lstatSync(p);if(st.isDirectory())walk(p);else actual.push(p);}}
+walk(ARCH);
+for(const p of actual){const rel=p.slice(ARCH.length+1);if(isOwn(rel))continue;if(!base.has(p))bad.push("extra "+p);}
+const actualRoots=new Set();
+for(const n of fs.readdirSync(ARCH)){if(isOwn(n))continue;actualRoots.add(n);}
+for(const r of baseRoots)if(!actualRoots.has(r))bad.push("root-missing "+r);
+for(const r of actualRoots)if(!baseRoots.has(r))bad.push("root-extra "+r);
+if(bad.length){fail(bad.slice(0,30).join("; "));}
+console.log("GUARD-A OK base="+base.size+" actual="+actual.length+" roots="+actualRoots.size);'</Command></CloseEvidence>
+      </AC-ARCHIVE-PRESERVATION>
+      <AC-BOUNDED-WRITES>
+        Relative to base `c58e93f2e6f6a91b8bf5528edd3b29724652390c`, the only tracked changes are the
+        ten named implementation paths and this bundle's own active/archive lifecycle paths. The
+        instrument checks staged changes and compares each protected path's Git type/executable mode and base blob bytes against its filesystem state,
+        independently of `--assume-unchanged` or `--skip-worktree`, and fails on any changed,
+        deleted, or newly tracked path outside the exact ten and the own active/archive directories;
+        a persistent tracked candidate-lock path is not exempt and fails. It adds no general helper
+        and no additional implementation path, and fails closed on a missing base or a failed Git or
+        read subprocess.
+        <CloseEvidence><Command>git diff --exit-code c58e93f2e6f6a91b8bf5528edd3b29724652390c -- . ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/verification/localize.test.ts' ':(exclude)src/gates/ledger.ts' ':(exclude)src/gates/core.test.ts' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)README.md' ':(exclude).ngrace/changes/active/C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D' ':(exclude).ngrace/changes/archive/C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D' &amp;&amp; git diff --cached --exit-code c58e93f2e6f6a91b8bf5528edd3b29724652390c -- . ':(exclude)src/review/core.ts' ':(exclude)src/review/catalog.ts' ':(exclude)src/review/core.test.ts' ':(exclude)src/verification/localize.test.ts' ':(exclude)src/gates/ledger.ts' ':(exclude)src/gates/core.test.ts' ':(exclude)skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md' ':(exclude)src/test-support/token-accounting.test.ts' ':(exclude)README.md' ':(exclude).ngrace/changes/active/C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D' ':(exclude).ngrace/changes/archive/C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D' &amp;&amp; bun -e 'const {spawnSync}=require("node:child_process");
+const fs=require("node:fs");
+const crypto=require("node:crypto");
+const BASE="c58e93f2e6f6a91b8bf5528edd3b29724652390c";
+const OWN="C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D";
+const ALLOWED=new Set(["src/review/core.ts","src/review/catalog.ts","src/review/core.test.ts","src/verification/localize.test.ts","src/gates/ledger.ts","src/gates/core.test.ts","skills/ngrace/ngrace-plan/SKILL.md","plugins/ngrace/skills/ngrace/ngrace-plan/SKILL.md","src/test-support/token-accounting.test.ts","README.md"]);
+function fail(msg){console.error("GUARD-B FAIL: "+msg);process.exit(1);}
+function dep(cmd,args){const r=spawnSync(cmd,args,{encoding:"buffer"});if(r.error){fail("dependency error "+cmd+": "+r.error.message);}if(r.status!==0){fail("dependency exit "+r.status+" "+cmd+" "+args.join(" ")+" :: "+r.stderr.toString().trim());}return r.stdout;}
+function contentOf(p){const st=fs.lstatSync(p);if(st.isSymbolicLink())return Buffer.from(fs.readlinkSync(p));return fs.readFileSync(p);}
+function blobSha(buf){return crypto.createHash("sha1").update(Buffer.concat([Buffer.from("blob "+buf.length+"\0"),buf])).digest("hex");}
+function isOwn(p){const a=".ngrace/changes/active/"+OWN;const b=".ngrace/changes/archive/"+OWN;return p===a||p.startsWith(a+"/")||p===b||p.startsWith(b+"/");}
+function allowed(p){return ALLOWED.has(p)||isOwn(p);}
+const baseRaw=dep("git",["ls-tree","-r","-z",BASE]).toString("utf8");
+const base=new Map();
+for(const rec of baseRaw.split("\0")){if(rec.length===0)continue;const tab=rec.indexOf("\t");const meta=rec.slice(0,tab).split(" ");base.set(rec.slice(tab+1),{mode:meta[0],sha:meta[2]});}
+const cur=dep("git",["ls-files","-z"]).toString("utf8").split("\0").filter(s=>s.length>0);
+const curSet=new Set(cur);
+const bad=[];
+for(const [p,entry] of base){if(allowed(p))continue;if(!curSet.has(p)){bad.push("deleted "+p);continue;}let b;try{const st=fs.lstatSync(p);const mode=st.isSymbolicLink()?"120000":st.isFile()?((st.mode&amp;0o100)?"100755":"100644"):"invalid";if(mode!==entry.mode){bad.push("mode/type "+p);continue;}b=contentOf(p);}catch(e){bad.push("unreadable "+p);continue;}if(blobSha(b)!==entry.sha)bad.push("byte "+p);}
+for(const p of cur){if(allowed(p))continue;if(!base.has(p))bad.push("extra-tracked "+p);}
+if(bad.length){fail(bad.slice(0,30).join("; "));}
+console.log("GUARD-B OK tracked="+curSet.size);'</Command></CloseEvidence>
+      </AC-BOUNDED-WRITES>
+    </AcceptanceCriteria>
+    <AffectedAreas>
+      <M-REVIEW />
+      <M-LOCALIZE />
+      <M-GATES />
+      <M-TEST-SUPPORT />
+    </AffectedAreas>
+    <VerificationIntent>
+      <ExpectedCommand>bun run validate:cli</ExpectedCommand>
+      <ExpectedCommand>bun run ./scripts/validate-marketplace.ts</ExpectedCommand>
+      <ExpectedCommand>bun run ngrace lint --path . --fail-on warnings</ExpectedCommand>
+      <ExpectedCommand>bun test --timeout=0 src/review/core.test.ts src/verification/localize.test.ts src/gates/core.test.ts src/test-support/token-accounting.test.ts</ExpectedCommand>
+      <ExpectedEvidence>
+        The four module verification anchors are covered: `V-M-REVIEW` / `M-REVIEW`
+        (`src/review/core.ts`, `src/review/catalog.ts`, `src/review/core.test.ts`), `V-M-LOCALIZE` /
+        `M-LOCALIZE` (`src/verification/localize.test.ts`), `V-M-GATES` / `M-GATES`
+        (`src/gates/ledger.ts`, `src/gates/core.test.ts`), and `V-M-TEST-SUPPORT` / `M-TEST-SUPPORT`
+        (`src/test-support/token-accounting.test.ts`). Later validation at execute must include
+        `bun run validate:cli`, the required marketplace checks for the changed published skill and
+        mirror, real consumer CLI probes on complete synthetic adopting projects (happy and refusal
+        directions, exact restoration, phase-before-status, the evidence-consumption refusals, no
+        unrelated archived-content I/O in the global scan, and byte-preservation checks), the two
+        guard instruments driven in both directions on a disposable copy with restoration, root lint,
+        and the final CI at the declared execute/close boundary. Guard-removal discrimination is
+        required: removing the command-result or binding guard must redden a test, and the repaired
+        refusal test must not be satisfied by a missing-acknowledgement failure. This spec's own
+        current-mode lint and selected read-only review are the draft-state evidence and are not
+        target or final evidence.
+      </ExpectedEvidence>
+    </VerificationIntent>
+    <Problem>
+      The current-only policy in `AGENTS.md` and the withdrawn compatibility campaign in
+      `docs/plans/active/RM-GOVERNED-PATH/grace-implementation-queue.md:154-156` withdraws historical
+      archive compatibility: older archive contents are passive LLM evidence, not current operational
+      inputs. The first slice, `C-CURRENT-VALIDATION-BOUNDARY-1-D8D7DF85`, made the automatic grammar,
+      lint, and query paths current-only and explicitly deferred the review, selected-close, and
+      teaching consumers. Two defects and two teaching errors remain in the current product, and the
+      selected-close counterweight is incomplete.
+
+      First, `src/review/core.ts:508-567` globally discovers `changes/**/plan.xml`, parses archived
+      contents, and emits `review.historical-path-absent` from archived `MustExist` values;
+      `runReview` invokes that global detector before the selected audits (`:1561-1590`). An unrelated
+      archived plan is thereby a current review input. Measured 2026-10-06 on this repository at base
+      `c58e93f2e6f6a91b8bf5528edd3b29724652390c`: `ngrace review --path . --severity info` reports
+      exactly three `review.historical-path-absent` infos, and archived path mutation changes review
+      output while exact restoration reproduces it. Discover active plans before any content read;
+      remove the obsolete archive-notice producer and guide; preserve active `MustExist` refusal,
+      including Baseline and undeclared/unexempt Target claims, and preserve the other current project
+      detectors and selected audits. The intentional read of an explicitly selected archived
+      current-close record by its own consumer is not the removed global read.
+
+      Second, `src/gates/ledger.ts:437-584` can record a selected current-close `pass` with a
+      malformed or missing spec, a wrong root or wrapper identity, missing criteria, an incomplete or
+      unconsumable `CloseEvidence`, a non-applied status, or a missing/malformed/mismatched plan. The
+      evaluator `evaluateCloseEvidenceChildren` (`:546-584`) returns an empty child list when the
+      spec is missing, is not applied/archive, has no `C-*` wrapper, or fails to parse, and
+      `recordReviewVerdict` then records `pass` because no child records `Result=fail` — shape, value,
+      and skipped-evidence failure silently become zero evidence. The existing `isAppliedArchiveBundle`
+      early return lets a missing/invalid spec or a present non-applied status escape validation.
+      Measured across two synthetic consumers via the real CLI: malformed/missing/wrong-identity
+      selected inputs and archived non-applied statuses recorded `pass` exit 0 with a ledger write and
+      exact restoration restored valid evaluation; a Command mutating the selected plan bytes during
+      evaluation also recorded `pass`; a legacy `Criterion` with explicit failing evidence and two
+      direct evidence blocks each passed with the command skipped or only the first block run while
+      the exported validators reported no issues, and nested evidence passed with a
+      `change.acceptance-criterion-unmapped` coverage warning rather than a refusal. The strict selected validator must
+      refuse these rather than record them, while preserving the existing guards.
+
+      Third, `ngrace-plan` rule 6 (`SKILL.md:62`) presents this repository's flush, retirement, and
+      live-root operations without an adopter/example qualifier, reading as universal GRACE
+      requirements. The universal requirement to scope all assigned actors' writes and the lawful
+      close writes must be retained and expressed in terms of each adopting project's actual
+      operations and targets.
+
+      Fourth, rule 19 (`SKILL.md:75`) says absent archived scratch `MustExist` claims produce
+      `review.confidently-wrong`; that claim is already false and becomes plainly false once the
+      first defect is fixed. Faithful copies should be taught to carry the actual inputs consumed by
+      current planned verification and selected current-close commands, with scratch and VCS metadata
+      conditional on those consumers, plan-time rehearsals distinguished from close-time verification,
+      and the accurate active-plan refusal teaching and other verification/copy safeguards retained.
+
+      The counterweight is answered, not ignored. `C-HISTORICAL-ASSERTION-REVIEW-4-5D40885D`
+      (`spec.xml:3-31`, `plan.xml:57-59`) deliberately kept F16 relocation/foreign-ID detection as
+      informational notices. This change explicitly overturns that unrelated-archive detection choice
+      under the later current-only policy, and answers it with active-plan refusal and strict selected
+      current-close validation, not weaker current checks. Identity helpers still needed by current
+      selected scope/close consumers are preserved (`C-REPORT-HONESTY`, `spec.xml:232-241`).
+      `C-CRITERION-CLOSE-EVIDENCE` (`spec.xml:102-108,163-173,186-192`) explains evaluation after
+      archive, active inertness, and lint/evaluation separation, and `C-BOUND-VERDICT`
+      (`spec.xml:1688-1697`) preserves `Result`/`Exit` beside `Finding`/`Ack` and failed-command
+      refusal; both are preserved.
+
+      Payment disposition, disclosed rather than deferred: no `Pays` is owed on the measured
+      candidates (F17/F51 resolved with standing footprint rules; F123 a watch item, not current
+      debt). F177 and the live `C-ROADMAP-XML` charter (`registry.xml:68`) propose an archived-artifact
+      reader that conflicts with the later current-only policy; this bundle neither authorizes that
+      reader nor converts that separate roadmap charter, and does not widen into record conversion.
+    </Problem>
+    <Assumptions>
+      <Assumption>
+        The strict selected validator reuses the exported `validateChangeArtifact` and
+        `validateSpecPlanCoverage` and adds only the narrow selected-close evidence-consumption guard
+        inside `src/gates/ledger.ts` (tested in `src/gates/core.test.ts`), so
+        `src/artifact/grammar.ts` and `src/artifact/grammar.test.ts` are not forced and stay
+        byte-identical to base. The guard is required because the exported validators alone accept
+        the legacy, multiple-block, and nested skipped-evidence shapes.
+      </Assumption>
+      <Assumption>
+        The post-change whole-canonical line and byte totals are not predicted here; the literal pin is
+        set from the canonical-only measurement taken during implementation, and this assumption
+        expires when that measurement lands. No mirror-inclusive figure is used.
+      </Assumption>
+      <Assumption>
+        The `README.md` review-output byte figure and the `closeEvidenceCommandShapes` configuration
+        are unaffected by removing an `info`-severity code that default-severity review already omits;
+        the README row that moves is the skill footprint row. The selected plan bytes are the only new
+        decision-bearing snapshot input; the `.ngrace-lint.json` read used for command-shape
+        classification is advisory only and is not snapshot-guarded.
+      </Assumption>
+    </Assumptions>
+  </C-REVIEW-CURRENT-BOUNDARY-1-217D3F0D>
+</NgraceChangeSpec>

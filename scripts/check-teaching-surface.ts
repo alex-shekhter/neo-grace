@@ -453,7 +453,8 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-reviewer", section: "mechanized_first", token: "design-context.xml" },
   { skill: "ngrace-plan", section: "must_do", token: "assertion.command-not-evaluated" },
   { skill: "ngrace-plan", section: "validation", token: "assertion.change-required" },
-  { skill: "ngrace-plan", section: "must_do", token: "review.confidently-wrong" },
+  { skill: "ngrace-plan", section: "must_do", token: "necessary ignored/untracked inputs" },
+  { skill: "ngrace-plan", section: "must_do", token: "is not run at PLAN" },
   { skill: "ngrace-plan", section: "spec_plan_traceability", token: "maps only criteria without" },
   { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "task that owns the surface" },
   { skill: "ngrace-execute", section: "execution_rules", token: "pass-only correction" },
@@ -605,7 +606,66 @@ export function checkStaleReviewClaims(root: string): number {
   return 0;
 }
 
+// ---------------------------------------------------------------------------
+// C-PLANNING-PHASE-TEACHING-1-CBE5DFAD T-001: the private stale plan-phase
+// claim guard. It is intentionally NOT exported; its integration is exercised
+// through runTeachingSurfaceCheck. Its inventory recurses through every
+// SKILL.md under both fixed trees (never the shallow skillFilesUnder), and it
+// normalizes whitespace in both the body and each forbidden fragment before
+// literal matching, so a wrapped exact fragment cannot evade it. No general
+// paraphrase detection is claimed; an exact fragment is forbidden even quoted.
+// ---------------------------------------------------------------------------
+
+const STALE_PLAN_PHASE_CLAIMS = [
+  "and the full CI in a faithful post-close copy at plan time",
+  "because without it `review.confidently-wrong` fires on archived plans",
+] as const;
+
+function normalizePlanPhaseText(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+function collectSkillMdRecursive(dir: string, base: string = dir): string[] {
+  if (!existsSync(dir)) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const entryPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...collectSkillMdRecursive(entryPath, base));
+    } else if (entry.isFile() && entry.name === "SKILL.md") {
+      out.push(path.relative(base, entryPath).replaceAll("\\", "/"));
+    }
+  }
+  return out.sort();
+}
+
+function refuseStalePlanPhaseClaim(file: string, rule: string, token: string): void {
+  console.error(`checkStalePlanPhaseClaims refusal: ${file} — stale plan-phase claim (${rule}): ${token}`);
+}
+
+/** Private. Return non-zero when a SKILL.md recursively under either fixed tree carries a stale plan-phase claim. */
+function checkStalePlanPhaseClaims(root: string): number {
+  for (const tree of GOVERNED_TREES) {
+    const dir = path.join(root, tree);
+    for (const relative of collectSkillMdRecursive(dir)) {
+      const body = normalizePlanPhaseText(readFileSync(path.join(dir, relative), "utf8"));
+      for (const claim of STALE_PLAN_PHASE_CLAIMS) {
+        if (body.includes(normalizePlanPhaseText(claim))) {
+          refuseStalePlanPhaseClaim(`${tree}/${relative}`, "no stale plan-phase claim", claim);
+          return 1;
+        }
+      }
+    }
+  }
+  return 0;
+}
+
 export function runTeachingSurfaceCheck(root: string): number {
+  if (checkStalePlanPhaseClaims(root) !== 0) {
+    return 1;
+  }
   if (checkRecordTokens(root) !== 0) {
     return 1;
   }
