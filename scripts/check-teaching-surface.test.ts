@@ -13,6 +13,7 @@ import {
   checkStaleReviewClaims,
   checkTaughtRules,
   checkTemplateFill,
+  runTeachingSurfaceCheck,
 } from "./check-teaching-surface";
 
 const SKILL_RELATIVES = [
@@ -569,7 +570,8 @@ const TAUGHT_RULES: Array<{
   { skill: "ngrace-reviewer", section: "mechanized_first", token: "design-context.xml" },
   { skill: "ngrace-plan", section: "must_do", token: "assertion.command-not-evaluated" },
   { skill: "ngrace-plan", section: "validation", token: "assertion.change-required" },
-  { skill: "ngrace-plan", section: "must_do", token: "review.confidently-wrong" },
+  { skill: "ngrace-plan", section: "must_do", token: "necessary ignored/untracked inputs" },
+  { skill: "ngrace-plan", section: "must_do", token: "is not run at PLAN" },
   { skill: "ngrace-plan", section: "spec_plan_traceability", token: "maps only criteria without" },
   { skill: "ngrace-execute", section: "cursor_kinds", kind: "attempt", token: "task that owns the surface" },
   { skill: "ngrace-execute", section: "execution_rules", token: "pass-only correction" },
@@ -1006,7 +1008,8 @@ describe("checkStaleReviewClaims", () => {
 const NEW_NEEDLES = [
   { skill: "ngrace-plan", section: "must_do", token: "assertion.command-not-evaluated" },
   { skill: "ngrace-plan", section: "validation", token: "assertion.change-required" },
-  { skill: "ngrace-plan", section: "must_do", token: "review.confidently-wrong" },
+  { skill: "ngrace-plan", section: "must_do", token: "necessary ignored/untracked inputs" },
+  { skill: "ngrace-plan", section: "must_do", token: "is not run at PLAN" },
   { skill: "ngrace-plan", section: "spec_plan_traceability", token: "maps only criteria without" },
   { skill: "ngrace-execute", section: "cursor_kinds", token: "task that owns the surface" },
   { skill: "ngrace-execute", section: "execution_rules", token: "pass-only correction" },
@@ -1096,4 +1099,99 @@ describe("C-TEACHING-CLOSE-PATH-1-3E91B69F red directions", () => {
       expect(output).toContain(needle.token);
     });
   }
+});
+
+
+// C-PLANNING-PHASE-TEACHING-1-CBE5DFAD T-001: the private checkStalePlanPhaseClaims
+// guard is not exported, so its integration is exercised through the public
+// runTeachingSurfaceCheck entrypoint. Exact, whitespace-wrapped and nested
+// fragments refuse in each tree; benign no-CI text and a clean tree do not.
+const PLAN_PHASE_F1 = "and the full CI in a faithful post-close copy at plan time";
+const PLAN_PHASE_F2 = "because without it `review.confidently-wrong` fires on archived plans";
+
+function plantPhaseTree(root: string, files: Record<string, string>): void {
+  for (const [relative, body] of Object.entries(files)) {
+    const file = path.join(root, relative);
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(file, body);
+  }
+}
+
+function phaseGuardRefused(output: string): boolean {
+  return output.includes("checkStalePlanPhaseClaims refusal");
+}
+
+describe("checkStalePlanPhaseClaims (private, through runTeachingSurfaceCheck)", () => {
+  const PHASE_TREES = ["skills/ngrace", "plugins/ngrace/skills/ngrace"] as const;
+
+  it("refuses an exact forbidden fragment in each tree and names the file", () => {
+    for (const tree of PHASE_TREES) {
+      for (const fragment of [PLAN_PHASE_F1, PLAN_PHASE_F2]) {
+        const root = isolatedRoot();
+        const relative = `${tree}/ngrace-plan/SKILL.md`;
+        plantPhaseTree(root, { [relative]: `<must_do>\n${fragment}\n</must_do>\n` });
+        const { code, output } = captureStderr(() => runTeachingSurfaceCheck(root));
+        expect(code).not.toBe(0);
+        expect(phaseGuardRefused(output)).toBe(true);
+        expect(output).toContain(relative);
+      }
+    }
+  });
+
+  it("refuses a whitespace-wrapped forbidden fragment in each tree", () => {
+    const wrapped = [
+      "and the full CI in a faithful post-close\ncopy at plan time",
+      "because without it `review.confidently-wrong` fires on\narchived plans",
+    ];
+    for (const tree of PHASE_TREES) {
+      for (const fragment of wrapped) {
+        const root = isolatedRoot();
+        const relative = `${tree}/ngrace-plan/SKILL.md`;
+        plantPhaseTree(root, { [relative]: `<must_do>\n${fragment}\n</must_do>\n` });
+        const { code, output } = captureStderr(() => runTeachingSurfaceCheck(root));
+        expect(code).not.toBe(0);
+        expect(phaseGuardRefused(output)).toBe(true);
+      }
+    }
+  });
+
+  it("refuses a nested SKILL.md in each tree", () => {
+    for (const tree of PHASE_TREES) {
+      const root = isolatedRoot();
+      const relative = `${tree}/ngrace-plan/nested/deep/SKILL.md`;
+      plantPhaseTree(root, { [relative]: `${PLAN_PHASE_F1}\n` });
+      const { code, output } = captureStderr(() => runTeachingSurfaceCheck(root));
+      expect(code).not.toBe(0);
+      expect(phaseGuardRefused(output)).toBe(true);
+      expect(output).toContain(relative);
+    }
+  });
+
+  it("refuses an exact forbidden fragment quoted inside a sentence (literal contract)", () => {
+    const root = isolatedRoot();
+    plantPhaseTree(root, { "skills/ngrace/ngrace-plan/SKILL.md": `The obsolete sentence "${PLAN_PHASE_F1}" is removed.\n` });
+    const { code, output } = captureStderr(() => runTeachingSurfaceCheck(root));
+    expect(code).not.toBe(0);
+    expect(phaseGuardRefused(output)).toBe(true);
+  });
+
+  it("does not raise the phase-guard refusal for a benign no-CI statement", () => {
+    for (const tree of PHASE_TREES) {
+      const root = isolatedRoot();
+      plantPhaseTree(root, { [`${tree}/ngrace-plan/SKILL.md`]: "The full CI is not run at PLAN; it belongs to EXECUTE.\n" });
+      const { output } = captureStderr(() => runTeachingSurfaceCheck(root));
+      expect(phaseGuardRefused(output)).toBe(false);
+    }
+  });
+
+  it("does not raise the phase-guard refusal on a clean tree", () => {
+    const root = isolatedRoot();
+    plantPhaseTree(root, { "skills/ngrace/ngrace-plan/SKILL.md": "<must_do>clean</must_do>\n" });
+    const { output } = captureStderr(() => runTeachingSurfaceCheck(root));
+    expect(phaseGuardRefused(output)).toBe(false);
+  });
+
+  it("real-repository: the repaired trees pass the integrated checker (generous timeout)", () => {
+    expect(runTeachingSurfaceCheck(REPO_ROOT)).toBe(0);
+  });
 });
